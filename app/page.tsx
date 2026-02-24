@@ -18,7 +18,9 @@ import {
   Sun,
   Moon,
   Plus,
-  LogIn
+  LogIn,
+  Menu,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -98,6 +100,7 @@ export default function HomePage() {
   const [joinCode, setJoinCode] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -146,7 +149,7 @@ export default function HomePage() {
         sessionStorage.setItem('playerName', playerName);
         router.push(`/room/${joinCode.toUpperCase()}`);
       } else {
-        toast.error('Room introuvable ou pleine.');
+        toast.error('Room non trouvée ou inexistante. Vérifie le code !');
       }
     } catch (error) {
       console.error('Erreur rejoindre room:', error);
@@ -169,7 +172,9 @@ export default function HomePage() {
                 IttolecHub
               </span>
             </div>
-            <div className="flex items-center gap-4">
+            
+            {/* Desktop Menu */}
+            <div className="hidden md:flex items-center gap-4">
                <a href="#games" className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}>Jeux</a>
                <button 
                  onClick={toggleTheme}
@@ -178,8 +183,40 @@ export default function HomePage() {
                  {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                </button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className={`p-2 rounded-md ${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+              >
+                {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Menu Panel */}
+        {isMobileMenuOpen && (
+          <div className={`md:hidden px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <a 
+              href="#games" 
+              className={`block px-3 py-2 rounded-md text-base font-medium ${isDarkMode ? 'text-slate-300 hover:text-white hover:bg-slate-800' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'}`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Jeux
+            </a>
+            <div className="px-3 py-2 flex items-center justify-between">
+              <span className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Thème</span>
+              <button 
+                 onClick={toggleTheme}
+                 className={`p-2 rounded-full transition-colors ${isDarkMode ? 'bg-slate-800 text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-600 hover:text-slate-900'}`}
+               >
+                 {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+               </button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
@@ -265,7 +302,6 @@ export default function HomePage() {
                         className={`pl-10 uppercase tracking-widest font-mono ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white placeholder:text-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400'}`}
                         value={joinCode}
                         onChange={(e) => setJoinCode(e.target.value)}
-                        maxLength={4}
                       />
                     </div>
                   </div>
