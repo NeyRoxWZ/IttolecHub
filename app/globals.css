@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Thème de base : fond et texte lisibles en light et dark */
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Inputs : toujours lisibles (éviter texte blanc sur fond blanc) */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+input[type="range"],
+textarea {
+  @apply text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600;
+}
+
+input::placeholder,
+textarea::placeholder {
+  @apply text-slate-400 dark:text-slate-500;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100 dark:bg-slate-800 rounded;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-600 rounded hover:bg-slate-400 dark:hover:bg-slate-500;
+}
+
+/* Zone de contenu : ne pas passer sous le toggle thème (fixe en haut à droite) */
+@media (min-width: 640px) {
+  .game-layout {
+    padding-right: 4rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .game-layout {
+    padding-top: 3.5rem;
+  }
+}
