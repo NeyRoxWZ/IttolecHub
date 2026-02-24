@@ -9,6 +9,6 @@ export default function UndercoverPage({
   params: { code: string };
   searchParams: { [key: string]: string };
 }) {
-  return <Undercover roomCode={params.code} settings={searchParams} />;
+  return <Undercover roomCode={params.code} />;
 }
 

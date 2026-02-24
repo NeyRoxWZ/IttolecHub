@@ -9,6 +9,6 @@ export default function InfiltrePage({
   params: { code: string };
   searchParams: { [key: string]: string };
 }) {
-  return <Infiltre roomCode={params.code} settings={searchParams} />;
+  return <Infiltre roomCode={params.code} />;
 }
 

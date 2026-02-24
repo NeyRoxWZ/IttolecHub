@@ -1,26 +1,34 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Clock, User, Copy, Check } from 'lucide-react';
-import { useState } from 'react';
 
 interface GameLayoutProps {
-  children: ReactNode;
-  players: Record<string, number>;
-  roundCount: number;
-  maxRounds: number;
-  timer: string;
-  gameCode: string;
-  gameTitle: string;
-  isHost: boolean;
-  gameStarted: boolean;
+  header?: ReactNode;
+  main?: ReactNode;
+  footer?: ReactNode;
+  playersBar?: ReactNode;
+  // Legacy props compatibility (optional)
+  children?: ReactNode;
+  players?: Record<string, number>;
+  roundCount?: number;
+  maxRounds?: number;
+  timer?: string;
+  gameCode?: string;
+  gameTitle?: string;
+  isHost?: boolean;
+  gameStarted?: boolean;
   onStartGame?: () => void;
-  timeLeft: number;
+  timeLeft?: number;
   typingPlayer?: string | null;
 }
 
 export default function GameLayout({
+  header,
+  main,
+  footer,
+  playersBar,
   children,
   players,
   roundCount,
@@ -37,11 +45,44 @@ export default function GameLayout({
   const [copied, setCopied] = useState(false);
 
   const copyCode = () => {
-    navigator.clipboard.writeText(gameCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (gameCode) {
+        navigator.clipboard.writeText(gameCode);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }
   };
+  
+  // If using new structure (header/main/footer props)
+  if (header || main || footer) {
+      return (
+        <div className="min-h-screen bg-slate-950 text-slate-50 flex flex-col font-sans relative overflow-hidden">
+             {/* Background Elements */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[100px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[100px]" />
+            </div>
 
+            <header className="sticky top-0 z-10 p-4">
+                <div className="max-w-4xl mx-auto">
+                    {header}
+                </div>
+            </header>
+
+            <main className="flex-1 flex flex-col items-center justify-center p-4 z-10 w-full max-w-4xl mx-auto">
+                {main || children}
+            </main>
+
+            <footer className="sticky bottom-0 z-10 p-4 bg-slate-950/80 backdrop-blur-sm border-t border-slate-800/50">
+                <div className="max-w-4xl mx-auto flex flex-col gap-4">
+                    {playersBar}
+                    {footer}
+                </div>
+            </footer>
+        </div>
+      );
+  }
+
+  // Fallback for legacy usage
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col relative overflow-hidden font-sans">
       {/* Background Elements */}
@@ -74,7 +115,7 @@ export default function GameLayout({
           )}
           
           <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${
-            timeLeft <= 5 && gameStarted 
+            (timeLeft || 0) <= 5 && gameStarted 
               ? 'bg-red-500/20 border-red-500/50 text-red-400 animate-pulse' 
               : 'bg-white/5 border-white/10 text-white'
           }`}>
@@ -99,27 +140,16 @@ export default function GameLayout({
            )}
            
            <div className="flex flex-wrap items-center justify-center gap-4">
-            {Object.entries(players)
-              .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
-              .map(([name, score]) => (
-              <div 
-                key={name}
-                className="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-full border border-white/10"
-              >
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-[10px] font-bold">
-                  {name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex flex-col leading-none">
-                  <span className="text-sm font-medium">{name}</span>
-                  <span className="text-xs text-gray-400">{score} pts</span>
-                </div>
-              </div>
-            ))}
-            
-            {Object.keys(players).length === 0 && (
-               <div className="text-sm text-gray-500 italic">En attente de joueurs...</div>
-            )}
-          </div>
+             {players && Object.entries(players)
+               .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
+               .map(([name, score]) => (
+                 <div key={name} className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                    <User className="w-3 h-3 text-gray-400" />
+                    <span className="text-sm font-medium">{name}</span>
+                    <span className="text-xs font-mono bg-white/10 px-1.5 py-0.5 rounded text-gray-300">{score}</span>
+                 </div>
+               ))}
+           </div>
         </div>
       </footer>
     </main>
