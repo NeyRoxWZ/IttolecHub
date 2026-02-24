@@ -6,14 +6,14 @@ import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { Trophy, CheckCircle, XCircle, Zap, Check } from 'lucide-react';
+import { CheckCircle, XCircle, Zap, Check } from 'lucide-react';
 import Image from 'next/image';
 
-interface PokemonData {
-  id: number;
-  names: { [lang: string]: string };
-  imageUrl: string;
-  generation: string;
+interface CountryData {
+  name: { common: string; official: string; [key: string]: string };
+  flags: { png: string; svg: string };
+  region: string;
+  translations: { [key: string]: { common: string; official: string } };
 }
 
 interface PlayerAnswer {
@@ -22,20 +22,20 @@ interface PlayerAnswer {
   isCorrect: boolean;
 }
 
-interface PokeGuessrProps {
+interface FlagGuesserProps {
   roomCode: string | null;
   settings?: { [key: string]: string };
 }
 
-export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
+export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
   const [userAnswer, setUserAnswer] = useState('');
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(15);
   const [maxRounds, setMaxRounds] = useState(5);
-  const [roundTime, setRoundTime] = useState(30);
+  const [roundTime, setRoundTime] = useState(15);
   const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
   
   // Settings
-  const [selectedGens, setSelectedGens] = useState<number[]>([1]);
+  const [selectedRegion, setSelectedRegion] = useState<string>('all'); // 'all', 'africa', 'americas', 'asia', 'europe', 'oceania'
 
   // Sync with DB
   const {
@@ -51,10 +51,10 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     updateRoundData,
     setGameStatus,
     updatePlayerScore
-  } = useGameSync(roomCode ?? '', 'pokeguessr');
+  } = useGameSync(roomCode ?? '', 'flagguessr');
 
   // Realtime
-  const { broadcast, messages } = useRealtime(roomCode ?? '', 'pokeguessr');
+  const { broadcast, messages } = useRealtime(roomCode ?? '', 'flagguessr');
 
   const playerName =
     typeof window !== 'undefined'
@@ -64,7 +64,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
   // Derived State
   const gameStarted = roomStatus === 'in_game';
   const roundEnded = gameState?.status === 'round_results' || gameState?.status === 'game_over';
-  const pokemon: PokemonData | null = gameState?.round_data?.pokemon || null;
+  const country: CountryData | null = gameState?.round_data?.country || null;
   const currentRound = gameState?.current_round || 0;
   
   const playersMap = useMemo(() => {
@@ -82,7 +82,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     if (gameState?.settings) {
       if (gameState.settings.rounds) setMaxRounds(parseInt(gameState.settings.rounds, 10));
       if (gameState.settings.time) setRoundTime(parseInt(gameState.settings.time, 10));
-      if (gameState.settings.gens) setSelectedGens(gameState.settings.gens);
+      if (gameState.settings.region) setSelectedRegion(gameState.settings.region);
     }
   }, [gameState?.settings]);
 
@@ -121,67 +121,43 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }, [timeLeft]);
 
-  const fetchPokemon = async (id: number): Promise<PokemonData | null> => {
+  const fetchCountries = async (region: string): Promise<CountryData[]> => {
     try {
-      const res = await fetch(`/api/games/pokemon?id=${id}`);
-      if (!res.ok) return null;
+      const url = region === 'all' 
+        ? 'https://restcountries.com/v3.1/all?fields=name,flags,region,translations'
+        : `https://restcountries.com/v3.1/region/${region}?fields=name,flags,region,translations`;
+      
+      const res = await fetch(url);
+      if (!res.ok) return [];
       return await res.json();
     } catch (e) {
-      console.error('Error fetching pokemon', e);
-      return null;
+      console.error('Error fetching countries', e);
+      return [];
     }
-  };
-
-  const getPokemonIdsForGens = async (gens: number[], count: number): Promise<number[]> => {
-      // Helper to get random IDs from selected generations
-      const genLimits = {
-        1: { min: 1, max: 151 },
-        2: { min: 152, max: 251 },
-        3: { min: 252, max: 386 },
-        4: { min: 387, max: 493 },
-        5: { min: 494, max: 649 },
-        6: { min: 650, max: 721 },
-        7: { min: 722, max: 809 },
-        8: { min: 810, max: 905 },
-        9: { min: 906, max: 1025 },
-      };
-
-      let allIds: number[] = [];
-      gens.forEach(g => {
-          const limit = genLimits[g as keyof typeof genLimits];
-          if (limit) {
-              for (let i = limit.min; i <= limit.max; i++) {
-                  allIds.push(i);
-              }
-          }
-      });
-      
-      // Shuffle and pick
-      for (let i = allIds.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [allIds[i], allIds[j]] = [allIds[j], allIds[i]];
-      }
-      
-      return allIds.slice(0, count);
   };
 
   const startRound = async () => {
     if (!isHost || !roomCode) return;
 
     try {
-      // Get IDs
-      const ids = await getPokemonIdsForGens(selectedGens, maxRounds);
+      const countries = await fetchCountries(selectedRegion);
       
-      if (ids.length === 0) return;
+      if (countries.length === 0) return;
 
-      const firstId = ids[0];
-      const pokemon = await fetchPokemon(firstId);
-      const queue = ids.slice(1);
+      // Shuffle
+      for (let i = countries.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [countries[i], countries[j]] = [countries[j], countries[i]];
+      }
+      
+      const selection = countries.slice(0, maxRounds);
+      const firstCountry = selection[0];
+      const queue = selection.slice(1);
       const endTime = Date.now() + roundTime * 1000;
       
       await startGame({
-        pokemon,
-        queue, // Store IDs in queue
+        country: firstCountry,
+        queue,
         endTime
       });
       
@@ -197,23 +173,22 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     try {
       const queue = gameState.round_data.queue || [];
       
-      let nextId;
-      let nextQueue = [];
-
       if (queue.length === 0) {
-          // Fetch one more random
-          const ids = await getPokemonIdsForGens(selectedGens, 1);
-          nextId = ids[0];
-      } else {
-          nextId = queue[0];
-          nextQueue = queue.slice(1);
+           // End game or fetch more? Usually end game.
+           // But let's fetch one more just in case
+           const countries = await fetchCountries(selectedRegion);
+           const random = countries[Math.floor(Math.random() * countries.length)];
+           const endTime = Date.now() + roundTime * 1000;
+           await nextRound({ country: random, queue: [], endTime });
+           return;
       }
 
-      const pokemon = await fetchPokemon(nextId);
+      const nextCountry = queue[0];
+      const nextQueue = queue.slice(1);
       const endTime = Date.now() + roundTime * 1000;
       
       await nextRound({
-         pokemon,
+         country: nextCountry,
          queue: nextQueue,
          endTime
       });
@@ -229,21 +204,24 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
   };
 
   const endRound = async () => {
-    if (!isHost || !pokemon || !gameState) return;
+    if (!isHost || !country || !gameState) return;
 
-    const correctNames = Object.values(pokemon.names).map(n => n.toLowerCase());
+    const correctNames = [
+        country.name.common.toLowerCase(),
+        country.name.official.toLowerCase(),
+        country.translations?.fra?.common?.toLowerCase(),
+        country.translations?.fra?.official?.toLowerCase()
+    ].filter(Boolean);
     
     const answers = gameState.answers || {};
     const results: PlayerAnswer[] = [];
     
-    const updatedScores: Record<string, number> = {};
-
     for (const p of players) {
         const pAnswer = answers[p.id]?.answer;
         let isCorrect = false;
         
         if (pAnswer) {
-             isCorrect = correctNames.includes(pAnswer.toLowerCase());
+             isCorrect = correctNames.some(n => n === pAnswer.toLowerCase());
         }
         
         results.push({
@@ -257,7 +235,6 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
         }
     }
     
-    // Update round data
     await updateRoundData({
         ...gameState.round_data,
         results
@@ -288,7 +265,6 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     return () => clearTimeout(timeout);
   }, [typingPlayer]);
   
-  // Helpers for UI
   const playerResults = useMemo(() => {
       if (gameState?.round_data?.results) {
           return gameState.round_data.results as PlayerAnswer[];
@@ -306,55 +282,12 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
       return [];
   }, [gameState?.answers, players]);
 
-  // Checkbox toggle
-  const toggleGen = (gen: number) => {
-      setSelectedGens(prev => {
-          if (prev.includes(gen)) {
-              if (prev.length === 1) return prev; // Keep at least one
-              return prev.filter(g => g !== gen);
-          }
-          return [...prev, gen];
-      });
-      // Host should verify update settings if needed, but we do it on start or useEffect sync
-      if (isHost) {
-          // We don't sync partial changes immediately to avoid spam, or we do.
-          // Let's sync when start game or use a specific button "Save Settings" if complex.
-          // Or just update local state and sync when startGame is called?
-          // But non-hosts need to see it.
-          // I'll sync immediately for better UX.
-          // Need to wrap in useEffect or call updateSettings.
-          // But setState is async.
-          // I'll skip immediate sync for now, let's rely on startRound sending the config used?
-          // No, plan says "Non-hosts voient les paramètres en lecture seule".
-          // So I must sync.
-          // I'll use a useEffect to sync `selectedGens` to settings.
-      }
-  };
-
+  // Settings sync
   useEffect(() => {
       if (isHost) {
-          updateSettings({ ...gameState?.settings, gens: selectedGens });
+          updateSettings({ ...gameState?.settings, region: selectedRegion });
       }
-  }, [selectedGens, isHost]); // Be careful with infinite loops if updateSettings updates gameState which updates selectedGens
-
-  // To avoid loop: Only update if different.
-  // And `useEffect` above: `if (gameState.settings.gens) setSelectedGens(...)`.
-  // This will cause loop if not careful.
-  // I should check deep equality or just rely on Host being the source of truth.
-  // If I am host, I drive the state. I don't listen to gameState settings for MYSELF.
-  // I updated the useEffect:
-  /*
-  useEffect(() => {
-    if (gameState?.settings) {
-       // Only if NOT host?
-       if (!isHost) {
-          if (gameState.settings.gens) setSelectedGens(gameState.settings.gens);
-       }
-       // ...
-    }
-  }, [gameState?.settings, isHost]);
-  */
-  // I'll fix the useEffect above.
+  }, [selectedRegion, isHost]);
 
   return (
     <GameLayout
@@ -363,7 +296,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
       maxRounds={maxRounds}
       timer={formattedTimer}
       gameCode={roomCode ?? ''}
-      gameTitle="PokéGuessr"
+      gameTitle="FlagGuessr"
       isHost={isHost}
       gameStarted={gameStarted}
       onStartGame={startRound}
@@ -399,19 +332,19 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
                 </div>
                 
                 <div className="mb-6">
-                    <span className="text-sm text-gray-400 block mb-2">Générations</span>
-                    <div className="grid grid-cols-5 gap-2">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(g => (
+                    <span className="text-sm text-gray-400 block mb-2">Région</span>
+                    <div className="grid grid-cols-3 gap-2">
+                        {['all', 'africa', 'americas', 'asia', 'europe', 'oceania'].map(r => (
                             <button
-                                key={g}
-                                onClick={() => toggleGen(g)}
-                                className={`p-2 rounded text-xs font-bold transition-colors ${
-                                    selectedGens.includes(g) 
+                                key={r}
+                                onClick={() => setSelectedRegion(r)}
+                                className={`p-2 rounded text-xs font-bold transition-colors capitalize ${
+                                    selectedRegion === r
                                     ? 'bg-blue-500 text-white' 
                                     : 'bg-white/5 text-gray-400 hover:bg-white/10'
                                 }`}
                             >
-                                Gen {g}
+                                {r === 'all' ? 'Monde' : r}
                             </button>
                         ))}
                     </div>
@@ -431,8 +364,8 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
                       <span className="font-bold">{maxRounds}</span>
                    </div>
                    <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Générations</span>
-                      <span className="font-bold">{selectedGens.join(', ')}</span>
+                      <span className="text-sm text-gray-400">Région</span>
+                      <span className="font-bold capitalize">{selectedRegion}</span>
                    </div>
                 </div>
               </div>
@@ -440,15 +373,13 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
           </div>
         ) : (
           <>
-            {pokemon && (
-              <div className="relative w-64 h-64 sm:w-80 sm:h-80 mx-auto mb-4">
+            {country && (
+              <div className="relative w-full max-w-2xl h-64 sm:h-80 mx-auto mb-4">
                  <Image
-                    src={pokemon.imageUrl}
-                    alt="Pokemon"
+                    src={country.flags.svg || country.flags.png}
+                    alt="Flag"
                     fill
-                    className={`object-contain transition-all duration-1000 ${
-                        !roundEnded ? 'brightness-0 blur-md grayscale opacity-80' : 'brightness-100 blur-0 grayscale-0 opacity-100'
-                    }`}
+                    className="object-contain"
                     priority
                  />
               </div>
@@ -459,7 +390,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
                 <div className="relative">
                   <Input
                     type="text"
-                    placeholder="Quel est ce Pokémon ?"
+                    placeholder="Quel est ce pays ?"
                     value={userAnswer}
                     onChange={(e) => {
                       setUserAnswer(e.target.value);
@@ -469,7 +400,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
                       });
                     }}
                     onKeyDown={(e) => e.key === 'Enter' && handleAnswer()}
-                    className="h-14 text-lg pr-12 text-center font-bold uppercase"
+                    className="h-14 text-lg pr-12 text-center font-bold"
                     autoFocus
                   />
                   <div className="absolute right-2 top-2 bottom-2 w-10 flex items-center justify-center text-gray-400">
@@ -501,7 +432,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
                     C'était...
                   </h3>
                   <div className="text-5xl font-black text-white mb-2 capitalize">
-                    {pokemon?.names['fr'] || pokemon?.names['en']}
+                    {country?.translations?.fra?.common || country?.name?.common}
                   </div>
                 </div>
 

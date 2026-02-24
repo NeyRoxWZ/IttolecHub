@@ -1,38 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-function getLastWord(sentence: string): string {
-  return sentence.split(' ').pop()?.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"") || '';
-}
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const word = searchParams.get('word');
+  const target = searchParams.get('target');
 
-export async function POST(request: NextRequest) {
+  if (!word || !target) {
+    return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
+  }
+
   try {
-    const { sentence, rhymeWith } = await request.json();
+    // 1. Basic suffix check (last 3 letters)
+    const suffixMatch = word.slice(-3).toLowerCase() === target.slice(-3).toLowerCase();
     
-    if (!sentence || !rhymeWith) {
-      return NextResponse.json(
-        { error: 'Les paramètres "sentence" et "rhymeWith" sont requis' },
-        { status: 400 }
-      );
+    // 2. Datamuse check (phonetic)
+    // We check if 'word' is in the rhyme list of 'target'
+    const res = await fetch(`https://api.datamuse.com/words?rel_rhy=${encodeURIComponent(target)}&max=1000`);
+    const data = await res.json();
+    
+    const phoneticMatch = data.some((item: any) => item.word.toLowerCase() === word.toLowerCase());
+    
+    // Also check approximate rhymes (rel_nry)
+    let approxMatch = false;
+    if (!phoneticMatch) {
+        const resApprox = await fetch(`https://api.datamuse.com/words?rel_nry=${encodeURIComponent(target)}&max=1000`);
+        const dataApprox = await resApprox.json();
+        approxMatch = dataApprox.some((item: any) => item.word.toLowerCase() === word.toLowerCase());
     }
 
-    const lastWord = getLastWord(sentence);
-    if (!lastWord) {
-      return NextResponse.json({ isRhyme: false });
-    }
+    return NextResponse.json({
+      matches: suffixMatch || phoneticMatch || approxMatch,
+      details: { suffixMatch, phoneticMatch, approxMatch }
+    });
 
-    const url = `https://api.datamuse.com/words?rel_rhy=${rhymeWith}`;
-    const response = await fetch(url);
-    const rhymes: { word: string, score: number }[] = await response.json();
-    
-    const isRhyme = rhymes.some(rhyme => rhyme.word === lastWord);
-
-    return NextResponse.json({ isRhyme });
-    
   } catch (error) {
-    console.error('Erreur API Datamuse:', error);
-    return NextResponse.json(
-      { error: 'Erreur lors de la vérification de la rime' },
-      { status: 500 }
-    );
+    console.error('Error checking rhyme:', error);
+    // Fallback to suffix check on error
+    return NextResponse.json({
+      matches: word.slice(-3).toLowerCase() === target.slice(-3).toLowerCase(),
+      fallback: true
+    });
   }
 }

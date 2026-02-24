@@ -2,288 +2,241 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { useRealtime } from '@/hooks/useRealtime';
+import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
 import { Clock, EyeOff, Shield, User } from 'lucide-react';
+import { toast } from 'sonner';
 
 type Role = 'MASTER' | 'INFILTRÉ' | 'CITOYEN';
-type Phase = 'roles' | 'question' | 'vote1' | 'vote2' | 'end';
-
-interface RealtimeMessage {
-  type: string;
-  data?: any;
-}
+type Phase = 'roles' | 'question' | 'vote' | 'end';
 
 interface InfiltreProps {
-  roomCode: string | null;
-  settings?: { [key: string]: string };
+  roomCode: string;
 }
 
-export default function Infiltre({ roomCode, settings }: InfiltreProps) {
-  const [roles, setRoles] = useState<Record<string, Role>>({});
-  const [phase, setPhase] = useState<Phase>('roles');
-  const [secretWord, setSecretWord] = useState<string | null>(null);
-  const [category, setCategory] = useState<string | null>(null);
-  const [finder, setFinder] = useState<string | null>(null);
-  const [lastAnswer, setLastAnswer] = useState<'yes' | 'no' | 'maybe' | null>(
-    null,
-  );
+export default function Infiltre({ roomCode }: InfiltreProps) {
+  const {
+    gameState,
+    isHost,
+    players,
+    playerId,
+    startGame: hostStartGame,
+    updateRoundData,
+    nextRound: hostNextRound,
+    submitAnswer
+  } = useGameSync(roomCode, 'infiltre');
+
+  // Local state for timer
   const [timeLeft, setTimeLeft] = useState<number>(0);
-  const [questionDuration, setQuestionDuration] = useState<number>(180);
-  const [voteTargets, setVoteTargets] = useState<Record<string, string>>({});
-  const [voteResult, setVoteResult] = useState<string | null>(null);
 
-  const { broadcast, presence, messages } = useRealtime(
-    roomCode ?? '',
-    'infiltre',
-  );
+  // Derived state from gameState.round_data
+  const roundData = gameState?.round_data || {};
+  const phase = (roundData.phase as Phase) || 'roles';
+  const roles = (roundData.roles as Record<string, Role>) || {};
+  const secretWord = roundData.word as string | null;
+  const category = roundData.category as string | null;
+  const lastAnswer = roundData.lastAnswer as 'yes' | 'no' | 'maybe' | null;
+  const voteResult = roundData.voteResult as string | null;
+  const winner = roundData.winner as 'CITOYENS' | 'INFILTRÉ' | 'AUCUN' | null;
+  const queue = (roundData.queue as any[]) || [];
+  const questionDuration = (gameState?.settings?.time ? parseInt(gameState.settings.time, 10) : 180) || 180;
+  
+  const myRole = playerId ? roles[playerId] : undefined;
+  
+  // Votes from game_sessions.answers
+  const currentVotes = gameState?.answers || {};
+  const myVote = playerId && currentVotes[playerId] ? currentVotes[playerId].answer : null;
 
-  const isHost =
-    typeof window !== 'undefined' && sessionStorage.getItem('isHost') === 'true';
-  const playerName =
-    typeof window !== 'undefined'
-      ? sessionStorage.getItem('playerName') || 'Anonyme'
-      : 'Anonyme';
-
+  // Timer logic
   useEffect(() => {
-    const raw = settings?.time ?? '';
-    const t = parseInt(raw, 10);
-    if (!Number.isNaN(t) && t >= 60) {
-      setQuestionDuration(t);
-      setTimeLeft(t);
-    } else {
-      setQuestionDuration(180);
-      setTimeLeft(180);
-    }
-  }, [settings]);
-
-  const playersInRoom = useMemo(
-    () =>
-      presence
-        .map((p: any) => p.playerName as string)
-        .filter(Boolean)
-        .sort(),
-    [presence],
-  );
-
-  const myRole: Role | undefined = roles[playerName];
-
-  const formattedTimer = useMemo(() => {
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds
-      .toString()
-      .padStart(2, '0')}`;
-  }, [timeLeft]);
-
-  const startGame = async () => {
-    if (!roomCode || !isHost || playersInRoom.length < 4) return;
-
-    try {
-      const res = await fetch('/api/games/infiltre');
-      const data = await res.json();
-      if (!res.ok || !data.word) {
-        console.error('Erreur Infiltré API:', data.error);
-        return;
-      }
-
-      const shuffled = [...playersInRoom].sort(
-        () => Math.random() - 0.5,
-      ) as string[];
-      const master = shuffled[0];
-      const infiltré = shuffled[1];
-
-      const newRoles: Record<string, Role> = {};
-      shuffled.forEach((name) => {
-        if (name === master) newRoles[name] = 'MASTER';
-        else if (name === infiltré) newRoles[name] = 'INFILTRÉ';
-        else newRoles[name] = 'CITOYEN';
-      });
-
-      setRoles(newRoles);
-      setSecretWord(data.word);
-      setCategory(data.category ?? null);
-      setPhase('question');
-      setFinder(null);
-      setVoteTargets({});
-      setVoteResult(null);
+    if (phase === 'question') {
       setTimeLeft(questionDuration);
-      setLastAnswer(null);
-
-      broadcast({
-        type: 'game_init',
-        data: {
-          roles: newRoles,
-          word: data.word,
-          category: data.category ?? null,
-          duration: questionDuration,
-        },
-      });
-    } catch (error) {
-      console.error('Erreur démarrage Infiltré:', error);
     }
-  };
-
-  const handleMasterAnswer = (answer: 'yes' | 'no' | 'maybe') => {
-    if (myRole !== 'MASTER') return;
-    setLastAnswer(answer);
-    broadcast({ type: 'answer', data: { answer } });
-  };
-
-  const announceFinder = (name: string) => {
-    if (!isHost) return;
-    setFinder(name);
-    setPhase('vote1');
-    setVoteTargets({});
-    setVoteResult(null);
-    broadcast({ type: 'word_found', data: { finder: name } });
-  };
-
-  const castVote = (target: string | null) => {
-    if (!roomCode || !playerName) return;
-    setVoteTargets((prev) => ({ ...prev, [playerName]: target ?? '' }));
-    broadcast({
-      type: 'vote',
-      data: { phase, voter: playerName, target: target ?? null },
-    });
-  };
-
-  const tallyVotes = () => {
-    if (!isHost) return;
-
-    const votesArray = Object.entries(voteTargets).filter(
-      ([, target]) => target,
-    ) as [string, string][];
-    if (votesArray.length === 0) return;
-
-    const counts: Record<string, number> = {};
-    votesArray.forEach(([, target]) => {
-      counts[target] = (counts[target] || 0) + 1;
-    });
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    if (sorted.length === 0) return;
-
-    const [suspect, votes] = sorted[0];
-    setVoteResult(suspect);
-    broadcast({
-      type: 'vote_result',
-      data: { phase, suspect, votes, totalVoters: votesArray.length },
-    });
-
-    if (phase === 'vote1') {
-      if (!finder) return;
-      if (suspect === finder) {
-        const infiltréName = Object.entries(roles).find(
-          ([, r]) => r === 'INFILTRÉ',
-        )?.[0];
-        const infiltréCaught = infiltréName === finder;
-        setPhase('end');
-        broadcast({
-          type: 'game_end',
-          data: { winner: infiltréCaught ? 'CITOYENS' : 'INFILTRÉ' },
-        });
-      } else {
-        setPhase('vote2');
-      }
-    } else if (phase === 'vote2') {
-      const infiltréName = Object.entries(roles).find(
-        ([, r]) => r === 'INFILTRÉ',
-      )?.[0];
-      const infiltréCaught = infiltréName === suspect;
-      setPhase('end');
-      broadcast({
-        type: 'game_end',
-        data: { winner: infiltréCaught ? 'CITOYENS' : 'INFILTRÉ' },
-      });
-    }
-  };
+  }, [phase, questionDuration]);
 
   useEffect(() => {
-    const last = messages[messages.length - 1] as RealtimeMessage | undefined;
-    if (!last) return;
-
-    if (last.type === 'game_init') {
-      setRoles(last.data.roles);
-      setSecretWord(last.data.word);
-      setCategory(last.data.category ?? null);
-      setPhase('question');
-      setFinder(null);
-      setVoteTargets({});
-      setVoteResult(null);
-      setTimeLeft(last.data.duration ?? questionDuration);
-      setLastAnswer(null);
-    } else if (last.type === 'answer') {
-      setLastAnswer(last.data.answer);
-    } else if (last.type === 'word_found') {
-      setFinder(last.data.finder);
-      setPhase('vote1');
-      setVoteTargets({});
-      setVoteResult(null);
-    } else if (last.type === 'vote') {
-      setVoteTargets((prev) => ({
-        ...prev,
-        [last.data.voter]: last.data.target ?? '',
-      }));
-    } else if (last.type === 'vote_result') {
-      setVoteResult(last.data.suspect);
-    } else if (last.type === 'game_end') {
-      setPhase('end');
-    }
-  }, [messages, questionDuration]);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout | undefined;
+    let interval: NodeJS.Timeout;
     if (phase === 'question' && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => {
-          if (prev <= 1) {
-            if (isHost) {
-              setPhase('end');
-              broadcast({
-                type: 'game_end',
-                data: { winner: 'AUCUN', reason: 'time' },
-              });
-            }
-            return 0;
-          }
+          if (prev <= 1) return 0;
           return prev - 1;
         });
       }, 1000);
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [phase, timeLeft, isHost]);
+    return () => clearInterval(interval);
+  }, [phase, timeLeft]);
 
-  if (!roomCode) {
-    return (
-      <main className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center p-4">
-        <p className="text-slate-400 text-center">
-          Code de room introuvable. Reviens à l&apos;accueil pour créer une
-          partie.
-        </p>
-      </main>
-    );
-  }
+  // Host checks time
+  useEffect(() => {
+    if (isHost && phase === 'question' && timeLeft === 0) {
+      // Time up -> Go to Vote
+      updateRoundData({ ...roundData, phase: 'vote' });
+    }
+  }, [isHost, phase, timeLeft, roundData, updateRoundData]);
 
-  const playersBar =
-    playersInRoom.length > 0 ? (
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {playersInRoom.map((name) => (
+  const handleStartGame = async () => {
+    if (!isHost) return;
+    try {
+      const res = await fetch('/api/games/infiltre?count=20');
+      const data = await res.json();
+      if (!Array.isArray(data)) {
+        toast.error('Erreur chargement mots');
+        return;
+      }
+
+      const firstWord = data[0];
+      const remainingQueue = data.slice(1);
+
+      // Assign roles
+      const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+      if (shuffledPlayers.length < 3) {
+        // Need at least 3 players ideally, but allow less for testing if needed
+      }
+      
+      const master = shuffledPlayers[0];
+      const infiltre = shuffledPlayers[1]; // Might be undefined if 1 player
+      const newRoles: Record<string, Role> = {};
+      
+      players.forEach(p => {
+        if (p.id === master?.id) newRoles[p.id] = 'MASTER';
+        else if (p.id === infiltre?.id) newRoles[p.id] = 'INFILTRÉ';
+        else newRoles[p.id] = 'CITOYEN';
+      });
+
+      await hostStartGame({
+        queue: remainingQueue,
+        word: firstWord.word,
+        category: firstWord.category,
+        roles: newRoles,
+        phase: 'question',
+        lastAnswer: null,
+        voteResult: null,
+        winner: null
+      });
+
+    } catch (err) {
+      console.error(err);
+      toast.error('Impossible de démarrer');
+    }
+  };
+
+  const handleNextRound = async () => {
+    if (!isHost) return;
+    if (queue.length === 0) {
+      handleStartGame(); // Restart with new batch
+      return;
+    }
+
+    const nextWord = queue[0];
+    const newQueue = queue.slice(1);
+
+    const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+    const master = shuffledPlayers[0];
+    const infiltre = shuffledPlayers[1];
+    const newRoles: Record<string, Role> = {};
+      
+    players.forEach(p => {
+      if (p.id === master?.id) newRoles[p.id] = 'MASTER';
+      else if (p.id === infiltre?.id) newRoles[p.id] = 'INFILTRÉ';
+      else newRoles[p.id] = 'CITOYEN';
+    });
+
+    await hostNextRound({
+      queue: newQueue,
+      word: nextWord.word,
+      category: nextWord.category,
+      roles: newRoles,
+      phase: 'question',
+      lastAnswer: null,
+      voteResult: null,
+      winner: null
+    });
+  };
+
+  const handleMasterAnswer = (answer: 'yes' | 'no' | 'maybe') => {
+    if (myRole !== 'MASTER') return;
+    updateRoundData({ ...roundData, lastAnswer: answer });
+  };
+
+  const startVote = () => {
+    if (!isHost) return;
+    updateRoundData({ ...roundData, phase: 'vote' });
+  };
+
+  const castVote = async (targetId: string | null) => {
+    if (!playerId) return;
+    // Toggle vote if clicking same person? No, just set.
+    // If targetId is null (cancel), send empty?
+    if (targetId) {
+        await submitAnswer(targetId);
+    }
+  };
+
+  const closeVote = async () => {
+    if (!isHost) return;
+    
+    const voteCounts: Record<string, number> = {};
+    Object.values(currentVotes).forEach((v: any) => {
+        const target = v.answer;
+        if (target) voteCounts[target] = (voteCounts[target] || 0) + 1;
+    });
+
+    let maxVotes = 0;
+    let suspect = null;
+    Object.entries(voteCounts).forEach(([id, count]) => {
+        if (count > maxVotes) {
+            maxVotes = count;
+            suspect = id;
+        }
+    });
+
+    const infiltreId = Object.keys(roles).find(id => roles[id] === 'INFILTRÉ');
+    // If no votes or tie, handle? Assuming suspect is found.
+    // If suspect is Infiltré -> Citizens Win.
+    const citizensWin = suspect === infiltreId;
+    
+    updateRoundData({
+        ...roundData,
+        phase: 'end',
+        voteResult: suspect,
+        winner: citizensWin ? 'CITOYENS' : 'INFILTRÉ'
+    });
+  };
+
+  const formattedTimer = useMemo(() => {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }, [timeLeft]);
+
+  const playersBar = (
+    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {players.map((p) => (
           <div
-            key={name}
-            className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900 border border-slate-800 text-sm shrink-0"
+            key={p.id}
+            className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm shrink-0 ${
+               phase === 'vote' && myVote === p.id 
+               ? 'bg-indigo-600 border-indigo-500 text-slate-50'
+               : 'bg-slate-900 border-slate-800 text-slate-50'
+            }`}
           >
             <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-semibold">
-              {name.charAt(0).toUpperCase()}
+              {p.name.charAt(0).toUpperCase()}
             </div>
-            <span className="font-medium text-slate-50 max-w-[120px] truncate">
-              {name}
+            <span className="font-medium max-w-[120px] truncate">
+              {p.name}
             </span>
+            {phase === 'end' && roles[p.id] === 'INFILTRÉ' && (
+                <span className="text-[10px] bg-red-500 text-white px-1 rounded">INF</span>
+            )}
+             {phase === 'end' && roles[p.id] === 'MASTER' && (
+                <span className="text-[10px] bg-blue-500 text-white px-1 rounded">GM</span>
+            )}
           </div>
         ))}
-      </div>
-    ) : null;
+    </div>
+  );
 
   const header = (
     <div className="flex flex-col gap-3 bg-slate-900 p-4 rounded-2xl w-full border border-slate-800">
@@ -305,10 +258,7 @@ export default function Infiltre({ roomCode, settings }: InfiltreProps) {
             <div
               className="h-full bg-indigo-600 transition-all duration-1000"
               style={{
-                width: `${Math.max(
-                  0,
-                  (timeLeft / questionDuration) * 100,
-                )}%`,
+                width: `${Math.max(0, (timeLeft / questionDuration) * 100)}%`,
               }}
             />
           </div>
@@ -319,155 +269,150 @@ export default function Infiltre({ roomCode, settings }: InfiltreProps) {
 
   const main = (
     <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 flex flex-col items-center text-center w-full shadow-xl">
-      <p className="text-xs text-slate-400 mb-2 uppercase tracking-wide">
-        Ton rôle
-      </p>
-      <div className="flex items-center gap-3 mb-4">
-        <div className="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center">
-          {myRole === 'MASTER' ? (
-            <Shield className="h-5 w-5 text-slate-50" />
-          ) : (
-            <User className="h-5 w-5 text-slate-50" />
-          )}
-        </div>
-        <div className="text-left">
-          <p className="text-sm text-slate-400">Tu es</p>
-          <p className="text-lg font-semibold">
-            {myRole === 'MASTER'
-              ? 'Maître du jeu'
-              : myRole === 'INFILTRÉ'
-              ? 'Infiltré'
-              : 'Citoyen'}
-          </p>
-        </div>
-      </div>
-
-      {myRole === 'MASTER' || myRole === 'INFILTRÉ' ? (
-        <div className="w-full rounded-2xl bg-slate-800 px-4 py-3 mb-4">
-          <p className="text-xs text-slate-400 mb-1 uppercase tracking-wide">
-            Mot secret
-          </p>
-          <p className="text-xl font-semibold text-slate-50">
-            {secretWord ?? '---'}
-          </p>
-          {category && (
-            <p className="text-xs text-slate-400 mt-1">{category}</p>
-          )}
-        </div>
+      {phase === 'roles' ? (
+         <div className="flex flex-col items-center justify-center py-10">
+            <Shield className="h-16 w-16 text-slate-700 mb-4" />
+            <h2 className="text-xl font-bold text-slate-200 mb-2">En attente</h2>
+            <p className="text-slate-400 text-sm max-w-xs">
+                Le Maître du jeu va lancer la partie et distribuer les rôles.
+            </p>
+         </div>
       ) : (
-        <div className="w-full rounded-2xl bg-slate-800 px-4 py-3 mb-4">
-          <p className="text-xs text-slate-400 mb-2 uppercase tracking-wide">
-            Mot secret inconnu
-          </p>
-          <div className="flex items-center gap-2 text-slate-400 text-sm">
-            <EyeOff className="h-4 w-4" />
-            <span>
-              Pose des questions intelligentes au Maître du jeu pour découvrir le
-              mot.
-            </span>
-          </div>
-        </div>
-      )}
-
-      {phase === 'question' && (
         <>
-          <p className="text-xs text-slate-500 mb-3">
-            Les joueurs posent des questions oralement. Le Maître répond via
-            l&apos;interface ci‑dessous.
-          </p>
-          <div className="w-full flex flex-col items-center gap-3">
-            {myRole === 'MASTER' ? (
-              <div className="flex flex-col gap-2 w-full">
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    className="rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm py-2"
-                    onClick={() => handleMasterAnswer('yes')}
-                  >
-                    Oui
-                  </Button>
-                  <Button
-                    className="rounded-2xl bg-rose-500 hover:bg-rose-400 text-slate-950 text-sm py-2"
-                    onClick={() => handleMasterAnswer('no')}
-                  >
-                    Non
-                  </Button>
-                  <Button
-                    className="rounded-2xl bg-slate-700 hover:bg-slate-600 text-slate-50 text-sm py-2"
-                    onClick={() => handleMasterAnswer('maybe')}
-                  >
-                    Je ne sais pas
-                  </Button>
+            <p className="text-xs text-slate-400 mb-2 uppercase tracking-wide">
+                Ton rôle
+            </p>
+            <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center">
+                {myRole === 'MASTER' ? (
+                    <Shield className="h-5 w-5 text-slate-50" />
+                ) : (
+                    <User className="h-5 w-5 text-slate-50" />
+                )}
                 </div>
-                <div className="text-xs text-slate-500 flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  <span>
-                    Quand le mot est trouvé, clique sur le joueur concerné en
-                    dessous pour passer au vote.
-                  </span>
+                <div className="text-left">
+                <p className="text-sm text-slate-400">Tu es</p>
+                <p className="text-lg font-semibold">
+                    {myRole === 'MASTER'
+                    ? 'Maître du jeu'
+                    : myRole === 'INFILTRÉ'
+                    ? 'Infiltré'
+                    : 'Citoyen'}
+                </p>
                 </div>
-              </div>
-            ) : (
-              <div className="text-xs text-slate-500">
-                Attends les réponses du Maître du jeu et discute avec les autres
-                joueurs.
-              </div>
-            )}
-
-            {lastAnswer && (
-              <div className="mt-2 px-3 py-1.5 rounded-full bg-slate-800 text-xs text-slate-200 flex items-center gap-2">
-                <span className="font-medium text-slate-400">
-                  Dernière réponse :
-                </span>
-                <span className="uppercase tracking-wide">
-                  {lastAnswer === 'yes'
-                    ? 'OUI'
-                    : lastAnswer === 'no'
-                    ? 'NON'
-                    : 'JE NE SAIS PAS'}
-                </span>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {phase === 'vote1' && (
-        <>
-          <p className="text-sm text-slate-200 mb-2 font-medium">
-            Vote 1 : le trouveur est‑il l&apos;Infiltré ?
-          </p>
-          <p className="text-xs text-slate-500 mb-3">
-            Si la majorité l&apos;accuse et qu&apos;il est Infiltré, les citoyens
-            gagnent. Sinon, l&apos;Infiltré gagne.
-          </p>
-          {finder && (
-            <div className="mb-3 px-4 py-2 rounded-2xl bg-slate-800 text-sm text-slate-200">
-              Trouveur déclaré : <span className="font-semibold">{finder}</span>
             </div>
-          )}
-        </>
-      )}
 
-      {phase === 'vote2' && (
-        <>
-          <p className="text-sm text-slate-200 mb-2 font-medium">
-            Vote 2 : désignez l&apos;Infiltré
-          </p>
-          <p className="text-xs text-slate-500 mb-3">
-            Si la majorité trouve le bon Infiltré, les citoyens gagnent. Sinon,
-            l&apos;Infiltré gagne.
-          </p>
-        </>
-      )}
+            {myRole === 'MASTER' || myRole === 'INFILTRÉ' ? (
+                <div className="w-full rounded-2xl bg-slate-800 px-4 py-3 mb-4">
+                <p className="text-xs text-slate-400 mb-1 uppercase tracking-wide">
+                    Mot secret
+                </p>
+                <p className="text-xl font-semibold text-slate-50">
+                    {secretWord ?? '---'}
+                </p>
+                {category && (
+                    <p className="text-xs text-slate-400 mt-1">{category}</p>
+                )}
+                </div>
+            ) : (
+                <div className="w-full rounded-2xl bg-slate-800 px-4 py-3 mb-4">
+                <p className="text-xs text-slate-400 mb-2 uppercase tracking-wide">
+                    Mot secret inconnu
+                </p>
+                <div className="flex items-center gap-2 text-slate-400 text-sm justify-center">
+                    <EyeOff className="h-4 w-4" />
+                    <span>Pose des questions au Maître !</span>
+                </div>
+                </div>
+            )}
 
-      {phase === 'end' && (
-        <>
-          <p className="text-sm text-slate-200 mb-2 font-medium">
-            Fin de la manche
-          </p>
-          <p className="text-xs text-slate-500 mb-3">
-            Lancez une nouvelle partie ou changez de jeu depuis le lobby.
-          </p>
+            {phase === 'question' && (
+                <div className="w-full flex flex-col items-center gap-3">
+                {myRole === 'MASTER' ? (
+                    <div className="flex flex-col gap-2 w-full">
+                        <div className="grid grid-cols-3 gap-2">
+                        <Button
+                            className="rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm py-2"
+                            onClick={() => handleMasterAnswer('yes')}
+                        >
+                            Oui
+                        </Button>
+                        <Button
+                            className="rounded-2xl bg-rose-500 hover:bg-rose-400 text-slate-950 text-sm py-2"
+                            onClick={() => handleMasterAnswer('no')}
+                        >
+                            Non
+                        </Button>
+                        <Button
+                            className="rounded-2xl bg-slate-700 hover:bg-slate-600 text-slate-50 text-sm py-2"
+                            onClick={() => handleMasterAnswer('maybe')}
+                        >
+                            ???
+                        </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-xs text-slate-500">
+                        Attends les réponses du Maître du jeu.
+                    </div>
+                )}
+
+                {lastAnswer && (
+                    <div className="mt-2 px-3 py-1.5 rounded-full bg-slate-800 text-xs text-slate-200 flex items-center gap-2">
+                        <span className="font-medium text-slate-400">
+                        Dernière réponse :
+                        </span>
+                        <span className="uppercase tracking-wide font-bold text-white">
+                        {lastAnswer === 'yes'
+                            ? 'OUI'
+                            : lastAnswer === 'no'
+                            ? 'NON'
+                            : 'JE NE SAIS PAS'}
+                        </span>
+                    </div>
+                )}
+                </div>
+            )}
+
+            {phase === 'vote' && (
+                <div className="w-full">
+                    <p className="text-sm text-slate-200 mb-2 font-medium">
+                        Votez pour démasquer l&apos;Infiltré !
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-center mt-4">
+                        {players.map((p) => (
+                        <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => castVote(p.id)}
+                            className={`px-4 py-2 rounded-full text-sm border transition-all ${
+                            myVote === p.id
+                                ? 'bg-indigo-600 border-indigo-500 text-white scale-105 shadow-lg shadow-indigo-500/20'
+                                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                            }`}
+                        >
+                            {p.name}
+                        </button>
+                        ))}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-4">
+                        Le Maître du jeu clôturera le vote.
+                    </p>
+                </div>
+            )}
+
+            {phase === 'end' && (
+                <div className="w-full">
+                    <p className="text-2xl font-bold text-white mb-2">
+                        {winner === 'CITOYENS' ? '🎉 Les Citoyens gagnent !' : '🕵️ L\'Infiltré gagne !'}
+                    </p>
+                    <div className="bg-slate-800 rounded-xl p-4 mt-4 text-left space-y-2">
+                        <p className="text-sm text-slate-400">L&apos;Infiltré était : <span className="text-white font-bold">{players.find(p => roles[p.id] === 'INFILTRÉ')?.name || 'Inconnu'}</span></p>
+                        <p className="text-sm text-slate-400">Le suspect voté : <span className="text-white font-bold">{players.find(p => p.id === voteResult)?.name || 'Aucun'}</span></p>
+                        <p className="text-sm text-slate-400">Le mot était : <span className="text-white font-bold">{secretWord}</span></p>
+                    </div>
+                </div>
+            )}
         </>
       )}
     </div>
@@ -475,84 +420,48 @@ export default function Infiltre({ roomCode, settings }: InfiltreProps) {
 
   const footer = (
     <div className="flex flex-col gap-3">
-      {phase === 'roles' && (
-        <div className="flex flex-col gap-3">
-          <p className="text-xs text-slate-500 text-center">
-            En attente du Maître de la room pour distribuer les rôles.
-          </p>
-          {isHost && (
-            <Button
-              onClick={startGame}
-              className="w-full rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-slate-50 py-3 text-base"
-              disabled={playersInRoom.length < 4}
-            >
-              Distribuer les rôles & démarrer
-            </Button>
-          )}
-        </div>
+      {isHost && (
+        <>
+            {phase === 'roles' && (
+                <Button
+                    onClick={handleStartGame}
+                    className="w-full rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-slate-50 py-3 text-base"
+                    disabled={players.length < 3} // Should be 3 normally
+                >
+                    Distribuer les rôles & démarrer
+                </Button>
+            )}
+            {phase === 'question' && (
+                 <Button
+                    onClick={startVote}
+                    className="w-full rounded-2xl bg-rose-600 hover:bg-rose-500 text-slate-50 py-3 text-base"
+                >
+                    Lancer le vote (Fin du temps)
+                </Button>
+            )}
+            {phase === 'vote' && (
+                 <Button
+                    onClick={closeVote}
+                    className="w-full rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-slate-50 py-3 text-base"
+                >
+                    Clôturer le vote
+                </Button>
+            )}
+             {phase === 'end' && (
+                 <Button
+                    onClick={handleNextRound}
+                    className="w-full rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-slate-50 py-3 text-base"
+                >
+                    Manche suivante
+                </Button>
+            )}
+        </>
       )}
-
-      {(phase === 'vote1' || phase === 'vote2') && (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2 justify-center">
-            {playersInRoom.map((name) => (
-              <button
-                key={name}
-                type="button"
-                onClick={() =>
-                  castVote(voteTargets[playerName] === name ? null : name)
-                }
-                className={`px-3 py-1.5 rounded-full text-xs border ${
-                  voteTargets[playerName] === name
-                    ? 'bg-indigo-600 border-indigo-500 text-slate-50'
-                    : 'bg-slate-900 border-slate-700 text-slate-200'
-                }`}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-
-          <p className="text-[11px] text-slate-500 text-center">
-            Tu votes en cliquant sur un joueur. Tu peux cliquer à nouveau pour
-            annuler ton vote.
-          </p>
-
-          {isHost && (
-            <Button
-              onClick={tallyVotes}
-              className="w-full rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-slate-50 py-2.5 text-sm"
-            >
-              Clore le vote et appliquer le résultat
-            </Button>
-          )}
-
-          {voteResult && (
-            <div className="text-xs text-center text-slate-300">
-              Suspect principal :{' '}
-              <span className="font-semibold">{voteResult}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {phase === 'question' && myRole === 'MASTER' && (
-        <div className="flex flex-wrap gap-2 justify-center">
-          {playersInRoom.map((name) => (
-            <button
-              key={name}
-              type="button"
-              onClick={() => announceFinder(name)}
-              className="px-3 py-1.5 rounded-full text-xs border bg-slate-900 border-slate-700 text-slate-200"
-            >
-              {name} a trouvé le mot
-            </button>
-          ))}
-        </div>
+      {!isHost && phase === 'roles' && (
+        <p className="text-xs text-slate-500 text-center">En attente de l&apos;hôte...</p>
       )}
     </div>
   );
 
   return <GameLayout header={header} main={main} footer={footer} playersBar={playersBar} />;
 }
-

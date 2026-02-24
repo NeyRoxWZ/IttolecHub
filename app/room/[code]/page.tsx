@@ -35,16 +35,6 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
     ],
   },
   {
-    id: 'completeguessr',
-    name: 'ComplèteGuessr',
-    description: 'Complétez les suggestions Google.',
-    icon: Gamepad2,
-    settings: [
-      { id: 'rounds', label: 'Manches', type: 'number', default: 10 },
-      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 20 },
-    ],
-  },
-  {
     id: 'rhymeguessr',
     name: 'RhymeGuessr',
     description: 'Trouvez le mot qui rime.',

@@ -1,346 +1,439 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/Card';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
-import { Check, X, Clock, User } from 'lucide-react';
+import { useGameSync } from '@/hooks/useGameSync';
+import GameLayout from './components/GameLayout';
+import { CheckCircle, XCircle, Zap, Check, MessageSquare } from 'lucide-react';
+
+interface RhymeRoundData {
+  prompt: string;
+  rhymeWith: string;
+}
 
 interface PlayerAnswer {
   player: string;
   answer: string;
   isCorrect: boolean;
+  lastWord: string;
 }
 
-export default function RhymeGuessr({ roomCode, settings }: { roomCode: string | null; settings?: { [key: string]: string } }) {
-  const [currentWord, setCurrentWord] = useState<string>('');
-  const [userAnswer, setUserAnswer] = useState<string>('');
-  const [playerAnswers, setPlayerAnswers] = useState<PlayerAnswer[]>([]);
-  const [answeredPlayers, setAnsweredPlayers] = useState<string[]>([]);
-  const [roundEnded, setRoundEnded] = useState<boolean>(false);
-  const [gameStarted, setGameStarted] = useState<boolean>(false);
-  const [roundCount, setRoundCount] = useState<number>(0);
-  const [gameEnded, setGameEnded] = useState<boolean>(false);
-  const [players, setPlayers] = useState<{ [key: string]: number }>({});
-  const [timeLeft, setTimeLeft] = useState<number>(30);
-  const [revealed, setRevealed] = useState<boolean>(false);
+interface RhymeGuessrProps {
+  roomCode: string | null;
+  settings?: { [key: string]: string };
+}
 
-  const maxRounds = 5;
-  const roundTime = 30;
+export default function RhymeGuessr({ roomCode, settings }: RhymeGuessrProps) {
+  const [userAnswer, setUserAnswer] = useState('');
+  const [timeLeft, setTimeLeft] = useState(45);
+  const [maxRounds, setMaxRounds] = useState(5);
+  const [roundTime, setRoundTime] = useState(45);
+  const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
 
+  // Sync with DB
+  const {
+    roomStatus,
+    players,
+    gameState,
+    isHost,
+    playerId,
+    updateSettings,
+    startGame,
+    submitAnswer,
+    nextRound,
+    updateRoundData,
+    setGameStatus,
+    updatePlayerScore
+  } = useGameSync(roomCode ?? '', 'rhymeguessr');
+
+  // Realtime
   const { broadcast, messages } = useRealtime(roomCode ?? '', 'rhymeguessr');
-  const isHost = typeof window !== 'undefined' && sessionStorage.getItem('isHost') === 'true';
 
-  const startRound = async () => {
-    if (!isHost) return;
-    
-    if (roundCount >= maxRounds) {
-      setGameEnded(true);
-      broadcast({ type: 'game_end', data: { players } });
-      return;
+  const playerName =
+    typeof window !== 'undefined'
+      ? sessionStorage.getItem('playerName') || 'Anonyme'
+      : 'Anonyme';
+
+  // Derived State
+  const gameStarted = roomStatus === 'in_game';
+  const roundEnded = gameState?.status === 'round_results' || gameState?.status === 'game_over';
+  const roundData: RhymeRoundData | null = gameState?.round_data?.rhyme || null;
+  const currentRound = gameState?.current_round || 0;
+  
+  const playersMap = useMemo(() => {
+    return players.reduce((acc, p) => ({ ...acc, [p.name]: p.score }), {} as Record<string, number>);
+  }, [players]);
+
+  // Sync settings
+  useEffect(() => {
+    if (isHost && settings && Object.keys(settings).length > 0) {
+      updateSettings(settings);
     }
-
-    try {
-      // Obtenir un mot aléatoire
-      const randomWords = ['chat', 'soleil', 'fleur', 'maison', 'arbre', 'voiture', 'mer', 'ciel', 'oiseau', 'livre'];
-      const randomWord = randomWords[Math.floor(Math.random() * randomWords.length)];
-      
-      setCurrentWord(randomWord);
-      setRoundCount(prev => prev + 1);
-      setRoundEnded(false);
-      setUserAnswer('');
-      setPlayerAnswers([]);
-      setAnsweredPlayers([]);
-      setTimeLeft(roundTime);
-      setRevealed(false);
-      setGameStarted(true);
-
-      const roundData = { 
-        type: 'round_start', 
-        data: { 
-          word: randomWord, 
-          roundNumber: roundCount + 1 
-        } 
-      };
-      broadcast(roundData);
-    } catch (error) {
-      console.error('Erreur démarrage manche:', error);
-    }
-  };
-
-  const handleAnswer = () => {
-    if (!userAnswer.trim() || roundEnded || answeredPlayers.includes(sessionStorage.getItem('playerName') || '')) return;
-
-    const playerName = sessionStorage.getItem('playerName') || 'Anonyme';
-    
-    broadcast({
-      type: 'player_answer',
-      data: { player: playerName, answer: userAnswer.trim() },
-    });
-    
-    setAnsweredPlayers(prev => [...prev, playerName]);
-  };
-
-  const endRound = async () => {
-    if (!isHost) return;
-
-    // Vérifier les réponses avec l'API Datamuse
-    const playerName = sessionStorage.getItem('playerName') || 'Anonyme';
-    const answers = playerAnswers.filter(p => p.player !== playerName);
-    
-    // Pour la démo, on valide si la réponse contient le même son
-    const validatedAnswers = answers.map(answer => ({
-      ...answer,
-      isCorrect: answer.answer.toLowerCase().includes(currentWord.slice(-2)) || 
-                Math.random() > 0.5 // Pour la démo, 50% de chance
-    }));
-
-    // Ajouter la réponse de l'hôte
-    const hostAnswer = userAnswer.trim();
-    if (hostAnswer) {
-      validatedAnswers.push({
-        player: playerName,
-        answer: hostAnswer,
-        isCorrect: Math.random() > 0.5 // Pour la démo
-      });
-    }
-
-    setPlayerAnswers(validatedAnswers);
-    setRoundEnded(true);
-    setRevealed(true);
-
-    // Mettre à jour les scores
-    const updatedPlayers = { ...players };
-    validatedAnswers.forEach(answer => {
-      if (answer.isCorrect) {
-        updatedPlayers[answer.player] = (updatedPlayers[answer.player] || 0) + 10;
-      }
-    });
-    setPlayers(updatedPlayers);
-
-    broadcast({ 
-      type: 'round_end', 
-      data: { 
-        results: validatedAnswers,
-        players: updatedPlayers
-      } 
-    });
-  };
+  }, [isHost, settings]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (gameStarted && !revealed && timeLeft > 0) {
+    if (gameState?.settings) {
+      if (gameState.settings.rounds) setMaxRounds(parseInt(gameState.settings.rounds, 10));
+      if (gameState.settings.time) setRoundTime(parseInt(gameState.settings.time, 10));
+    }
+  }, [gameState?.settings]);
+
+  // Sync Timer
+  useEffect(() => {
+    if (gameState?.round_data?.endTime) {
+      const end = gameState.round_data.endTime;
+      const now = Date.now();
+      const diff = Math.ceil((end - now) / 1000);
+      setTimeLeft(diff > 0 ? diff : 0);
+    }
+  }, [gameState?.round_data?.endTime, gameStarted, roundEnded]);
+
+  // Timer interval
+  useEffect(() => {
+    let interval: NodeJS.Timeout | undefined;
+    if (gameStarted && !roundEnded && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft(prev => {
+        setTimeLeft((prev) => {
           if (prev <= 1) {
-            setRevealed(true);
-            if (isHost) endRound();
-            return 0;
+             if (isHost && !roundEnded) {
+               endRound();
+             }
+             return 0;
           }
           return prev - 1;
         });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [gameStarted, revealed, timeLeft, isHost]);
+  }, [gameStarted, roundEnded, timeLeft, isHost]);
 
+  const formattedTimer = useMemo(() => {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }, [timeLeft]);
+
+  const fetchPrompt = async (): Promise<RhymeRoundData | null> => {
+    try {
+      const res = await fetch(`/api/games/rhyme`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      console.error('Error fetching prompt', e);
+      return null;
+    }
+  };
+
+  const startRound = async () => {
+    if (!isHost || !roomCode) return;
+
+    try {
+      // Fetch N prompts? API returns one.
+      // We can fetch one by one or fetch N in loop.
+      // Let's fetch one for now and store in round_data.
+      // But we should try to pre-fetch if possible.
+      // For now, simpler: fetch one.
+      
+      const prompt = await fetchPrompt();
+      if (!prompt) return;
+
+      const endTime = Date.now() + roundTime * 1000;
+      
+      await startGame({
+        rhyme: prompt,
+        endTime
+      });
+      
+      setUserAnswer('');
+    } catch (e) {
+      console.error('Erreur lancement:', e);
+    }
+  };
+
+  const handleNextRound = async () => {
+    if (!isHost || !gameState?.round_data) return;
+    
+    try {
+      const prompt = await fetchPrompt();
+      if (!prompt) return;
+
+      const endTime = Date.now() + roundTime * 1000;
+      
+      await nextRound({
+         rhyme: prompt,
+         endTime
+      });
+      setUserAnswer('');
+    } catch (e) {
+       console.error('Error next round', e);
+    }
+  };
+
+  const handleAnswer = () => {
+    if (!userAnswer.trim() || roundEnded) return;
+    submitAnswer(userAnswer.trim());
+  };
+
+  const endRound = async () => {
+    if (!isHost || !roundData || !gameState) return;
+
+    const answers = gameState.answers || {};
+    const results: PlayerAnswer[] = [];
+    
+    for (const p of players) {
+        const pAnswer = answers[p.id]?.answer;
+        let isCorrect = false;
+        let lastWord = '';
+        
+        if (pAnswer) {
+             // Validate rhyme
+             // 1. Extract last word
+             const clean = pAnswer.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
+             lastWord = clean.split(' ').pop() || '';
+             
+             if (lastWord) {
+                 // 2. Check API
+                 try {
+                     const checkRes = await fetch(`/api/games/rhyme/check?word=${encodeURIComponent(lastWord)}&target=${encodeURIComponent(roundData.rhymeWith)}`);
+                     const checkData = await checkRes.json();
+                     isCorrect = checkData.matches;
+                 } catch (e) {
+                     console.error('Rhyme check failed', e);
+                     // Fallback suffix check
+                     isCorrect = lastWord.slice(-3).toLowerCase() === roundData.rhymeWith.slice(-3).toLowerCase();
+                 }
+             }
+        }
+        
+        results.push({
+            player: p.name,
+            answer: pAnswer || '-',
+            isCorrect,
+            lastWord
+        });
+
+        if (isCorrect) {
+            await updatePlayerScore(p.id, p.score + 10);
+        }
+    }
+    
+    await updateRoundData({
+        ...gameState.round_data,
+        results
+    });
+    
+    await setGameStatus('round_results');
+  };
+
+  // Typing logic
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage) return;
 
-    if (lastMessage.type === 'round_start') {
-      setCurrentWord(lastMessage.data.word);
-      setRoundCount(lastMessage.data.roundNumber);
-      setRoundEnded(false);
-      setUserAnswer('');
-      setPlayerAnswers([]);
-      setAnsweredPlayers([]);
-      setTimeLeft(roundTime);
-      setRevealed(false);
-      setGameStarted(true);
-    } else if (lastMessage.type === 'player_answer') {
-      setPlayerAnswers(prev => [...prev, {
-        player: lastMessage.data.player,
-        answer: lastMessage.data.answer,
-        isCorrect: false
-      }]);
-      setAnsweredPlayers(prev => [...prev, lastMessage.data.player]);
-    } else if (lastMessage.type === 'round_end') {
-      setPlayerAnswers(lastMessage.data.results);
-      setPlayers(lastMessage.data.players);
-      setRoundEnded(true);
-      setRevealed(true);
-    } else if (lastMessage.type === 'game_end') {
-      setPlayers(lastMessage.data.players);
-      setGameEnded(true);
+    if (lastMessage.type === 'typing') {
+         if (lastMessage.data.player !== playerName && lastMessage.data.isTyping) {
+          setTypingPlayer(lastMessage.data.player);
+        } else if (lastMessage.data.player !== playerName && !lastMessage.data.isTyping) {
+          setTypingPlayer((current) =>
+            current === lastMessage.data.player ? null : current,
+          );
+        }
     }
-  }, [messages]);
+  }, [messages, playerName]);
+  
+  useEffect(() => {
+    if (!typingPlayer) return;
+    const timeout = setTimeout(() => setTypingPlayer(null), 3000);
+    return () => clearTimeout(timeout);
+  }, [typingPlayer]);
+  
+  const playerResults = useMemo(() => {
+      if (gameState?.round_data?.results) {
+          return gameState.round_data.results as PlayerAnswer[];
+      }
+      return [];
+  }, [gameState?.round_data?.results]);
 
-  if (gameEnded) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-slate-900 dark:to-purple-950 p-4 sm:p-6 game-layout text-slate-800 dark:text-slate-100">
-        <div className="max-w-4xl mx-auto">
-          <Card className="p-6 sm:p-8 text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 mb-6">Partie terminée !</h1>
-            <div className="space-y-4">
-              {Object.entries(players).sort(([,a], [,b]) => b - a).map(([player, score], index) => (
-                <div key={player} className={`flex justify-between items-center p-4 rounded-xl ${
-                  index === 0 ? 'bg-amber-100 dark:bg-amber-900/40' : 'bg-slate-100 dark:bg-slate-800'
-                }`}>
-                  <span className="font-semibold text-slate-800 dark:text-slate-100">
-                    {index + 1}. {player}
-                  </span>
-                  <span className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                    {score} points
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-6 space-y-3">
-              <Button onClick={() => window.location.reload()} className="rounded-xl w-full">
-                Rejouer
-              </Button>
-              <Button 
-                onClick={() => window.location.href = '/'} 
-                variant="outline" 
-                className="rounded-xl w-full"
-              >
-                Quitter
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+  const answeredPlayers = useMemo(() => {
+      if (gameState?.answers) {
+          return Object.keys(gameState.answers).map(pid => {
+              const p = players.find(pl => pl.id === pid);
+              return p ? p.name : 'Unknown';
+          });
+      }
+      return [];
+  }, [gameState?.answers, players]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-slate-900 dark:to-purple-950 p-4 sm:p-6 game-layout text-slate-800 dark:text-slate-100">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-            RhymeGuessr
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            Trouve un mot qui rime avec le mot donné!
-          </p>
-        </div>
-
+    <GameLayout
+      players={playersMap}
+      roundCount={currentRound}
+      maxRounds={maxRounds}
+      timer={formattedTimer}
+      gameCode={roomCode ?? ''}
+      gameTitle="RimeGuessr"
+      isHost={isHost}
+      gameStarted={gameStarted}
+      onStartGame={startRound}
+      timeLeft={timeLeft}
+      typingPlayer={typingPlayer}
+    >
+      <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto gap-8">
         {!gameStarted ? (
-          <Card className="p-8 text-center rounded-2xl">
-            <h2 className="text-xl font-semibold mb-6">Prêt à jouer?</h2>
-            <p className="text-slate-600 dark:text-slate-300 mb-6">
-              {maxRounds} manches • 10 points par bonne réponse • {roundTime} secondes par manche
-            </p>
+          <div className="text-center space-y-6">
+            <h2 className="text-2xl font-bold">En attente du lancement...</h2>
             {isHost ? (
-              <Button onClick={startRound} className="rounded-xl w-full">
-                Commencer la partie
-              </Button>
+              <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm w-full max-w-lg">
+                <p className="mb-4">Configurez la partie :</p>
+                <div className="grid grid-cols-2 gap-4 text-left mb-6">
+                   <div className="flex flex-col">
+                      <span className="text-sm text-gray-400">Rounds</span>
+                      <Input 
+                        type="number" 
+                        value={maxRounds} 
+                        onChange={e => setMaxRounds(parseInt(e.target.value))} 
+                        className="bg-white/5 border-white/10"
+                      />
+                   </div>
+                   <div className="flex flex-col">
+                      <span className="text-sm text-gray-400">Temps (s)</span>
+                      <Input 
+                        type="number" 
+                        value={roundTime} 
+                        onChange={e => setRoundTime(parseInt(e.target.value))} 
+                        className="bg-white/5 border-white/10"
+                      />
+                   </div>
+                </div>
+                
+                <Button size="lg" onClick={startRound} className="w-full">
+                  Lancer la partie
+                </Button>
+              </div>
             ) : (
-              <p className="text-slate-500 dark:text-slate-400">
-                En attente de l'hôte pour démarrer...
-              </p>
+              <div className="flex flex-col items-center gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                <p>L'hôte configure la partie...</p>
+                 <div className="grid grid-cols-2 gap-4 text-left max-w-md mx-auto mt-4 opacity-75">
+                   <div className="flex flex-col">
+                      <span className="text-sm text-gray-400">Rounds</span>
+                      <span className="font-bold">{maxRounds}</span>
+                   </div>
+                   <div className="flex flex-col">
+                      <span className="text-sm text-gray-400">Temps</span>
+                      <span className="font-bold">{roundTime}s</span>
+                   </div>
+                </div>
+              </div>
             )}
-          </Card>
+          </div>
         ) : (
-          <div className="space-y-6">
-            {/* Timer et infos */}
-            <div className="flex justify-between items-center">
-              <div className="text-slate-600 dark:text-slate-300">
-                Manche {roundCount} sur {maxRounds}
+          <>
+            {roundData && (
+              <div className="w-full max-w-3xl mx-auto mb-8">
+                 <div className="bg-white/5 p-8 rounded-xl backdrop-blur-md border border-white/10 text-center relative overflow-hidden">
+                    <MessageSquare className="w-24 h-24 text-white/5 absolute -top-4 -right-4 -rotate-12" />
+                    <p className="text-2xl md:text-3xl font-bold text-white mb-2">
+                      "{roundData.prompt}"
+                    </p>
+                    <div className="text-sm text-gray-400 uppercase tracking-widest mt-4">
+                       Rime avec : <span className="text-yellow-400 font-bold">{roundData.rhymeWith}</span>
+                    </div>
+                 </div>
               </div>
-              <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${
-                timeLeft <= 10 ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
-              }`}>
-                <Clock className="h-4 w-4" />
-                <span className="font-semibold">{timeLeft}s</span>
-              </div>
-            </div>
+            )}
 
-            {/* Barre de progression */}
-            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-1000"
-                style={{ width: `${(timeLeft / roundTime) * 100}%` }}
-              />
-            </div>
-
-            {/* Mot à faire rimer */}
-            <Card className="p-8 text-center rounded-2xl">
-              <h2 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
-                Trouve un mot qui rime avec:
-              </h2>
-              <div className="text-4xl font-bold text-slate-800 dark:text-slate-200 mb-6">
-                {currentWord}
-              </div>
-              
-              {!roundEnded ? (
-                <div className="space-y-4">
+            {!roundEnded ? (
+              <div className="w-full max-w-md space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="relative">
                   <Input
+                    type="text"
+                    placeholder="Écrivez une phrase qui rime..."
                     value={userAnswer}
-                    onChange={(e) => setUserAnswer(e.target.value)}
-                    placeholder="Tape ta réponse..."
-                    className="rounded-xl text-center text-lg"
-                    onKeyPress={(e) => e.key === 'Enter' && handleAnswer()}
-                    disabled={answeredPlayers.includes(sessionStorage.getItem('playerName') || '')}
+                    onChange={(e) => {
+                      setUserAnswer(e.target.value);
+                      broadcast({
+                        type: 'typing',
+                        data: { player: playerName, isTyping: e.target.value.length > 0 },
+                      });
+                    }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAnswer()}
+                    className="h-14 text-lg pr-12 text-center font-medium"
+                    autoFocus
                   />
-                  <Button 
-                    onClick={handleAnswer} 
-                    className="rounded-xl w-full"
-                    disabled={!userAnswer.trim() || answeredPlayers.includes(sessionStorage.getItem('playerName') || '')}
-                  >
-                    {answeredPlayers.includes(sessionStorage.getItem('playerName') || '') ? 'Réponse envoyée' : 'Valider'}
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="text-lg font-semibold text-slate-700 dark:text-slate-300">
-                    Réponses:
+                  <div className="absolute right-2 top-2 bottom-2 w-10 flex items-center justify-center text-gray-400">
+                    <Zap className="w-5 h-5" />
                   </div>
-                  <div className="space-y-2">
-                    {playerAnswers.map((answer, index) => (
-                      <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${
-                        answer.isCorrect ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'
-                      }`}>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          <span className="font-medium">{answer.player}</span>
-                          <span className="text-slate-600 dark:text-slate-400">• {answer.answer}</span>
-                        </div>
-                        {answer.isCorrect ? (
-                          <Check className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <X className="h-5 w-5 text-red-600" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {isHost && (
-                    <Button onClick={startRound} className="rounded-xl w-full">
-                      {roundCount >= maxRounds ? 'Voir les résultats' : 'Manche suivante'}
-                    </Button>
-                  )}
                 </div>
-              )}
-            </Card>
+                <Button
+                  size="lg"
+                  className="w-full h-14 text-lg font-bold shadow-lg shadow-yellow-500/20 hover:shadow-yellow-500/40 transition-all"
+                  onClick={handleAnswer}
+                >
+                  Valider
+                </Button>
+                
+                {answeredPlayers.length > 0 && (
+                   <div className="flex flex-wrap gap-2 justify-center mt-4">
+                      {answeredPlayers.map(p => (
+                         <div key={p} className="flex items-center gap-1 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs">
+                           <Check className="w-3 h-3" /> {p}
+                         </div>
+                      ))}
+                   </div>
+                )}
+              </div>
+            ) : (
+              <div className="w-full max-w-2xl bg-white/5 rounded-2xl p-8 backdrop-blur-sm border border-white/10 animate-in zoom-in-95 duration-300">
+                <div className="text-center mb-8">
+                  <h3 className="text-3xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-600">
+                    Résultats
+                  </h3>
+                </div>
 
-            {/* Joueurs ayant répondu */}
-            {answeredPlayers.length > 0 && (
-              <Card className="p-4 rounded-2xl">
-                <div className="flex flex-wrap gap-2">
-                  {answeredPlayers.map(player => (
-                    <div key={player} className="flex items-center gap-1 px-3 py-1 bg-slate-200 dark:bg-slate-700 rounded-full text-sm text-slate-800 dark:text-slate-100">
-                      <User className="h-4 w-4" />
-                      <span>{player} a répondu ✅</span>
+                <div className="space-y-3 mb-8 max-h-60 overflow-y-auto custom-scrollbar">
+                  {playerResults.map((p, i) => (
+                    <div
+                      key={p.player}
+                      className={`flex flex-col p-4 rounded-xl transition-all ${
+                        p.isCorrect
+                          ? 'bg-green-500/10 border border-green-500/30'
+                          : 'bg-red-500/10 border border-red-500/30'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium text-lg">{p.player}</span>
+                            {p.isCorrect ? <CheckCircle className="text-green-400 w-4 h-4" /> : <XCircle className="text-red-400 w-4 h-4" />}
+                        </div>
+                        {p.isCorrect && <span className="text-green-400 font-bold">+10 pts</span>}
+                      </div>
+                      <div className="text-white/90 italic">
+                        "{p.answer}"
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Mot fin: {p.lastWord}
+                      </div>
                     </div>
                   ))}
                 </div>
-              </Card>
+
+                {isHost && (
+                  <Button
+                    size="lg"
+                    className="w-full h-14 text-lg font-bold bg-white text-black hover:bg-gray-200"
+                    onClick={handleNextRound}
+                  >
+                    Manche suivante
+                  </Button>
+                )}
+              </div>
             )}
-          </div>
+          </>
         )}
       </div>
-    </div>
+    </GameLayout>
   );
 }
