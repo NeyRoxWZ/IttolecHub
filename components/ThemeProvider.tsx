@@ -17,10 +17,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {/* Toggle thème fixe : visible sur toutes les pages (PC, tablette, mobile) */}
-      <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-50">
-        <ThemeToggle />
-      </div>
       {children}
     </>
   );

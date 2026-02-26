@@ -55,13 +55,26 @@ export function useGameSync(roomCode: string, gameType: string) {
 
       // Check if player exists
       let player;
+      
+      // A. Try by ID first
       if (currentPayloadId) {
         const { data } = await supabase
           .from('players')
           .select('*')
           .eq('id', currentPayloadId)
           .single();
-        player = data;
+        if (data) player = data;
+      }
+
+      // B. Try by Name + Room (recovery if ID lost or not set)
+      if (!player) {
+         const { data } = await supabase
+          .from('players')
+          .select('*')
+          .eq('room_id', room.id)
+          .eq('name', playerName)
+          .single();
+         if (data) player = data;
       }
 
       if (!player) {
