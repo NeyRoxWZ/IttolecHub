@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -28,18 +30,23 @@ export async function GET(request: NextRequest) {
     
     // Build names map
     const names: { [lang: string]: string } = {};
-    speciesData.names.forEach((nameData: any) => {
-      names[nameData.language.name] = nameData.name;
-    });
+    if (speciesData.names) {
+        speciesData.names.forEach((nameData: any) => {
+        names[nameData.language.name] = nameData.name;
+        });
+    }
     
     // Add internal name as fallback
     names['en'] = names['en'] || speciesData.name;
+    
+    // Use official artwork
+    const imageUrl = pokemonData.sprites.other['official-artwork'].front_default || pokemonData.sprites.front_default;
 
     return NextResponse.json({
       id: realId,
       names,
-      imageUrl: pokemonData.sprites.other['official-artwork'].front_default,
-      generation: speciesData.generation.name,
+      imageUrl,
+      generation: speciesData.generation?.name || 'unknown',
     });
     
   } catch (error) {

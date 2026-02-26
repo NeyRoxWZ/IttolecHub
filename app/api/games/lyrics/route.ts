@@ -96,15 +96,18 @@ export async function GET(request: NextRequest) {
 
             const lyrics = await getLyrics(song.artistName, song.trackName);
             if (lyrics) {
+                // Check if lyrics are not just "Instrumental"
+                if (lyrics.length < 50 || lyrics.includes("Instrumental")) continue;
+
                 const extract = getRandomSection(lyrics);
                 if (extract) {
-                    usedTitles.add(song.trackName.toLowerCase());
                     results.push({
-                        extract,
                         artist: song.artistName,
                         title: song.trackName,
-                        cover: song.artworkUrl100?.replace('100x100', '600x600')
+                        cover: song.artworkUrl100?.replace('100x100', '600x600'),
+                        extract
                     });
+                    usedTitles.add(song.trackName.toLowerCase());
                 }
             }
         }

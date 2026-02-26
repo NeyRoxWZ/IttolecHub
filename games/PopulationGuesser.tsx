@@ -6,20 +6,26 @@ import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { CheckCircle, XCircle, Zap, Check } from 'lucide-react';
+import { CheckCircle, XCircle, Users } from 'lucide-react';
 import Image from 'next/image';
 
-interface CityData {
-  name: string;
-  country: string;
+interface CountryPopulationData {
+  name: { 
+    common: string; 
+    official: string; 
+    nativeName?: Record<string, { common: string; official: string }>;
+  };
   population: number;
-  image: string;
+  flags: { png: string; svg: string };
+  region: string;
+  translations: { [key: string]: { common: string; official: string } };
 }
 
 interface PlayerAnswer {
   player: string;
-  answer: number;
-  difference: number;
+  answer: string; // stored as string
+  diff: number;
+  score: number;
 }
 
 interface PopulationGuesserProps {
@@ -61,7 +67,7 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
   // Derived State
   const gameStarted = roomStatus === 'in_game';
   const roundEnded = gameState?.status === 'round_results' || gameState?.status === 'game_over';
-  const city: CityData | null = gameState?.round_data?.city || null;
+  const country: CountryPopulationData | null = gameState?.round_data?.country || null;
   const currentRound = gameState?.current_round || 0;
   
   const playersMap = useMemo(() => {
@@ -70,17 +76,21 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
 
   // Sync settings
   useEffect(() => {
-    if (isHost && settings && Object.keys(settings).length > 0) {
-      updateSettings(settings);
-    }
-  }, [isHost, settings]);
-
-  useEffect(() => {
     if (gameState?.settings) {
-      if (gameState.settings.rounds) setMaxRounds(parseInt(gameState.settings.rounds, 10));
-      if (gameState.settings.time) setRoundTime(parseInt(gameState.settings.time, 10));
+      if (gameState.settings.rounds) setMaxRounds(Number(gameState.settings.rounds));
+      if (gameState.settings.time) setRoundTime(Number(gameState.settings.time));
     }
   }, [gameState?.settings]);
+
+  // Host updates DB when local state changes
+  useEffect(() => {
+      if (isHost) {
+          const newSettings = { rounds: maxRounds, time: roundTime };
+          if (JSON.stringify(newSettings) !== JSON.stringify(gameState?.settings)) {
+              updateSettings(newSettings);
+          }
+      }
+  }, [maxRounds, roundTime, isHost]);
 
   // Sync Timer
   useEffect(() => {
@@ -117,35 +127,15 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }, [timeLeft]);
 
-  const fetchCities = async (): Promise<CityData[]> => {
+  const fetchCountries = async (): Promise<CountryPopulationData[]> => {
     try {
-      // Random offset to vary cities
-      const offset = Math.floor(Math.random() * 500); 
-      const query = `
-        SELECT ?city ?cityLabel ?countryLabel ?population ?image WHERE {
-          ?city wdt:P31/wdt:P279* wd:Q515;
-                wdt:P1082 ?population;
-                wdt:P18 ?image;
-                wdt:P17 ?country.
-          FILTER(?population > 100000)
-          SERVICE wikibase:label { bd:serviceParam wikibase:language "fr,en". }
-        }
-        LIMIT 50
-        OFFSET ${offset}
-      `;
-      
-      const url = `https://query.wikidata.org/sparql?query=${encodeURIComponent(query)}&format=json`;
-      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      const res = await fetch('https://restcountries.com/v3.1/all?fields=name,population,flags,region,translations');
+      if (!res.ok) return [];
       const data = await res.json();
-      
-      return data.results.bindings.map((b: any) => ({
-        name: b.cityLabel.value,
-        country: b.countryLabel.value,
-        population: parseInt(b.population.value, 10),
-        image: b.image.value
-      }));
+      // Filter out small territories (< 100k) to avoid obscure places with tiny populations
+      return data.filter((c: any) => c.population > 100000);
     } catch (e) {
-      console.error('Error fetching cities', e);
+      console.error('Error fetching countries', e);
       return [];
     }
   };
@@ -154,23 +144,22 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
     if (!isHost || !roomCode) return;
 
     try {
-      const cities = await fetchCities();
-      
-      if (cities.length === 0) return;
+      const countries = await fetchCountries();
+      if (countries.length === 0) return;
 
       // Shuffle
-      for (let i = cities.length - 1; i > 0; i--) {
+      for (let i = countries.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [cities[i], cities[j]] = [cities[j], cities[i]];
+        [countries[i], countries[j]] = [countries[j], countries[i]];
       }
       
-      const selection = cities.slice(0, maxRounds);
-      const firstCity = selection[0];
+      const selection = countries.slice(0, maxRounds);
+      const firstCountry = selection[0];
       const queue = selection.slice(1);
       const endTime = Date.now() + roundTime * 1000;
       
       await startGame({
-        city: firstCity,
+        country: firstCountry,
         queue,
         endTime
       });
@@ -188,19 +177,19 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
       const queue = gameState.round_data.queue || [];
       
       if (queue.length === 0) {
-           const cities = await fetchCities();
-           const random = cities[Math.floor(Math.random() * cities.length)];
+           const countries = await fetchCountries();
+           const random = countries[Math.floor(Math.random() * countries.length)];
            const endTime = Date.now() + roundTime * 1000;
-           await nextRound({ city: random, queue: [], endTime });
+           await nextRound({ country: random, queue: [], endTime });
            return;
       }
 
-      const nextCity = queue[0];
+      const nextCountry = queue[0];
       const nextQueue = queue.slice(1);
       const endTime = Date.now() + roundTime * 1000;
       
       await nextRound({
-         city: nextCity,
+         country: nextCountry,
          queue: nextQueue,
          endTime
       });
@@ -212,42 +201,63 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
 
   const handleAnswer = () => {
     if (!userAnswer.trim() || roundEnded) return;
-    const answer = parseInt(userAnswer.replace(/\s/g, ''), 10);
-    if (Number.isNaN(answer)) return;
-    submitAnswer(answer);
+    // Remove spaces/commas for parsing
+    const cleanAnswer = userAnswer.replace(/[\s,]/g, '');
+    if (!cleanAnswer || isNaN(Number(cleanAnswer))) return;
+    
+    submitAnswer(cleanAnswer);
+    // Keep user answer in input but maybe disable via UI logic (not implemented here but logic exists)
+  };
+
+  const calculateScore = (actual: number, guess: number): number => {
+      const diff = Math.abs(actual - guess);
+      const percentDiff = (diff / actual) * 100;
+      
+      if (percentDiff <= 5) return 1000;
+      if (percentDiff <= 10) return 500;
+      if (percentDiff <= 25) return 250;
+      if (percentDiff <= 50) return 100;
+      return 0;
   };
 
   const endRound = async () => {
-    if (!isHost || !city || !gameState) return;
+    if (!isHost || !country || !gameState) return;
 
-    const exact = city.population;
-    
+    const actualPop = country.population;
     const answers = gameState.answers || {};
     const results: PlayerAnswer[] = [];
     
     for (const p of players) {
-        const pAnswer = answers[p.id]?.answer;
+        const pAnswerStr = answers[p.id]?.answer;
+        let pScore = 0;
+        let pDiff = 0;
+        
+        if (pAnswerStr) {
+             const pAnswer = Number(pAnswerStr);
+             if (!isNaN(pAnswer)) {
+                 pScore = calculateScore(actualPop, pAnswer);
+                 pDiff = Math.abs(actualPop - pAnswer);
+             }
+        }
         
         results.push({
             player: p.name,
-            answer: pAnswer !== undefined ? pAnswer : 0,
-            difference: pAnswer !== undefined ? Math.abs(pAnswer - exact) : 9999999999
+            answer: pAnswerStr || '-',
+            diff: pDiff,
+            score: pScore
         });
-    }
-    
-    // Sort by difference
-    results.sort((a, b) => a.difference - b.difference);
 
-    // Update scores
-    // Winner gets 10 points
-    if (results[0] && results[0].difference < 9999999999) {
-       const winnerName = results[0].player;
-       const winner = players.find(p => p.name === winnerName);
-       if (winner) {
-           await updatePlayerScore(winner.id, winner.score + 10);
-       }
+        if (pScore > 0) {
+            await updatePlayerScore(p.id, p.score + pScore);
+        }
     }
     
+    // Sort results by score desc, then diff asc
+    results.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.diff - b.diff;
+    });
+
     await updateRoundData({
         ...gameState.round_data,
         results
@@ -277,23 +287,16 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
     const timeout = setTimeout(() => setTypingPlayer(null), 3000);
     return () => clearTimeout(timeout);
   }, [typingPlayer]);
-  
-  const playerResults = useMemo(() => {
-      if (gameState?.round_data?.results) {
-          return gameState.round_data.results as PlayerAnswer[];
-      }
-      return [];
-  }, [gameState?.round_data?.results]);
 
-  const answeredPlayers = useMemo(() => {
-      if (gameState?.answers) {
-          return Object.keys(gameState.answers).map(pid => {
-              const p = players.find(pl => pl.id === pid);
-              return p ? p.name : 'Unknown';
-          });
-      }
-      return [];
-  }, [gameState?.answers, players]);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+        handleAnswer();
+    }
+  };
+
+  const formatNumber = (num: number) => {
+      return new Intl.NumberFormat('fr-FR').format(num);
+  };
 
   return (
     <GameLayout
@@ -314,169 +317,135 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
           <div className="text-center space-y-6">
             <h2 className="text-2xl font-bold">En attente du lancement...</h2>
             {isHost ? (
-              <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm w-full max-w-lg">
-                <p className="mb-4">Configurez la partie :</p>
+              <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm w-full max-w-lg mx-auto">
+                <p className="mb-4 font-semibold">Paramètres de la partie :</p>
                 <div className="grid grid-cols-2 gap-4 text-left mb-6">
-                   <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Rounds</span>
+                   <div className="flex flex-col gap-2">
+                      <label className="text-sm text-gray-300">Rounds</label>
                       <Input 
                         type="number" 
+                        min={1} 
+                        max={20} 
                         value={maxRounds} 
-                        onChange={e => setMaxRounds(parseInt(e.target.value))} 
-                        className="bg-white/5 border-white/10"
+                        onChange={(e) => setMaxRounds(Number(e.target.value))} 
+                        className="bg-black/20 border-white/10"
                       />
                    </div>
-                   <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Temps (s)</span>
+                   <div className="flex flex-col gap-2">
+                      <label className="text-sm text-gray-300">Temps (sec)</label>
                       <Input 
                         type="number" 
+                        min={10} 
+                        max={120} 
                         value={roundTime} 
-                        onChange={e => setRoundTime(parseInt(e.target.value))} 
-                        className="bg-white/5 border-white/10"
+                        onChange={(e) => setRoundTime(Number(e.target.value))}
+                        className="bg-black/20 border-white/10" 
                       />
                    </div>
                 </div>
-                
-                <Button size="lg" onClick={startRound} className="w-full">
+                <Button onClick={startRound} className="w-full bg-blue-600 hover:bg-blue-500">
                   Lancer la partie
                 </Button>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-                <p>L'hôte configure la partie...</p>
-                 <div className="grid grid-cols-2 gap-4 text-left max-w-md mx-auto mt-4 opacity-75">
-                   <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Rounds</span>
-                      <span className="font-bold">{maxRounds}</span>
-                   </div>
-                   <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Temps</span>
-                      <span className="font-bold">{roundTime}s</span>
-                   </div>
-                </div>
-              </div>
+               <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm w-full max-w-lg mx-auto">
+                  <p className="mb-2">Paramètres (Lecture seule) :</p>
+                  <ul className="text-left text-sm space-y-1 text-gray-300">
+                      <li>Rounds: {maxRounds}</li>
+                      <li>Temps: {roundTime}s</li>
+                  </ul>
+                  <p className="mt-4 text-gray-400 animate-pulse">L'hôte configure la partie...</p>
+               </div>
             )}
           </div>
         ) : (
-          <>
-            {city && (
-              <div className="relative w-full max-w-4xl h-64 sm:h-96 mx-auto mb-4 rounded-xl overflow-hidden shadow-2xl">
-                 <Image
-                    src={city.image}
-                    alt="City"
-                    fill
-                    className="object-cover"
-                    priority
-                 />
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
-                 <div className="absolute bottom-0 left-0 right-0 p-6 text-white text-center">
-                    <h2 className="text-3xl font-bold mb-1">{city.name}</h2>
-                    <p className="text-xl text-gray-300">{city.country}</p>
-                 </div>
-              </div>
-            )}
-
-            {!roundEnded ? (
-              <div className="w-full max-w-md space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="relative">
-                  <Input
-                    type="number"
-                    placeholder="Population ?"
-                    value={userAnswer}
-                    onChange={(e) => {
-                      setUserAnswer(e.target.value);
-                      broadcast({
-                        type: 'typing',
-                        data: { player: playerName, isTyping: e.target.value.length > 0 },
-                      });
-                    }}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAnswer()}
-                    className="h-14 text-lg pr-12 text-center font-mono"
-                    autoFocus
-                  />
-                  <div className="absolute right-2 top-2 bottom-2 w-10 flex items-center justify-center text-gray-400">
-                    <Zap className="w-5 h-5" />
-                  </div>
-                </div>
-                <Button
-                  size="lg"
-                  className="w-full h-14 text-lg font-bold shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all"
-                  onClick={handleAnswer}
-                >
-                  Valider
-                </Button>
-                
-                {answeredPlayers.length > 0 && (
-                   <div className="flex flex-wrap gap-2 justify-center mt-4">
-                      {answeredPlayers.map(p => (
-                         <div key={p} className="flex items-center gap-1 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs">
-                           <Check className="w-3 h-3" /> {p}
-                         </div>
-                      ))}
+          <div className="w-full flex flex-col items-center gap-6">
+            {country && (
+               <div className="flex flex-col items-center gap-4">
+                   <div className="relative w-full max-w-xs aspect-video bg-black/20 rounded-xl overflow-hidden shadow-2xl border border-white/10">
+                      <Image 
+                        src={country.flags.svg} 
+                        alt="Flag" 
+                        fill 
+                        className="object-contain p-2"
+                        priority
+                      />
                    </div>
-                )}
-              </div>
-            ) : (
-              <div className="w-full max-w-2xl bg-white/5 rounded-2xl p-8 backdrop-blur-sm border border-white/10 animate-in zoom-in-95 duration-300">
-                <div className="text-center mb-8">
-                  <h3 className="text-3xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-                    Résultats
-                  </h3>
-                  <div className="text-5xl font-black text-white mb-2">
-                    {city?.population.toLocaleString()}
-                    <span className="text-2xl font-normal text-gray-400 ml-2">
-                      habitants
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 mb-8 max-h-60 overflow-y-auto custom-scrollbar">
-                  {playerResults.map((p, i) => (
-                    <div
-                      key={p.player}
-                      className={`flex items-center justify-between p-4 rounded-xl transition-all ${
-                        i === 0
-                          ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30'
-                          : 'bg-white/5 border border-white/5'
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div
-                          className={`w-8 h-8 flex items-center justify-center rounded-full font-bold ${
-                            i === 0
-                              ? 'bg-yellow-500 text-black'
-                              : 'bg-white/10 text-gray-400'
-                          }`}
-                        >
-                          {i + 1}
-                        </div>
-                        <span className="font-medium text-lg">{p.player}</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-mono font-bold text-xl">
-                          {p.answer.toLocaleString()}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          {p.difference === 0 ? 'Exact !' : `Diff: ${p.difference.toLocaleString()}`}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {isHost && (
-                  <Button
-                    size="lg"
-                    className="w-full h-14 text-lg font-bold bg-white text-black hover:bg-gray-200"
-                    onClick={handleNextRound}
-                  >
-                    Manche suivante
-                  </Button>
-                )}
-              </div>
+                   <h2 className="text-3xl font-bold text-center">{country.translations?.fra?.common || country.name.common}</h2>
+               </div>
             )}
-          </>
+            
+            {!roundEnded ? (
+               <div className="w-full max-w-md flex flex-col gap-4">
+                 <p className="text-center text-lg">Quelle est la population ?</p>
+                 <div className="flex gap-2">
+                    <Input
+                        type="text" 
+                        inputMode="numeric"
+                        value={userAnswer}
+                        onChange={(e) => {
+                            // Allow only numbers and spaces
+                            const val = e.target.value;
+                            if (/^[\d\s]*$/.test(val)) {
+                                setUserAnswer(val);
+                                broadcast({ type: 'typing', data: { player: playerName, isTyping: val.length > 0 } });
+                            }
+                        }}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Ex: 67 000 000"
+                        className="flex-1 bg-white/10 border-white/20 text-lg h-12 text-center tracking-widest"
+                        autoFocus
+                    />
+                    <Button onClick={handleAnswer} className="h-12 px-6 bg-green-600 hover:bg-green-500">
+                        <Users className="w-6 h-6" />
+                    </Button>
+                 </div>
+               </div>
+            ) : (
+               <div className="w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="bg-white/10 rounded-xl p-6 backdrop-blur-md border border-white/10 text-center mb-6">
+                     <h3 className="text-xl font-bold mb-2 text-yellow-400">Population réelle</h3>
+                     <p className="text-4xl font-black mb-1 text-white">{country ? formatNumber(country.population) : '-'}</p>
+                     <p className="text-sm text-gray-400">habitants</p>
+                  </div>
+
+                  <div className="space-y-3">
+                     <h4 className="text-lg font-semibold mb-2">Résultats du round</h4>
+                     {gameState?.round_data?.results?.map((res: PlayerAnswer, idx: number) => (
+                        <div key={idx} className={`flex items-center justify-between p-3 rounded-lg ${res.score > 0 ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
+                           <div className="flex items-center gap-3">
+                              <span className="font-bold text-gray-300 w-6">{idx + 1}.</span>
+                              <span className="font-medium">{res.player}</span>
+                           </div>
+                           <div className="flex flex-col items-end">
+                              <span className="text-lg font-bold">{res.answer !== '-' ? formatNumber(Number(res.answer)) : '-'}</span>
+                              <div className="flex items-center gap-2 text-xs">
+                                  {res.score > 0 ? (
+                                      <span className="text-yellow-400 font-bold">+{res.score} pts</span>
+                                  ) : (
+                                      <span className="text-gray-400">0 pts</span>
+                                  )}
+                                  {res.answer !== '-' && (
+                                      <span className="text-gray-400">
+                                          (Diff: {formatNumber(Math.abs((country?.population || 0) - Number(res.answer)))})
+                                      </span>
+                                  )}
+                              </div>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+
+                  {isHost && (
+                     <div className="mt-8 flex justify-center">
+                        <Button onClick={handleNextRound} className="bg-blue-600 hover:bg-blue-500 text-lg px-8 py-6 rounded-full shadow-lg shadow-blue-900/20 transition-all hover:scale-105">
+                           {gameState.current_round >= maxRounds ? 'Terminer la partie' : 'Round suivant'}
+                        </Button>
+                     </div>
+                  )}
+               </div>
+            )}
+          </div>
         )}
       </div>
     </GameLayout>

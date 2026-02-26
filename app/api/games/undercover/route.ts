@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import undercoverPairs from '@/undercover.json';
 
+export const dynamic = 'force-dynamic';
+
 type UndercoverPair = {
   civilWord: string;
   undercoverWord: string;

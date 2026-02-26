@@ -34,20 +34,6 @@ interface CaloriesGuessrProps {
   settings?: { [key: string]: string };
 }
 
-const FOOD_CALORIES: Record<string, FoodCalorieProfile> = {
-  burger: { label: 'Burger', min: 400, max: 900, exact: 650, portion: '1 burger moyen' },
-  pizza: { label: 'Pizza', min: 500, max: 1100, exact: 800, portion: '2 parts de pizza' },
-  pasta: { label: 'Pâtes', min: 350, max: 900, exact: 600, portion: '1 assiette de 250g' },
-  biryani: { label: 'Biryani', min: 500, max: 1100, exact: 800, portion: '1 assiette' },
-  dessert: { label: 'Dessert', min: 250, max: 900, exact: 550, portion: '1 portion' },
-  dosa: { label: 'Dosa', min: 250, max: 600, exact: 400, portion: '1 dosa' },
-  idly: { label: 'Idly', min: 100, max: 350, exact: 220, portion: '2 idlis' },
-  rice: { label: 'Riz', min: 150, max: 500, exact: 320, portion: '1 bol (180g)' },
-  sandwich: { label: 'Sandwich', min: 300, max: 800, exact: 550, portion: '1 sandwich' },
-  steak: { label: 'Steak', min: 400, max: 900, exact: 650, portion: '1 steak + accompagnement' },
-  generic: { label: 'Plat', min: 200, max: 900, exact: 550, portion: '1 portion' },
-};
-
 export default function CaloriesGuessr({ roomCode, settings }: CaloriesGuessrProps) {
   const [userAnswer, setUserAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(30);
@@ -92,11 +78,21 @@ export default function CaloriesGuessr({ roomCode, settings }: CaloriesGuessrPro
 
   // Sync settings
   useEffect(() => {
-    // If host and settings provided via props (URL), update DB
-    if (isHost && settings && Object.keys(settings).length > 0) {
-      updateSettings(settings);
-    }
-  }, [isHost, settings]);
+      if (gameState?.settings) {
+          if (gameState.settings.rounds) setMaxRounds(Number(gameState.settings.rounds));
+          if (gameState.settings.time) setRoundTime(Number(gameState.settings.time));
+      }
+  }, [gameState?.settings]);
+
+  // Host updates DB when local state changes
+  useEffect(() => {
+      if (isHost) {
+          const newSettings = { rounds: maxRounds, time: roundTime };
+          if (JSON.stringify(newSettings) !== JSON.stringify(gameState?.settings)) {
+              updateSettings(newSettings);
+          }
+      }
+  }, [maxRounds, roundTime, isHost]);
 
   useEffect(() => {
     // If client, sync local settings from DB

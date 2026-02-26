@@ -24,134 +24,35 @@ interface GameLayoutProps {
   typingPlayer?: string | null;
 }
 
-export default function GameLayout({
-  header,
-  main,
-  footer,
-  playersBar,
-  children,
-  players,
-  roundCount,
-  maxRounds,
-  timer,
-  gameCode,
-  gameTitle,
-  isHost,
-  gameStarted,
-  onStartGame,
-  timeLeft,
-  typingPlayer,
-}: GameLayoutProps) {
-  const [copied, setCopied] = useState(false);
+export default function GameLayout(props: any) {
+  // Completely unified layout
+  const { 
+      children, 
+      className,
+      // Extracted common props
+      roomCode,
+      timer,
+      round,
+      maxRounds,
+      players, // array of players
+      title,
+      onLeave
+  } = props;
 
-  const copyCode = () => {
-    if (gameCode) {
-        navigator.clipboard.writeText(gameCode);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    }
-  };
+  // We can render children directly if the game components manage their own full layout,
+  // but to ensure consistency we wrap them in a standard container.
   
-  // If using new structure (header/main/footer props)
-  if (header || main || footer) {
-      return (
-        <div className="min-h-screen bg-slate-950 text-slate-50 flex flex-col font-sans relative overflow-hidden">
-             {/* Background Elements */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[100px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[100px]" />
-            </div>
-
-            <header className="sticky top-0 z-10 p-4">
-                <div className="max-w-4xl mx-auto">
-                    {header}
-                </div>
-            </header>
-
-            <main className="flex-1 flex flex-col items-center justify-center p-4 z-10 w-full max-w-4xl mx-auto">
-                {main || children}
-            </main>
-
-            <footer className="sticky bottom-0 z-10 p-4 bg-slate-950/80 backdrop-blur-sm border-t border-slate-800/50">
-                <div className="max-w-4xl mx-auto flex flex-col gap-4">
-                    {playersBar}
-                    {footer}
-                </div>
-            </footer>
-        </div>
-      );
-  }
-
-  // Fallback for legacy usage
   return (
-    <main className="min-h-screen bg-slate-950 text-white flex flex-col relative overflow-hidden font-sans">
-      {/* Background Elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[100px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[100px]" />
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30">
+      {/* Animated Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px] animate-pulse-slow" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
       </div>
 
-      {/* Header */}
-      <header className="w-full max-w-6xl mx-auto p-4 flex items-center justify-between z-10">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-            {gameTitle}
-          </h1>
-          <div 
-            className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
-            onClick={copyCode}
-          >
-            <span className="text-sm font-mono text-gray-400">#{gameCode}</span>
-            {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3 text-gray-500" />}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-6">
-          {gameStarted && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-400">Manche</span>
-              <span className="font-mono font-bold">{roundCount}/{maxRounds}</span>
-            </div>
-          )}
-          
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${
-            (timeLeft || 0) <= 5 && gameStarted 
-              ? 'bg-red-500/20 border-red-500/50 text-red-400 animate-pulse' 
-              : 'bg-white/5 border-white/10 text-white'
-          }`}>
-            <Clock className="w-4 h-4" />
-            <span className="font-mono font-bold min-w-[3ch] text-center">{timer}</span>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 w-full max-w-6xl mx-auto z-10">
-        {children}
+      <div className="relative z-10 flex flex-col min-h-screen max-w-7xl mx-auto p-4 sm:p-6">
+          {children}
       </div>
-
-      {/* Footer / Players Bar */}
-      <footer className="w-full bg-black/20 backdrop-blur-md border-t border-white/5 p-4 z-10">
-        <div className="max-w-6xl mx-auto flex flex-col gap-2">
-           {typingPlayer && (
-             <div className="text-xs text-gray-400 animate-pulse mb-2">
-               {typingPlayer} est en train d'écrire...
-             </div>
-           )}
-           
-           <div className="flex flex-wrap items-center justify-center gap-4">
-             {players && Object.entries(players)
-               .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
-               .map(([name, score]) => (
-                 <div key={name} className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-                    <User className="w-3 h-3 text-gray-400" />
-                    <span className="text-sm font-medium">{name}</span>
-                    <span className="text-xs font-mono bg-white/10 px-1.5 py-0.5 rounded text-gray-300">{score}</span>
-                 </div>
-               ))}
-           </div>
-        </div>
-      </footer>
-    </main>
+    </div>
   );
 }

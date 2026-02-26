@@ -73,18 +73,33 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
 
   // Sync settings
   useEffect(() => {
-    if (isHost && settings && Object.keys(settings).length > 0) {
-      updateSettings(settings);
-    }
-  }, [isHost, settings]);
-
-  useEffect(() => {
     if (gameState?.settings) {
-      if (gameState.settings.rounds) setMaxRounds(parseInt(gameState.settings.rounds, 10));
-      if (gameState.settings.time) setRoundTime(parseInt(gameState.settings.time, 10));
-      if (gameState.settings.gens) setSelectedGens(gameState.settings.gens);
+      if (gameState.settings.rounds) setMaxRounds(Number(gameState.settings.rounds));
+      if (gameState.settings.time) setRoundTime(Number(gameState.settings.time));
+      if (gameState.settings.gens && Array.isArray(gameState.settings.gens)) {
+          // Avoid loop if same
+          if (JSON.stringify(gameState.settings.gens) !== JSON.stringify(selectedGens)) {
+               setSelectedGens(gameState.settings.gens);
+          }
+      }
     }
   }, [gameState?.settings]);
+
+  // Host updates DB when local state changes
+  useEffect(() => {
+      if (isHost) {
+          const newSettings = { 
+              rounds: maxRounds, 
+              time: roundTime, 
+              gens: selectedGens 
+          };
+          
+          // Check if different to avoid loop
+          if (JSON.stringify(newSettings) !== JSON.stringify(gameState?.settings)) {
+               updateSettings(newSettings);
+          }
+      }
+  }, [maxRounds, roundTime, selectedGens, isHost]);
 
   // Sync Timer
   useEffect(() => {
@@ -147,7 +162,10 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
       };
 
       let allIds: number[] = [];
-      gens.forEach(g => {
+      // Default to gen 1 if empty or undefined
+      const safeGens = (!gens || gens.length === 0) ? [1] : gens;
+      
+      safeGens.forEach(g => {
           const limit = genLimits[g as keyof typeof genLimits];
           if (limit) {
               for (let i = limit.min; i <= limit.max; i++) {

@@ -29,96 +29,94 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
   // Local state for timer
   const [timeLeft, setTimeLeft] = useState<number>(0);
 
+  const [countdown, setCountdown] = useState<number | null>(null);
+
   // Derived state from gameState.round_data
   const roundData = gameState?.round_data || {};
+  const queue = roundData.queue || [];
   const phase = (roundData.phase as Phase) || 'roles';
-  const roles = (roundData.roles as Record<string, Role>) || {};
-  const secretWord = roundData.word as string | null;
-  const category = roundData.category as string | null;
-  const lastAnswer = roundData.lastAnswer as 'yes' | 'no' | 'maybe' | null;
-  const voteResult = roundData.voteResult as string | null;
-  const winner = roundData.winner as 'CITOYENS' | 'INFILTRÉ' | 'AUCUN' | null;
-  const queue = (roundData.queue as any[]) || [];
-  const questionDuration = (gameState?.settings?.time ? parseInt(gameState.settings.time, 10) : 180) || 180;
-  
+  const roles = roundData.roles || {};
   const myRole = playerId ? roles[playerId] : undefined;
-  
-  // Votes from game_sessions.answers
   const currentVotes = gameState?.answers || {};
   const myVote = playerId && currentVotes[playerId] ? currentVotes[playerId].answer : null;
+  const questionDuration = 180; // 3 minutes default
+  const { word: secretWord, category, lastAnswer, winner, voteResult } = roundData;
+  // ... (rest of derived state)
 
-  // Timer logic
+  // Listen for countdown
   useEffect(() => {
-    if (phase === 'question') {
-      setTimeLeft(questionDuration);
-    }
-  }, [phase, questionDuration]);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (phase === 'question' && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) return 0;
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [phase, timeLeft]);
-
-  // Host checks time
-  useEffect(() => {
-    if (isHost && phase === 'question' && timeLeft === 0) {
-      // Time up -> Go to Vote
-      updateRoundData({ ...roundData, phase: 'vote' });
-    }
-  }, [isHost, phase, timeLeft, roundData, updateRoundData]);
+      if (gameState?.round_data?.countdown) {
+          const end = gameState.round_data.countdown;
+          const now = Date.now();
+          const diff = Math.ceil((end - now) / 1000);
+          if (diff > 0) {
+              setCountdown(diff);
+              const interval = setInterval(() => {
+                  setCountdown(prev => {
+                      if (prev && prev > 1) return prev - 1;
+                      return 0;
+                  });
+              }, 1000);
+              return () => clearInterval(interval);
+          } else {
+              setCountdown(null);
+          }
+      } else {
+          setCountdown(null);
+      }
+  }, [gameState?.round_data?.countdown]);
 
   const handleStartGame = async () => {
     if (!isHost) return;
-    try {
-      const res = await fetch('/api/games/infiltre?count=20');
-      const data = await res.json();
-      if (!Array.isArray(data)) {
-        toast.error('Erreur chargement mots');
-        return;
-      }
+    
+    // Start countdown
+    const countdownEnd = Date.now() + 3000;
+    await updateRoundData({ ...roundData, countdown: countdownEnd });
+    
+    setTimeout(async () => {
+        try {
+          const res = await fetch('/api/games/infiltre?count=20');
+          const data = await res.json();
+          if (!Array.isArray(data)) {
+            toast.error('Erreur chargement mots');
+            return;
+          }
 
-      const firstWord = data[0];
-      const remainingQueue = data.slice(1);
+          const firstWord = data[0];
+          const remainingQueue = data.slice(1);
 
-      // Assign roles
-      const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
-      if (shuffledPlayers.length < 3) {
-        // Need at least 3 players ideally, but allow less for testing if needed
-      }
-      
-      const master = shuffledPlayers[0];
-      const infiltre = shuffledPlayers[1]; // Might be undefined if 1 player
-      const newRoles: Record<string, Role> = {};
-      
-      players.forEach(p => {
-        if (p.id === master?.id) newRoles[p.id] = 'MASTER';
-        else if (p.id === infiltre?.id) newRoles[p.id] = 'INFILTRÉ';
-        else newRoles[p.id] = 'CITOYEN';
-      });
+          // Assign roles
+          const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+          
+          const master = shuffledPlayers[0];
+          const infiltre = shuffledPlayers[1]; // Might be undefined if 1 player
+          const newRoles: Record<string, Role> = {};
+          
+          players.forEach(p => {
+            if (master && p.id === master.id) newRoles[p.id] = 'MASTER';
+            else if (infiltre && p.id === infiltre.id) newRoles[p.id] = 'INFILTRÉ';
+            else newRoles[p.id] = 'CITOYEN';
+          });
+          
+          // Clear countdown
+          await updateRoundData({ ...roundData, countdown: null });
 
-      await hostStartGame({
-        queue: remainingQueue,
-        word: firstWord.word,
-        category: firstWord.category,
-        roles: newRoles,
-        phase: 'question',
-        lastAnswer: null,
-        voteResult: null,
-        winner: null
-      });
+          await hostStartGame({
+            queue: remainingQueue,
+            word: firstWord.word,
+            category: firstWord.category,
+            roles: newRoles,
+            phase: 'question',
+            lastAnswer: null,
+            voteResult: null,
+            winner: null
+          });
 
-    } catch (err) {
-      console.error(err);
-      toast.error('Impossible de démarrer');
-    }
+        } catch (err) {
+          console.error(err);
+          toast.error('Impossible de démarrer');
+        }
+    }, 3000);
   };
 
   const handleNextRound = async () => {

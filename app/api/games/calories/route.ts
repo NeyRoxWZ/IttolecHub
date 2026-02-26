@@ -1,31 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const CATEGORIES = [
-  'snacks',
-  'beverages',
-  'cheeses',
-  'desserts',
-  'pizzas',
-  'sandwiches',
-  'breakfasts',
+  'snack',
+  'beverage',
+  'cheese',
+  'dessert',
+  'pizza',
+  'sandwich',
+  'breakfast',
+  'burger',
+  'cake',
+  'chocolate',
+  'fruit',
+  'vegetable'
 ];
 
-async function getProduct(category: string, country: string = 'world'): Promise<any> {
+async function getProduct(): Promise<any> {
   try {
-    const url = `https://${country}.openfoodfacts.org/api/v2/search?categories_tags_en=${category}&fields=product_name,image_url,nutriments&page_size=50`;
+    // Search random category or generic high level terms
+    const term = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+    // Using search.pl for better results than V2 sometimes
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${term}&search_simple=1&action=process&json=1&page_size=50&fields=product_name,image_url,nutriments,quantity`;
+    
     const response = await fetch(url);
+    if (!response.ok) throw new Error('OFF API Error');
+    
     const data = await response.json();
     
-    // Filtrer les produits qui ont un nom, une image et des calories
+    if (!data.products) return null;
+
+    // Filter valid products
     const validProducts = data.products.filter(
-      (p: any) => p.product_name && p.image_url && p.nutriments['energy-kcal_100g']
+      (p: any) => 
+        p.product_name && 
+        p.product_name.length < 50 && // Avoid super long weird names
+        p.image_url && 
+        (p.nutriments['energy-kcal_100g'] || p.nutriments['energy-kcal'])
     );
     
-    if (validProducts.length === 0) {
-      return null;
-    }
+    if (validProducts.length === 0) return null;
     
-    // Choisir un produit aléatoire
     return validProducts[Math.floor(Math.random() * validProducts.length)];
 
   } catch (error) {
@@ -36,23 +50,25 @@ async function getProduct(category: string, country: string = 'world'): Promise<
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category') || CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
-    const country = searchParams.get('country') || 'world';
-    
-    const product = await getProduct(category, country);
+    const product = await getProduct();
     
     if (!product) {
-      return NextResponse.json(
-        { error: 'Aucun produit trouvé pour cette catégorie' },
-        { status: 500 }
-      );
+        // Fallback to a hardcoded safe product if API fails entirely
+        return NextResponse.json({
+            name: 'Big Mac',
+            imageUrl: 'https://images.openfoodfacts.org/images/products/302/933/000/3533/front_en.3.400.jpg',
+            calories: 257, // per 100g usually
+            portion: '100g'
+        });
     }
-
+    
+    let cals = product.nutriments['energy-kcal_100g'] || product.nutriments['energy-kcal'];
+    
     return NextResponse.json({
       name: product.product_name,
       imageUrl: product.image_url,
-      calories: Math.round(product.nutriments['energy-kcal_100g']),
+      calories: Math.round(cals),
+      portion: '100g' // OFF standardizes on 100g usually, hard to parse quantity reliably without complex logic
     });
     
   } catch (error) {

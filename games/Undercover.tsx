@@ -32,6 +32,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   // Settings state (local for host until saved/synced)
   const [mrWhiteEnabled, setMrWhiteEnabled] = useState(true);
   const [voteDuration, setVoteDuration] = useState(30);
+  const [mrWhiteGuess, setMrWhiteGuess] = useState('');
+
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   // Sync settings from DB when they change (for clients)
   useEffect(() => {
@@ -44,46 +47,72 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   // Host updates DB settings when local state changes
   useEffect(() => {
     if (isHost) {
-        updateSettings({ mrWhiteEnabled, voteDuration });
+        const newSettings = { mrWhiteEnabled, voteDuration };
+        // Prevent loop
+        if (JSON.stringify(newSettings) !== JSON.stringify(gameState?.settings)) {
+            updateSettings(newSettings);
+        }
     }
-  }, [isHost, mrWhiteEnabled, voteDuration]); // Be careful with loops, but updateSettings usually stable
-
-  // Local state for Mr White guess input
-  const [mrWhiteGuess, setMrWhiteGuess] = useState('');
+  }, [mrWhiteEnabled, voteDuration, isHost]);
 
   // Derived state
   const roundData = gameState?.round_data || {};
+  const queue = roundData.queue || [];
   const phase = (roundData.phase as Phase) || 'roles';
-  const roles = (roundData.roles as Record<string, Role>) || {};
-  const civilWord = roundData.civilWord as string | null;
-  const undercoverWord = roundData.undercoverWord as string | null;
-  const alivePlayers = (roundData.alivePlayers as string[]) || []; // IDs
-  const currentSpeaker = roundData.currentSpeaker as string | null; // ID
-  const clues = (roundData.clues as Record<string, string>) || {};
-  const eliminated = roundData.eliminated as string | null;
-  const winner = roundData.winner as string | null;
-  const queue = (roundData.queue as any[]) || [];
-  
-  const myRole = playerId ? roles[playerId] : undefined;
-  const isAlive = playerId && alivePlayers.includes(playerId);
-
-  // Votes from game_sessions.answers
+  const { roles, currentSpeaker, clues, alivePlayers, winner, eliminated, civilWord, undercoverWord } = roundData;
+  const myRole = playerId ? roles?.[playerId] : undefined;
+  const isAlive = playerId && alivePlayers?.includes(playerId);
   const currentVotes = gameState?.answers || {};
   const myVote = playerId && currentVotes[playerId] ? currentVotes[playerId].answer : null;
+  // ... (rest of derived state)
+
+  // Listen for countdown
+  useEffect(() => {
+      if (gameState?.round_data?.countdown) {
+          const end = gameState.round_data.countdown;
+          const now = Date.now();
+          const diff = Math.ceil((end - now) / 1000);
+          if (diff > 0) {
+              setCountdown(diff);
+              const interval = setInterval(() => {
+                  setCountdown(prev => {
+                      if (prev && prev > 1) return prev - 1;
+                      return 0;
+                  });
+              }, 1000);
+              return () => clearInterval(interval);
+          } else {
+              setCountdown(null);
+          }
+      } else {
+          setCountdown(null);
+      }
+  }, [gameState?.round_data?.countdown]);
 
   const handleStartGame = async () => {
     if (!isHost) return;
-    try {
-      const res = await fetch('/api/games/undercover?count=20');
-      const data = await res.json();
-      if (!Array.isArray(data)) {
-        toast.error('Erreur chargement mots');
-        return;
-      }
+    
+    // Start countdown
+    const countdownEnd = Date.now() + 3000;
+    await updateRoundData({ ...roundData, countdown: countdownEnd });
+    
+    // Wait for countdown
+    setTimeout(async () => {
+        try {
+          const res = await fetch('/api/games/undercover?count=20');
+          const data = await res.json();
+          
+          if (!data || data.length === 0) return;
 
-      const firstPair = data[0];
-      const remainingQueue = data.slice(1);
+          const firstPair = data[0];
+          const remainingQueue = data.slice(1);
 
+          // Clear countdown
+          await updateRoundData({ ...roundData, countdown: null }); // Need to be careful not to overwrite game init
+          
+          // Actually, startGame overwrites roundData. So we just call hostStartGame.
+          // But we need to prep data first.
+          
       // Assign roles
       const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
       if (shuffledPlayers.length < 3) {
@@ -131,6 +160,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       console.error(err);
       toast.error('Impossible de démarrer');
     }
+  }, 3000); // Wait 3s for countdown
   };
 
   const handleNextRound = async () => {
@@ -140,34 +170,53 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       return;
     }
 
-    const nextPair = queue[0];
-    const newQueue = queue.slice(1);
+    // Start countdown for next round
+    const countdownEnd = Date.now() + 3000;
+    await updateRoundData({ ...roundData, countdown: countdownEnd });
+    
+    setTimeout(async () => {
+        // Clear countdown
+        await updateRoundData({ ...roundData, countdown: null });
 
-    const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
-    const mrWhite = shuffledPlayers[0];
-    const undercover = shuffledPlayers[1];
-    const newRoles: Record<string, Role> = {};
-      
-    players.forEach(p => {
-      if (p.id === mrWhite?.id) newRoles[p.id] = 'MR_WHITE';
-      else if (p.id === undercover?.id) newRoles[p.id] = 'UNDERCOVER';
-      else newRoles[p.id] = 'CIVIL';
-    });
+        const nextPair = queue[0];
+        const newQueue = queue.slice(1);
 
-    const playerIds = shuffledPlayers.map(p => p.id);
+        const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+        let mrWhite = null;
+        let undercover = null;
+        let availablePlayers = [...shuffledPlayers];
+        
+        if (mrWhiteEnabled) {
+            mrWhite = availablePlayers[0];
+            availablePlayers = availablePlayers.slice(1);
+        }
+        
+        undercover = availablePlayers[0];
+        availablePlayers = availablePlayers.slice(1);
+        
+        const newRoles: Record<string, Role> = {};
+          
+        players.forEach(p => {
+          if (mrWhite && p.id === mrWhite.id) newRoles[p.id] = 'MR_WHITE';
+          else if (p.id === undercover?.id) newRoles[p.id] = 'UNDERCOVER';
+          else newRoles[p.id] = 'CIVIL';
+        });
 
-    await hostNextRound({
-      queue: newQueue,
-      civilWord: nextPair.civilWord,
-      undercoverWord: nextPair.undercoverWord,
-      roles: newRoles,
-      phase: 'clues',
-      alivePlayers: playerIds,
-      currentSpeaker: playerIds[0],
-      clues: {},
-      eliminated: null,
-      winner: null
-    });
+        const playerIds = shuffledPlayers.map(p => p.id);
+
+        await hostNextRound({
+          queue: newQueue,
+          civilWord: nextPair.civilWord,
+          undercoverWord: nextPair.undercoverWord,
+          roles: newRoles,
+          phase: 'clues',
+          alivePlayers: playerIds,
+          currentSpeaker: playerIds[0],
+          clues: {},
+          eliminated: null,
+          winner: null
+        });
+    }, 3000);
   };
 
   const handleClueSubmit = (clue: string) => {
@@ -183,7 +232,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
     // If we wrapped around, have everyone given a clue?
     // We check if newClues has all alivePlayers.
-    const allGiven = alivePlayers.every(id => newClues[id]);
+    const allGiven = alivePlayers?.every((id: string) => newClues[id]);
 
     let nextPhase = phase;
     if (allGiven) {
@@ -256,13 +305,13 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     }
 
     // Eliminate player
-    const newAlive = alivePlayers.filter(id => id !== suspect);
+    const newAlive = alivePlayers?.filter((id: string) => id !== suspect) || [];
     
     // Check Win Conditions
-    const remainingRoles = newAlive.map(id => roles[id]);
+    const remainingRoles = newAlive.map((id: string) => roles[id]);
     const hasUndercover = remainingRoles.includes('UNDERCOVER');
     const hasMrWhite = remainingRoles.includes('MR_WHITE');
-    const civilsCount = remainingRoles.filter(r => r === 'CIVIL').length;
+    const civilsCount = remainingRoles.filter((r: string) => r === 'CIVIL').length;
     const impostorsCount = (hasUndercover ? 1 : 0) + (hasMrWhite ? 1 : 0);
 
     if (!hasUndercover && !hasMrWhite) {
@@ -491,7 +540,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             Tour de table
           </p>
           <div className="w-full space-y-2 mb-4">
-             {alivePlayers.map(id => {
+             {alivePlayers?.map((id: string) => {
                  const pName = players.find(p => p.id === id)?.name || id;
                  return (
                     <div key={id} className={`flex items-center justify-between px-3 py-2 rounded-2xl ${currentSpeaker === id ? 'bg-indigo-900/30 border border-indigo-500/50' : 'bg-slate-800'}`}>
@@ -519,7 +568,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                 Qui est l&apos;intrus ? Votez !
             </p>
              <div className="flex flex-wrap gap-2 justify-center mt-4">
-                {alivePlayers.map((id) => {
+                {alivePlayers?.map((id: string) => {
                     const pName = players.find(p => p.id === id)?.name || id;
                     return (
                     <button

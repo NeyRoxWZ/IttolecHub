@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import infiltreWords from '@/infiltre.json';
 
+export const dynamic = 'force-dynamic';
+
 type InfiltreWord = {
   word: string;
   category: string;

@@ -74,18 +74,22 @@ export default function LyricsGuesser({ roomCode, settings }: LyricsGuesserProps
 
   // Sync settings
   useEffect(() => {
-    if (isHost && settings && Object.keys(settings).length > 0) {
-      updateSettings(settings);
-    }
-  }, [isHost, settings]);
-
-  useEffect(() => {
     if (gameState?.settings) {
-      if (gameState.settings.rounds) setMaxRounds(parseInt(gameState.settings.rounds, 10));
-      if (gameState.settings.time) setRoundTime(parseInt(gameState.settings.time, 10));
+      if (gameState.settings.rounds) setMaxRounds(Number(gameState.settings.rounds));
+      if (gameState.settings.time) setRoundTime(Number(gameState.settings.time));
       if (gameState.settings.artist) setTargetArtist(gameState.settings.artist);
     }
   }, [gameState?.settings]);
+
+  // Host updates DB when local state changes
+  useEffect(() => {
+      if (isHost) {
+          const newSettings = { rounds: maxRounds, time: roundTime, artist: targetArtist };
+          if (JSON.stringify(newSettings) !== JSON.stringify(gameState?.settings)) {
+              updateSettings(newSettings);
+          }
+      }
+  }, [maxRounds, roundTime, targetArtist, isHost]);
 
   // Sync Timer
   useEffect(() => {
@@ -136,20 +140,15 @@ export default function LyricsGuesser({ roomCode, settings }: LyricsGuesserProps
   const startRound = async () => {
     if (!isHost || !roomCode) return;
     
-    if (!targetArtist && !artistInput) return;
-    const artist = targetArtist || artistInput;
-    
-    // Sync artist to settings
-    if (artist !== targetArtist) {
-        updateSettings({ ...gameState?.settings, artist });
-    }
+    // Use targetArtist from settings or default
+    const artist = targetArtist || 'Daft Punk';
 
     try {
       const songs = await fetchLyrics(artist, maxRounds);
       
       if (songs.length === 0) {
           // Handle error (show message?)
-          alert("Impossible de trouver des chansons pour cet artiste.");
+          console.error("Impossible de trouver des chansons pour cet artiste.");
           return;
       }
 
