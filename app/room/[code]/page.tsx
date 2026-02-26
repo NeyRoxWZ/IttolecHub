@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -14,6 +14,7 @@ interface Player {
   name: string;
   isHost: boolean; // mapped from is_host
   score: number;
+  last_seen_at?: string;
 }
 
 interface GameSetting {
@@ -116,6 +117,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [copied, setCopied] = useState(false);
   const [isRoomDeleted, setIsRoomDeleted] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
+  
+  // Refs for interval access
+  const playersRef = useRef(players);
+  const isHostRef = useRef(isHost);
+
+  useEffect(() => {
+    playersRef.current = players;
+    isHostRef.current = isHost;
+  }, [players, isHost]);
 
   const selectedGame = useMemo(() => selectedGameId && selectedGameId !== '__placeholder__' ? gamesList.find(g => g.id === selectedGameId) : undefined, [selectedGameId]);
 
@@ -135,7 +145,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           .from('rooms')
           .select('*')
           .eq('code', params.code)
-          .single();
+          .maybeSingle();
 
         if (roomError || !room) {
           setIsRoomDeleted(true);
@@ -158,7 +168,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           .select('*')
           .eq('room_id', room.id)
           .eq('name', storedName)
-          .single();
+          .maybeSingle();
 
         let currentPlayerId = existingPlayer?.id;
         let isCurrentHost = existingPlayer?.is_host || false;
@@ -214,7 +224,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             id: p.id,
             name: p.name,
             isHost: p.is_host,
-            score: p.score || 0
+            score: p.score || 0,
+            last_seen_at: p.last_seen_at
           })));
         }
 
@@ -227,6 +238,51 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
     initRoom();
   }, [params.code, router]);
+
+  // Presence System (Heartbeat & Inactivity)
+  useEffect(() => {
+    if (!roomId) return;
+    const currentPayloadId = sessionStorage.getItem('playerId');
+
+    // 1. Heartbeat (every 30s)
+    const sendHeartbeat = async () => {
+        if (currentPayloadId) {
+            await supabase.from('players').update({ last_seen_at: new Date().toISOString() }).eq('id', currentPayloadId);
+        }
+    };
+    sendHeartbeat();
+    const hbInterval = setInterval(sendHeartbeat, 30000);
+
+    // 2. Inactivity Check (every 60s)
+    const checkActivity = async () => {
+        if (isHostRef.current) {
+            // Host cleans up inactive players (> 2 min)
+            const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+            await supabase.from('players').delete().eq('room_id', roomId).lt('last_seen_at', twoMinAgo);
+        } else {
+            // Clients check if Host is inactive
+            const host = playersRef.current.find(p => p.isHost);
+            if (host && host.last_seen_at) {
+                const lastSeen = new Date(host.last_seen_at).getTime();
+                // If host inactive > 2m30s
+                if (Date.now() - lastSeen > 150000) {
+                     console.log("Host inactive, closing room...");
+                     // Check current status first to avoid spam
+                     const { data: currentRoom } = await supabase.from('rooms').select('status').eq('id', roomId).maybeSingle();
+                     if (currentRoom && currentRoom.status !== 'closed') {
+                         await supabase.from('rooms').update({ status: 'closed' }).eq('id', roomId);
+                     }
+                }
+            }
+        }
+    };
+    const checkInterval = setInterval(checkActivity, 60000);
+
+    return () => {
+        clearInterval(hbInterval);
+        clearInterval(checkInterval);
+    };
+  }, [roomId]);
 
   // Souscription Realtime
   useEffect(() => {
@@ -253,7 +309,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               id: p.id,
               name: p.name,
               isHost: p.is_host,
-              score: p.score || 0
+              score: p.score || 0,
+              last_seen_at: p.last_seen_at
             })));
           }
         }
@@ -271,6 +328,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           // Synchronisation des settings pour les non-hosts
           if (newRoom.game_type) setSelectedGameId(newRoom.game_type);
           if (newRoom.settings) setGameSettings(newRoom.settings);
+
+          // Room fermée
+          if (newRoom.status === 'closed') {
+              setIsRoomDeleted(true);
+              setTimeout(() => router.push('/'), 3000);
+              return;
+          }
 
           // Redirection si la partie commence
           if (newRoom.status === 'in_game' || newRoom.status === 'started') {
@@ -293,21 +357,35 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   }, [roomId, params.code, router]);
 
   // Synchroniser les changements de config (Host uniquement)
+  const isUpdatingSettingsRef = useRef(false);
+  
   useEffect(() => {
       if (!isHost || !roomId || !selectedGameId || selectedGameId === '__placeholder__') return;
       
-      // Debounce ou update direct ? Pour l'instant update direct pour feedback visuel
-      // On update la room avec le jeu sélectionné et les settings
       const updateRoomSettings = async () => {
-          await supabase.from('rooms').update({
+          if (isUpdatingSettingsRef.current) return;
+          
+          // Verify we have valid data before sending
+          if (typeof selectedGameId !== 'string') {
+              console.error('Invalid game_type:', selectedGameId);
+              return;
+          }
+          
+          isUpdatingSettingsRef.current = true;
+          
+          console.log('Updating room settings:', { game_type: selectedGameId, settings: gameSettings });
+          const { error } = await supabase.from('rooms').update({
               game_type: selectedGameId,
-              settings: gameSettings
+              settings: gameSettings || {} // Ensure not undefined
           }).eq('id', roomId);
+
+          if (error) {
+             console.error('Error updating room settings:', error);
+          }
+          
+          isUpdatingSettingsRef.current = false;
       };
       
-      // On évite de spammer la DB à chaque keystroke, on pourrait mettre un debounce
-      // Mais ici on va le faire uniquement quand selectedGameId change ou quand gameSettings change
-      // Pour éviter trop de writes, on peut attendre que l'utilisateur arrête de taper
       const timer = setTimeout(updateRoomSettings, 500);
       return () => clearTimeout(timer);
   }, [selectedGameId, gameSettings, isHost, roomId]);

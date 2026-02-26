@@ -9,6 +9,7 @@ export interface Player {
   score: number;
   joined_at: string;
   avatar?: string;
+  last_seen_at?: string;
 }
 
 export interface GameState {
@@ -21,7 +22,7 @@ export interface GameState {
 }
 
 export function useGameSync(roomCode: string, gameType: string) {
-  const [roomStatus, setRoomStatus] = useState<'waiting' | 'in_game' | 'finished'>('waiting');
+  const [roomStatus, setRoomStatus] = useState<'waiting' | 'in_game' | 'finished' | 'closed'>('waiting');
   const [players, setPlayers] = useState<Player[]>([]);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isHost, setIsHost] = useState(false);
@@ -39,7 +40,7 @@ export function useGameSync(roomCode: string, gameType: string) {
         .from('rooms')
         .select('*')
         .eq('code', roomCode)
-        .single();
+        .maybeSingle();
 
       if (roomError || !room) {
         console.error('Room not found:', roomError);
@@ -62,7 +63,7 @@ export function useGameSync(roomCode: string, gameType: string) {
           .from('players')
           .select('*')
           .eq('id', currentPayloadId)
-          .single();
+          .maybeSingle();
         if (data) player = data;
       }
 
@@ -73,7 +74,7 @@ export function useGameSync(roomCode: string, gameType: string) {
           .select('*')
           .eq('room_id', room.id)
           .eq('name', playerName)
-          .single();
+          .maybeSingle();
          if (data) player = data;
       }
 
@@ -118,7 +119,7 @@ export function useGameSync(roomCode: string, gameType: string) {
         .from('game_sessions')
         .select('*')
         .eq('room_id', room.id)
-        .single();
+        .maybeSingle();
 
       if (session) {
         setGameState({
@@ -221,10 +222,94 @@ export function useGameSync(roomCode: string, gameType: string) {
     };
   }, [roomId]);
 
+  // Heartbeat system (Presence)
+  useEffect(() => {
+    if (!playerId) return;
+    
+    const sendHeartbeat = async () => {
+        await supabase.from('players').update({ last_seen_at: new Date().toISOString() }).eq('id', playerId);
+    };
+    
+    // Initial heartbeat
+    sendHeartbeat();
+    
+    const interval = setInterval(sendHeartbeat, 30000); // Every 30s
+    return () => clearInterval(interval);
+  }, [playerId]);
+
+  // Cleanup inactive players (Host only)
+  useEffect(() => {
+    if (!isHost || !roomId) return;
+    
+    const cleanup = async () => {
+        // Remove players inactive for > 2 minutes
+        // We use raw SQL query logic or Supabase filters
+        // Since we can't do complex date math in filter easily without stored procedure, 
+        // we calculate the ISO string for 2 minutes ago.
+        const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+        
+        await supabase
+            .from('players')
+            .delete()
+            .eq('room_id', roomId)
+            .lt('last_seen_at', twoMinAgo);
+    };
+    
+    const interval = setInterval(cleanup, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [isHost, roomId]);
+
+  // Check Host Inactivity (run by everyone to detect if host is gone)
+  useEffect(() => {
+    if (!roomId || !players.length) return;
+
+    const checkHost = async () => {
+       // Find host in players list
+       const host = players.find(p => p.is_host);
+       if (host && host.last_seen_at) {
+          const lastSeen = new Date(host.last_seen_at).getTime();
+          // If host inactive for > 2m30s (buffer), close room
+          if (Date.now() - lastSeen > 150000) {
+             console.log("Host inactive, closing room...");
+             // Only one client needs to succeed, but multiple might try. RLS allows.
+             // Ideally only the "next" oldest player does this, but keeping it simple.
+             // We check if room is already closed to avoid spam
+             if (roomStatus !== 'closed') {
+                 await supabase.from('rooms').update({ status: 'closed' }).eq('id', roomId);
+             }
+          }
+       }
+    };
+
+    const interval = setInterval(checkHost, 30000); 
+    return () => clearInterval(interval);
+  }, [roomId, players, roomStatus]);
+
+  // Handle browser close / visibility
+  useEffect(() => {
+      if (!playerId) return;
+      
+      const handleUnload = () => {
+          // Attempt to remove player immediately
+          // We use navigator.sendBeacon for reliability during unload, 
+          // but Supabase client might not support it directly.
+          // Fallback to fetch with keepalive if possible, or just synchronous supabase call (best effort)
+          // Since we have heartbeat, this is just optimization.
+          
+          // We can't await here reliably.
+          // Let's rely on heartbeat timeout for robust cleanup.
+          // But we can try to set status to 'inactive' if we had such column.
+      };
+      
+      // window.addEventListener('beforeunload', handleUnload);
+      // return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [playerId]);
+
   // Actions
   const updateSettings = async (newSettings: any) => {
     if (!roomId || !isHost) return;
-    await supabase.from('rooms').update({ settings: newSettings }).eq('id', roomId);
+    const { error } = await supabase.from('rooms').update({ settings: newSettings }).eq('id', roomId);
+    if (error) console.error('Error updating settings (useGameSync):', error, newSettings);
   };
 
   const startGame = async (initialRoundData: any = {}) => {
