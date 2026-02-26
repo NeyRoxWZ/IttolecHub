@@ -16,7 +16,7 @@ export async function DELETE(request: NextRequest) {
       .from('rooms')
       .select('host_id')
       .eq('code', roomCode)
-      .single();
+      .maybeSingle();
 
     if (roomError || !room) {
       return NextResponse.json(

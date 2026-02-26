@@ -37,9 +37,9 @@ export async function POST(request: NextRequest) {
         },
       ])
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) {
+    if (error || !data) {
       console.error('Erreur création room:', error);
       return NextResponse.json(
         { error: 'Erreur lors de la création de la room' },

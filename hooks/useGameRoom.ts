@@ -38,8 +38,8 @@ export function useGameRoom(roomId: string, playerId: string) {
     // Initial fetch
     const fetchInitialState = async () => {
       const [roomRes, sessionRes, playersRes] = await Promise.all([
-        supabase.from('rooms').select('*').eq('id', roomId).single(),
-        supabase.from('game_sessions').select('*').eq('room_id', roomId).single(),
+        supabase.from('rooms').select('*').eq('id', roomId).maybeSingle(),
+        supabase.from('game_sessions').select('*').eq('room_id', roomId).maybeSingle(),
         supabase.from('players').select('*').eq('room_id', roomId)
       ]);
 

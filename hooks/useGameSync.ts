@@ -91,7 +91,7 @@ export function useGameSync(roomCode: string, gameType: string) {
             is_host: roomData.host_id ? false : true,
           })
           .select()
-          .single();
+          .maybeSingle();
         
         if (newPlayer) {
           player = newPlayer;

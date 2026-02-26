@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       .from('rooms')
       .select('id, code, created_at, host_id')
       .eq('code', roomCode)
-      .single();
+      .maybeSingle();
     
     if (roomError || !room) {
       return NextResponse.json({ error: 'Room non trouvée', shouldDelete: false });

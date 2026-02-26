@@ -187,7 +187,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               score: 0
             })
             .select()
-            .single();
+            .maybeSingle();
 
           if (newPlayer) {
             currentPlayerId = newPlayer.id;

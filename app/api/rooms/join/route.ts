@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       .from('rooms')
       .select('*')
       .eq('code', roomCode.toUpperCase())
-      .single();
+      .maybeSingle();
 
     if (roomError || !room) {
       return NextResponse.json(
