@@ -376,19 +376,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           <Button onClick={leaveRoom} variant="outline" className="rounded-xl">
             ← Quitter
           </Button>
-          <div
-            className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 p-2 rounded-xl"
-            onMouseEnter={() => setIsCodeVisible(true)}
-            onMouseLeave={() => setIsCodeVisible(false)}
-          >
-            <span className="font-semibold text-slate-700 dark:text-slate-300">Code :</span>
-            <span className={`font-mono text-lg ${isCodeVisible ? 'blur-0' : 'blur-sm'} transition-all text-slate-800 dark:text-slate-100`}>
-              {params.code}
-            </span>
-            <Button onClick={copyRoomCode} variant="outline" size="sm" className="rounded-lg p-1">
-              {copied ? <span className="text-xs text-green-500">Copié!</span> : <Copy className="h-4 w-4" />}
-            </Button>
-          </div>
+          {/* Code display removed as requested */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

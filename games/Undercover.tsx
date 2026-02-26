@@ -16,16 +16,37 @@ interface UndercoverProps {
 }
 
 export default function Undercover({ roomCode }: UndercoverProps) {
+  // Sync with DB
   const {
     gameState,
     isHost,
     players,
     playerId,
+    updateSettings, // Use updateSettings from hook
     startGame: hostStartGame,
     updateRoundData,
     nextRound: hostNextRound,
     submitAnswer
   } = useGameSync(roomCode, 'undercover');
+
+  // Settings state (local for host until saved/synced)
+  const [mrWhiteEnabled, setMrWhiteEnabled] = useState(true);
+  const [voteDuration, setVoteDuration] = useState(30);
+
+  // Sync settings from DB when they change (for clients)
+  useEffect(() => {
+    if (gameState?.settings) {
+        if (gameState.settings.mrWhiteEnabled !== undefined) setMrWhiteEnabled(gameState.settings.mrWhiteEnabled);
+        if (gameState.settings.voteDuration !== undefined) setVoteDuration(gameState.settings.voteDuration);
+    }
+  }, [gameState?.settings]);
+
+  // Host updates DB settings when local state changes
+  useEffect(() => {
+    if (isHost) {
+        updateSettings({ mrWhiteEnabled, voteDuration });
+    }
+  }, [isHost, mrWhiteEnabled, voteDuration]); // Be careful with loops, but updateSettings usually stable
 
   // Local state for Mr White guess input
   const [mrWhiteGuess, setMrWhiteGuess] = useState('');
@@ -66,15 +87,27 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       // Assign roles
       const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
       if (shuffledPlayers.length < 3) {
-         // Need min 3
+         toast.error('Il faut au moins 3 joueurs !');
+         return;
       }
       
-      const mrWhite = shuffledPlayers[0];
-      const undercover = shuffledPlayers[1];
       const newRoles: Record<string, Role> = {};
       
+      // Determine roles based on settings
+      let mrWhite = null;
+      let undercover = null;
+      let availablePlayers = [...shuffledPlayers];
+      
+      if (mrWhiteEnabled) {
+          mrWhite = availablePlayers[0];
+          availablePlayers = availablePlayers.slice(1);
+      }
+      
+      undercover = availablePlayers[0];
+      availablePlayers = availablePlayers.slice(1);
+      
       players.forEach(p => {
-        if (p.id === mrWhite?.id) newRoles[p.id] = 'MR_WHITE';
+        if (mrWhite && p.id === mrWhite.id) newRoles[p.id] = 'MR_WHITE';
         else if (p.id === undercover?.id) newRoles[p.id] = 'UNDERCOVER';
         else newRoles[p.id] = 'CIVIL';
       });
@@ -375,9 +408,45 @@ export default function Undercover({ roomCode }: UndercoverProps) {
          <div className="flex flex-col items-center justify-center py-10">
             <EyeOff className="h-16 w-16 text-slate-700 mb-4" />
             <h2 className="text-xl font-bold text-slate-200 mb-2">En attente</h2>
-            <p className="text-slate-400 text-sm max-w-xs">
-                Le Maître du jeu va lancer la partie.
-            </p>
+            
+            {isHost ? (
+               <div className="p-4 bg-slate-800 rounded-xl border border-slate-700 w-full max-w-sm">
+                   <h3 className="text-lg font-medium text-slate-200 mb-4">Paramètres</h3>
+                   
+                   <div className="flex items-center justify-between mb-4">
+                       <label className="text-sm text-slate-300">Mr. White</label>
+                       <div 
+                         className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${mrWhiteEnabled ? 'bg-indigo-600' : 'bg-slate-600'}`}
+                         onClick={() => setMrWhiteEnabled(!mrWhiteEnabled)}
+                       >
+                           <div className={`w-4 h-4 rounded-full bg-white transition-transform ${mrWhiteEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                       </div>
+                   </div>
+                   
+                   <div className="flex flex-col gap-2 mb-4">
+                       <label className="text-sm text-slate-300">Durée Vote (s)</label>
+                       <Input 
+                         type="number"
+                         value={voteDuration}
+                         onChange={(e) => setVoteDuration(parseInt(e.target.value) || 30)}
+                         className="bg-slate-900 border-slate-700 text-white"
+                       />
+                   </div>
+                   
+                   <p className="text-xs text-slate-500 mb-4">
+                       {players.length < 3 ? "Il faut 3 joueurs minimum" : "Prêt à lancer !"}
+                   </p>
+               </div>
+            ) : (
+                <div className="text-center">
+                    <p className="text-slate-400 text-sm max-w-xs mb-2">
+                        Le Maître du jeu va lancer la partie.
+                    </p>
+                    <div className="text-xs text-slate-500 bg-slate-800 px-3 py-1 rounded-full">
+                        {mrWhiteEnabled ? "Avec Mr. White" : "Sans Mr. White"} • Vote: {voteDuration}s
+                    </div>
+                </div>
+            )}
          </div>
       )}
 

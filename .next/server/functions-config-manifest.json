@@ -1,1 +1,1 @@
-{"version":1,"functions":{"/api/rooms/cleanup":{},"/api/rooms/delete":{}}}
+{"version":1,"functions":{"/api/rooms/delete":{},"/api/rooms/cleanup":{}}}

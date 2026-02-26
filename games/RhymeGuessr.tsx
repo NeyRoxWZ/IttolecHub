@@ -307,7 +307,6 @@ export default function RhymeGuessr({ roomCode, settings }: RhymeGuessrProps) {
                       />
                    </div>
                 </div>
-                
                 <Button size="lg" onClick={startRound} className="w-full">
                   Lancer la partie
                 </Button>
@@ -317,11 +316,11 @@ export default function RhymeGuessr({ roomCode, settings }: RhymeGuessrProps) {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
                 <p>L'hôte configure la partie...</p>
                  <div className="grid grid-cols-2 gap-4 text-left max-w-md mx-auto mt-4 opacity-75">
-                   <div className="flex flex-col">
+                   <div className="flex flex-col items-center">
                       <span className="text-sm text-gray-400">Rounds</span>
                       <span className="font-bold">{maxRounds}</span>
                    </div>
-                   <div className="flex flex-col">
+                   <div className="flex flex-col items-center">
                       <span className="text-sm text-gray-400">Temps</span>
                       <span className="font-bold">{roundTime}s</span>
                    </div>

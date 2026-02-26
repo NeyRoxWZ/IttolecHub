@@ -366,10 +366,25 @@ export default function CaloriesGuessr({ roomCode, settings }: CaloriesGuessrPro
                       <span className="font-bold">{maxRounds}</span>
                    </div>
                    <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Temps</span>
+                      <span className="flex items-center gap-1 text-sm text-gray-400">
+                        <Clock className="w-3 h-3" /> Temps
+                      </span>
                       <span className="font-bold">{roundTime}s</span>
                    </div>
                 </div>
+
+                <div className="flex flex-wrap justify-center gap-2 mb-6">
+                  {players.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-white/10"
+                    >
+                      <User className="w-3 h-3" />
+                      {p.name}
+                    </div>
+                  ))}
+                </div>
+
                 <Button size="lg" onClick={startRound}>
                   Lancer la partie
                 </Button>
@@ -378,13 +393,28 @@ export default function CaloriesGuessr({ roomCode, settings }: CaloriesGuessrPro
               <div className="flex flex-col items-center gap-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
                 <p>L'hôte va bientôt lancer la partie...</p>
+
+                <div className="flex flex-wrap justify-center gap-2 max-w-md">
+                  {players.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-white/10"
+                    >
+                      <User className="w-3 h-3" />
+                      {p.name}
+                    </div>
+                  ))}
+                </div>
+
                  <div className="grid grid-cols-2 gap-4 text-left max-w-md mx-auto mt-4 opacity-75">
                    <div className="flex flex-col">
                       <span className="text-sm text-gray-400">Rounds</span>
                       <span className="font-bold">{maxRounds}</span>
                    </div>
                    <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Temps</span>
+                      <span className="flex items-center gap-1 text-sm text-gray-400">
+                        <Clock className="w-3 h-3" /> Temps
+                      </span>
                       <span className="font-bold">{roundTime}s</span>
                    </div>
                 </div>
