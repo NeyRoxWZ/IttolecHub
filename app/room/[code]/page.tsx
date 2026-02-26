@@ -370,6 +370,11 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               console.error('Invalid game_type:', selectedGameId);
               return;
           }
+
+          if (typeof roomId !== 'string' || !roomId) {
+              console.error('Invalid roomId:', roomId);
+              return;
+          }
           
           isUpdatingSettingsRef.current = true;
           
@@ -380,7 +385,10 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           }).eq('id', roomId);
 
           if (error) {
-             console.error('Error updating room settings:', error);
+             console.error('ERREUR COMPLÈTE UPDATE SETTINGS:', error.message, error.details, error.hint);
+             // Stop updating if we hit a persistent error
+             // We don't set isUpdatingSettingsRef to false immediately to avoid loop
+             // But we should probably retry eventually or let user retry by changing settings
           }
           
           isUpdatingSettingsRef.current = false;
