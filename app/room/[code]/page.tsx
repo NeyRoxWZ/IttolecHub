@@ -347,6 +347,23 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     // La redirection se fera via le listener Realtime
   };
 
+  const copyRoomCode = () => {
+    navigator.clipboard.writeText(params.code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const leaveRoom = async () => {
+    // Supprimer le joueur de la DB
+    if (roomId && playerName) {
+        await supabase.from('players').delete().match({ room_id: roomId, name: playerName });
+    }
+    sessionStorage.removeItem('playerName');
+    sessionStorage.removeItem('isHost');
+    sessionStorage.removeItem('playerId');
+    router.push('/');
+  };
+
   const getHostName = () => {
     const host = players.find(p => p.isHost);
     return host ? host.name : 'l\'hôte';
