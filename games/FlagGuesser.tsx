@@ -134,11 +134,7 @@ export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
 
   const fetchCountries = async (region: string): Promise<CountryData[]> => {
     try {
-      const url = region === 'all' 
-        ? 'https://restcountries.com/v3.1/all?fields=name,flags,region,translations'
-        : `https://restcountries.com/v3.1/region/${region}?fields=name,flags,region,translations`;
-      
-      const res = await fetch(url);
+      const res = await fetch(`/api/games/flag?region=${region}`);
       if (!res.ok) return [];
       return await res.json();
     } catch (e) {

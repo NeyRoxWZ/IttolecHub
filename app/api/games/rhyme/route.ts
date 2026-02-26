@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 const PROMPTS = [
   "Le chat dort sur le toit",
   "Il fait beau ce matin",

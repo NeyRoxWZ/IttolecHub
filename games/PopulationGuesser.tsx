@@ -129,11 +129,10 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
 
   const fetchCountries = async (): Promise<CountryPopulationData[]> => {
     try {
-      const res = await fetch('https://restcountries.com/v3.1/all?fields=name,population,flags,region,translations');
+      const res = await fetch('/api/games/population');
       if (!res.ok) return [];
       const data = await res.json();
-      // Filter out small territories (< 100k) to avoid obscure places with tiny populations
-      return data.filter((c: any) => c.population > 100000);
+      return data;
     } catch (e) {
       console.error('Error fetching countries', e);
       return [];

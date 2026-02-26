@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { useGameRoom } from './useGameRoom';
 
 export interface Player {
   id: string;
@@ -22,72 +22,73 @@ export interface GameState {
 }
 
 export function useGameSync(roomCode: string, gameType: string) {
-  const [roomStatus, setRoomStatus] = useState<'waiting' | 'in_game' | 'finished' | 'closed'>('waiting');
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [gameState, setGameState] = useState<GameState | null>(null);
-  const [isHost, setIsHost] = useState(false);
-  const [playerId, setPlayerId] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(null);
+  const [isHost, setIsHost] = useState(false);
+  
+  // Use the new robust hook for sync
+  const { room, session, players, isConnected } = useGameRoom(roomId || '', playerId || '');
 
-  // Initialize player and room
+  // Derived state
+  const roomStatus = room?.status || 'waiting';
+  
+  const gameState: GameState | null = useMemo(() => {
+    if (!session) return null;
+    return {
+      current_round: session.current_round,
+      total_rounds: session.total_rounds,
+      round_data: session.round_data,
+      answers: session.answers,
+      status: session.status,
+      settings: room?.settings || {},
+    };
+  }, [session, room]);
+
+  // Initialization: Resolve Room Code & Register Player
   useEffect(() => {
     if (!roomCode) return;
 
     const init = async () => {
       // 1. Get room
-      const { data: room, error: roomError } = await supabase
+      const { data: roomData, error: roomError } = await supabase
         .from('rooms')
         .select('*')
         .eq('code', roomCode)
         .maybeSingle();
 
-      if (roomError || !room) {
+      if (roomError || !roomData) {
         console.error('Room not found:', roomError);
         return;
       }
 
-      setRoomId(room.id);
-      setRoomStatus(room.status);
-      
-      // 2. Register player
-      const playerName = sessionStorage.getItem('playerName') || `Player-${Math.floor(Math.random() * 1000)}`;
-      let currentPayloadId = sessionStorage.getItem('playerId');
+      setRoomId(roomData.id);
 
-      // Check if player exists
-      let player;
+      // 2. Register/Identify player
+      const storedPlayerId = sessionStorage.getItem('playerId');
+      const playerName = sessionStorage.getItem('playerName') || `Player-${Math.floor(Math.random() * 1000)}`;
       
-      // A. Try by ID first
-      if (currentPayloadId) {
-        const { data } = await supabase
-          .from('players')
-          .select('*')
-          .eq('id', currentPayloadId)
-          .maybeSingle();
+      let player;
+
+      // A. Try by ID
+      if (storedPlayerId) {
+        const { data } = await supabase.from('players').select('*').eq('id', storedPlayerId).maybeSingle();
         if (data) player = data;
       }
 
-      // B. Try by Name + Room (recovery if ID lost or not set)
+      // B. Try by Name + Room
       if (!player) {
-         const { data } = await supabase
-          .from('players')
-          .select('*')
-          .eq('room_id', room.id)
-          .eq('name', playerName)
-          .maybeSingle();
-         if (data) player = data;
+        const { data } = await supabase.from('players').select('*').eq('room_id', roomData.id).eq('name', playerName).maybeSingle();
+        if (data) player = data;
       }
 
+      // C. Create new
       if (!player) {
-        // Create new player
-        const { data: newPlayer, error: playerError } = await supabase
+        const { data: newPlayer } = await supabase
           .from('players')
           .insert({
-            room_id: room.id,
+            room_id: roomData.id,
             name: playerName,
-            is_host: room.host_id ? false : true, // First player is host if host_id is null (logic might vary)
-            // But usually host creates room. Here we assume joining.
-            // If room has no host_id, claim it?
+            is_host: roomData.host_id ? false : true,
           })
           .select()
           .single();
@@ -95,9 +96,9 @@ export function useGameSync(roomCode: string, gameType: string) {
         if (newPlayer) {
           player = newPlayer;
           sessionStorage.setItem('playerId', newPlayer.id);
-          // If we just created the player and room has no host, set this player as host
-          if (!room.host_id) {
-             await supabase.from('rooms').update({ host_id: newPlayer.id }).eq('id', room.id);
+          // If room has no host, claim it
+          if (!roomData.host_id) {
+             await supabase.from('rooms').update({ host_id: newPlayer.id }).eq('id', roomData.id);
              await supabase.from('players').update({ is_host: true }).eq('id', newPlayer.id);
              setIsHost(true);
           }
@@ -106,240 +107,108 @@ export function useGameSync(roomCode: string, gameType: string) {
 
       if (player) {
         setPlayerId(player.id);
-        setIsHost(player.is_host); // Sync host status
+        setIsHost(player.is_host);
         
-        // Update host if needed (e.g. if we are marked as host in players table)
-        if (player.is_host && room.host_id !== player.id) {
-            await supabase.from('rooms').update({ host_id: player.id }).eq('id', room.id);
+        // Sync host status if mismatch
+        if (player.is_host && roomData.host_id !== player.id) {
+            await supabase.from('rooms').update({ host_id: player.id }).eq('id', roomData.id);
+        }
+
+        // Initialize session if host and missing
+        if (player.is_host) {
+             const { data: existingSession } = await supabase.from('game_sessions').select('*').eq('room_id', roomData.id).maybeSingle();
+             if (!existingSession) {
+                 await supabase.from('game_sessions').insert({
+                    room_id: roomData.id,
+                    status: 'waiting'
+                 });
+             }
         }
       }
-
-      // 3. Fetch initial game state
-      const { data: session } = await supabase
-        .from('game_sessions')
-        .select('*')
-        .eq('room_id', room.id)
-        .maybeSingle();
-
-      if (session) {
-        setGameState({
-          current_round: session.current_round,
-          total_rounds: session.total_rounds,
-          round_data: session.round_data,
-          answers: session.answers,
-          status: session.status,
-          settings: room.settings,
-        });
-      } else {
-        // Create initial session if missing
-        if (player?.is_host) {
-             const { data: newSession } = await supabase
-            .from('game_sessions')
-            .insert({
-                room_id: room.id,
-                status: 'waiting',
-                settings: room.settings
-            })
-            .select()
-            .single();
-            if (newSession) {
-                setGameState(newSession as any);
-            }
-        }
-      }
-
-      // 4. Fetch all players
-      const { data: allPlayers } = await supabase
-        .from('players')
-        .select('*')
-        .eq('room_id', room.id);
-      
-      if (allPlayers) setPlayers(allPlayers);
     };
 
     init();
   }, [roomCode]);
 
-  // Subscribe to changes
-  useEffect(() => {
-    if (!roomId) return;
-
-    const channel = supabase
-      .channel(`game_sync:${roomId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'rooms',
-          filter: `id=eq.${roomId}`,
-        },
-        (payload) => {
-          if (payload.new) {
-            setRoomStatus((payload.new as any).status);
-            if (gameState) {
-                setGameState(prev => prev ? ({ ...prev, settings: (payload.new as any).settings }) : null);
-            }
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'players',
-          filter: `room_id=eq.${roomId}`,
-        },
-        async () => {
-          const { data } = await supabase
-            .from('players')
-            .select('*')
-            .eq('room_id', roomId);
-          if (data) setPlayers(data);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'game_sessions',
-          filter: `room_id=eq.${roomId}`,
-        },
-        (payload) => {
-          if (payload.new) {
-            setGameState(prev => ({ ...prev, ...(payload.new as any) }));
-          }
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [roomId]);
-
-  // Heartbeat system (Presence)
+  // Heartbeat system
   useEffect(() => {
     if (!playerId) return;
-    
     const sendHeartbeat = async () => {
         await supabase.from('players').update({ last_seen_at: new Date().toISOString() }).eq('id', playerId);
     };
-    
-    // Initial heartbeat
     sendHeartbeat();
-    
-    const interval = setInterval(sendHeartbeat, 30000); // Every 30s
+    const interval = setInterval(sendHeartbeat, 30000);
     return () => clearInterval(interval);
   }, [playerId]);
 
   // Cleanup inactive players (Host only)
   useEffect(() => {
     if (!isHost || !roomId) return;
-    
     const cleanup = async () => {
-        // Remove players inactive for > 2 minutes
-        // We use raw SQL query logic or Supabase filters
-        // Since we can't do complex date math in filter easily without stored procedure, 
-        // we calculate the ISO string for 2 minutes ago.
         const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-        
-        await supabase
-            .from('players')
-            .delete()
-            .eq('room_id', roomId)
-            .lt('last_seen_at', twoMinAgo);
+        await supabase.from('players').delete().eq('room_id', roomId).lt('last_seen_at', twoMinAgo);
     };
-    
-    const interval = setInterval(cleanup, 60000); // Check every minute
+    const interval = setInterval(cleanup, 60000);
     return () => clearInterval(interval);
   }, [isHost, roomId]);
 
-  // Check Host Inactivity (run by everyone to detect if host is gone)
+  // Check Host Inactivity
   useEffect(() => {
     if (!roomId || !players.length) return;
-
     const checkHost = async () => {
-       // Find host in players list
-       const host = players.find(p => p.is_host);
+       const host = players.find((p: any) => p.is_host);
        if (host && host.last_seen_at) {
           const lastSeen = new Date(host.last_seen_at).getTime();
-          // If host inactive for > 2m30s (buffer), close room
           if (Date.now() - lastSeen > 150000) {
-             console.log("Host inactive, closing room...");
-             // Only one client needs to succeed, but multiple might try. RLS allows.
-             // Ideally only the "next" oldest player does this, but keeping it simple.
-             // We check if room is already closed to avoid spam
              if (roomStatus !== 'closed') {
                  await supabase.from('rooms').update({ status: 'closed' }).eq('id', roomId);
              }
           }
        }
     };
-
-    const interval = setInterval(checkHost, 30000); 
+    const interval = setInterval(checkHost, 30000);
     return () => clearInterval(interval);
   }, [roomId, players, roomStatus]);
 
-  // Handle browser close / visibility
-  useEffect(() => {
-      if (!playerId) return;
-      
-      const handleUnload = () => {
-          // Attempt to remove player immediately
-          // We use navigator.sendBeacon for reliability during unload, 
-          // but Supabase client might not support it directly.
-          // Fallback to fetch with keepalive if possible, or just synchronous supabase call (best effort)
-          // Since we have heartbeat, this is just optimization.
-          
-          // We can't await here reliably.
-          // Let's rely on heartbeat timeout for robust cleanup.
-          // But we can try to set status to 'inactive' if we had such column.
-      };
-      
-      // window.addEventListener('beforeunload', handleUnload);
-      // return () => window.removeEventListener('beforeunload', handleUnload);
-  }, [playerId]);
 
   // Actions
   const updateSettings = async (newSettings: any) => {
     if (!roomId || !isHost) return;
     const { error } = await supabase.from('rooms').update({ settings: newSettings }).eq('id', roomId);
-    if (error) console.error('Error updating settings (useGameSync):', error, newSettings);
+    if (error) console.error('Error updating settings:', error);
   };
 
   const startGame = async (initialRoundData: any = {}) => {
     if (!roomId || !isHost) return;
     
-    // Update room status
-    await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
-    
-    // Initialize game session
-    await supabase.from('game_sessions').update({
+    const sessionPayload = {
+        room_id: roomId,
         status: 'round_active',
         current_round: 1,
         answers: {},
         round_data: initialRoundData
-    }).eq('room_id', roomId);
+    };
+    
+    // Use upsert to ensure session exists and handle race conditions
+    const { error: sessionError } = await supabase
+        .from('game_sessions')
+        .upsert(sessionPayload, { onConflict: 'room_id' });
+        
+    if (sessionError) console.error('ERREUR SUPABASE (startGame session):', sessionError);
+
+    const roomPayload = { status: 'in_game' };
+    const { error: roomError } = await supabase.from('rooms').update(roomPayload).eq('id', roomId);
+    if (roomError) console.error('ERREUR SUPABASE (startGame room):', roomError);
   };
 
   const submitAnswer = async (answer: any) => {
     if (!roomId || !playerId || !gameState) return;
-    
     const newAnswers = { ...gameState.answers, [playerId]: { answer, time: Date.now() } };
-    
-    await supabase.from('game_sessions').update({
-        answers: newAnswers
-    }).eq('room_id', roomId);
+    await supabase.from('game_sessions').update({ answers: newAnswers }).eq('room_id', roomId);
   };
 
   const nextRound = async (nextRoundData: any = {}) => {
     if (!roomId || !isHost || !gameState) return;
-    
     const nextRound = gameState.current_round + 1;
     if (nextRound > gameState.total_rounds) {
         await supabase.from('rooms').update({ status: 'finished' }).eq('id', roomId);

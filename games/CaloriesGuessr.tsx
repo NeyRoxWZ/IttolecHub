@@ -145,28 +145,12 @@ export default function CaloriesGuessr({ roomCode, settings }: CaloriesGuessrPro
 
   const fetchFoodFromApi = async (count: number = 1): Promise<FoodData[]> => {
     try {
-      const page = Math.floor(Math.random() * 20) + 1;
-      const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?action=process&sort_by=unique_scans_n&page_size=${count * 2}&page=${page}&json=1`);
+      const res = await fetch(`/api/games/calories?count=${count}`);
+      if (!res.ok) return [];
       const data = await res.json();
-      
-      const products = data.products
-        .filter((p: any) => p.image_front_url && p.nutriments?.['energy-kcal_100g'] && p.product_name)
-        .map((p: any) => ({
-          category: 'generic',
-          image: p.image_front_url,
-          profile: {
-            label: p.product_name,
-            min: 0,
-            max: 1000, // Not used for validation
-            exact: Math.round(p.nutriments['energy-kcal_100g']),
-            portion: '100g'
-          }
-        }))
-        .slice(0, count);
-
-      return products;
+      return data;
     } catch (e) {
-      console.error('Error fetching OpenFoodFacts:', e);
+      console.error('Error fetching calories data:', e);
       return [];
     }
   };
