@@ -430,7 +430,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         settings: gameSettings
     }).eq('id', roomId);
     
-    // La redirection se fera via le listener Realtime
+    // Force local redirect for host to be faster
+    const paramsUrl = new URLSearchParams();
+    if (gameSettings) {
+        Object.entries(gameSettings).forEach(([k, v]) => {
+        if (v !== '' && v !== undefined) paramsUrl.set(k, String(v));
+        });
+    }
+    const q = paramsUrl.toString();
+    router.push(`/games/${selectedGameId}/${params.code}${q ? `?${q}` : ''}`);
   };
 
   const copyRoomCode = () => {
@@ -514,6 +522,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                   )}
                 </div>
 
+                {/* Game Settings */}
                 {selectedGame && (
                   <div className="p-5 rounded-2xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 transition-all duration-300">
                     {isHost && (
@@ -594,8 +603,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     </Button>
                     ) : (
                         <div className="flex flex-col items-center justify-center p-4 text-center space-y-2 animate-pulse">
-                            <div className="text-indigo-500 font-medium">En attente de {getHostName()}...</div>
-                            <div className="text-sm text-slate-500">La partie va bientôt commencer !</div>
+                             <div className="text-indigo-500 font-medium">En attente de {getHostName()}...</div>
+                             <div className="text-sm text-slate-500">La partie va bientôt commencer !</div>
                         </div>
                     )}
                 </div>
