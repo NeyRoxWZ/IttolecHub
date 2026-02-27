@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { Clock, EyeOff, Shield, User, HelpCircle, AlertTriangle, ArrowRight, Gavel, Check } from 'lucide-react';
+import { Clock, EyeOff, Shield, User, HelpCircle, AlertTriangle, ArrowRight, Gavel, Check, Home, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 type Role = 'MASTER' | 'INFILTRÉ' | 'CITOYEN';
 type Phase = 'roles' | 'question' | 'vote' | 'end';
@@ -15,6 +16,7 @@ interface InfiltreProps {
 }
 
 export default function Infiltre({ roomCode }: InfiltreProps) {
+  const router = useRouter();
   const {
     gameState,
     isHost,
@@ -71,9 +73,6 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
   // Sync Timer for question phase
   useEffect(() => {
-    // We can reuse the same timer logic if we store endTime in roundData during question phase
-    // But current implementation seems to rely on local or different logic?
-    // Let's add a timer if phase is question
     if (phase === 'question' && roundData.endTime) {
          const end = roundData.endTime;
          const now = Date.now();
@@ -82,13 +81,24 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
          
          const interval = setInterval(() => {
             setTimeLeft(prev => {
-                if (prev <= 1) return 0;
+                if (prev <= 1) {
+                    if (isHost && phase === 'question') {
+                         // Time ran out -> Infiltré Wins
+                         updateRoundData({
+                             ...roundData,
+                             phase: 'end',
+                             winner: 'INFILTRÉ',
+                             voteResult: null
+                         });
+                    }
+                    return 0;
+                }
                 return prev - 1;
             });
          }, 1000);
          return () => clearInterval(interval);
     }
-  }, [phase, roundData.endTime]);
+  }, [phase, roundData.endTime, isHost]);
 
   const handleStartGame = async () => {
     if (!isHost) return;
@@ -195,6 +205,16 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
     }
   };
 
+  const declareCitizensWin = async () => {
+      if (myRole !== 'MASTER') return;
+      updateRoundData({
+          ...roundData,
+          phase: 'end',
+          winner: 'CITOYENS',
+          voteResult: null
+      });
+  };
+
   const closeVote = async () => {
     if (!isHost) return;
     
@@ -206,6 +226,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
     let maxVotes = 0;
     let suspect = null;
+    // Simple majority logic
     Object.entries(voteCounts).forEach(([id, count]) => {
         if (count > maxVotes) {
             maxVotes = count;
@@ -214,8 +235,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
     });
 
     const infiltreId = Object.keys(roles).find(id => roles[id] === 'INFILTRÉ');
-    // If no votes or tie, handle? Assuming suspect is found.
-    // If suspect is Infiltré -> Citizens Win.
+    // If suspect is Infiltré -> Citizens Win. Else Infiltré Wins.
     const citizensWin = suspect === infiltreId;
     
     updateRoundData({
@@ -312,17 +332,17 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                  </h3>
                  
                  <div className="bg-black/40 p-4 rounded-xl w-full max-w-sm backdrop-blur-sm border border-white/5 z-10">
-                    {myRole === 'INFILTRÉ' ? (
-                        <div className="flex flex-col gap-2">
-                             <EyeOff className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-                             <p className="font-bold text-lg text-white">Mot Secret Inconnu</p>
-                             <p className="text-sm text-slate-400">Essayez de deviner le mot grâce aux questions des autres !</p>
-                        </div>
-                    ) : (
+                    {(myRole === 'MASTER' || myRole === 'INFILTRÉ') ? (
                         <div className="flex flex-col gap-2">
                              <div className="text-xs text-slate-500 uppercase tracking-widest">Le mot secret est</div>
                              <p className="font-black text-2xl text-white tracking-tight">{secretWord}</p>
                              {category && <p className="text-xs text-blue-400 bg-blue-500/10 px-2 py-1 rounded-full self-center">{category}</p>}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-2">
+                             <EyeOff className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+                             <p className="font-bold text-lg text-white">Mot Secret Inconnu</p>
+                             <p className="text-sm text-slate-400">Posez des questions pour le trouver !</p>
                         </div>
                     )}
                  </div>
@@ -353,10 +373,18 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
                         {/* Master Controls */}
                         {myRole === 'MASTER' ? (
-                            <div className="flex gap-2 justify-center w-full">
-                                <Button onClick={() => handleMasterAnswer('yes')} className="flex-1 h-14 bg-emerald-600 hover:bg-emerald-500 text-lg font-bold">OUI</Button>
-                                <Button onClick={() => handleMasterAnswer('no')} className="flex-1 h-14 bg-rose-600 hover:bg-rose-500 text-lg font-bold">NON</Button>
-                                <Button onClick={() => handleMasterAnswer('maybe')} className="flex-1 h-14 bg-slate-600 hover:bg-slate-500 text-lg font-bold">???</Button>
+                            <div className="flex flex-col gap-4 w-full">
+                                <div className="flex gap-2 justify-center w-full">
+                                    <Button onClick={() => handleMasterAnswer('yes')} className="flex-1 h-14 bg-emerald-600 hover:bg-emerald-500 text-lg font-bold">OUI</Button>
+                                    <Button onClick={() => handleMasterAnswer('no')} className="flex-1 h-14 bg-rose-600 hover:bg-rose-500 text-lg font-bold">NON</Button>
+                                    <Button onClick={() => handleMasterAnswer('maybe')} className="flex-1 h-14 bg-slate-600 hover:bg-slate-500 text-lg font-bold">???</Button>
+                                </div>
+                                {isHost && (
+                                    <Button onClick={declareCitizensWin} className="w-full h-12 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50">
+                                        <Check className="w-4 h-4 mr-2" />
+                                        Le mot a été trouvé ! (Victoire Citoyens)
+                                    </Button>
+                                )}
                             </div>
                         ) : (
                             <p className="text-sm text-slate-500 animate-pulse">En attente d'une réponse...</p>
@@ -443,14 +471,23 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                              </div>
                          </div>
 
-                         {isHost && (
-                            <Button 
-                                onClick={handleNextRound}
-                                className="mt-8 w-full py-6 text-lg font-bold bg-white text-black hover:bg-slate-200 rounded-xl"
-                            >
-                                Manche suivante <ArrowRight className="w-5 h-5 ml-2" />
+                         <div className="flex gap-4 w-full mt-8">
+                            <Button variant="outline" className="flex-1 h-14" onClick={() => router.push(`/room/${roomCode}`)}>
+                                <Home className="w-5 h-5 mr-2" /> Retour au lobby
                             </Button>
-                         )}
+                            {isHost ? (
+                                <Button 
+                                    onClick={handleNextRound}
+                                    className="flex-1 h-14 text-lg font-bold bg-white text-black hover:bg-slate-200"
+                                >
+                                    Manche suivante <ArrowRight className="w-5 h-5 ml-2" />
+                                </Button>
+                            ) : (
+                                <Button className="flex-1 h-14 bg-red-600 hover:bg-red-700 text-white" onClick={() => router.push('/')}>
+                                    <LogOut className="w-5 h-5 mr-2" /> Quitter
+                                </Button>
+                            )}
+                         </div>
                     </div>
                 </div>
             )}

@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Crown, Skull, Loader2, Send } from 'lucide-react';
+import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Crown, Skull, Loader2, Send, Home, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 type Role = 'CIVIL' | 'UNDERCOVER' | 'MR_WHITE';
 type Phase = 'setup' | 'roles' | 'clues' | 'discussion' | 'vote' | 'mrwhite_guess' | 'results' | 'game_over';
@@ -23,6 +24,7 @@ interface Clue {
 }
 
 export default function Undercover({ roomCode }: UndercoverProps) {
+  const router = useRouter();
   // Sync with DB
   const {
     gameState,
@@ -401,10 +403,10 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
   // Auto-start
   useEffect(() => {
-      if (isHost && gameState?.round_data?.phase === 'setup') {
+      if (isHost && gameState?.round_data?.phase === 'setup' && players.length >= 3) {
           startNewGame();
       }
-  }, [isHost, gameState?.round_data?.phase]);
+  }, [isHost, gameState?.round_data?.phase, players.length]);
 
 
   // --- RENDER ---
@@ -441,8 +443,17 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {/* SETUP PHASE / LOADING */}
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center gap-4">
-               <Loader2 className="w-12 h-12 animate-spin text-red-500" />
-               <p className="text-xl font-medium animate-pulse text-red-200">Démarrage de la mission...</p>
+               {players.length < 3 ? (
+                 <>
+                    <User className="w-12 h-12 text-gray-500 animate-pulse" />
+                    <p className="text-xl font-medium text-gray-400">En attente de joueurs ({players.length}/3)...</p>
+                 </>
+               ) : (
+                 <>
+                    <Loader2 className="w-12 h-12 animate-spin text-red-500" />
+                    <p className="text-xl font-medium animate-pulse text-red-200">Démarrage de la mission...</p>
+                 </>
+               )}
             </div>
         )}
 
@@ -620,11 +631,21 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                     </div>
                 </div>
 
-                {isHost && (
-                    <Button size="lg" onClick={nextGameRound} className="bg-white text-black hover:bg-gray-200 h-14 px-8 text-lg font-bold rounded-xl">
-                        Manche suivante
+                <div className="flex gap-4 w-full max-w-2xl mx-auto">
+                    <Button variant="outline" className="flex-1 h-14" onClick={() => router.push(`/room/${roomCode}`)}>
+                        <Home className="w-5 h-5 mr-2" /> Retour au lobby
                     </Button>
-                )}
+                    {isHost && currentPhase !== 'game_over' && (
+                        <Button size="lg" onClick={nextGameRound} className="bg-white text-black hover:bg-gray-200 h-14 px-8 text-lg font-bold rounded-xl flex-1">
+                            Manche suivante
+                        </Button>
+                    )}
+                    {(!isHost || currentPhase === 'game_over') && (
+                        <Button className="flex-1 h-14 bg-red-600 hover:bg-red-700 text-white" onClick={() => router.push('/')}>
+                            <LogOut className="w-5 h-5 mr-2" /> Quitter
+                        </Button>
+                    )}
+                </div>
             </div>
         )}
 

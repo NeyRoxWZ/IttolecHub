@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { CheckCircle, XCircle, Zap, Check, Music, Disc, Mic2, ArrowRight } from 'lucide-react';
+import { CheckCircle, XCircle, Zap, Check, Music, Disc, Mic2, ArrowRight, Trophy, Home, LogOut } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 interface LyricsRoundData {
   extract: string;
@@ -27,6 +28,7 @@ interface LyricsGuesserProps {
 }
 
 export default function LyricsGuesser({ roomCode }: LyricsGuesserProps) {
+  const router = useRouter();
   const [userAnswer, setUserAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(45);
   const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
@@ -155,6 +157,11 @@ export default function LyricsGuesser({ roomCode }: LyricsGuesserProps) {
   const handleNextRound = async () => {
     if (!isHost || !gameState?.round_data) return;
     
+    if (currentRound >= maxRounds) {
+        await setGameStatus('game_over');
+        return;
+    }
+
     try {
       const queue = gameState.round_data.queue || [];
       
@@ -166,7 +173,7 @@ export default function LyricsGuesser({ roomCode }: LyricsGuesserProps) {
                const endTime = Date.now() + roundTime * 1000;
                await nextRound({ lyrics: nextSong, queue: [], endTime });
            } else {
-               // End game logic here if needed
+               await setGameStatus('game_over');
            }
            return;
       }
@@ -268,6 +275,53 @@ export default function LyricsGuesser({ roomCode }: LyricsGuesserProps) {
       }
       return [];
   }, [gameState?.answers, players]);
+
+  if (gameState?.status === 'game_over') {
+    const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+    return (
+        <GameLayout
+            gameTitle="LyricsGuessr"
+            roundCount={currentRound}
+            maxRounds={maxRounds}
+            timer="Terminé"
+            players={playersMap}
+            timeLeft={0}
+            gameStarted={true}
+        >
+            <div className="flex flex-col items-center gap-8 w-full max-w-2xl mx-auto animate-in zoom-in duration-500">
+                <Trophy className="w-24 h-24 text-pink-500 animate-bounce" />
+                <h2 className="text-4xl font-bold text-white">Fin de la partie !</h2>
+                
+                <div className="w-full bg-slate-900/50 rounded-2xl border border-white/10 overflow-hidden">
+                    {sortedPlayers.map((p, i) => (
+                        <div key={p.id} className={`flex items-center justify-between p-4 border-b border-white/5 last:border-0 ${i === 0 ? 'bg-pink-500/20' : ''}`}>
+                            <div className="flex items-center gap-4">
+                                <span className={`w-8 h-8 flex items-center justify-center rounded-full font-bold ${
+                                    i === 0 ? 'bg-pink-500 text-white' : 
+                                    i === 1 ? 'bg-slate-300 text-black' : 
+                                    i === 2 ? 'bg-amber-700 text-white' : 'bg-slate-800 text-slate-400'
+                                }`}>
+                                    {i + 1}
+                                </span>
+                                <span className="font-bold text-lg">{p.name}</span>
+                            </div>
+                            <span className="font-mono text-xl font-bold text-pink-400">{p.score} pts</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex gap-4 w-full">
+                    <Button variant="outline" className="flex-1 h-14" onClick={() => router.push(`/room/${roomCode}`)}>
+                        <Home className="w-5 h-5 mr-2" /> Retour au lobby
+                    </Button>
+                    <Button className="flex-1 h-14 bg-red-600 hover:bg-red-700 text-white" onClick={() => router.push('/')}>
+                        <LogOut className="w-5 h-5 mr-2" /> Quitter
+                    </Button>
+                </div>
+            </div>
+        </GameLayout>
+    );
+  }
 
   return (
     <GameLayout

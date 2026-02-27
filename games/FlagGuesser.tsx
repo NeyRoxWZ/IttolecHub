@@ -1,14 +1,13 @@
-'use client';
-
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { Trophy, CheckCircle, XCircle, Zap, Check, Flag, Loader2 } from 'lucide-react';
+import { Trophy, CheckCircle, XCircle, Zap, Check, Flag, Loader2, Home, LogOut, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface CountryData {
   name: { 
@@ -36,6 +35,7 @@ interface FlagGuesserProps {
 }
 
 export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
+  const router = useRouter();
   const [userAnswer, setUserAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(20);
   const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
@@ -74,6 +74,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
   const selectedRegion = settings.region || 'all';
 
   const roundEnded = gameState?.status === 'round_results' || gameState?.status === 'game_over';
+  const gameFinished = gameState?.status === 'game_over';
   const country: CountryData | null = gameState?.round_data?.country || null;
   const currentRound = gameState?.current_round || 0;
   
@@ -134,16 +135,25 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
     if (gameState?.round_data?.phase === 'active' && gameState?.round_data?.country) return;
 
     try {
-      const countries = await fetchCountries(selectedRegion);
-      if (countries.length === 0) return;
-
-      // Shuffle
-      for (let i = countries.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [countries[i], countries[j]] = [countries[j], countries[i]];
+      // Reuse cached if available
+      let countries = allCountriesRef.current;
+      if (countries.length === 0) {
+          countries = await fetchCountries(selectedRegion);
       }
       
-      const selection = countries.slice(0, maxRounds);
+      if (countries.length === 0) {
+          toast.error('Erreur chargement drapeaux');
+          return;
+      }
+
+      // Shuffle
+      const shuffled = [...countries];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      
+      const selection = shuffled.slice(0, maxRounds);
       const firstCountry = selection[0];
       const queue = selection.slice(1);
       
@@ -283,6 +293,17 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
     await setGameStatus('round_results');
   };
 
+  // C1: Auto next round
+  useEffect(() => {
+    if (isHost && !roundEnded && !gameFinished && gameState?.answers) {
+        const answerCount = Object.keys(gameState.answers).length;
+        const totalPlayers = players.length;
+        if (totalPlayers > 0 && answerCount >= totalPlayers) {
+            endRound();
+        }
+    }
+  }, [gameState?.answers, isHost, roundEnded, gameFinished, players.length]);
+
   // Typing indicator
   useEffect(() => {
     if (!userAnswer) return;
@@ -299,6 +320,53 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
           startRound();
       }
   }, [isHost, gameState?.round_data?.phase]);
+
+  if (gameFinished) {
+    const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+    return (
+        <GameLayout
+            gameTitle="Flag Guessr"
+            roundCount={currentRound}
+            maxRounds={maxRounds}
+            timer="Terminé"
+            players={playersMap}
+            timeLeft={0}
+            gameStarted={true}
+        >
+            <div className="flex flex-col items-center gap-8 w-full max-w-2xl mx-auto animate-in zoom-in duration-500">
+                <Trophy className="w-24 h-24 text-yellow-400 animate-bounce" />
+                <h2 className="text-4xl font-bold text-white">Fin de la partie !</h2>
+                
+                <div className="w-full bg-slate-900/50 rounded-2xl border border-white/10 overflow-hidden">
+                    {sortedPlayers.map((p, i) => (
+                        <div key={p.id} className={`flex items-center justify-between p-4 border-b border-white/5 last:border-0 ${i === 0 ? 'bg-yellow-500/20' : ''}`}>
+                            <div className="flex items-center gap-4">
+                                <span className={`w-8 h-8 flex items-center justify-center rounded-full font-bold ${
+                                    i === 0 ? 'bg-yellow-500 text-black' : 
+                                    i === 1 ? 'bg-slate-300 text-black' : 
+                                    i === 2 ? 'bg-amber-700 text-white' : 'bg-slate-800 text-slate-400'
+                                }`}>
+                                    {i + 1}
+                                </span>
+                                <span className="font-bold text-lg">{p.name}</span>
+                            </div>
+                            <span className="font-mono text-xl font-bold text-blue-400">{p.score} pts</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex gap-4 w-full">
+                    <Button variant="outline" className="flex-1 h-14" onClick={() => router.push(`/room/${roomCode}`)}>
+                        <Home className="w-5 h-5 mr-2" /> Retour au lobby
+                    </Button>
+                    <Button className="flex-1 h-14 bg-red-600 hover:bg-red-700 text-white" onClick={() => router.push('/')}>
+                        <LogOut className="w-5 h-5 mr-2" /> Quitter
+                    </Button>
+                </div>
+            </div>
+        </GameLayout>
+    );
+  }
 
   return (
     <GameLayout

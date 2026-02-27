@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { Check, Clock, User, Zap, DollarSign, ShoppingBag, Loader2 } from 'lucide-react';
+import { Check, Clock, User, Zap, DollarSign, ShoppingBag, Loader2, Trophy, Home, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface ProductData {
   id: string;
@@ -35,6 +36,7 @@ interface PriceGuessrProps {
 }
 
 export default function PriceGuessr({ roomCode }: PriceGuessrProps) {
+  const router = useRouter();
   const [userAnswer, setUserAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(30);
   const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
@@ -116,6 +118,53 @@ export default function PriceGuessr({ roomCode }: PriceGuessrProps) {
       .padStart(2, '0')}`;
   }, [timeLeft]);
 
+  if (gameState?.status === 'game_over') {
+    const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+    return (
+        <GameLayout
+            gameTitle="Le Juste Prix"
+            roundCount={currentRound}
+            maxRounds={maxRounds}
+            timer="Terminé"
+            players={playersMap}
+            timeLeft={0}
+            gameStarted={true}
+        >
+            <div className="flex flex-col items-center gap-8 w-full max-w-2xl mx-auto animate-in zoom-in duration-500">
+                <Trophy className="w-24 h-24 text-amber-400 animate-bounce" />
+                <h2 className="text-4xl font-bold text-white">Fin de la partie !</h2>
+                
+                <div className="w-full bg-slate-900/50 rounded-2xl border border-white/10 overflow-hidden">
+                    {sortedPlayers.map((p, i) => (
+                        <div key={p.id} className={`flex items-center justify-between p-4 border-b border-white/5 last:border-0 ${i === 0 ? 'bg-amber-500/20' : ''}`}>
+                            <div className="flex items-center gap-4">
+                                <span className={`w-8 h-8 flex items-center justify-center rounded-full font-bold ${
+                                    i === 0 ? 'bg-amber-500 text-black' : 
+                                    i === 1 ? 'bg-slate-300 text-black' : 
+                                    i === 2 ? 'bg-amber-700 text-white' : 'bg-slate-800 text-slate-400'
+                                }`}>
+                                    {i + 1}
+                                </span>
+                                <span className="font-bold text-lg">{p.name}</span>
+                            </div>
+                            <span className="font-mono text-xl font-bold text-amber-400">{p.score} pts</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex gap-4 w-full">
+                    <Button variant="outline" className="flex-1 h-14" onClick={() => router.push(`/room/${roomCode}`)}>
+                        <Home className="w-5 h-5 mr-2" /> Retour au lobby
+                    </Button>
+                    <Button className="flex-1 h-14 bg-red-600 hover:bg-red-700 text-white" onClick={() => router.push('/')}>
+                        <LogOut className="w-5 h-5 mr-2" /> Quitter
+                    </Button>
+                </div>
+            </div>
+        </GameLayout>
+    );
+  }
+
   const fetchProductsFromApi = async (count: number = 1, cat: string = 'all'): Promise<ProductData[]> => {
     try {
       const res = await fetch(`/api/games/price?count=${count}&category=${cat}`);
@@ -190,8 +239,14 @@ export default function PriceGuessr({ roomCode }: PriceGuessrProps) {
   const handleAnswerSubmit = () => {
     if (!userAnswer.trim() || roundEnded || hasAnswered) return;
     const answer = parseFloat(userAnswer.trim().replace(',', '.'));
+    
     if (isNaN(answer)) {
         toast.error('Veuillez entrer un nombre valide');
+        return;
+    }
+
+    if (answer < 0) {
+        toast.error('Le prix ne peut pas être négatif !');
         return;
     }
 
@@ -336,6 +391,7 @@ export default function PriceGuessr({ roomCode }: PriceGuessrProps) {
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-400 font-bold text-xl">$</span>
                     <Input 
                         type="number" 
+                        min="0"
                         placeholder="Prix en dollars..." 
                         value={userAnswer}
                         onChange={(e) => setUserAnswer(e.target.value)}

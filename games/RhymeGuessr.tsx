@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { CheckCircle, XCircle, Zap, Check, MessageSquare, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Zap, Check, MessageSquare, Loader2, Trophy, Home, LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface RhymeRoundData {
   prompt: string;
@@ -18,6 +19,7 @@ interface PlayerAnswer {
   answer: string;
   isCorrect: boolean;
   lastWord: string;
+  error?: string;
 }
 
 interface RhymeGuessrProps {
@@ -26,6 +28,7 @@ interface RhymeGuessrProps {
 }
 
 export default function RhymeGuessr({ roomCode }: RhymeGuessrProps) {
+  const router = useRouter();
   const [userAnswer, setUserAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(45);
   const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
@@ -91,7 +94,9 @@ export default function RhymeGuessr({ roomCode }: RhymeGuessrProps) {
         });
       }, 1000);
     }
-    return () => clearInterval(interval);
+
+
+  return () => clearInterval(interval);
   }, [timeLeft, roundEnded, isHost]);
 
   const formattedTimer = useMemo(() => {
@@ -137,6 +142,11 @@ export default function RhymeGuessr({ roomCode }: RhymeGuessrProps) {
   const handleNextRound = async () => {
     if (!isHost || !gameState?.round_data) return;
     
+    if (currentRound >= maxRounds) {
+        await setGameStatus('game_over');
+        return;
+    }
+
     try {
       const prompt = await fetchPrompt();
       if (!prompt) return;
@@ -168,6 +178,7 @@ export default function RhymeGuessr({ roomCode }: RhymeGuessrProps) {
         const pAnswer = answers[p.id]?.answer;
         let isCorrect = false;
         let lastWord = '';
+        let errorMsg = '';
         
         if (pAnswer) {
              // Validate rhyme
@@ -179,6 +190,9 @@ export default function RhymeGuessr({ roomCode }: RhymeGuessrProps) {
                      const checkRes = await fetch(`/api/games/rhyme/check?word=${encodeURIComponent(lastWord)}&target=${encodeURIComponent(roundData.rhymeWith)}`);
                      const checkData = await checkRes.json();
                      isCorrect = checkData.matches;
+                     if (checkData.error === 'SAME_WORD') {
+                         errorMsg = 'Mot interdit (identique au mot cible)';
+                     }
                  } catch (e) {
                      console.error('Rhyme check failed', e);
                      isCorrect = lastWord.slice(-3).toLowerCase() === roundData.rhymeWith.slice(-3).toLowerCase();
@@ -190,7 +204,8 @@ export default function RhymeGuessr({ roomCode }: RhymeGuessrProps) {
             player: p.name,
             answer: pAnswer || '-',
             isCorrect,
-            lastWord
+            lastWord,
+            error: errorMsg
         });
 
         if (isCorrect) {
@@ -251,6 +266,52 @@ export default function RhymeGuessr({ roomCode }: RhymeGuessrProps) {
       }
       return [];
   }, [gameState?.answers, players]);
+
+  if (gameState?.status === 'game_over') {
+    const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+    return (
+        <GameLayout
+            gameTitle="RimeGuessr"
+            roundCount={currentRound}
+            maxRounds={maxRounds}
+            timer="Terminé"
+            players={playersMap}
+            timeLeft={0}
+        >
+            <div className="flex flex-col items-center gap-8 w-full max-w-2xl mx-auto animate-in zoom-in duration-500">
+                <Trophy className="w-24 h-24 text-violet-400 animate-bounce" />
+                <h2 className="text-4xl font-bold text-white">Fin de la partie !</h2>
+                
+                <div className="w-full bg-slate-900/50 rounded-2xl border border-white/10 overflow-hidden">
+                    {sortedPlayers.map((p, i) => (
+                        <div key={p.id} className={`flex items-center justify-between p-4 border-b border-white/5 last:border-0 ${i === 0 ? 'bg-violet-500/20' : ''}`}>
+                            <div className="flex items-center gap-4">
+                                <span className={`w-8 h-8 flex items-center justify-center rounded-full font-bold ${
+                                    i === 0 ? 'bg-violet-500 text-white' : 
+                                    i === 1 ? 'bg-slate-300 text-black' : 
+                                    i === 2 ? 'bg-amber-700 text-white' : 'bg-slate-800 text-slate-400'
+                                }`}>
+                                    {i + 1}
+                                </span>
+                                <span className="font-bold text-lg">{p.name}</span>
+                            </div>
+                            <span className="font-mono text-xl font-bold text-violet-400">{p.score} pts</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex gap-4 w-full">
+                    <Button variant="outline" className="flex-1 h-14" onClick={() => router.push(`/room/${roomCode}`)}>
+                        <Home className="w-5 h-5 mr-2" /> Retour au lobby
+                    </Button>
+                    <Button className="flex-1 h-14 bg-red-600 hover:bg-red-700 text-white" onClick={() => router.push('/')}>
+                        <LogOut className="w-5 h-5 mr-2" /> Quitter
+                    </Button>
+                </div>
+            </div>
+        </GameLayout>
+    );
+  }
 
   return (
     <GameLayout
@@ -358,7 +419,12 @@ export default function RhymeGuessr({ roomCode }: RhymeGuessrProps) {
                       <div className="text-white/90 italic text-lg font-serif">
                         "{p.answer}"
                       </div>
-                      {p.lastWord && (
+                      {p.error && (
+                        <div className="text-red-400 text-sm font-bold mt-1">
+                           ⚠️ {p.error}
+                        </div>
+                      )}
+                      {p.lastWord && !p.error && (
                           <div className="text-xs text-slate-400 mt-2 flex items-center gap-1">
                             Mot fin: <span className="text-slate-300 font-mono bg-white/5 px-1 rounded">{p.lastWord}</span>
                           </div>

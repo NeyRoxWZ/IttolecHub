@@ -9,7 +9,7 @@ function normalize(str: string): string {
 
 async function getSongsFromITunes(artist: string) {
     try {
-        const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&entity=song&limit=50`);
+        const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&entity=song&limit=100`);
         if (!response.ok) return [];
         const data = await response.json();
         // Filter to ensure artist matches somewhat (iTunes search is fuzzy)
@@ -22,27 +22,32 @@ async function getSongsFromITunes(artist: string) {
 
 async function getLyrics(artist: string, title: string) {
     try {
-        // Try exact match first
-        let url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
-        let response = await fetch(url);
-        if (response.ok) {
-             const data = await response.json();
-             return data.lyrics;
-        }
+        // Use lrclib.net as requested
+        const query = `${artist} ${title}`;
+        const url = `https://lrclib.net/api/search?q=${encodeURIComponent(query)}`;
+        
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        
+        const data = await response.json();
+        if (!Array.isArray(data) || data.length === 0) return null;
 
-        // Try cleaning title (remove "feat.", "(Remix)", etc.)
-        const cleanTitle = title.replace(/\(.*\)/g, '').replace(/feat\..*/i, '').trim();
-        if (cleanTitle !== title) {
-            url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(cleanTitle)}`;
-            response = await fetch(url);
-            if (response.ok) {
-                const data = await response.json();
-                return data.lyrics;
-            }
+        // Find the best match
+        // We prioritize syncedLyrics, then plainLyrics
+        // We also want to make sure the artist/title match reasonably well to avoid covers/wrong songs
+        const match = data.find((item: any) => {
+            const itemArtist = normalize(item.artistName);
+            const targetArtist = normalize(artist);
+            return itemArtist.includes(targetArtist) || targetArtist.includes(itemArtist);
+        });
+
+        if (match) {
+            return match.plainLyrics || match.syncedLyrics || null;
         }
         
         return null;
     } catch (error) {
+        console.error('Error fetching from lrclib:', error);
         return null;
     }
 }
@@ -77,22 +82,29 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const songs = await getSongsFromITunes(artistParam);
+        const artists = artistParam.split(',').map(a => a.trim()).filter(a => a.length > 0);
+        let allSongs: any[] = [];
+
+        // Fetch songs for each artist
+        for (const artist of artists) {
+            const songs = await getSongsFromITunes(artist);
+            allSongs = allSongs.concat(songs);
+        }
         
-        if (songs.length === 0) {
-             return NextResponse.json({ error: "Artiste non trouvé sur iTunes." }, { status: 404 });
+        if (allSongs.length === 0) {
+             return NextResponse.json({ error: "Aucun artiste trouvé sur iTunes." }, { status: 404 });
         }
 
         // Shuffle songs
-        for (let i = songs.length - 1; i > 0; i--) {
+        for (let i = allSongs.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [songs[i], songs[j]] = [songs[j], songs[i]];
+            [allSongs[i], allSongs[j]] = [allSongs[j], allSongs[i]];
         }
 
         const results = [];
         const usedTitles = new Set();
 
-        for (const song of songs) {
+        for (const song of allSongs) {
             if (results.length >= countParam) break;
             if (usedTitles.has(song.trackName.toLowerCase())) continue;
 

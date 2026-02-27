@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { Check, Clock, User, Zap, Flame, Loader2 } from 'lucide-react';
+import { Check, Clock, User, Zap, Flame, Loader2, Trophy, Home, LogOut, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface FoodCalorieProfile {
   label: string;
@@ -37,7 +38,19 @@ interface CaloriesGuessrProps {
   settings?: { [key: string]: string };
 }
 
+const FALLBACK_FOODS: FoodData[] = [
+    { category: 'Fast Food', image: 'https://images.openfoodfacts.org/images/products/541/018/801/0556/front_fr.4.400.jpg', profile: { label: 'Big Mac', min: 400, max: 600, exact: 502, portion: '1 burger' } },
+    { category: 'Snack', image: 'https://images.openfoodfacts.org/images/products/500/015/946/1122/front_fr.24.400.jpg', profile: { label: 'Snickers', min: 200, max: 300, exact: 250, portion: '1 barre' } },
+    { category: 'Boisson', image: 'https://images.openfoodfacts.org/images/products/544/900/000/0996/front_fr.154.400.jpg', profile: { label: 'Coca-Cola', min: 100, max: 200, exact: 139, portion: '1 canette (33cl)' } },
+    { category: 'Petit-déjeuner', image: 'https://images.openfoodfacts.org/images/products/301/762/042/2003/front_fr.202.400.jpg', profile: { label: 'Nutella', min: 50, max: 100, exact: 80, portion: '1 cuillère à soupe (15g)' } },
+    { category: 'Plat', image: 'https://images.openfoodfacts.org/images/products/800/050/000/3787/front_fr.30.400.jpg', profile: { label: 'Pizza Margherita', min: 600, max: 1000, exact: 800, portion: '1 pizza entière' } },
+    { category: 'Fruit', image: 'https://images.openfoodfacts.org/images/products/327/655/983/5400/front_fr.3.400.jpg', profile: { label: 'Pomme', min: 40, max: 80, exact: 52, portion: '1 pomme moyenne' } },
+    { category: 'Dessert', image: 'https://images.openfoodfacts.org/images/products/761/303/492/6813/front_fr.37.400.jpg', profile: { label: 'Éclair au chocolat', min: 200, max: 350, exact: 260, portion: '1 éclair' } },
+    { category: 'Snack', image: 'https://images.openfoodfacts.org/images/products/306/832/011/3663/front_fr.4.400.jpg', profile: { label: 'Chips (Lays)', min: 100, max: 200, exact: 160, portion: '1 poignée (30g)' } },
+];
+
 export default function CaloriesGuessr({ roomCode }: CaloriesGuessrProps) {
+  const router = useRouter();
   const [userAnswer, setUserAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(30);
   const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
@@ -73,6 +86,7 @@ export default function CaloriesGuessr({ roomCode }: CaloriesGuessrProps) {
   const tolerance = Number(settings.tolerance || 20);
 
   const roundEnded = gameState?.status === 'round_results' || gameState?.status === 'game_over';
+  const gameFinished = gameState?.status === 'game_over';
   const foodData: FoodData | null = gameState?.round_data?.food || null;
   const currentRound = gameState?.current_round || 0;
   
@@ -119,13 +133,16 @@ export default function CaloriesGuessr({ roomCode }: CaloriesGuessrProps) {
 
   const fetchFoodFromApi = async (count: number = 1): Promise<FoodData[]> => {
     try {
-      const res = await fetch(`/api/games/calories?count=${count}`);
-      if (!res.ok) return [];
+      // Try fetching slightly more to filter bad data if needed
+      const res = await fetch(`/api/games/calories?count=${count + 2}`);
+      if (!res.ok) throw new Error('API failed');
       const data = await res.json();
-      return data;
+      if (!Array.isArray(data) || data.length === 0) throw new Error('No data');
+      return data.slice(0, count);
     } catch (e) {
-      console.error('Error fetching calories data:', e);
-      return [];
+      console.error('Error fetching calories data, using fallback:', e);
+      // Return random selection from fallback
+      return [...FALLBACK_FOODS].sort(() => 0.5 - Math.random()).slice(0, count);
     }
   };
 
@@ -136,11 +153,6 @@ export default function CaloriesGuessr({ roomCode }: CaloriesGuessrProps) {
     try {
       const foods = await fetchFoodFromApi(maxRounds);
       
-      if (foods.length === 0) {
-        toast.error('Erreur API');
-        return;
-      }
-
       const currentFood = foods[0];
       const queue = foods.slice(1);
       const endTime = Date.now() + roundTime * 1000;
@@ -190,8 +202,8 @@ export default function CaloriesGuessr({ roomCode }: CaloriesGuessrProps) {
   const handleAnswerSubmit = () => {
     if (!userAnswer.trim() || roundEnded || hasAnswered) return;
     const answer = parseInt(userAnswer.trim(), 10);
-    if (isNaN(answer)) {
-        toast.error('Veuillez entrer un nombre valide');
+    if (isNaN(answer) || answer < 0) {
+        toast.error('Veuillez entrer un nombre valide positif');
         return;
     }
 
@@ -276,6 +288,17 @@ export default function CaloriesGuessr({ roomCode }: CaloriesGuessrProps) {
     await setGameStatus('round_results');
   };
 
+  // C1: Auto next round when all answered
+  useEffect(() => {
+    if (isHost && !roundEnded && !gameFinished && gameState?.answers) {
+        const answerCount = Object.keys(gameState.answers).length;
+        const totalPlayers = players.length;
+        if (totalPlayers > 0 && answerCount >= totalPlayers) {
+            endRound();
+        }
+    }
+  }, [gameState?.answers, isHost, roundEnded, gameFinished, players.length]);
+
   // Typing indicator
   useEffect(() => {
     if (!userAnswer) return;
@@ -292,6 +315,53 @@ export default function CaloriesGuessr({ roomCode }: CaloriesGuessrProps) {
           startRound();
       }
   }, [isHost, gameState?.round_data?.phase]);
+
+  if (gameFinished) {
+    const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+    return (
+        <GameLayout
+            gameTitle="Calories Guessr"
+            roundCount={currentRound}
+            maxRounds={maxRounds}
+            timer="Terminé"
+            players={playersMap}
+            timeLeft={0}
+            gameStarted={true}
+        >
+            <div className="flex flex-col items-center gap-8 w-full max-w-2xl mx-auto animate-in zoom-in duration-500">
+                <Trophy className="w-24 h-24 text-yellow-400 animate-bounce" />
+                <h2 className="text-4xl font-bold text-white">Fin de la partie !</h2>
+                
+                <div className="w-full bg-slate-900/50 rounded-2xl border border-white/10 overflow-hidden">
+                    {sortedPlayers.map((p, i) => (
+                        <div key={p.id} className={`flex items-center justify-between p-4 border-b border-white/5 last:border-0 ${i === 0 ? 'bg-yellow-500/20' : ''}`}>
+                            <div className="flex items-center gap-4">
+                                <span className={`w-8 h-8 flex items-center justify-center rounded-full font-bold ${
+                                    i === 0 ? 'bg-yellow-500 text-black' : 
+                                    i === 1 ? 'bg-slate-300 text-black' : 
+                                    i === 2 ? 'bg-amber-700 text-white' : 'bg-slate-800 text-slate-400'
+                                }`}>
+                                    {i + 1}
+                                </span>
+                                <span className="font-bold text-lg">{p.name}</span>
+                            </div>
+                            <span className="font-mono text-xl font-bold text-orange-400">{p.score} pts</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex gap-4 w-full">
+                    <Button variant="outline" className="flex-1 h-14" onClick={() => router.push(`/room/${roomCode}`)}>
+                        <Home className="w-5 h-5 mr-2" /> Retour au lobby
+                    </Button>
+                    <Button className="flex-1 h-14 bg-red-600 hover:bg-red-700 text-white" onClick={() => router.push('/')}>
+                        <LogOut className="w-5 h-5 mr-2" /> Quitter
+                    </Button>
+                </div>
+            </div>
+        </GameLayout>
+    );
+  }
 
   return (
     <GameLayout

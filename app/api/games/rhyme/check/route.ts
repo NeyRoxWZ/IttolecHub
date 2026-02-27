@@ -9,6 +9,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
   }
 
+  // Normalize strings
+  const normWord = word.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const normTarget = target.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  // R1: Check if word is same as target
+  if (normWord === normTarget) {
+      return NextResponse.json({
+          matches: false,
+          error: "SAME_WORD" // Client can handle this specific error
+      });
+  }
+
   try {
     // 1. Basic suffix check (last 3 letters)
     const suffixMatch = word.slice(-3).toLowerCase() === target.slice(-3).toLowerCase();
