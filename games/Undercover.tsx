@@ -13,6 +13,7 @@ type Phase = 'setup' | 'roles' | 'clues' | 'discussion' | 'vote' | 'mrwhite_gues
 
 interface UndercoverProps {
   roomCode: string;
+  settings?: { [key: string]: string };
 }
 
 interface Clue {
@@ -21,7 +22,7 @@ interface Clue {
   timestamp: number;
 }
 
-export default function Undercover({ roomCode }: UndercoverProps) {
+export default function Undercover({ roomCode, settings: initialSettings }: UndercoverProps) {
   // Sync with DB
   const {
     gameState,
@@ -44,6 +45,18 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     voteTime: 30,
     difficulty: 'normal'
   });
+
+  useEffect(() => {
+      if (initialSettings && isHost) {
+          const newSettings = { ...settings };
+          if (initialSettings.rounds) newSettings.rounds = Number(initialSettings.rounds);
+          if (initialSettings.mrWhiteEnabled) newSettings.mrWhiteEnabled = initialSettings.mrWhiteEnabled === 'true';
+          if (initialSettings.discussionTime) newSettings.discussionTime = Number(initialSettings.discussionTime);
+          if (initialSettings.voteTime) newSettings.voteTime = Number(initialSettings.voteTime);
+          
+          setSettings(newSettings);
+      }
+  }, [initialSettings, isHost]);
 
   // Local UI State
   const [userClue, setUserClue] = useState('');

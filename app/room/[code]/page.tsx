@@ -20,8 +20,8 @@ interface Player {
 interface GameSetting {
   id: string;
   label: string;
-  type: 'number' | 'text' | 'select';
-  default: string | number;
+  type: 'number' | 'text' | 'select' | 'multiselect';
+  default: string | number | any[];
   options?: { value: string; label: string }[];
 }
 
@@ -34,6 +34,34 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
+      { 
+        id: 'difficulty', 
+        label: 'Difficulté', 
+        type: 'select', 
+        default: 'normal',
+        options: [
+          { value: 'easy', label: 'Facile (Flou)' },
+          { value: 'normal', label: 'Normal (Silhouette)' },
+          { value: 'hard', label: 'Difficile (Renversé)' },
+        ]
+      },
+      {
+        id: 'gens',
+        label: 'Générations',
+        type: 'multiselect',
+        default: [1],
+        options: [
+          { value: '1', label: 'Gen 1' },
+          { value: '2', label: 'Gen 2' },
+          { value: '3', label: 'Gen 3' },
+          { value: '4', label: 'Gen 4' },
+          { value: '5', label: 'Gen 5' },
+          { value: '6', label: 'Gen 6' },
+          { value: '7', label: 'Gen 7' },
+          { value: '8', label: 'Gen 8' },
+          { value: '9', label: 'Gen 9' },
+        ]
+      }
     ],
   },
   {
@@ -47,6 +75,41 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
     ],
   },
   {
+    id: 'priceguessr',
+    name: 'PriceGuessr',
+    description: 'Le Juste Prix : Estimez la valeur des objets.',
+    icon: Gamepad2,
+    settings: [
+      { id: 'rounds', label: 'Manches', type: 'number', default: 6 },
+      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
+      { 
+        id: 'tolerance', 
+        label: 'Tolérance (%)', 
+        type: 'select', 
+        default: '10',
+        options: [
+          { value: '5', label: '±5% (Difficile)' },
+          { value: '10', label: '±10% (Normal)' },
+          { value: '20', label: '±20% (Facile)' },
+        ]
+      },
+      { 
+        id: 'category', 
+        label: 'Catégorie', 
+        type: 'select', 
+        default: 'all',
+        options: [
+          { value: 'all', label: 'Tout' },
+          { value: 'tech', label: 'Tech' },
+          { value: 'food', label: 'Alimentation' },
+          { value: 'fashion', label: 'Mode' },
+          { value: 'home', label: 'Maison' },
+          { value: 'luxury', label: 'Luxe' },
+        ]
+      },
+    ],
+  },
+  {
     id: 'caloriesguessr',
     name: 'CaloriesGuessr',
     description: 'Estimez les calories des aliments.',
@@ -54,6 +117,17 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 25 },
+      { 
+        id: 'tolerance', 
+        label: 'Tolérance (%)', 
+        type: 'select', 
+        default: '20',
+        options: [
+          { value: '10', label: '±10% (Difficile)' },
+          { value: '20', label: '±20% (Normal)' },
+          { value: '30', label: '±30% (Facile)' },
+        ]
+      },
     ],
   },
   {
@@ -64,6 +138,20 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 10 },
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 15 },
+      { 
+        id: 'region', 
+        label: 'Région', 
+        type: 'select', 
+        default: 'all',
+        options: [
+          { value: 'all', label: 'Monde entier' },
+          { value: 'Europe', label: 'Europe' },
+          { value: 'Americas', label: 'Amérique' },
+          { value: 'Africa', label: 'Afrique' },
+          { value: 'Asia', label: 'Asie' },
+          { value: 'Oceania', label: 'Océanie' },
+        ]
+      },
     ],
   },
   {
@@ -101,7 +189,21 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
     name: 'Undercover',
     description: 'Civils, Undercover et Mr. White avec mots proches.',
     icon: Gamepad2,
-    settings: [],
+    settings: [
+        { id: 'rounds', label: 'Manches', type: 'number', default: 1 },
+        { 
+            id: 'mrWhiteEnabled', 
+            label: 'Activer Mr. White', 
+            type: 'select', 
+            default: 'true',
+            options: [
+                { value: 'true', label: 'Oui' },
+                { value: 'false', label: 'Non' }
+            ]
+        },
+        { id: 'discussionTime', label: 'Temps de discussion (s)', type: 'number', default: 60 },
+        { id: 'voteTime', label: 'Temps de vote (s)', type: 'number', default: 30 },
+    ],
   },
 ];
 
@@ -150,6 +252,19 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         if (roomError || !room) {
           setIsRoomDeleted(true);
           return;
+        }
+
+        // Redirection immédiate si la partie est déjà en cours
+        if (room.status === 'in_game' || room.status === 'started') {
+            const paramsUrl = new URLSearchParams();
+            if (room.settings) {
+                Object.entries(room.settings).forEach(([k, v]) => {
+                    if (v !== '' && v !== undefined) paramsUrl.set(k, String(v));
+                });
+            }
+            const q = paramsUrl.toString();
+            router.push(`/games/${room.game_type}/${params.code}${q ? `?${q}` : ''}`);
+            return;
         }
 
         setRoomId(room.id);
@@ -399,46 +514,70 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   }, [selectedGameId, gameSettings, isHost, roomId]);
 
   useEffect(() => {
-    if (selectedGame) {
-      // Si on vient de changer de jeu et qu'on est host, on reset les settings
-      // (sauf si c'est une synchro realtime qui vient d'arriver, mais ici on gère l'init locale)
-      // La logique est un peu complexe avec le realtime.
-      // Simplification: on ne reset que si gameSettings est vide ou ne correspond pas
-      const defaults: Record<string, string | number> = {};
-      selectedGame.settings.forEach(s => {
-        if (gameSettings[s.id] === undefined) {
-             defaults[s.id] = s.default;
-        }
-      });
-      if (Object.keys(defaults).length > 0) {
-          setGameSettings(prev => ({ ...prev, ...defaults }));
+    if (selectedGameId && selectedGameId !== '__placeholder__') {
+      const game = gamesList.find(g => g.id === selectedGameId);
+      if (game && isHost) {
+          // Initialize defaults ONLY if they are missing
+          const newSettings = { ...gameSettings };
+          let hasChanges = false;
+          
+          game.settings.forEach(s => {
+              if (newSettings[s.id] === undefined) {
+                  newSettings[s.id] = s.default as any;
+                  hasChanges = true;
+              }
+          });
+          
+          if (hasChanges) {
+              setGameSettings(newSettings);
+          }
       }
     }
-  }, [selectedGame]);
+  }, [selectedGameId, isHost]);
 
-  const handleSettingChange = (settingId: string, value: string | number) => {
-    setGameSettings(prev => ({ ...prev, [settingId]: value }));
+  const handleSettingChange = (settingId: string, value: any) => {
+    setGameSettings(prev => {
+        const next = { ...prev, [settingId]: value };
+        return next;
+    });
   };
 
   const startGame = async () => {
     if (!selectedGameId || selectedGameId === '__placeholder__' || !roomId) return;
     
-    // Update status to 'in_game'
+    // 1. Update status to 'in_game'
     await supabase.from('rooms').update({
         status: 'in_game',
         game_type: selectedGameId,
         settings: gameSettings
     }).eq('id', roomId);
     
-    // Force local redirect for host to be faster
+    // 2. Construct URL
     const paramsUrl = new URLSearchParams();
+    
+    // Flatten settings for URL
     if (gameSettings) {
         Object.entries(gameSettings).forEach(([k, v]) => {
-        if (v !== '' && v !== undefined) paramsUrl.set(k, String(v));
+            if (v !== '' && v !== undefined && v !== null) {
+                // Special handling for arrays (multiselect)
+                if (Array.isArray(v)) {
+                    // For arrays, we might want to join them or repeat keys
+                    // Joining with comma is usually safer for simple query params
+                    paramsUrl.set(k, v.join(','));
+                } else {
+                    paramsUrl.set(k, String(v));
+                }
+            }
         });
     }
-    const q = paramsUrl.toString();
-    router.push(`/games/${selectedGameId}/${params.code}${q ? `?${q}` : ''}`);
+    
+    const queryString = paramsUrl.toString();
+    const targetUrl = `/games/${selectedGameId}/${params.code}${queryString ? `?${queryString}` : ''}`;
+    
+    console.log('Redirecting to:', targetUrl);
+    
+    // 3. Force redirect
+    router.push(targetUrl);
   };
 
   const copyRoomCode = () => {
@@ -577,12 +716,47 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                     </SelectContent>
                                     </Select>
                                 )}
+                                {setting.type === 'multiselect' && setting.options && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {setting.options.map((opt) => {
+                                            const currentVal = gameSettings[setting.id];
+                                            const current = Array.isArray(currentVal) ? currentVal : (setting.default as any[]);
+                                            const isSelected = Array.isArray(current) && current.includes(Number(opt.value));
+                                            
+                                            return (
+                                                <button
+                                                    key={opt.value}
+                                                    onClick={() => {
+                                                        const val = Number(opt.value);
+                                                        let newVal;
+                                                        if (isSelected) {
+                                                            newVal = current.filter((x: any) => x !== val);
+                                                            if (newVal.length === 0) newVal = [1]; // Prevent empty
+                                                        } else {
+                                                            newVal = [...current, val];
+                                                        }
+                                                        handleSettingChange(setting.id, newVal);
+                                                    }}
+                                                    className={`px-2 py-1 text-xs rounded border transition-colors ${
+                                                        isSelected 
+                                                        ? 'bg-blue-500 text-white border-blue-500' 
+                                                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </>
                           ) : (
                             <div className="text-lg font-semibold text-slate-800 dark:text-slate-100">
                                 {setting.type === 'select' && setting.options 
                                     ? setting.options.find(o => o.value === String(gameSettings[setting.id] ?? setting.default))?.label 
-                                    : (gameSettings[setting.id] ?? setting.default)
+                                    : setting.type === 'multiselect'
+                                        ? (Array.isArray(gameSettings[setting.id]) ? (gameSettings[setting.id] as unknown as any[]).join(', ') : String(setting.default))
+                                        : (gameSettings[setting.id] ?? setting.default)
                                 }
                             </div>
                           )}
