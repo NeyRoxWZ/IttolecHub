@@ -20,7 +20,8 @@ import {
   Plus,
   LogIn,
   Menu,
-  X
+  X,
+  DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -75,6 +76,14 @@ const games = [
     icon: Music,
     color: 'from-purple-500 to-violet-500',
     tags: ['Créativité', 'Vocabulaire'],
+  },
+  {
+    id: 'priceguessr',
+    name: 'PriceGuessr',
+    description: 'Devine le juste prix ! Attention aux centimes près.',
+    icon: DollarSign,
+    color: 'from-yellow-500 to-amber-600',
+    tags: ['Estimation', 'Shopping'],
   },
   {
     id: 'infiltre',

@@ -1,18 +1,24 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { User, Eye, EyeOff } from 'lucide-react';
+import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Crown, Skull } from 'lucide-react';
 import { toast } from 'sonner';
 
 type Role = 'CIVIL' | 'UNDERCOVER' | 'MR_WHITE';
-type Phase = 'roles' | 'clues' | 'vote' | 'mrwhite_guess' | 'end';
+type Phase = 'setup' | 'roles' | 'clues' | 'discussion' | 'vote' | 'mrwhite_guess' | 'results' | 'game_over';
 
 interface UndercoverProps {
   roomCode: string;
+}
+
+interface Clue {
+  playerId: string;
+  text: string;
+  timestamp: number;
 }
 
 export default function Undercover({ roomCode }: UndercoverProps) {
@@ -22,650 +28,654 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     isHost,
     players,
     playerId,
-    updateSettings, // Use updateSettings from hook
-    startGame: hostStartGame,
+    updateSettings,
+    startGame,
     updateRoundData,
-    nextRound: hostNextRound,
-    submitAnswer
+    nextRound,
+    submitAnswer,
+    setGameStatus
   } = useGameSync(roomCode, 'undercover');
 
-  // Settings state (local for host until saved/synced)
-  const [mrWhiteEnabled, setMrWhiteEnabled] = useState(true);
-  const [voteDuration, setVoteDuration] = useState(30);
+  // Local Settings State (for Host)
+  const [settings, setSettings] = useState({
+    rounds: 1,
+    mrWhiteEnabled: true,
+    discussionTime: 60,
+    voteTime: 30,
+    difficulty: 'normal'
+  });
+
+  // Local UI State
+  const [userClue, setUserClue] = useState('');
   const [mrWhiteGuess, setMrWhiteGuess] = useState('');
+  const [timeLeft, setTimeLeft] = useState(0);
 
-  const [countdown, setCountdown] = useState<number | null>(null);
+  // Derived State from GameState
+  const roundData = gameState?.round_data || {};
+  const currentPhase = (roundData.phase as Phase) || 'setup';
+  const roles = roundData.roles as Record<string, Role> || {};
+  const myRole = playerId ? roles[playerId] : null;
+  const civilWord = roundData.civilWord as string;
+  const undercoverWord = roundData.undercoverWord as string;
+  const currentSpeakerId = roundData.currentSpeaker as string | null;
+  const clues = (roundData.clues as Clue[]) || [];
+  const alivePlayers = (roundData.alivePlayers as string[]) || [];
+  const eliminatedPlayerId = roundData.eliminated as string | null;
+  const winner = roundData.winner as string | null; // 'CIVILS', 'IMPOSTORS', 'MR_WHITE'
+  const currentRoundNumber = gameState?.current_round || 0;
+  
+  // Players Map
+  const playersMap = useMemo(() => {
+    return players.reduce((acc, p) => ({ ...acc, [p.name]: p.score }), {} as Record<string, number>);
+  }, [players]);
 
-  // Sync settings from DB when they change (for clients)
+  const isMyTurn = currentPhase === 'clues' && currentSpeakerId === playerId;
+  const isAlive = playerId && alivePlayers.includes(playerId);
+
+  // Sync Settings from DB (for clients)
   useEffect(() => {
     if (gameState?.settings) {
-        if (gameState.settings.mrWhiteEnabled !== undefined) setMrWhiteEnabled(gameState.settings.mrWhiteEnabled);
-        if (gameState.settings.voteDuration !== undefined) setVoteDuration(gameState.settings.voteDuration);
+       setSettings(prev => ({
+           ...prev,
+           ...gameState.settings
+       }));
     }
   }, [gameState?.settings]);
 
-  // Host updates DB settings when local state changes
+  // Host updates DB settings
   useEffect(() => {
     if (isHost) {
-        const newSettings = { mrWhiteEnabled, voteDuration };
-        // Prevent loop
-        if (JSON.stringify(newSettings) !== JSON.stringify(gameState?.settings)) {
-            updateSettings(newSettings);
+        if (JSON.stringify(settings) !== JSON.stringify(gameState?.settings)) {
+            updateSettings(settings);
         }
     }
-  }, [mrWhiteEnabled, voteDuration, isHost]);
+  }, [settings, isHost, updateSettings, gameState?.settings]);
 
-  // Derived state
-  const roundData = gameState?.round_data || {};
-  const queue = roundData.queue || [];
-  const phase = (roundData.phase as Phase) || 'roles';
-  const { roles, currentSpeaker, clues, alivePlayers, winner, eliminated, civilWord, undercoverWord } = roundData;
-  const myRole = playerId ? roles?.[playerId] : undefined;
-  const isAlive = playerId && alivePlayers?.includes(playerId);
-  const currentVotes = gameState?.answers || {};
-  const myVote = playerId && currentVotes[playerId] ? currentVotes[playerId].answer : null;
-  // ... (rest of derived state)
-
-  // Listen for countdown
+  // Timer Sync
   useEffect(() => {
-      if (gameState?.round_data?.countdown) {
-          const end = gameState.round_data.countdown;
-          const now = Date.now();
-          const diff = Math.ceil((end - now) / 1000);
-          if (diff > 0) {
-              setCountdown(diff);
-              const interval = setInterval(() => {
-                  setCountdown(prev => {
-                      if (prev && prev > 1) return prev - 1;
-                      return 0;
-                  });
-              }, 1000);
-              return () => clearInterval(interval);
-          } else {
-              setCountdown(null);
-          }
-      } else {
-          setCountdown(null);
-      }
-  }, [gameState?.round_data?.countdown]);
-
-  const handleStartGame = async () => {
-    if (!isHost) return;
-    
-    // Start countdown
-    const countdownEnd = Date.now() + 3000;
-    await updateRoundData({ ...roundData, countdown: countdownEnd });
-    
-    // Wait for countdown
-    setTimeout(async () => {
-        try {
-          const res = await fetch('/api/games/undercover?count=20');
-          const data = await res.json();
-          
-          if (!data || data.length === 0) return;
-
-          const firstPair = data[0];
-          const remainingQueue = data.slice(1);
-
-          // Clear countdown
-          await updateRoundData({ ...roundData, countdown: null }); // Need to be careful not to overwrite game init
-          
-          // Actually, startGame overwrites roundData. So we just call hostStartGame.
-          // But we need to prep data first.
-          
-      // Assign roles
-      const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
-      if (shuffledPlayers.length < 3) {
-         toast.error('Il faut au moins 3 joueurs !');
-         return;
-      }
-      
-      const newRoles: Record<string, Role> = {};
-      
-      // Determine roles based on settings
-      let mrWhite = null;
-      let undercover = null;
-      let availablePlayers = [...shuffledPlayers];
-      
-      if (mrWhiteEnabled) {
-          mrWhite = availablePlayers[0];
-          availablePlayers = availablePlayers.slice(1);
-      }
-      
-      undercover = availablePlayers[0];
-      availablePlayers = availablePlayers.slice(1);
-      
-      players.forEach(p => {
-        if (mrWhite && p.id === mrWhite.id) newRoles[p.id] = 'MR_WHITE';
-        else if (p.id === undercover?.id) newRoles[p.id] = 'UNDERCOVER';
-        else newRoles[p.id] = 'CIVIL';
-      });
-
-      const playerIds = shuffledPlayers.map(p => p.id);
-
-      await hostStartGame({
-        queue: remainingQueue,
-        civilWord: firstPair.civilWord,
-        undercoverWord: firstPair.undercoverWord,
-        roles: newRoles,
-        phase: 'clues',
-        alivePlayers: playerIds,
-        currentSpeaker: playerIds[0],
-        clues: {},
-        eliminated: null,
-        winner: null
-      });
-
-    } catch (err) {
-      console.error(err);
-      toast.error('Impossible de démarrer');
+    if (roundData.endTime) {
+        const diff = Math.ceil((roundData.endTime - Date.now()) / 1000);
+        setTimeLeft(diff > 0 ? diff : 0);
     }
-  }, 3000); // Wait 3s for countdown
-  };
+  }, [roundData.endTime]);
 
-  const handleNextRound = async () => {
-    if (!isHost) return;
-    if (queue.length === 0) {
-      handleStartGame();
-      return;
+  // Timer Tick
+  useEffect(() => {
+    if (timeLeft > 0) {
+        const timer = setInterval(() => setTimeLeft(t => Math.max(0, t - 1)), 1000);
+        return () => clearInterval(timer);
     }
+  }, [timeLeft]);
 
-    // Start countdown for next round
-    const countdownEnd = Date.now() + 3000;
-    await updateRoundData({ ...roundData, countdown: countdownEnd });
-    
-    setTimeout(async () => {
-        // Clear countdown
-        await updateRoundData({ ...roundData, countdown: null });
+  // --- HOST LOGIC ---
 
-        const nextPair = queue[0];
-        const newQueue = queue.slice(1);
+  // Phase Management
+  useEffect(() => {
+    if (!isHost) return;
 
-        const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
-        let mrWhite = null;
-        let undercover = null;
-        let availablePlayers = [...shuffledPlayers];
-        
-        if (mrWhiteEnabled) {
-            mrWhite = availablePlayers[0];
-            availablePlayers = availablePlayers.slice(1);
+    const managePhases = async () => {
+        // 1. Roles Phase -> Clues Phase (after 5s)
+        if (currentPhase === 'roles' && timeLeft === 0) {
+            await updateRoundData({
+                ...roundData,
+                phase: 'clues',
+                currentSpeaker: alivePlayers[0], // Start with first alive player
+                endTime: null // No timer for clues (or per-turn timer?)
+            });
         }
-        
-        undercover = availablePlayers[0];
-        availablePlayers = availablePlayers.slice(1);
-        
-        const newRoles: Record<string, Role> = {};
-          
-        players.forEach(p => {
-          if (mrWhite && p.id === mrWhite.id) newRoles[p.id] = 'MR_WHITE';
-          else if (p.id === undercover?.id) newRoles[p.id] = 'UNDERCOVER';
-          else newRoles[p.id] = 'CIVIL';
-        });
 
-        const playerIds = shuffledPlayers.map(p => p.id);
+        // 2. Clues Phase -> Discussion Phase (when all clues given)
+        if (currentPhase === 'clues') {
+            // Check if all alive players have given a clue IN THIS ROUND of clues
+            // We track clues in `roundData.clues`.
+            // We need to know how many clues expected.
+            // Wait, usually clues are cleared every sub-round? 
+            // Or we just append.
+            // Let's assume one clue per player per "round of discussion".
+            // We can check if `currentSpeaker` became null or looped back?
+            // See `handleClueSubmit` logic below.
+        }
 
-        await hostNextRound({
-          queue: newQueue,
-          civilWord: nextPair.civilWord,
-          undercoverWord: nextPair.undercoverWord,
-          roles: newRoles,
-          phase: 'clues',
-          alivePlayers: playerIds,
-          currentSpeaker: playerIds[0],
-          clues: {},
-          eliminated: null,
-          winner: null
-        });
-    }, 3000);
-  };
+        // 3. Discussion Phase -> Vote Phase (after time)
+        if (currentPhase === 'discussion' && timeLeft === 0) {
+             await updateRoundData({
+                 ...roundData,
+                 phase: 'vote',
+                 endTime: Date.now() + settings.voteTime * 1000
+             });
+        }
 
-  const handleClueSubmit = (clue: string) => {
-    if (!playerId || !currentSpeaker || playerId !== currentSpeaker) return;
-    
-    // Update clues and next speaker
-    const newClues = { ...clues, [playerId]: clue };
-    
-    // Determine next speaker
-    const currentIndex = alivePlayers.indexOf(playerId);
-    let nextIndex = (currentIndex + 1) % alivePlayers.length;
-    let nextSpeakerId = alivePlayers[nextIndex];
+        // 4. Vote Phase -> Results/Elimination (after time)
+        if (currentPhase === 'vote' && timeLeft === 0) {
+             await processVotes();
+        }
+    };
 
-    // If we wrapped around, have everyone given a clue?
-    // We check if newClues has all alivePlayers.
-    const allGiven = alivePlayers?.every((id: string) => newClues[id]);
+    managePhases();
+  }, [isHost, currentPhase, timeLeft, roundData, alivePlayers, settings.voteTime]);
 
-    let nextPhase = phase;
-    if (allGiven) {
-        nextPhase = 'vote';
-        // When going to vote, we usually clear `answers` (votes), but `useGameSync` doesn't clear answers automatically unless nextRound.
-        // We can just ignore old answers or use a round counter for votes.
-        // Or we can manually clear answers? No API for that.
-        // We'll rely on `submitAnswer` overwriting previous answers.
-        // But if someone doesn't vote, their old vote remains? Yes.
-        // Ideally we should use `updateRoundData` to increment a "voteRound" counter or something to invalidate old votes.
-        // For now, let's assume players will vote again.
+
+  const startNewGame = async () => {
+    if (!isHost) return;
+    if (players.length < 3) { // Should be 4 per spec, but 3 for testing
+        toast.error("Il faut au moins 4 joueurs !");
+        return;
     }
 
-    updateRoundData({
-        ...roundData,
-        clues: newClues,
-        currentSpeaker: allGiven ? null : nextSpeakerId,
-        phase: nextPhase
-    });
+    try {
+        const res = await fetch(`/api/games/undercover?count=${settings.rounds}`);
+        const words = await res.json();
+        
+        if (!words || words.length === 0) return;
+
+        // Init Game
+        const firstPair = Array.isArray(words) ? words[0] : words;
+        const remainingQueue = Array.isArray(words) ? words.slice(1) : [];
+
+        // Assign Roles
+        const { newRoles, alive } = assignRoles(players, settings.mrWhiteEnabled);
+
+        await startGame({
+            civilWord: firstPair.civilWord,
+            undercoverWord: firstPair.undercoverWord,
+            roles: newRoles,
+            alivePlayers: alive,
+            phase: 'roles',
+            clues: [],
+            queue: remainingQueue,
+            endTime: Date.now() + 5000 // 5s to see roles
+        });
+    } catch (e) {
+        console.error(e);
+        toast.error("Erreur au démarrage");
+    }
   };
 
-  const castVote = async (targetId: string | null) => {
-    if (!playerId || !isAlive) return;
-    if (targetId) await submitAnswer(targetId);
-  };
+  const assignRoles = (allPlayers: any[], includeMrWhite: boolean) => {
+    const shuffled = [...allPlayers].sort(() => Math.random() - 0.5);
+    const newRoles: Record<string, Role> = {};
+    const alive: string[] = [];
 
-  const closeVote = async () => {
-    if (!isHost) return;
+    let available = [...shuffled];
     
-    // Tally votes from `gameState.answers`
-    // Filter only votes from alive players?
+    // Undercover
+    const undercover = available.pop();
+    if (undercover) newRoles[undercover.id] = 'UNDERCOVER';
+
+    // Mr White
+    if (includeMrWhite && available.length > 0) {
+        const mrWhite = available.pop();
+        if (mrWhite) newRoles[mrWhite.id] = 'MR_WHITE';
+    }
+
+    // Civils
+    available.forEach(p => newRoles[p.id] = 'CIVIL');
+    
+    shuffled.forEach(p => alive.push(p.id));
+
+    return { newRoles, alive };
+  };
+
+  const processVotes = async () => {
+    const votes = gameState?.answers || {};
     const voteCounts: Record<string, number> = {};
-    const validVoters = alivePlayers;
     
-    Object.entries(currentVotes).forEach(([pid, val]: [string, any]) => {
-        if (validVoters.includes(pid)) {
-            const target = val.answer;
-            if (target && alivePlayers.includes(target)) {
-                voteCounts[target] = (voteCounts[target] || 0) + 1;
-            }
+    // Count votes
+    Object.values(votes).forEach((v: any) => {
+        if (v.type === 'vote' && v.targetId) {
+            voteCounts[v.targetId] = (voteCounts[v.targetId] || 0) + 1;
         }
     });
 
+    // Find max
     let maxVotes = 0;
-    let suspect: string | null = null;
-    // Handle ties? Random or no elimination? Standard: Tie -> No elimination or revote.
-    // Let's assume strict max for simplicity or first max.
-    Object.entries(voteCounts).forEach(([id, count]) => {
+    let eliminatedId: string | null = null;
+    let isTie = false;
+
+    Object.entries(voteCounts).forEach(([pid, count]) => {
         if (count > maxVotes) {
             maxVotes = count;
-            suspect = id;
+            eliminatedId = pid;
+            isTie = false;
+        } else if (count === maxVotes) {
+            isTie = true;
         }
     });
 
-    if (!suspect) {
-        // No votes?
-        return; 
-    }
-
-    const suspectRole = roles[suspect];
-    
-    // Elimination Logic
-    if (suspectRole === 'MR_WHITE') {
-        updateRoundData({
+    if (isTie || !eliminatedId) {
+        // No elimination, back to clues? Or discussion?
+        // Let's go back to clues for another round
+        toast('Égalité ! Personne n\'est éliminé.');
+        await updateRoundData({
             ...roundData,
-            eliminated: suspect,
-            phase: 'mrwhite_guess'
+            phase: 'clues',
+            currentSpeaker: alivePlayers[0],
+            clues: [] // Clear clues for new round? Or keep history? Better keep history but separate rounds.
+            // For simplicity, we keep adding to clues array.
         });
         return;
     }
 
-    // Eliminate player
-    const newAlive = alivePlayers?.filter((id: string) => id !== suspect) || [];
+    // Elimination
+    const eliminatedRole = roles[eliminatedId];
+    
+    if (eliminatedRole === 'MR_WHITE') {
+        // Mr White chance to guess
+        await updateRoundData({
+            ...roundData,
+            eliminated: eliminatedId,
+            phase: 'mrwhite_guess',
+            endTime: Date.now() + 30000 // 30s to guess
+        });
+        return;
+    }
+
+    // Standard Elimination
+    handleElimination(eliminatedId);
+  };
+
+  const handleElimination = async (eliminatedId: string) => {
+    const newAlive = alivePlayers.filter(id => id !== eliminatedId);
     
     // Check Win Conditions
-    const remainingRoles = newAlive.map((id: string) => roles[id]);
+    const remainingRoles = newAlive.map(id => roles[id]);
     const hasUndercover = remainingRoles.includes('UNDERCOVER');
     const hasMrWhite = remainingRoles.includes('MR_WHITE');
-    const civilsCount = remainingRoles.filter((r: string) => r === 'CIVIL').length;
+    const civilsCount = remainingRoles.filter(r => r === 'CIVIL').length;
     const impostorsCount = (hasUndercover ? 1 : 0) + (hasMrWhite ? 1 : 0);
 
     if (!hasUndercover && !hasMrWhite) {
         // Civils Win
-        updateRoundData({
-            ...roundData,
-            eliminated: suspect,
-            winner: 'CIVILS',
-            phase: 'end',
-            alivePlayers: newAlive
-        });
+        await finishGame('CIVILS', newAlive);
     } else if (impostorsCount >= civilsCount) {
-        // Impostors Win (Standard rule: if Impostors >= Civils, Impostors win)
-        updateRoundData({
-            ...roundData,
-            eliminated: suspect,
-            winner: 'UNDERCOVER/MR_WHITE',
-            phase: 'end',
-            alivePlayers: newAlive
-        });
+        // Impostors Win
+        await finishGame('IMPOSTORS', newAlive);
     } else {
-        // Continue Game
-        updateRoundData({
+        // Continue
+        await updateRoundData({
             ...roundData,
-            eliminated: suspect,
-            phase: 'clues',
+            eliminated: eliminatedId,
             alivePlayers: newAlive,
-            clues: {}, // Reset clues
-            currentSpeaker: newAlive[0]
+            phase: 'clues',
+            currentSpeaker: newAlive[0],
+            endTime: null
         });
     }
   };
 
-  const handleMrWhiteGuess = (guess: string) => {
-    // Only Mr White calls this via UI, but actually logic should be checked by Host or Server.
-    // Since we don't have server verification easily without exposing word, 
-    // we can use `updateRoundData` to broadcast the guess, and Host validates it.
-    // Or we just validate it here if we are Mr White (client side verification is weak but ok for this app).
-    // Actually, `civilWord` is visible to client in `roundData` (even if hidden in UI).
-    // So we can validate locally.
-    
-    if (!civilWord) return;
-    const isCorrect = guess.trim().toLowerCase() === civilWord.toLowerCase();
-    
-    // We need to update state. Only Host can `updateRoundData`.
-    // So Mr White needs to send the guess to Host?
-    // We can use `submitAnswer` to send the guess.
-    // Host watches for Mr White's answer in `mrwhite_guess` phase.
-  };
-  
-  // Actually, let's use `submitAnswer` for Mr White's guess too.
-  const submitGuess = async (guess: string) => {
-    if (myRole === 'MR_WHITE') {
-        await submitAnswer({ type: 'guess', text: guess });
-    }
+  const finishGame = async (winner: string, alive: string[]) => {
+      await updateRoundData({
+          ...roundData,
+          winner,
+          phase: 'results',
+          alivePlayers: alive
+      });
   };
 
-  // Host checks Mr White Guess
+  const nextGameRound = async () => {
+      if (!isHost) return;
+      const queue = roundData.queue || [];
+      if (queue.length === 0) {
+          await setGameStatus('game_over');
+          return;
+      }
+      
+      const nextPair = queue[0];
+      const remaining = queue.slice(1);
+      const { newRoles, alive } = assignRoles(players, settings.mrWhiteEnabled);
+
+      await nextRound({
+            civilWord: nextPair.civilWord,
+            undercoverWord: nextPair.undercoverWord,
+            roles: newRoles,
+            alivePlayers: alive,
+            phase: 'roles',
+            clues: [],
+            queue: remaining,
+            endTime: Date.now() + 5000
+      });
+  };
+
+  // --- CLIENT ACTIONS ---
+
+  const sendClue = async () => {
+    if (!userClue.trim()) return;
+    
+    // Optimistic UI? No, wait for server.
+    // We send clue to host via submitAnswer (or direct update if we allowed clients to update roundData, but we don't).
+    // Actually, for turn-based, we need Host to validate turn.
+    // But `useGameSync` logic: Host watches `answers`.
+    
+    await submitAnswer({
+        type: 'clue',
+        text: userClue,
+        timestamp: Date.now()
+    });
+    setUserClue('');
+  };
+
+  const sendVote = async (targetId: string) => {
+    await submitAnswer({
+        type: 'vote',
+        targetId
+    });
+    toast.success('Vote enregistré');
+  };
+
+  const sendMrWhiteGuess = async () => {
+    if (!mrWhiteGuess.trim()) return;
+    await submitAnswer({
+        type: 'guess',
+        text: mrWhiteGuess
+    });
+  };
+
+  // Host listening for answers/clues
   useEffect(() => {
-    if (!isHost || phase !== 'mrwhite_guess' || !eliminated) return;
-    
-    // Find eliminated Mr White's answer
-    const mwAnswer = currentVotes[eliminated];
-    if (mwAnswer && mwAnswer.answer && mwAnswer.answer.type === 'guess') {
-        const guess = mwAnswer.answer.text;
-        const isCorrect = guess.trim().toLowerCase() === (civilWord || '').toLowerCase();
+    if (!isHost || !gameState?.answers) return;
+
+    const processAnswers = async () => {
+        const answers = gameState.answers;
         
-        updateRoundData({
-            ...roundData,
-            winner: isCorrect ? 'MR_WHITE' : 'CIVILS',
-            phase: 'end'
-        });
-    }
-  }, [isHost, phase, currentVotes, eliminated, civilWord, roundData, updateRoundData]);
+        // Check for Clues
+        if (currentPhase === 'clues' && currentSpeakerId) {
+            const speakerAnswer = answers[currentSpeakerId];
+            if (speakerAnswer && speakerAnswer.type === 'clue') {
+                // Check if this clue is new (compare timestamp or text)
+                const lastClue = clues.find(c => c.playerId === currentSpeakerId && c.text === speakerAnswer.text);
+                if (!lastClue) {
+                    // New clue!
+                    const newClues = [...clues, {
+                        playerId: currentSpeakerId,
+                        text: speakerAnswer.text,
+                        timestamp: speakerAnswer.timestamp
+                    }];
+                    
+                    // Next speaker
+                    const currentIndex = alivePlayers.indexOf(currentSpeakerId);
+                    const nextIndex = (currentIndex + 1) % alivePlayers.length;
+                    const nextSpeaker = alivePlayers[nextIndex];
+                    
+                    // If we looped back to first speaker of this round?
+                    // We need to know who started. 
+                    // Let's assume `alivePlayers` order is fixed.
+                    // If nextIndex === 0, everyone has spoken.
+                    
+                    if (nextIndex === 0) {
+                        // All spoken -> Discussion
+                        await updateRoundData({
+                            ...roundData,
+                            clues: newClues,
+                            currentSpeaker: null,
+                            phase: 'discussion',
+                            endTime: Date.now() + settings.discussionTime * 1000
+                        });
+                    } else {
+                        await updateRoundData({
+                            ...roundData,
+                            clues: newClues,
+                            currentSpeaker: nextSpeaker
+                        });
+                    }
+                }
+            }
+        }
+
+        // Check for Mr White Guess
+        if (currentPhase === 'mrwhite_guess' && eliminatedPlayerId) {
+             const mwAnswer = answers[eliminatedPlayerId];
+             if (mwAnswer && mwAnswer.type === 'guess') {
+                 const guess = mwAnswer.text;
+                 const isCorrect = guess.trim().toLowerCase() === (civilWord || '').toLowerCase();
+                 
+                 if (isCorrect) {
+                     await finishGame('MR_WHITE', alivePlayers);
+                 } else {
+                     await handleElimination(eliminatedPlayerId);
+                 }
+             }
+        }
+    };
+
+    processAnswers();
+  }, [isHost, gameState?.answers, currentPhase, currentSpeakerId, clues, alivePlayers, settings.discussionTime, eliminatedPlayerId, civilWord]);
 
 
-  // UI Components
-  const playersBar = (
-    <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {players.map((p) => {
-             const isEliminated = eliminated === p.id || (phase !== 'roles' && !alivePlayers.includes(p.id) && roles[p.id]); // Check if eliminated previously
-             // Wait, `alivePlayers` only tracks currently alive. `eliminated` tracks just the LAST eliminated?
-             // No, `alivePlayers` is the source of truth for who is in game.
-             const dead = phase !== 'roles' && !alivePlayers.includes(p.id);
-             
-             return (
-                <div
-                    key={p.id}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm shrink-0 ${
-                    dead
-                        ? 'border-rose-500 bg-rose-500/10 text-rose-100 opacity-70'
-                        : phase === 'vote' && myVote === p.id
-                        ? 'bg-indigo-600 border-indigo-500 text-slate-50'
-                        : 'bg-slate-900 border-slate-800 text-slate-50'
-                    }`}
-                >
-                    <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-semibold">
-                    {p.name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="font-medium max-w-[120px] truncate">
-                    {p.name}
-                    </span>
-                    {dead && (
-                        <span className="text-[10px] bg-red-500 text-white px-1 rounded">MORT</span>
-                    )}
-                </div>
-            );
-        })}
-    </div>
-  );
+  // --- RENDER ---
 
-  const header = (
-    <div className="flex flex-col gap-3 bg-slate-900 p-4 rounded-2xl w-full border border-slate-800">
-      <div className="flex justify-between items-center">
-        <span className="text-slate-400 font-medium text-sm">
-          Undercover • Room {roomCode}
-        </span>
-        <span className="text-xs text-slate-500 capitalize">{phase}</span>
-      </div>
-      <div className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-full bg-indigo-600 flex items-center justify-center">
-          <User className="h-5 w-5 text-slate-50" />
-        </div>
-        <div className="text-left">
-          <p className="text-xs text-slate-400">Tu es</p>
-          <p className="text-lg font-semibold">
-            {myRole === 'CIVIL'
-              ? 'Civil'
-              : myRole === 'UNDERCOVER'
-              ? 'Undercover'
-              : myRole === 'MR_WHITE'
-              ? 'Mr. White'
-              : 'Observateur'}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-
-  const main = (
-    <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 flex flex-col items-center text-center w-full shadow-xl">
-       {phase === 'roles' && (
-         <div className="flex flex-col items-center justify-center py-10">
-            <EyeOff className="h-16 w-16 text-slate-700 mb-4" />
-            <h2 className="text-xl font-bold text-slate-200 mb-2">En attente</h2>
-            
-            {isHost ? (
-               <div className="p-4 bg-slate-800 rounded-xl border border-slate-700 w-full max-w-sm">
-                   <h3 className="text-lg font-medium text-slate-200 mb-4">Paramètres</h3>
-                   
-                   <div className="flex items-center justify-between mb-4">
-                       <label className="text-sm text-slate-300">Mr. White</label>
-                       <div 
-                         className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${mrWhiteEnabled ? 'bg-indigo-600' : 'bg-slate-600'}`}
-                         onClick={() => setMrWhiteEnabled(!mrWhiteEnabled)}
-                       >
-                           <div className={`w-4 h-4 rounded-full bg-white transition-transform ${mrWhiteEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                       </div>
-                   </div>
-                   
-                   <div className="flex flex-col gap-2 mb-4">
-                       <label className="text-sm text-slate-300">Durée Vote (s)</label>
-                       <Input 
-                         type="number"
-                         value={voteDuration}
-                         onChange={(e) => setVoteDuration(parseInt(e.target.value) || 30)}
-                         className="bg-slate-900 border-slate-700 text-white"
-                       />
-                   </div>
-                   
-                   <p className="text-xs text-slate-500 mb-4">
-                       {players.length < 3 ? "Il faut 3 joueurs minimum" : "Prêt à lancer !"}
-                   </p>
-               </div>
-            ) : (
-                <div className="text-center">
-                    <p className="text-slate-400 text-sm max-w-xs mb-2">
-                        Le Maître du jeu va lancer la partie.
-                    </p>
-                    <div className="text-xs text-slate-500 bg-slate-800 px-3 py-1 rounded-full">
-                        {mrWhiteEnabled ? "Avec Mr. White" : "Sans Mr. White"} • Vote: {voteDuration}s
-                    </div>
-                </div>
-            )}
-         </div>
-      )}
-
-      {(phase === 'clues' || phase === 'vote' || phase === 'mrwhite_guess') && (
-        <>
-          {myRole === 'CIVIL' && (
-            <div className="w-full rounded-2xl bg-slate-800 px-4 py-3 mb-4">
-              <p className="text-xs text-slate-400 mb-1 uppercase tracking-wide">
-                Ton mot (Civil)
-              </p>
-              <p className="text-xl font-semibold text-slate-50">
-                {civilWord ?? '---'}
-              </p>
-            </div>
-          )}
-          {myRole === 'UNDERCOVER' && (
-            <div className="w-full rounded-2xl bg-slate-800 px-4 py-3 mb-4">
-              <p className="text-xs text-slate-400 mb-1 uppercase tracking-wide">
-                Ton mot (Undercover)
-              </p>
-              <p className="text-xl font-semibold text-slate-50">
-                {undercoverWord ?? '---'}
-              </p>
-            </div>
-          )}
-          {myRole === 'MR_WHITE' && (
-            <div className="w-full rounded-2xl bg-slate-800 px-4 py-3 mb-4">
-              <p className="text-xs text-slate-400 mb-1 uppercase tracking-wide">
-                Ton rôle
-              </p>
-              <p className="text-sm text-slate-200">
-                Tu es Mr. White. Tu n&apos;as pas de mot.
-              </p>
-            </div>
-          )}
-        </>
-      )}
-
-      {phase === 'clues' && (
-        <>
-          <p className="text-sm text-slate-200 mb-2 font-medium">
-            Tour de table
-          </p>
-          <div className="w-full space-y-2 mb-4">
-             {alivePlayers?.map((id: string) => {
-                 const pName = players.find(p => p.id === id)?.name || id;
-                 return (
-                    <div key={id} className={`flex items-center justify-between px-3 py-2 rounded-2xl ${currentSpeaker === id ? 'bg-indigo-900/30 border border-indigo-500/50' : 'bg-slate-800'}`}>
-                        <span className="text-sm text-slate-200">{pName}</span>
-                        <span className="text-xs text-slate-400">{clues[id] || '...'}</span>
-                    </div>
-                 );
-             })}
-          </div>
-          
-          {currentSpeaker === playerId && (
-             <ClueInput onSubmit={handleClueSubmit} />
-          )}
-          {currentSpeaker !== playerId && (
-             <p className="text-xs text-slate-500 animate-pulse">
-                {players.find(p => p.id === currentSpeaker)?.name} est en train d&apos;écrire...
-             </p>
-          )}
-        </>
-      )}
-
-      {phase === 'vote' && (
-        <div className="w-full">
-            <p className="text-sm text-slate-200 mb-4 font-medium">
-                Qui est l&apos;intrus ? Votez !
-            </p>
-             <div className="flex flex-wrap gap-2 justify-center mt-4">
-                {alivePlayers?.map((id: string) => {
-                    const pName = players.find(p => p.id === id)?.name || id;
-                    return (
-                    <button
-                        key={id}
-                        type="button"
-                        onClick={() => castVote(id)}
-                        className={`px-4 py-2 rounded-full text-sm border transition-all ${
-                        myVote === id
-                            ? 'bg-indigo-600 border-indigo-500 text-white scale-105'
-                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
-                        }`}
-                    >
-                        {pName}
-                    </button>
-                    );
-                })}
-            </div>
-        </div>
-      )}
-
-      {phase === 'mrwhite_guess' && (
-         <div className="w-full">
-            <p className="text-sm text-slate-200 mb-2 font-medium">
-                Mr. White a été démasqué !
-            </p>
-            <p className="text-xs text-slate-500 mb-4">
-                Il tente de deviner le mot des Civils pour voler la victoire.
-            </p>
-            {myRole === 'MR_WHITE' && eliminated === playerId && (
-                <div className="flex flex-col gap-2">
-                    <Input 
-                        value={mrWhiteGuess}
-                        onChange={(e) => setMrWhiteGuess(e.target.value)}
-                        placeholder="Quel est le mot ?"
-                        className="bg-slate-800 border-slate-700 text-white"
-                    />
-                    <Button onClick={() => submitGuess(mrWhiteGuess)} className="bg-indigo-600 text-white">
-                        Valider
-                    </Button>
-                </div>
-            )}
-         </div>
-      )}
-
-      {phase === 'end' && (
-        <div className="w-full">
-             <p className="text-2xl font-bold text-white mb-2">
-                {winner === 'CIVILS' ? '🎉 Les Civils gagnent !' : '🕵️ Les Imposteurs gagnent !'}
-            </p>
-             <div className="bg-slate-800 rounded-xl p-4 mt-4 text-left space-y-2">
-                <p className="text-sm text-slate-400">Mot Civil : <span className="text-white font-bold">{civilWord}</span></p>
-                <p className="text-sm text-slate-400">Mot Undercover : <span className="text-white font-bold">{undercoverWord}</span></p>
-            </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const footer = (
-    <div className="flex flex-col gap-3">
-       {isHost && (
-         <>
-            {phase === 'roles' && (
-                 <Button onClick={handleStartGame} className="w-full bg-indigo-600 text-white py-3 rounded-2xl">
-                    Lancer la partie
-                 </Button>
-            )}
-            {phase === 'vote' && (
-                 <Button onClick={closeVote} className="w-full bg-indigo-600 text-white py-3 rounded-2xl">
-                    Clôturer le vote
-                 </Button>
-            )}
-             {phase === 'end' && (
-                 <Button onClick={handleNextRound} className="w-full bg-emerald-600 text-white py-3 rounded-2xl">
-                    Manche suivante
-                 </Button>
-            )}
-         </>
-       )}
-    </div>
-  );
-
-  return <GameLayout header={header} main={main} footer={footer} playersBar={playersBar} />;
-}
-
-function ClueInput({ onSubmit }: { onSubmit: (val: string) => void }) {
-  const [val, setVal] = useState('');
   return (
-    <div className="flex flex-col gap-2 w-full">
-        <Input 
-            value={val} 
-            onChange={e => setVal(e.target.value)} 
-            placeholder="Ton indice..." 
-            className="bg-slate-800 border-slate-700 text-white"
-            onKeyDown={e => { if(e.key === 'Enter') onSubmit(val); }}
-        />
-        <Button onClick={() => onSubmit(val)} className="bg-indigo-600 text-white">Envoyer</Button>
-    </div>
+    <GameLayout
+      players={playersMap}
+      roundCount={currentRoundNumber}
+      maxRounds={settings.rounds}
+      timer={timeLeft > 0 ? `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}` : '--:--'}
+      gameCode={roomCode}
+      gameTitle="Undercover"
+      isHost={isHost}
+      gameStarted={currentPhase !== 'setup'}
+      onStartGame={startNewGame}
+      timeLeft={timeLeft}
+    >
+      <div className="flex flex-col items-center w-full max-w-4xl mx-auto min-h-[400px]">
+        
+        {/* SETUP PHASE */}
+        {currentPhase === 'setup' && (
+            <div className="text-center space-y-6 bg-white/10 p-8 rounded-xl backdrop-blur-md">
+                <h2 className="text-3xl font-bold">Configuration</h2>
+                {isHost ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                        <div>
+                            <label className="block text-sm text-gray-300 mb-1">Manches</label>
+                            <Input type="number" min={1} max={5} value={settings.rounds} onChange={e => setSettings({...settings, rounds: parseInt(e.target.value)})} />
+                        </div>
+                        <div>
+                            <label className="block text-sm text-gray-300 mb-1">Mr. White</label>
+                            <div className="flex gap-2">
+                                <Button variant={settings.mrWhiteEnabled ? "default" : "outline"} onClick={() => setSettings({...settings, mrWhiteEnabled: true})}>Oui</Button>
+                                <Button variant={!settings.mrWhiteEnabled ? "default" : "outline"} onClick={() => setSettings({...settings, mrWhiteEnabled: false})}>Non</Button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm text-gray-300 mb-1">Discussion (sec)</label>
+                            <Input type="number" min={30} max={180} value={settings.discussionTime} onChange={e => setSettings({...settings, discussionTime: parseInt(e.target.value)})} />
+                        </div>
+                        <div>
+                            <label className="block text-sm text-gray-300 mb-1">Vote (sec)</label>
+                            <Input type="number" min={15} max={60} value={settings.voteTime} onChange={e => setSettings({...settings, voteTime: parseInt(e.target.value)})} />
+                        </div>
+                        <div className="col-span-full">
+                             <Button size="lg" className="w-full" onClick={startNewGame}>Lancer la partie</Button>
+                        </div>
+                    </div>
+                ) : (
+                    <p>En attente de l'hôte...</p>
+                )}
+            </div>
+        )}
+
+        {/* ROLES PHASE */}
+        {currentPhase === 'roles' && (
+            <div className="flex flex-col items-center justify-center h-full animate-in fade-in zoom-in">
+                <h2 className="text-2xl mb-4">Ton rôle est...</h2>
+                <div className="bg-black/40 p-8 rounded-full w-48 h-48 flex items-center justify-center border-4 border-white/20">
+                    {myRole === 'CIVIL' && <User className="w-20 h-20 text-blue-400" />}
+                    {myRole === 'UNDERCOVER' && <EyeOff className="w-20 h-20 text-red-400" />}
+                    {myRole === 'MR_WHITE' && <AlertTriangle className="w-20 h-20 text-yellow-400" />}
+                </div>
+                <h3 className="text-4xl font-black mt-6 text-white uppercase">{myRole?.replace('_', ' ')}</h3>
+                
+                {myRole === 'MR_WHITE' ? (
+                    <p className="mt-4 text-xl text-yellow-200">Tu n'as pas de mot ! Essaye de deviner.</p>
+                ) : (
+                    <div className="mt-6 text-center">
+                        <p className="text-sm text-gray-400">Ton mot secret :</p>
+                        <p className="text-3xl font-bold text-white bg-white/10 px-6 py-2 rounded-lg mt-2">
+                            {myRole === 'CIVIL' ? civilWord : undercoverWord}
+                        </p>
+                    </div>
+                )}
+            </div>
+        )}
+
+        {/* CLUES PHASE */}
+        {currentPhase === 'clues' && (
+            <div className="w-full space-y-6">
+                <h2 className="text-2xl font-bold text-center">Phase d'Indices</h2>
+                
+                {/* Clues List */}
+                <div className="bg-black/20 rounded-xl p-4 min-h-[200px] max-h-[400px] overflow-y-auto space-y-2">
+                    {clues.map((c, i) => {
+                        const p = players.find(pl => pl.id === c.playerId);
+                        return (
+                            <div key={i} className="bg-white/5 p-3 rounded-lg flex items-center gap-3">
+                                <div className="font-bold text-blue-300">{p?.name || 'Inconnu'}:</div>
+                                <div className="text-lg">"{c.text}"</div>
+                            </div>
+                        );
+                    })}
+                    {clues.length === 0 && <p className="text-gray-500 text-center italic mt-10">Aucun indice pour le moment...</p>}
+                </div>
+
+                {/* Input Area */}
+                <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black to-transparent">
+                    <div className="max-w-4xl mx-auto">
+                        {isMyTurn ? (
+                            <div className="flex gap-2">
+                                <Input 
+                                    value={userClue} 
+                                    onChange={e => setUserClue(e.target.value)} 
+                                    placeholder="Écris ton indice..."
+                                    className="text-lg"
+                                    autoFocus
+                                />
+                                <Button size="lg" onClick={sendClue}>Envoyer</Button>
+                            </div>
+                        ) : (
+                            <div className="text-center p-4 bg-black/40 rounded-lg backdrop-blur text-gray-300">
+                                {currentSpeakerId ? `C'est au tour de ${players.find(p => p.id === currentSpeakerId)?.name}...` : 'Chargement...'}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* DISCUSSION PHASE */}
+        {currentPhase === 'discussion' && (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+                <MessageSquare className="w-16 h-16 text-green-400 mb-4 animate-bounce" />
+                <h2 className="text-3xl font-bold mb-2">Discussion !</h2>
+                <p className="text-xl text-gray-300">Débattez et trouvez l'intrus.</p>
+                <div className="mt-8 text-6xl font-black font-mono text-white/80">{timeLeft}s</div>
+                
+                <div className="mt-8 w-full max-w-2xl bg-black/20 p-4 rounded-xl">
+                    <h3 className="text-sm text-gray-400 mb-2">Rappel des indices :</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
+                        {clues.map((c, i) => {
+                             const p = players.find(pl => pl.id === c.playerId);
+                             return (
+                                 <div key={i} className="text-sm"><span className="font-bold text-blue-300">{p?.name}:</span> {c.text}</div>
+                             );
+                        })}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* VOTE PHASE */}
+        {currentPhase === 'vote' && (
+            <div className="w-full text-center">
+                <h2 className="text-3xl font-bold mb-6 text-red-400">Votez pour éliminer !</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {alivePlayers.map(pid => {
+                        const p = players.find(pl => pl.id === pid);
+                        if (!p || pid === playerId) return null; // Can't vote for self? Usually yes you can, but let's disable for UX
+                        // Actually in Undercover you can vote for anyone.
+                        
+                        return (
+                            <button 
+                                key={pid}
+                                onClick={() => sendVote(pid)}
+                                className="bg-white/10 hover:bg-red-500/20 border-2 border-white/10 hover:border-red-500 p-6 rounded-xl transition-all flex flex-col items-center gap-2 group"
+                            >
+                                <User className="w-12 h-12 text-gray-400 group-hover:text-red-400" />
+                                <span className="font-bold text-lg">{p?.name}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+        )}
+
+        {/* MR WHITE GUESS */}
+        {currentPhase === 'mrwhite_guess' && (
+            <div className="flex flex-col items-center justify-center h-full">
+                <AlertTriangle className="w-20 h-20 text-yellow-400 mb-4" />
+                <h2 className="text-3xl font-bold mb-2">Mr. White a été démasqué !</h2>
+                <p className="mb-6">Il a une dernière chance de gagner en devinant le mot des Civils.</p>
+                
+                {myRole === 'MR_WHITE' && eliminatedPlayerId === playerId ? (
+                    <div className="flex gap-2 w-full max-w-md">
+                        <Input 
+                            value={mrWhiteGuess} 
+                            onChange={e => setMrWhiteGuess(e.target.value)} 
+                            placeholder="Devine le mot..." 
+                        />
+                        <Button onClick={sendMrWhiteGuess}>Valider</Button>
+                    </div>
+                ) : (
+                    <p className="animate-pulse">Mr. White réfléchit...</p>
+                )}
+            </div>
+        )}
+
+        {/* RESULTS / GAME OVER */}
+        {(currentPhase === 'results' || currentPhase === 'game_over') && (
+            <div className="flex flex-col items-center justify-center h-full animate-in zoom-in">
+                {winner === 'CIVILS' && <Crown className="w-24 h-24 text-blue-400 mb-4" />}
+                {winner === 'IMPOSTORS' && <Skull className="w-24 h-24 text-red-400 mb-4" />}
+                {winner === 'MR_WHITE' && <AlertTriangle className="w-24 h-24 text-yellow-400 mb-4" />}
+                
+                <h2 className="text-4xl font-black mb-2">
+                    {winner === 'CIVILS' && 'Les Civils ont gagné !'}
+                    {winner === 'IMPOSTORS' && 'Les Imposteurs ont gagné !'}
+                    {winner === 'MR_WHITE' && 'Mr. White a gagné !'}
+                </h2>
+                
+                <div className="bg-white/10 p-6 rounded-xl mt-8 w-full max-w-lg">
+                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                        <span>Mot Civil :</span>
+                        <span className="font-bold text-xl">{civilWord}</span>
+                    </div>
+                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                        <span>Mot Undercover :</span>
+                        <span className="font-bold text-xl">{undercoverWord}</span>
+                    </div>
+                    
+                    <div className="space-y-2 mt-4">
+                        <h3 className="text-sm text-gray-400">Rôles :</h3>
+                        {players.map(p => (
+                            <div key={p.id} className="flex justify-between">
+                                <span>{p.name}</span>
+                                <span className={`font-bold ${
+                                    roles[p.id] === 'CIVIL' ? 'text-blue-400' : 
+                                    roles[p.id] === 'UNDERCOVER' ? 'text-red-400' : 'text-yellow-400'
+                                }`}>
+                                    {roles[p.id]}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {isHost && (
+                    <Button size="lg" className="mt-8" onClick={nextGameRound}>
+                        {currentRoundNumber < settings.rounds ? 'Manche Suivante' : 'Retour au menu'}
+                    </Button>
+                )}
+            </div>
+        )}
+      </div>
+    </GameLayout>
   );
 }

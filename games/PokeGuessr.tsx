@@ -20,6 +20,8 @@ interface PlayerAnswer {
   player: string;
   answer: string;
   isCorrect: boolean;
+  score: number;
+  timeBonus: number;
 }
 
 interface PokeGuessrProps {
@@ -33,9 +35,11 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
   const [maxRounds, setMaxRounds] = useState(5);
   const [roundTime, setRoundTime] = useState(30);
   const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
+  const [hasAnswered, setHasAnswered] = useState(false);
   
   // Settings
   const [selectedGens, setSelectedGens] = useState<number[]>([1]);
+  const [difficulty, setDifficulty] = useState<string>('normal');
 
   // Sync with DB
   const {
@@ -76,8 +80,8 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     if (gameState?.settings) {
       if (gameState.settings.rounds) setMaxRounds(Number(gameState.settings.rounds));
       if (gameState.settings.time) setRoundTime(Number(gameState.settings.time));
+      if (gameState.settings.difficulty) setDifficulty(gameState.settings.difficulty);
       if (gameState.settings.gens && Array.isArray(gameState.settings.gens)) {
-          // Avoid loop if same
           if (JSON.stringify(gameState.settings.gens) !== JSON.stringify(selectedGens)) {
                setSelectedGens(gameState.settings.gens);
           }
@@ -91,15 +95,15 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
           const newSettings = { 
               rounds: maxRounds, 
               time: roundTime, 
-              gens: selectedGens 
+              gens: selectedGens,
+              difficulty
           };
           
-          // Check if different to avoid loop
           if (JSON.stringify(newSettings) !== JSON.stringify(gameState?.settings)) {
                updateSettings(newSettings);
           }
       }
-  }, [maxRounds, roundTime, selectedGens, isHost]);
+  }, [maxRounds, roundTime, selectedGens, difficulty, isHost, gameState?.settings, updateSettings]);
 
   // Sync Timer
   useEffect(() => {
@@ -109,7 +113,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
       const diff = Math.ceil((end - now) / 1000);
       setTimeLeft(diff > 0 ? diff : 0);
     }
-  }, [gameState?.round_data?.endTime, gameStarted, roundEnded]);
+  }, [gameState?.round_data?.endTime]);
 
   // Timer interval
   useEffect(() => {
@@ -148,7 +152,6 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
   };
 
   const getPokemonIdsForGens = async (gens: number[], count: number): Promise<number[]> => {
-      // Helper to get random IDs from selected generations
       const genLimits = {
         1: { min: 1, max: 151 },
         2: { min: 152, max: 251 },
@@ -162,7 +165,6 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
       };
 
       let allIds: number[] = [];
-      // Default to gen 1 if empty or undefined
       const safeGens = (!gens || gens.length === 0) ? [1] : gens;
       
       safeGens.forEach(g => {
@@ -174,7 +176,6 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
           }
       });
       
-      // Shuffle and pick
       for (let i = allIds.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [allIds[i], allIds[j]] = [allIds[j], allIds[i]];
@@ -187,9 +188,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     if (!isHost || !roomCode) return;
 
     try {
-      // Get IDs
       const ids = await getPokemonIdsForGens(selectedGens, maxRounds);
-      
       if (ids.length === 0) return;
 
       const firstId = ids[0];
@@ -199,10 +198,12 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
       
       await startGame({
         pokemon,
-        queue, // Store IDs in queue
-        endTime
+        queue,
+        endTime,
+        startTime: Date.now()
       });
       
+      setHasAnswered(false);
       setUserAnswer('');
     } catch (e) {
       console.error('Erreur lancement:', e);
@@ -219,7 +220,6 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
       let nextQueue = [];
 
       if (queue.length === 0) {
-          // Fetch one more random
           const ids = await getPokemonIdsForGens(selectedGens, 1);
           nextId = ids[0];
       } else {
@@ -233,49 +233,86 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
       await nextRound({
          pokemon,
          queue: nextQueue,
-         endTime
+         endTime,
+         startTime: Date.now()
       });
+      setHasAnswered(false);
       setUserAnswer('');
     } catch (e) {
        console.error('Error next round', e);
     }
   };
 
-  const handleAnswer = () => {
-    if (!userAnswer.trim() || roundEnded) return;
-    submitAnswer(userAnswer.trim());
+  const handleAnswerSubmit = () => {
+    if (!userAnswer.trim() || roundEnded || hasAnswered) return;
+    submitAnswer({
+        answer: userAnswer.trim(),
+        timestamp: Date.now()
+    });
+    setHasAnswered(true);
+    toast.success('Réponse envoyée !');
+  };
+
+  const normalize = (str: string) => {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
   };
 
   const endRound = async () => {
     if (!isHost || !pokemon || !gameState) return;
 
-    const correctNames = Object.values(pokemon.names).map(n => n.toLowerCase());
+    const correctNames = Object.values(pokemon.names).map(n => normalize(n));
+    const startTime = gameState.round_data.startTime || (gameState.round_data.endTime - roundTime * 1000);
     
     const answers = gameState.answers || {};
     const results: PlayerAnswer[] = [];
-    
-    const updatedScores: Record<string, number> = {};
+    const updates: { playerId: string, score: number }[] = [];
 
     for (const p of players) {
-        const pAnswer = answers[p.id]?.answer;
+        const pData = answers[p.id];
+        let score = 0;
         let isCorrect = false;
+        let timeBonus = 0;
+        let answer = '-';
         
-        if (pAnswer) {
-             isCorrect = correctNames.includes(pAnswer.toLowerCase());
+        if (pData) {
+             answer = pData.answer;
+             const timeTaken = (pData.timestamp - startTime) / 1000;
+             const normAnswer = normalize(answer);
+
+             if (correctNames.includes(normAnswer)) {
+                 isCorrect = true;
+                 
+                 // Scoring: <5s -> 1000, <mid -> 700, >mid -> 400
+                 const midTime = roundTime / 2;
+                 if (timeTaken < 5) {
+                     score = 1000;
+                 } else if (timeTaken < midTime) {
+                     score = 700;
+                 } else {
+                     score = 400;
+                 }
+             }
         }
         
         results.push({
             player: p.name,
-            answer: pAnswer || '-',
-            isCorrect
+            answer,
+            isCorrect,
+            score,
+            timeBonus
         });
 
-        if (isCorrect) {
-            await updatePlayerScore(p.id, p.score + 10);
+        if (score > 0) {
+            updates.push({ playerId: p.id, score: p.score + score });
         }
     }
     
-    // Update round data
+    results.sort((a, b) => b.score - a.score);
+
+    for (const update of updates) {
+        await updatePlayerScore(update.playerId, update.score);
+    }
+    
     await updateRoundData({
         ...gameState.round_data,
         results
@@ -286,93 +323,27 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
 
   // Typing logic
   useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (!lastMessage) return;
-
-    if (lastMessage.type === 'typing') {
-         if (lastMessage.data.player !== playerName && lastMessage.data.isTyping) {
-          setTypingPlayer(lastMessage.data.player);
-        } else if (lastMessage.data.player !== playerName && !lastMessage.data.isTyping) {
-          setTypingPlayer((current) =>
-            current === lastMessage.data.player ? null : current,
-          );
-        }
-    }
-  }, [messages, playerName]);
-  
-  useEffect(() => {
-    if (!typingPlayer) return;
-    const timeout = setTimeout(() => setTypingPlayer(null), 3000);
+    if (!userAnswer) return;
+    broadcast({ type: 'typing', data: { player: playerName, isTyping: true } });
+    const timeout = setTimeout(() => {
+        broadcast({ type: 'typing', data: { player: playerName, isTyping: false } });
+    }, 1000);
     return () => clearTimeout(timeout);
-  }, [typingPlayer]);
-  
-  // Helpers for UI
-  const playerResults = useMemo(() => {
-      if (gameState?.round_data?.results) {
-          return gameState.round_data.results as PlayerAnswer[];
-      }
-      return [];
-  }, [gameState?.round_data?.results]);
+  }, [userAnswer, broadcast, playerName]);
 
-  const answeredPlayers = useMemo(() => {
-      if (gameState?.answers) {
-          return Object.keys(gameState.answers).map(pid => {
-              const p = players.find(pl => pl.id === pid);
-              return p ? p.name : 'Unknown';
-          });
-      }
-      return [];
-  }, [gameState?.answers, players]);
-
-  // Checkbox toggle
-  const toggleGen = (gen: number) => {
-      setSelectedGens(prev => {
-          if (prev.includes(gen)) {
-              if (prev.length === 1) return prev; // Keep at least one
-              return prev.filter(g => g !== gen);
-          }
-          return [...prev, gen];
-      });
-      // Host should verify update settings if needed, but we do it on start or useEffect sync
-      if (isHost) {
-          // We don't sync partial changes immediately to avoid spam, or we do.
-          // Let's sync when start game or use a specific button "Save Settings" if complex.
-          // Or just update local state and sync when startGame is called?
-          // But non-hosts need to see it.
-          // I'll sync immediately for better UX.
-          // Need to wrap in useEffect or call updateSettings.
-          // But setState is async.
-          // I'll skip immediate sync for now, let's rely on startRound sending the config used?
-          // No, plan says "Non-hosts voient les paramètres en lecture seule".
-          // So I must sync.
-          // I'll use a useEffect to sync `selectedGens` to settings.
+  const getImageStyle = () => {
+      if (roundEnded) return {};
+      
+      switch(difficulty) {
+          case 'easy':
+              return { filter: 'blur(10px)' };
+          case 'hard':
+              return { filter: 'brightness(0) rotate(180deg)' };
+          case 'normal':
+          default:
+              return { filter: 'brightness(0)' };
       }
   };
-
-  useEffect(() => {
-      if (isHost) {
-          updateSettings({ ...gameState?.settings, gens: selectedGens });
-      }
-  }, [selectedGens, isHost]); // Be careful with infinite loops if updateSettings updates gameState which updates selectedGens
-
-  // To avoid loop: Only update if different.
-  // And `useEffect` above: `if (gameState.settings.gens) setSelectedGens(...)`.
-  // This will cause loop if not careful.
-  // I should check deep equality or just rely on Host being the source of truth.
-  // If I am host, I drive the state. I don't listen to gameState settings for MYSELF.
-  // I updated the useEffect:
-  /*
-  useEffect(() => {
-    if (gameState?.settings) {
-       // Only if NOT host?
-       if (!isHost) {
-          if (gameState.settings.gens) setSelectedGens(gameState.settings.gens);
-       }
-       // ...
-    }
-  }, [gameState?.settings, isHost]);
-  */
-  // I'll fix the useEffect above.
 
   return (
     <GameLayout
@@ -390,173 +361,173 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     >
       <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto gap-8">
         {!gameStarted ? (
-          <div className="text-center space-y-6">
-            <h2 className="text-2xl font-bold">En attente du lancement...</h2>
+          <div className="text-center space-y-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold">PokéGuessr</h2>
             {isHost ? (
-              <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm w-full max-w-lg">
+              <div className="p-6 bg-white/10 rounded-lg backdrop-blur-sm space-y-4">
                 <p className="mb-4">Configurez la partie :</p>
-                <div className="grid grid-cols-2 gap-4 text-left mb-6">
-                   <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Rounds</span>
-                      <Input 
-                        type="number" 
-                        value={maxRounds} 
-                        onChange={e => setMaxRounds(parseInt(e.target.value))} 
-                        className="bg-white/5 border-white/10"
-                      />
-                   </div>
-                   <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Temps (s)</span>
-                      <Input 
-                        type="number" 
-                        value={roundTime} 
-                        onChange={e => setRoundTime(parseInt(e.target.value))} 
-                        className="bg-white/5 border-white/10"
-                      />
-                   </div>
-                </div>
                 
-                <div className="mb-6">
-                    <span className="text-sm text-gray-400 block mb-2">Générations</span>
-                    <div className="grid grid-cols-5 gap-2">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(g => (
-                            <button
+                <div className="space-y-4 text-left">
+                   <div>
+                      <label className="block text-sm text-gray-400 mb-1">Nombre de manches ({maxRounds})</label>
+                      <input 
+                        type="range" 
+                        min="1" 
+                        max="20" 
+                        value={maxRounds} 
+                        onChange={(e) => setMaxRounds(parseInt(e.target.value))}
+                        className="w-full"
+                      />
+                   </div>
+                   
+                   <div>
+                      <label className="block text-sm text-gray-400 mb-1">Temps par manche ({roundTime}s)</label>
+                      <input 
+                        type="range" 
+                        min="10" 
+                        max="60" 
+                        value={roundTime} 
+                        onChange={(e) => setRoundTime(parseInt(e.target.value))}
+                        className="w-full"
+                      />
+                   </div>
+
+                   <div>
+                      <label className="block text-sm text-gray-400 mb-1">Difficulté</label>
+                      <select 
+                        value={difficulty} 
+                        onChange={(e) => setDifficulty(e.target.value)}
+                        className="w-full bg-black/20 border border-white/20 rounded p-2"
+                      >
+                        <option value="easy">Facile (Flou)</option>
+                        <option value="normal">Normal (Silhouette)</option>
+                        <option value="hard">Difficile (Renversé)</option>
+                      </select>
+                   </div>
+                   
+                   <div>
+                      <label className="block text-sm text-gray-400 mb-1">Générations</label>
+                      <div className="flex flex-wrap gap-2">
+                          {[1,2,3,4,5,6,7,8,9].map(g => (
+                              <button 
                                 key={g}
-                                onClick={() => toggleGen(g)}
-                                className={`p-2 rounded text-xs font-bold transition-colors ${
-                                    selectedGens.includes(g) 
-                                    ? 'bg-blue-500 text-white' 
-                                    : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                                }`}
-                            >
-                                Gen {g}
-                            </button>
-                        ))}
-                    </div>
+                                onClick={() => {
+                                    if (selectedGens.includes(g)) {
+                                        if (selectedGens.length > 1) setSelectedGens(selectedGens.filter(x => x !== g));
+                                    } else {
+                                        setSelectedGens([...selectedGens, g]);
+                                    }
+                                }}
+                                className={`px-2 py-1 rounded text-xs border ${selectedGens.includes(g) ? 'bg-white text-black border-white' : 'bg-transparent border-white/40'}`}
+                              >
+                                  Gen {g}
+                              </button>
+                          ))}
+                      </div>
+                   </div>
                 </div>
 
-                <Button size="lg" onClick={startRound} className="w-full">
+                <Button size="lg" className="w-full mt-4" onClick={startRound}>
                   Lancer la partie
                 </Button>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-                <p>L'hôte configure la partie...</p>
-                 <div className="grid grid-cols-2 gap-4 text-left max-w-md mx-auto mt-4 opacity-75">
-                   <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Rounds</span>
-                      <span className="font-bold">{maxRounds}</span>
-                   </div>
-                   <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Générations</span>
-                      <span className="font-bold">{selectedGens.join(', ')}</span>
-                   </div>
-                </div>
+                <p>En attente de l'hôte...</p>
               </div>
             )}
           </div>
-        ) : (
-          <>
-            {pokemon && (
-              <div className="relative w-64 h-64 sm:w-80 sm:h-80 mx-auto mb-4">
-                 <Image
-                    src={pokemon.imageUrl}
-                    alt="Pokemon"
-                    fill
-                    className={`object-contain transition-all duration-1000 ${
-                        !roundEnded ? 'brightness-0 blur-md grayscale opacity-80' : 'brightness-100 blur-0 grayscale-0 opacity-100'
-                    }`}
-                    priority
-                 />
-              </div>
-            )}
-
-            {!roundEnded ? (
-              <div className="w-full max-w-md space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="Quel est ce Pokémon ?"
+        ) : !roundEnded && pokemon ? (
+          <div className="w-full max-w-2xl flex flex-col items-center gap-6 animate-in fade-in duration-500">
+             <div className="relative w-64 h-64 flex items-center justify-center">
+                <Image 
+                   src={pokemon.imageUrl} 
+                   alt="Pokemon" 
+                   width={256}
+                   height={256}
+                   className="object-contain transition-all duration-500"
+                   style={getImageStyle()}
+                />
+             </div>
+             
+             <div className="w-full max-w-md space-y-4">
+                <Input 
+                    type="text" 
+                    placeholder="Quel est ce Pokémon ?" 
                     value={userAnswer}
-                    onChange={(e) => {
-                      setUserAnswer(e.target.value);
-                      broadcast({
-                        type: 'typing',
-                        data: { player: playerName, isTyping: e.target.value.length > 0 },
-                      });
+                    onChange={(e) => setUserAnswer(e.target.value)}
+                    className="text-center text-xl py-6"
+                    disabled={hasAnswered}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAnswerSubmit();
                     }}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAnswer()}
-                    className="h-14 text-lg pr-12 text-center font-bold uppercase"
                     autoFocus
-                  />
-                  <div className="absolute right-2 top-2 bottom-2 w-10 flex items-center justify-center text-gray-400">
-                    <Zap className="w-5 h-5" />
-                  </div>
-                </div>
-                <Button
-                  size="lg"
-                  className="w-full h-14 text-lg font-bold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all"
-                  onClick={handleAnswer}
-                >
-                  Valider
-                </Button>
+                />
                 
-                {answeredPlayers.length > 0 && (
-                   <div className="flex flex-wrap gap-2 justify-center mt-4">
-                      {answeredPlayers.map(p => (
-                         <div key={p} className="flex items-center gap-1 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs">
-                           <Check className="w-3 h-3" /> {p}
-                         </div>
-                      ))}
-                   </div>
-                )}
+                <Button 
+                    size="lg" 
+                    className="w-full" 
+                    onClick={handleAnswerSubmit}
+                    disabled={hasAnswered || !userAnswer}
+                >
+                    {hasAnswered ? 'Réponse envoyée !' : 'Valider'}
+                </Button>
+             </div>
+          </div>
+        ) : roundEnded && pokemon ? (
+           <div className="w-full max-w-2xl flex flex-col items-center gap-6 animate-in zoom-in duration-300">
+              <h2 className="text-3xl font-bold text-yellow-400">Résultats</h2>
+              
+              <div className="flex flex-col items-center gap-2 mb-4">
+                 <div className="relative w-40 h-40 mb-2">
+                    <Image 
+                       src={pokemon.imageUrl} 
+                       alt="Pokemon" 
+                       width={160}
+                       height={160}
+                       className="object-contain"
+                    />
+                 </div>
+                 <h3 className="text-2xl font-bold capitalize">{pokemon.names.fr || Object.values(pokemon.names)[0]}</h3>
               </div>
-            ) : (
-              <div className="w-full max-w-2xl bg-white/5 rounded-2xl p-8 backdrop-blur-sm border border-white/10 animate-in zoom-in-95 duration-300">
-                <div className="text-center mb-8">
-                  <h3 className="text-3xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
-                    C'était...
-                  </h3>
-                  <div className="text-5xl font-black text-white mb-2 capitalize">
-                    {pokemon?.names['fr'] || pokemon?.names['en']}
-                  </div>
-                </div>
 
-                <div className="space-y-3 mb-8 max-h-60 overflow-y-auto custom-scrollbar">
-                  {playerResults.map((p, i) => (
-                    <div
-                      key={p.player}
-                      className={`flex items-center justify-between p-4 rounded-xl transition-all ${
-                        p.isCorrect
-                          ? 'bg-green-500/10 border border-green-500/30'
-                          : 'bg-red-500/10 border border-red-500/30'
-                      }`}
+              <div className="w-full space-y-3">
+                 {gameState.round_data.results?.map((res: PlayerAnswer, idx: number) => (
+                    <div 
+                        key={idx} 
+                        className={`flex items-center justify-between p-4 rounded-lg border ${
+                            idx === 0 ? 'bg-yellow-500/20 border-yellow-500' : 'bg-white/5 border-white/10'
+                        }`}
                     >
-                      <div className="flex items-center gap-4">
-                        <span className="font-medium text-lg">{p.player}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-lg uppercase">{p.answer}</span>
-                        {p.isCorrect ? <CheckCircle className="text-green-400 w-5 h-5" /> : <XCircle className="text-red-400 w-5 h-5" />}
-                      </div>
+                        <div className="flex items-center gap-3">
+                            <span className="font-bold text-lg w-6">{idx + 1}.</span>
+                            <div className="flex flex-col">
+                                <span className="font-bold">{res.player}</span>
+                                <span className="text-xs text-gray-400">
+                                    {res.answer} 
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {res.isCorrect ? (
+                                <CheckCircle className="text-green-400 w-6 h-6" />
+                            ) : (
+                                <XCircle className="text-red-400 w-6 h-6" />
+                            )}
+                            <span className="font-bold text-xl">+{res.score} pts</span>
+                        </div>
                     </div>
-                  ))}
-                </div>
-
-                {isHost && (
-                  <Button
-                    size="lg"
-                    className="w-full h-14 text-lg font-bold bg-white text-black hover:bg-gray-200"
-                    onClick={handleNextRound}
-                  >
-                    Manche suivante
-                  </Button>
-                )}
+                 ))}
               </div>
-            )}
-          </>
-        )}
+
+              {isHost && (
+                  <Button size="lg" className="mt-6" onClick={handleNextRound}>
+                      {currentRound < maxRounds ? 'Manche suivante' : 'Terminer la partie'}
+                  </Button>
+              )}
+           </div>
+        ) : null}
       </div>
     </GameLayout>
   );
