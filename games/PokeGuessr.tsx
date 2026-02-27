@@ -8,6 +8,7 @@ import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
 import { Trophy, CheckCircle, XCircle, Zap, Check } from 'lucide-react';
 import Image from 'next/image';
+import { toast } from 'sonner';
 
 interface PokemonData {
   id: number;

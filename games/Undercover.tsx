@@ -471,8 +471,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                         <div>
                             <label className="block text-sm text-gray-300 mb-1">Mr. White</label>
                             <div className="flex gap-2">
-                                <Button variant={settings.mrWhiteEnabled ? "default" : "outline"} onClick={() => setSettings({...settings, mrWhiteEnabled: true})}>Oui</Button>
-                                <Button variant={!settings.mrWhiteEnabled ? "default" : "outline"} onClick={() => setSettings({...settings, mrWhiteEnabled: false})}>Non</Button>
+                                <Button variant={settings.mrWhiteEnabled ? "primary" : "outline"} onClick={() => setSettings({...settings, mrWhiteEnabled: true})}>Oui</Button>
+                                <Button variant={!settings.mrWhiteEnabled ? "primary" : "outline"} onClick={() => setSettings({...settings, mrWhiteEnabled: false})}>Non</Button>
                             </div>
                         </div>
                         <div>
