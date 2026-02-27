@@ -7,5 +7,5 @@ export default function RhymeGuessrPage({
   params: { code: string },
   searchParams: { [key: string]: string }
 }) {
-  return <RhymeGuessr roomCode={params.code} settings={searchParams} />;
+  return <RhymeGuessr roomCode={params.code} />;
 }

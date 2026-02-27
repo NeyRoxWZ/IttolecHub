@@ -9,5 +9,5 @@ export default function PopulationGuesserPage({
   params: { code: string },
   searchParams: { [key: string]: string }
 }) {
-  return <PopulationGuesser roomCode={params.code} settings={searchParams} />;
+  return <PopulationGuesser roomCode={params.code} />;
 }

@@ -7,5 +7,5 @@ export default function PriceGuessrPage({
   params: { code: string },
   searchParams: { [key: string]: string }
 }) {
-  return <PriceGuessr roomCode={params.code} settings={searchParams} />;
+  return <PriceGuessr roomCode={params.code} />;
 }

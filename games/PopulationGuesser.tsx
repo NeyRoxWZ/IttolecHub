@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { CheckCircle, XCircle, Users } from 'lucide-react';
+import { Users, Globe, Trophy, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 
 interface CountryPopulationData {
@@ -30,14 +30,11 @@ interface PlayerAnswer {
 
 interface PopulationGuesserProps {
   roomCode: string | null;
-  settings?: { [key: string]: string };
 }
 
-export default function PopulationGuesser({ roomCode, settings }: PopulationGuesserProps) {
+export default function PopulationGuesser({ roomCode }: PopulationGuesserProps) {
   const [userAnswer, setUserAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(30);
-  const [maxRounds, setMaxRounds] = useState(5);
-  const [roundTime, setRoundTime] = useState(30);
   const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
 
   // Sync with DB
@@ -47,7 +44,6 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
     gameState,
     isHost,
     playerId,
-    updateSettings,
     startGame,
     submitAnswer,
     nextRound,
@@ -70,27 +66,13 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
   const country: CountryPopulationData | null = gameState?.round_data?.country || null;
   const currentRound = gameState?.current_round || 0;
   
+  // Settings from DB (Lobby)
+  const maxRounds = Number(gameState?.settings?.rounds || 5);
+  const roundTime = Number(gameState?.settings?.time || 30);
+
   const playersMap = useMemo(() => {
     return players.reduce((acc, p) => ({ ...acc, [p.name]: p.score }), {} as Record<string, number>);
   }, [players]);
-
-  // Sync settings
-  useEffect(() => {
-    if (gameState?.settings) {
-      if (gameState.settings.rounds) setMaxRounds(Number(gameState.settings.rounds));
-      if (gameState.settings.time) setRoundTime(Number(gameState.settings.time));
-    }
-  }, [gameState?.settings]);
-
-  // Host updates DB when local state changes
-  useEffect(() => {
-      if (isHost) {
-          const newSettings = { rounds: maxRounds, time: roundTime };
-          if (JSON.stringify(newSettings) !== JSON.stringify(gameState?.settings)) {
-              updateSettings(newSettings);
-          }
-      }
-  }, [maxRounds, roundTime, isHost]);
 
   // Sync Timer
   useEffect(() => {
@@ -169,6 +151,13 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
     }
   };
 
+  // Auto-start if phase is setup
+  useEffect(() => {
+      if (isHost && gameState?.round_data?.phase === 'setup') {
+          startRound();
+      }
+  }, [isHost, gameState?.round_data?.phase]);
+
   const handleNextRound = async () => {
     if (!isHost || !gameState?.round_data) return;
     
@@ -205,7 +194,6 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
     if (!cleanAnswer || isNaN(Number(cleanAnswer))) return;
     
     submitAnswer(cleanAnswer);
-    // Keep user answer in input but maybe disable via UI logic (not implemented here but logic exists)
   };
 
   const calculateScore = (actual: number, guess: number): number => {
@@ -299,92 +287,77 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
 
   return (
     <GameLayout
-      players={playersMap}
+      gameTitle="PopulationGuessr"
       roundCount={currentRound}
       maxRounds={maxRounds}
       timer={formattedTimer}
-      gameCode={roomCode ?? ''}
-      gameTitle="PopulationGuessr"
-      isHost={isHost}
-      gameStarted={gameStarted}
-      onStartGame={startRound}
+      players={playersMap}
       timeLeft={timeLeft}
-      typingPlayer={typingPlayer}
+      gameStarted={gameStarted}
     >
-      <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto gap-8">
+      <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto gap-8 animate-in fade-in duration-700">
         {!gameStarted ? (
-          <div className="text-center space-y-6">
-            <h2 className="text-2xl font-bold">En attente du lancement...</h2>
+          <div className="flex flex-col items-center gap-6 text-center">
+            <Globe className="w-24 h-24 text-blue-400 animate-pulse" />
+            <h2 className="text-3xl font-bold text-white">Prêt à deviner ?</h2>
+            <p className="text-slate-400 max-w-md">
+               Estimez la population de différents pays. Plus vous êtes proche, plus vous gagnez de points !
+            </p>
             {isHost ? (
-              <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm w-full max-w-lg mx-auto">
-                <p className="mb-4 font-semibold">Paramètres de la partie :</p>
-                <div className="grid grid-cols-2 gap-4 text-left mb-6">
-                   <div className="flex flex-col gap-2">
-                      <label className="text-sm text-gray-300">Rounds</label>
-                      <Input 
-                        type="number" 
-                        min={1} 
-                        max={20} 
-                        value={maxRounds} 
-                        onChange={(e) => setMaxRounds(Number(e.target.value))} 
-                        className="bg-black/20 border-white/10"
-                      />
-                   </div>
-                   <div className="flex flex-col gap-2">
-                      <label className="text-sm text-gray-300">Temps (sec)</label>
-                      <Input 
-                        type="number" 
-                        min={10} 
-                        max={120} 
-                        value={roundTime} 
-                        onChange={(e) => setRoundTime(Number(e.target.value))}
-                        className="bg-black/20 border-white/10" 
-                      />
-                   </div>
-                </div>
-                <Button onClick={startRound} className="w-full bg-blue-600 hover:bg-blue-500">
+               <Button onClick={startRound} size="lg" className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-lg px-8 py-6 rounded-xl shadow-lg shadow-indigo-500/20">
                   Lancer la partie
-                </Button>
-              </div>
+               </Button>
             ) : (
-               <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm w-full max-w-lg mx-auto">
-                  <p className="mb-2">Paramètres (Lecture seule) :</p>
-                  <ul className="text-left text-sm space-y-1 text-gray-300">
-                      <li>Rounds: {maxRounds}</li>
-                      <li>Temps: {roundTime}s</li>
-                  </ul>
-                  <p className="mt-4 text-gray-400 animate-pulse">L'hôte configure la partie...</p>
+               <div className="flex items-center gap-2 text-indigo-400 bg-indigo-950/30 px-4 py-2 rounded-full border border-indigo-500/30 animate-pulse">
+                  <div className="w-2 h-2 bg-indigo-400 rounded-full" />
+                  En attente de l'hôte...
                </div>
             )}
           </div>
         ) : (
-          <div className="w-full flex flex-col items-center gap-6">
+          <div className="w-full flex flex-col items-center gap-8">
             {country && (
-               <div className="flex flex-col items-center gap-4">
-                   <div className="relative w-full max-w-xs aspect-video bg-black/20 rounded-xl overflow-hidden shadow-2xl border border-white/10">
+               <div className="flex flex-col items-center gap-6 w-full animate-in slide-in-from-bottom-8 duration-700">
+                   <div className="relative w-full max-w-md aspect-video bg-black/40 rounded-2xl overflow-hidden shadow-2xl border border-white/10 group">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10" />
                       <Image 
                         src={country.flags.svg} 
                         alt="Flag" 
                         fill 
-                        className="object-contain p-2"
+                        className="object-cover transition-transform duration-700 group-hover:scale-105"
                         priority
                       />
+                      <div className="absolute bottom-4 left-4 z-20">
+                          <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded mb-1 inline-block">
+                             {country.region}
+                          </span>
+                      </div>
                    </div>
-                   <h2 className="text-3xl font-bold text-center">{country.translations?.fra?.common || country.name.common}</h2>
+                   <h2 className="text-4xl md:text-5xl font-black text-center text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 drop-shadow-sm">
+                      {country.translations?.fra?.common || country.name.common}
+                   </h2>
                </div>
             )}
             
             {!roundEnded ? (
-               <div className="w-full max-w-md flex flex-col gap-4">
-                 <p className="text-center text-lg">Quelle est la population ?</p>
-                 <div className="flex gap-2">
+               <div className="w-full max-w-md flex flex-col gap-6 animate-in fade-in delay-300 duration-700">
+                 <div className="text-center space-y-2">
+                    <p className="text-lg text-slate-300 font-medium">Quelle est la population ?</p>
+                    {typingPlayer && (
+                        <p className="text-xs text-indigo-400 animate-pulse font-mono">
+                            {typingPlayer} est en train d'écrire...
+                        </p>
+                    )}
+                 </div>
+                 
+                 <div className="flex gap-3 relative">
                     <Input
                         type="text" 
                         inputMode="numeric"
                         value={userAnswer}
                         onChange={(e) => {
-                            // Allow only numbers and spaces
                             const val = e.target.value;
+                            // Allow numbers and spaces only
                             if (/^[\d\s]*$/.test(val)) {
                                 setUserAnswer(val);
                                 broadcast({ type: 'typing', data: { player: playerName, isTyping: val.length > 0 } });
@@ -392,53 +365,92 @@ export default function PopulationGuesser({ roomCode, settings }: PopulationGues
                         }}
                         onKeyDown={handleKeyDown}
                         placeholder="Ex: 67 000 000"
-                        className="flex-1 bg-white/10 border-white/20 text-lg h-12 text-center tracking-widest"
+                        className="flex-1 bg-slate-800/50 border-white/10 text-2xl h-16 text-center tracking-widest font-mono shadow-inner focus:ring-2 focus:ring-indigo-500 transition-all rounded-xl"
                         autoFocus
                     />
-                    <Button onClick={handleAnswer} className="h-12 px-6 bg-green-600 hover:bg-green-500">
-                        <Users className="w-6 h-6" />
+                    <Button 
+                        onClick={handleAnswer} 
+                        className="h-16 px-8 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 rounded-xl shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95"
+                    >
+                        <ArrowRight className="w-8 h-8" />
                     </Button>
                  </div>
+                 <p className="text-center text-xs text-slate-500">
+                    Appuyez sur Entrée pour valider
+                 </p>
                </div>
             ) : (
-               <div className="w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="bg-white/10 rounded-xl p-6 backdrop-blur-md border border-white/10 text-center mb-6">
-                     <h3 className="text-xl font-bold mb-2 text-yellow-400">Population réelle</h3>
-                     <p className="text-4xl font-black mb-1 text-white">{country ? formatNumber(country.population) : '-'}</p>
-                     <p className="text-sm text-gray-400">habitants</p>
+               <div className="w-full max-w-2xl animate-in zoom-in-95 duration-500 flex flex-col gap-6">
+                  {/* Result Card */}
+                  <div className="bg-slate-900/80 backdrop-blur-xl rounded-3xl p-8 border border-white/10 text-center shadow-2xl relative overflow-hidden">
+                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent opacity-50" />
+                     
+                     <h3 className="text-xl font-bold mb-2 text-yellow-400 uppercase tracking-widest text-sm">Population réelle</h3>
+                     <p className="text-5xl md:text-6xl font-black mb-2 text-white tabular-nums tracking-tight">
+                        {country ? formatNumber(country.population) : '-'}
+                     </p>
+                     <p className="text-sm text-slate-400">habitants</p>
                   </div>
 
-                  <div className="space-y-3">
-                     <h4 className="text-lg font-semibold mb-2">Résultats du round</h4>
-                     {gameState?.round_data?.results?.map((res: PlayerAnswer, idx: number) => (
-                        <div key={idx} className={`flex items-center justify-between p-3 rounded-lg ${res.score > 0 ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
-                           <div className="flex items-center gap-3">
-                              <span className="font-bold text-gray-300 w-6">{idx + 1}.</span>
-                              <span className="font-medium">{res.player}</span>
-                           </div>
-                           <div className="flex flex-col items-end">
-                              <span className="text-lg font-bold">{res.answer !== '-' ? formatNumber(Number(res.answer)) : '-'}</span>
-                              <div className="flex items-center gap-2 text-xs">
-                                  {res.score > 0 ? (
-                                      <span className="text-yellow-400 font-bold">+{res.score} pts</span>
-                                  ) : (
-                                      <span className="text-gray-400">0 pts</span>
-                                  )}
-                                  {res.answer !== '-' && (
-                                      <span className="text-gray-400">
-                                          (Diff: {formatNumber(Math.abs((country?.population || 0) - Number(res.answer)))})
-                                      </span>
-                                  )}
-                              </div>
-                           </div>
-                        </div>
-                     ))}
+                  {/* Leaderboard for Round */}
+                  <div className="space-y-3 bg-slate-900/50 p-6 rounded-3xl border border-white/5">
+                     <h4 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-300">
+                        <Trophy className="w-5 h-5 text-yellow-500" />
+                        Résultats du round
+                     </h4>
+                     
+                     <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                        {gameState?.round_data?.results?.map((res: PlayerAnswer, idx: number) => (
+                            <div 
+                                key={idx} 
+                                className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                                    res.score > 0 
+                                    ? 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20' 
+                                    : 'bg-rose-500/10 border-rose-500/20 hover:bg-rose-500/20'
+                                }`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <span className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${
+                                        idx === 0 ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' : 
+                                        idx === 1 ? 'bg-slate-400 text-black' :
+                                        idx === 2 ? 'bg-amber-700 text-white' : 'bg-slate-800 text-slate-400'
+                                    }`}>
+                                        {idx + 1}
+                                    </span>
+                                    <span className="font-bold text-lg">{res.player}</span>
+                                </div>
+                                
+                                <div className="flex flex-col items-end">
+                                    <span className="text-xl font-mono font-bold tabular-nums">
+                                        {res.answer !== '-' ? formatNumber(Number(res.answer)) : '-'}
+                                    </span>
+                                    <div className="flex items-center gap-2 text-xs font-medium">
+                                        {res.score > 0 ? (
+                                            <span className="text-emerald-400">+{res.score} pts</span>
+                                        ) : (
+                                            <span className="text-rose-400">0 pts</span>
+                                        )}
+                                        {res.answer !== '-' && (
+                                            <span className="text-slate-500">
+                                                (Diff: {formatNumber(Math.abs((country?.population || 0) - Number(res.answer)))})
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                     </div>
                   </div>
 
                   {isHost && (
-                     <div className="mt-8 flex justify-center">
-                        <Button onClick={handleNextRound} className="bg-blue-600 hover:bg-blue-500 text-lg px-8 py-6 rounded-full shadow-lg shadow-blue-900/20 transition-all hover:scale-105">
+                     <div className="mt-4 flex justify-center">
+                        <Button 
+                            onClick={handleNextRound} 
+                            size="lg"
+                            className="bg-white text-black hover:bg-slate-200 text-lg px-10 py-6 rounded-full shadow-lg shadow-white/10 transition-all hover:scale-105 font-bold"
+                        >
                            {gameState.current_round >= maxRounds ? 'Terminer la partie' : 'Round suivant'}
+                           <ArrowRight className="w-5 h-5 ml-2" />
                         </Button>
                      </div>
                   )}

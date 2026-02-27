@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Crown, Skull } from 'lucide-react';
+import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Crown, Skull, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 type Role = 'CIVIL' | 'UNDERCOVER' | 'MR_WHITE';
@@ -22,14 +22,13 @@ interface Clue {
   timestamp: number;
 }
 
-export default function Undercover({ roomCode, settings: initialSettings }: UndercoverProps) {
+export default function Undercover({ roomCode }: UndercoverProps) {
   // Sync with DB
   const {
     gameState,
     isHost,
     players,
     playerId,
-    updateSettings,
     startGame,
     updateRoundData,
     nextRound,
@@ -37,33 +36,18 @@ export default function Undercover({ roomCode, settings: initialSettings }: Unde
     setGameStatus
   } = useGameSync(roomCode, 'undercover');
 
-  // Local Settings State (for Host)
-  const [settings, setSettings] = useState({
-    rounds: 1,
-    mrWhiteEnabled: true,
-    discussionTime: 60,
-    voteTime: 30,
-    difficulty: 'normal'
-  });
-
-  useEffect(() => {
-      if (initialSettings && isHost) {
-          const newSettings = { ...settings };
-          if (initialSettings.rounds) newSettings.rounds = Number(initialSettings.rounds);
-          if (initialSettings.mrWhiteEnabled) newSettings.mrWhiteEnabled = initialSettings.mrWhiteEnabled === 'true';
-          if (initialSettings.discussionTime) newSettings.discussionTime = Number(initialSettings.discussionTime);
-          if (initialSettings.voteTime) newSettings.voteTime = Number(initialSettings.voteTime);
-          
-          setSettings(newSettings);
-      }
-  }, [initialSettings, isHost]);
-
   // Local UI State
   const [userClue, setUserClue] = useState('');
   const [mrWhiteGuess, setMrWhiteGuess] = useState('');
   const [timeLeft, setTimeLeft] = useState(0);
 
   // Derived State from GameState
+  const settings = gameState?.settings || {};
+  const rounds = Number(settings.rounds || 1);
+  const mrWhiteEnabled = settings.mrWhiteEnabled === 'true' || settings.mrWhiteEnabled === true; // Handle string or bool
+  const discussionTime = Number(settings.discussionTime || 60);
+  const voteTime = Number(settings.voteTime || 30);
+
   const roundData = gameState?.round_data || {};
   const currentPhase = (roundData.phase as Phase) || 'setup';
   const roles = roundData.roles as Record<string, Role> || {};
@@ -84,25 +68,6 @@ export default function Undercover({ roomCode, settings: initialSettings }: Unde
 
   const isMyTurn = currentPhase === 'clues' && currentSpeakerId === playerId;
   const isAlive = playerId && alivePlayers.includes(playerId);
-
-  // Sync Settings from DB (for clients)
-  useEffect(() => {
-    if (gameState?.settings) {
-       setSettings(prev => ({
-           ...prev,
-           ...gameState.settings
-       }));
-    }
-  }, [gameState?.settings]);
-
-  // Host updates DB settings
-  useEffect(() => {
-    if (isHost) {
-        if (JSON.stringify(settings) !== JSON.stringify(gameState?.settings)) {
-            updateSettings(settings);
-        }
-    }
-  }, [settings, isHost, updateSettings, gameState?.settings]);
 
   // Timer Sync
   useEffect(() => {
@@ -137,24 +102,12 @@ export default function Undercover({ roomCode, settings: initialSettings }: Unde
             });
         }
 
-        // 2. Clues Phase -> Discussion Phase (when all clues given)
-        if (currentPhase === 'clues') {
-            // Check if all alive players have given a clue IN THIS ROUND of clues
-            // We track clues in `roundData.clues`.
-            // We need to know how many clues expected.
-            // Wait, usually clues are cleared every sub-round? 
-            // Or we just append.
-            // Let's assume one clue per player per "round of discussion".
-            // We can check if `currentSpeaker` became null or looped back?
-            // See `handleClueSubmit` logic below.
-        }
-
         // 3. Discussion Phase -> Vote Phase (after time)
         if (currentPhase === 'discussion' && timeLeft === 0) {
              await updateRoundData({
                  ...roundData,
                  phase: 'vote',
-                 endTime: Date.now() + settings.voteTime * 1000
+                 endTime: Date.now() + voteTime * 1000
              });
         }
 
@@ -165,18 +118,18 @@ export default function Undercover({ roomCode, settings: initialSettings }: Unde
     };
 
     managePhases();
-  }, [isHost, currentPhase, timeLeft, roundData, alivePlayers, settings.voteTime]);
+  }, [isHost, currentPhase, timeLeft, roundData, alivePlayers, voteTime]);
 
 
   const startNewGame = async () => {
     if (!isHost) return;
     if (players.length < 3) { // Should be 4 per spec, but 3 for testing
-        toast.error("Il faut au moins 4 joueurs !");
+        toast.error("Il faut au moins 3 joueurs !");
         return;
     }
 
     try {
-        const res = await fetch(`/api/games/undercover?count=${settings.rounds}`);
+        const res = await fetch(`/api/games/undercover?count=${rounds}`);
         const words = await res.json();
         
         if (!words || words.length === 0) return;
@@ -186,7 +139,7 @@ export default function Undercover({ roomCode, settings: initialSettings }: Unde
         const remainingQueue = Array.isArray(words) ? words.slice(1) : [];
 
         // Assign Roles
-        const { newRoles, alive } = assignRoles(players, settings.mrWhiteEnabled);
+        const { newRoles, alive } = assignRoles(players, mrWhiteEnabled);
 
         await startGame({
             civilWord: firstPair.civilWord,
@@ -263,8 +216,7 @@ export default function Undercover({ roomCode, settings: initialSettings }: Unde
             ...roundData,
             phase: 'clues',
             currentSpeaker: alivePlayers[0],
-            clues: [] // Clear clues for new round? Or keep history? Better keep history but separate rounds.
-            // For simplicity, we keep adding to clues array.
+            // clues: [] // Keep history
         });
         return;
     }
@@ -353,12 +305,6 @@ export default function Undercover({ roomCode, settings: initialSettings }: Unde
 
   const sendClue = async () => {
     if (!userClue.trim()) return;
-    
-    // Optimistic UI? No, wait for server.
-    // We send clue to host via submitAnswer (or direct update if we allowed clients to update roundData, but we don't).
-    // Actually, for turn-based, we need Host to validate turn.
-    // But `useGameSync` logic: Host watches `answers`.
-    
     await submitAnswer({
         type: 'clue',
         text: userClue,
@@ -421,7 +367,7 @@ export default function Undercover({ roomCode, settings: initialSettings }: Unde
                             clues: newClues,
                             currentSpeaker: null,
                             phase: 'discussion',
-                            endTime: Date.now() + settings.discussionTime * 1000
+                            endTime: Date.now() + discussionTime * 1000
                         });
                     } else {
                         await updateRoundData({
@@ -451,229 +397,222 @@ export default function Undercover({ roomCode, settings: initialSettings }: Unde
     };
 
     processAnswers();
-  }, [isHost, gameState?.answers, currentPhase, currentSpeakerId, clues, alivePlayers, settings.discussionTime, eliminatedPlayerId, civilWord]);
+  }, [isHost, gameState?.answers, currentPhase, currentSpeakerId, clues, alivePlayers, discussionTime, eliminatedPlayerId, civilWord]);
+
+  // Auto-start
+  useEffect(() => {
+      if (isHost && gameState?.round_data?.phase === 'setup') {
+          startNewGame();
+      }
+  }, [isHost, gameState?.round_data?.phase]);
 
 
   // --- RENDER ---
+  const getRoleIcon = (role: Role) => {
+      switch(role) {
+          case 'CIVIL': return <User className="w-6 h-6" />;
+          case 'UNDERCOVER': return <Skull className="w-6 h-6" />;
+          case 'MR_WHITE': return <AlertTriangle className="w-6 h-6" />;
+          default: return <User className="w-6 h-6" />;
+      }
+  };
+
+  const getRoleColor = (role: Role) => {
+      switch(role) {
+          case 'CIVIL': return 'text-blue-400';
+          case 'UNDERCOVER': return 'text-red-500';
+          case 'MR_WHITE': return 'text-white';
+          default: return 'text-gray-400';
+      }
+  };
 
   return (
     <GameLayout
       players={playersMap}
       roundCount={currentRoundNumber}
-      maxRounds={settings.rounds}
+      maxRounds={rounds}
       timer={timeLeft > 0 ? `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}` : '--:--'}
-      gameCode={roomCode}
       gameTitle="Undercover"
-      isHost={isHost}
       gameStarted={currentPhase !== 'setup'}
-      onStartGame={startNewGame}
       timeLeft={timeLeft}
     >
       <div className="flex flex-col items-center w-full max-w-4xl mx-auto min-h-[400px]">
         
-        {/* SETUP PHASE */}
+        {/* SETUP PHASE / LOADING */}
         {currentPhase === 'setup' && (
-            <div className="text-center space-y-6 bg-white/10 p-8 rounded-xl backdrop-blur-md">
-                <h2 className="text-3xl font-bold">Configuration</h2>
-                {isHost ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                        <div>
-                            <label className="block text-sm text-gray-300 mb-1">Manches</label>
-                            <Input type="number" min={1} max={5} value={settings.rounds} onChange={e => setSettings({...settings, rounds: parseInt(e.target.value)})} />
-                        </div>
-                        <div>
-                            <label className="block text-sm text-gray-300 mb-1">Mr. White</label>
-                            <div className="flex gap-2">
-                                <Button variant={settings.mrWhiteEnabled ? "primary" : "outline"} onClick={() => setSettings({...settings, mrWhiteEnabled: true})}>Oui</Button>
-                                <Button variant={!settings.mrWhiteEnabled ? "primary" : "outline"} onClick={() => setSettings({...settings, mrWhiteEnabled: false})}>Non</Button>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm text-gray-300 mb-1">Discussion (sec)</label>
-                            <Input type="number" min={30} max={180} value={settings.discussionTime} onChange={e => setSettings({...settings, discussionTime: parseInt(e.target.value)})} />
-                        </div>
-                        <div>
-                            <label className="block text-sm text-gray-300 mb-1">Vote (sec)</label>
-                            <Input type="number" min={15} max={60} value={settings.voteTime} onChange={e => setSettings({...settings, voteTime: parseInt(e.target.value)})} />
-                        </div>
-                        <div className="col-span-full">
-                             <Button size="lg" className="w-full" onClick={startNewGame}>Lancer la partie</Button>
-                        </div>
-                    </div>
-                ) : (
-                    <p>En attente de l'hôte...</p>
-                )}
+            <div className="flex flex-col items-center gap-4">
+               <Loader2 className="w-12 h-12 animate-spin text-red-500" />
+               <p className="text-xl font-medium animate-pulse text-red-200">Démarrage de la mission...</p>
             </div>
         )}
 
-        {/* ROLES PHASE */}
-        {currentPhase === 'roles' && (
-            <div className="flex flex-col items-center justify-center h-full animate-in fade-in zoom-in">
-                <h2 className="text-2xl mb-4">Ton rôle est...</h2>
-                <div className="bg-black/40 p-8 rounded-full w-48 h-48 flex items-center justify-center border-4 border-white/20">
-                    {myRole === 'CIVIL' && <User className="w-20 h-20 text-blue-400" />}
-                    {myRole === 'UNDERCOVER' && <EyeOff className="w-20 h-20 text-red-400" />}
-                    {myRole === 'MR_WHITE' && <AlertTriangle className="w-20 h-20 text-yellow-400" />}
-                </div>
-                <h3 className="text-4xl font-black mt-6 text-white uppercase">{myRole?.replace('_', ' ')}</h3>
-                
-                {myRole === 'MR_WHITE' ? (
-                    <p className="mt-4 text-xl text-yellow-200">Tu n'as pas de mot ! Essaye de deviner.</p>
-                ) : (
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-400">Ton mot secret :</p>
-                        <p className="text-3xl font-bold text-white bg-white/10 px-6 py-2 rounded-lg mt-2">
-                            {myRole === 'CIVIL' ? civilWord : undercoverWord}
+        {/* ROLES REVEAL */}
+        {currentPhase === 'roles' && myRole && (
+             <div className="flex flex-col items-center animate-in zoom-in duration-500">
+                <div className="bg-slate-900/80 p-8 rounded-2xl border border-white/10 text-center max-w-md w-full shadow-[0_0_50px_rgba(239,68,68,0.2)]">
+                    <h3 className="text-2xl font-bold text-gray-400 mb-6">Votre rôle est</h3>
+                    
+                    <div className="mb-8 flex justify-center">
+                        <div className={`p-6 rounded-full bg-white/5 border-2 ${myRole === 'CIVIL' ? 'border-blue-500' : 'border-red-500'}`}>
+                             {getRoleIcon(myRole)}
+                        </div>
+                    </div>
+                    
+                    <h2 className={`text-4xl font-black mb-4 ${getRoleColor(myRole)}`}>
+                        {myRole === 'CIVIL' ? 'CIVIL' : myRole === 'UNDERCOVER' ? 'UNDERCOVER' : 'MR. WHITE'}
+                    </h2>
+
+                    <div className="bg-white/5 p-4 rounded-xl">
+                        <p className="text-sm text-gray-400 mb-1">Votre mot secret :</p>
+                        <p className="text-2xl font-bold text-white tracking-widest uppercase">
+                            {myRole === 'MR_WHITE' ? '???' : myRole === 'UNDERCOVER' ? undercoverWord : civilWord}
                         </p>
                     </div>
-                )}
-            </div>
+                </div>
+                <p className="mt-8 text-red-400 animate-pulse">Début de la partie dans {timeLeft}s...</p>
+             </div>
         )}
 
-        {/* CLUES PHASE */}
-        {currentPhase === 'clues' && (
-            <div className="w-full space-y-6">
-                <h2 className="text-2xl font-bold text-center">Phase d'Indices</h2>
-                
-                {/* Clues List */}
-                <div className="bg-black/20 rounded-xl p-4 min-h-[200px] max-h-[400px] overflow-y-auto space-y-2">
-                    {clues.map((c, i) => {
-                        const p = players.find(pl => pl.id === c.playerId);
-                        return (
-                            <div key={i} className="bg-white/5 p-3 rounded-lg flex items-center gap-3">
-                                <div className="font-bold text-blue-300">{p?.name || 'Inconnu'}:</div>
-                                <div className="text-lg">"{c.text}"</div>
-                            </div>
-                        );
-                    })}
-                    {clues.length === 0 && <p className="text-gray-500 text-center italic mt-10">Aucun indice pour le moment...</p>}
-                </div>
-
-                {/* Input Area */}
-                <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black to-transparent">
-                    <div className="max-w-4xl mx-auto">
-                        {isMyTurn ? (
-                            <div className="flex gap-2">
-                                <Input 
-                                    value={userClue} 
-                                    onChange={e => setUserClue(e.target.value)} 
-                                    placeholder="Écris ton indice..."
-                                    className="text-lg"
-                                    autoFocus
-                                />
-                                <Button size="lg" onClick={sendClue}>Envoyer</Button>
-                            </div>
-                        ) : (
-                            <div className="text-center p-4 bg-black/40 rounded-lg backdrop-blur text-gray-300">
-                                {currentSpeakerId ? `C'est au tour de ${players.find(p => p.id === currentSpeakerId)?.name}...` : 'Chargement...'}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* DISCUSSION PHASE */}
-        {currentPhase === 'discussion' && (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-                <MessageSquare className="w-16 h-16 text-green-400 mb-4 animate-bounce" />
-                <h2 className="text-3xl font-bold mb-2">Discussion !</h2>
-                <p className="text-xl text-gray-300">Débattez et trouvez l'intrus.</p>
-                <div className="mt-8 text-6xl font-black font-mono text-white/80">{timeLeft}s</div>
-                
-                <div className="mt-8 w-full max-w-2xl bg-black/20 p-4 rounded-xl">
-                    <h3 className="text-sm text-gray-400 mb-2">Rappel des indices :</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
-                        {clues.map((c, i) => {
-                             const p = players.find(pl => pl.id === c.playerId);
+        {/* GAMEPLAY: CLUES & DISCUSSION */}
+        {(currentPhase === 'clues' || currentPhase === 'discussion') && (
+            <div className="w-full max-w-3xl space-y-6">
+                 {/* Clues History */}
+                 <div className="bg-slate-900/50 rounded-2xl p-6 border border-white/10 min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar">
+                     <h3 className="text-lg font-bold text-gray-400 mb-4 sticky top-0 bg-slate-900/90 py-2 z-10 border-b border-white/5">
+                         Indices
+                     </h3>
+                     <div className="space-y-3">
+                         {clues.map((c, idx) => {
+                             const pName = players.find(p => p.id === c.playerId)?.name || 'Inconnu';
                              return (
-                                 <div key={i} className="text-sm"><span className="font-bold text-blue-300">{p?.name}:</span> {c.text}</div>
+                                 <div key={idx} className="flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
+                                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold">
+                                         {pName.charAt(0)}
+                                     </div>
+                                     <div className="bg-white/5 px-4 py-2 rounded-r-xl rounded-bl-xl text-white">
+                                         <span className="text-xs text-gray-500 block mb-0.5">{pName}</span>
+                                         "{c.text}"
+                                     </div>
+                                 </div>
                              );
-                        })}
-                    </div>
-                </div>
+                         })}
+                         {clues.length === 0 && (
+                             <div className="text-center text-gray-600 italic py-10">Aucun indice pour le moment...</div>
+                         )}
+                     </div>
+                 </div>
+
+                 {/* Input Area (Only for Clues phase & Current Speaker) */}
+                 {currentPhase === 'clues' && (
+                     <div className="bg-slate-900/80 p-4 rounded-xl border border-red-500/30">
+                         {isMyTurn ? (
+                             <div className="flex gap-2">
+                                 <Input 
+                                    placeholder="Donnez votre indice (1 mot)..." 
+                                    value={userClue}
+                                    onChange={e => setUserClue(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && sendClue()}
+                                    className="bg-slate-800 border-white/10"
+                                    autoFocus
+                                 />
+                                 <Button onClick={sendClue} className="bg-red-600 hover:bg-red-500">
+                                     <Send className="w-4 h-4" />
+                                 </Button>
+                             </div>
+                         ) : (
+                             <div className="text-center text-gray-400 flex items-center justify-center gap-2">
+                                 <Loader2 className="w-4 h-4 animate-spin" />
+                                 En attente de {players.find(p => p.id === currentSpeakerId)?.name || '...'}
+                             </div>
+                         )}
+                     </div>
+                 )}
+                 
+                 {currentPhase === 'discussion' && (
+                     <div className="text-center bg-red-500/10 p-4 rounded-xl border border-red-500/30 text-red-200 animate-pulse">
+                         🗣️ Discussion libre ! Débattez pour trouver l'intrus.
+                     </div>
+                 )}
             </div>
         )}
 
         {/* VOTE PHASE */}
         {currentPhase === 'vote' && (
-            <div className="w-full text-center">
-                <h2 className="text-3xl font-bold mb-6 text-red-400">Votez pour éliminer !</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {alivePlayers.map(pid => {
-                        const p = players.find(pl => pl.id === pid);
-                        if (!p || pid === playerId) return null; // Can't vote for self? Usually yes you can, but let's disable for UX
-                        // Actually in Undercover you can vote for anyone.
-                        
+            <div className="w-full max-w-2xl text-center">
+                <h2 className="text-3xl font-bold text-red-500 mb-8">Votez pour éliminer !</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {alivePlayers.filter(pid => pid !== playerId).map(pid => {
+                        const pName = players.find(p => p.id === pid)?.name || 'Inconnu';
                         return (
                             <button 
                                 key={pid}
                                 onClick={() => sendVote(pid)}
-                                className="bg-white/10 hover:bg-red-500/20 border-2 border-white/10 hover:border-red-500 p-6 rounded-xl transition-all flex flex-col items-center gap-2 group"
+                                className="bg-white/5 hover:bg-red-600/20 border border-white/10 hover:border-red-500 p-6 rounded-xl transition-all group"
                             >
-                                <User className="w-12 h-12 text-gray-400 group-hover:text-red-400" />
-                                <span className="font-bold text-lg">{p?.name}</span>
+                                <Skull className="w-8 h-8 mx-auto mb-2 text-gray-500 group-hover:text-red-500 transition-colors" />
+                                <span className="font-bold text-lg text-white group-hover:text-red-200">{pName}</span>
                             </button>
                         );
                     })}
                 </div>
             </div>
         )}
-
+        
         {/* MR WHITE GUESS */}
         {currentPhase === 'mrwhite_guess' && (
-            <div className="flex flex-col items-center justify-center h-full">
-                <AlertTriangle className="w-20 h-20 text-yellow-400 mb-4" />
-                <h2 className="text-3xl font-bold mb-2">Mr. White a été démasqué !</h2>
-                <p className="mb-6">Il a une dernière chance de gagner en devinant le mot des Civils.</p>
-                
-                {myRole === 'MR_WHITE' && eliminatedPlayerId === playerId ? (
-                    <div className="flex gap-2 w-full max-w-md">
-                        <Input 
-                            value={mrWhiteGuess} 
-                            onChange={e => setMrWhiteGuess(e.target.value)} 
-                            placeholder="Devine le mot..." 
-                        />
-                        <Button onClick={sendMrWhiteGuess}>Valider</Button>
-                    </div>
-                ) : (
-                    <p className="animate-pulse">Mr. White réfléchit...</p>
-                )}
-            </div>
+             <div className="w-full max-w-md text-center bg-white/10 p-8 rounded-2xl backdrop-blur-md">
+                 <h2 className="text-2xl font-bold text-white mb-4">Mr. White a été démasqué !</h2>
+                 <p className="text-gray-300 mb-6">Il a une chance de gagner s'il trouve le mot des Civils.</p>
+                 
+                 {myRole === 'MR_WHITE' && eliminatedPlayerId === playerId ? (
+                     <div className="space-y-4">
+                         <Input 
+                            placeholder="Quel est le mot des Civils ?" 
+                            value={mrWhiteGuess}
+                            onChange={e => setMrWhiteGuess(e.target.value)}
+                         />
+                         <Button onClick={sendMrWhiteGuess} className="w-full bg-white text-black hover:bg-gray-200">
+                             Tenter ma chance
+                         </Button>
+                     </div>
+                 ) : (
+                     <div className="flex items-center justify-center gap-2 text-gray-400">
+                         <Loader2 className="w-4 h-4 animate-spin" />
+                         Mr. White réfléchit...
+                     </div>
+                 )}
+             </div>
         )}
 
-        {/* RESULTS / GAME OVER */}
+        {/* GAME OVER / RESULTS */}
         {(currentPhase === 'results' || currentPhase === 'game_over') && (
-            <div className="flex flex-col items-center justify-center h-full animate-in zoom-in">
-                {winner === 'CIVILS' && <Crown className="w-24 h-24 text-blue-400 mb-4" />}
-                {winner === 'IMPOSTORS' && <Skull className="w-24 h-24 text-red-400 mb-4" />}
-                {winner === 'MR_WHITE' && <AlertTriangle className="w-24 h-24 text-yellow-400 mb-4" />}
+            <div className="text-center space-y-8 animate-in zoom-in duration-500">
+                <div className="relative inline-block">
+                    <Crown className={`w-24 h-24 mx-auto mb-4 ${winner === 'CIVILS' ? 'text-blue-500' : 'text-red-500'}`} />
+                </div>
                 
-                <h2 className="text-4xl font-black mb-2">
-                    {winner === 'CIVILS' && 'Les Civils ont gagné !'}
-                    {winner === 'IMPOSTORS' && 'Les Imposteurs ont gagné !'}
-                    {winner === 'MR_WHITE' && 'Mr. White a gagné !'}
+                <h2 className="text-5xl font-black text-white uppercase tracking-tighter">
+                    {winner === 'CIVILS' ? 'Victoire des Civils' : winner === 'MR_WHITE' ? 'Victoire de Mr. White' : 'Victoire des Imposteurs'}
                 </h2>
                 
-                <div className="bg-white/10 p-6 rounded-xl mt-8 w-full max-w-lg">
-                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
-                        <span>Mot Civil :</span>
-                        <span className="font-bold text-xl">{civilWord}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto text-left">
+                    <div className="bg-blue-500/10 p-4 rounded-xl border border-blue-500/30">
+                        <span className="text-xs text-blue-300 uppercase font-bold">Mot Civil</span>
+                        <p className="text-2xl font-bold text-white">{civilWord}</p>
                     </div>
-                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
-                        <span>Mot Undercover :</span>
-                        <span className="font-bold text-xl">{undercoverWord}</span>
+                    <div className="bg-red-500/10 p-4 rounded-xl border border-red-500/30">
+                        <span className="text-xs text-red-300 uppercase font-bold">Mot Undercover</span>
+                        <p className="text-2xl font-bold text-white">{undercoverWord}</p>
                     </div>
-                    
-                    <div className="space-y-2 mt-4">
-                        <h3 className="text-sm text-gray-400">Rôles :</h3>
+                </div>
+
+                <div className="bg-white/5 rounded-xl p-6 max-w-2xl mx-auto">
+                    <h3 className="text-lg font-bold text-gray-400 mb-4 text-left">Rôles dévoilés</h3>
+                    <div className="grid gap-2">
                         {players.map(p => (
-                            <div key={p.id} className="flex justify-between">
-                                <span>{p.name}</span>
-                                <span className={`font-bold ${
-                                    roles[p.id] === 'CIVIL' ? 'text-blue-400' : 
-                                    roles[p.id] === 'UNDERCOVER' ? 'text-red-400' : 'text-yellow-400'
-                                }`}>
+                            <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                                <span className="font-bold text-white">{p.name}</span>
+                                <span className={`font-mono text-sm font-bold ${getRoleColor(roles[p.id])}`}>
                                     {roles[p.id]}
                                 </span>
                             </div>
@@ -682,12 +621,13 @@ export default function Undercover({ roomCode, settings: initialSettings }: Unde
                 </div>
 
                 {isHost && (
-                    <Button size="lg" className="mt-8" onClick={nextGameRound}>
-                        {currentRoundNumber < settings.rounds ? 'Manche Suivante' : 'Retour au menu'}
+                    <Button size="lg" onClick={nextGameRound} className="bg-white text-black hover:bg-gray-200 h-14 px-8 text-lg font-bold rounded-xl">
+                        Manche suivante
                     </Button>
                 )}
             </div>
         )}
+
       </div>
     </GameLayout>
   );

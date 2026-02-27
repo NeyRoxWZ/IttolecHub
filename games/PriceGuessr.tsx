@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { Check, Clock, User, Zap, DollarSign, ShoppingBag } from 'lucide-react';
+import { Check, Clock, User, Zap, DollarSign, ShoppingBag, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProductData {
@@ -34,13 +34,9 @@ interface PriceGuessrProps {
   settings?: { [key: string]: string };
 }
 
-export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
+export default function PriceGuessr({ roomCode }: PriceGuessrProps) {
   const [userAnswer, setUserAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(30);
-  const [maxRounds, setMaxRounds] = useState(6);
-  const [roundTime, setRoundTime] = useState(30);
-  const [tolerance, setTolerance] = useState(10); // Percentage
-  const [category, setCategory] = useState('all');
   const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
 
@@ -51,7 +47,6 @@ export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
     gameState,
     isHost,
     playerId,
-    updateSettings,
     startGame,
     submitAnswer,
     nextRound,
@@ -70,35 +65,19 @@ export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
 
   // Derived State
   const gameStarted = roomStatus === 'in_game';
+  const settings = gameState?.settings || {};
+  const maxRounds = Number(settings.rounds || 6);
+  const roundTime = Number(settings.time || 30);
+  const tolerance = Number(settings.tolerance || 10);
+  const category = settings.category || 'all';
+
   const roundEnded = gameState?.status === 'round_results' || gameState?.status === 'game_over';
   const productData: ProductData | null = gameState?.round_data?.product || null;
   const currentRound = gameState?.current_round || 0;
   
-  // Transform players array to Record<name, score> for UI compatibility
   const playersMap = useMemo(() => {
     return players.reduce((acc, p) => ({ ...acc, [p.name]: p.score }), {} as Record<string, number>);
   }, [players]);
-
-  // Sync settings
-  useEffect(() => {
-      if (gameState?.settings) {
-          if (gameState.settings.rounds) setMaxRounds(Number(gameState.settings.rounds));
-          if (gameState.settings.time) setRoundTime(Number(gameState.settings.time));
-          if (gameState.settings.tolerance) setTolerance(Number(gameState.settings.tolerance));
-          if (gameState.settings.category) setCategory(gameState.settings.category);
-      }
-  }, [gameState?.settings]);
-
-  // Host updates DB when local state changes
-  useEffect(() => {
-      if (isHost) {
-          const newSettings = { rounds: maxRounds, time: roundTime, tolerance, category };
-          // Simple check to avoid infinite loop
-          if (JSON.stringify(newSettings) !== JSON.stringify(gameState?.settings)) {
-              updateSettings(newSettings);
-          }
-      }
-  }, [maxRounds, roundTime, tolerance, category, isHost, gameState?.settings, updateSettings]);
 
   // Sync Timer
   useEffect(() => {
@@ -113,7 +92,7 @@ export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
   // Timer interval
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined;
-    if (gameStarted && !roundEnded && timeLeft > 0) {
+    if (timeLeft > 0 && !roundEnded) {
       interval = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -127,7 +106,7 @@ export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [gameStarted, roundEnded, timeLeft, isHost]);
+  }, [timeLeft, roundEnded, isHost]);
 
   const formattedTimer = useMemo(() => {
     const minutes = Math.floor(timeLeft / 60);
@@ -151,9 +130,9 @@ export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
 
   const startRound = async () => {
     if (!isHost || !roomCode) return;
+    if (gameState?.round_data?.phase === 'active' && gameState?.round_data?.product) return;
 
     try {
-      // Fetch enough items for all rounds
       const products = await fetchProductsFromApi(maxRounds, category);
       
       if (products.length === 0) {
@@ -166,6 +145,7 @@ export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
       const endTime = Date.now() + roundTime * 1000;
       
       await startGame({
+        phase: 'active',
         product: currentProduct,
         queue,
         endTime,
@@ -186,7 +166,6 @@ export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
     try {
       const queue = gameState.round_data.queue || [];
       if (queue.length === 0) {
-          // Game Over logic handled by GameLayout usually, or we can set status here
           await setGameStatus('game_over');
           return;
       }
@@ -311,114 +290,32 @@ export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
     return () => clearTimeout(timeout);
   }, [userAnswer, broadcast, playerName]);
 
+  // Auto-start
+  useEffect(() => {
+      if (isHost && gameState?.round_data?.phase === 'setup') {
+          startRound();
+      }
+  }, [isHost, gameState?.round_data?.phase]);
+
   return (
     <GameLayout
       players={playersMap}
       roundCount={currentRound}
       maxRounds={maxRounds}
       timer={formattedTimer}
-      gameCode={roomCode ?? ''}
-      gameTitle="Price Guessr"
-      isHost={isHost}
+      gameTitle="Le Juste Prix"
       gameStarted={gameStarted}
-      onStartGame={startRound}
       timeLeft={timeLeft}
-      typingPlayer={typingPlayer}
     >
       <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto gap-8">
-        {!gameStarted ? (
-          <div className="text-center space-y-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold">Le Juste Prix</h2>
-            {isHost ? (
-              <div className="p-6 bg-white/10 rounded-lg backdrop-blur-sm space-y-4">
-                <p className="mb-4">Configurez la partie :</p>
-                
-                <div className="space-y-4 text-left">
-                   <div>
-                      <label className="block text-sm text-gray-400 mb-1">Nombre de manches ({maxRounds})</label>
-                      <input 
-                        type="range" 
-                        min="1" 
-                        max="15" 
-                        value={maxRounds} 
-                        onChange={(e) => setMaxRounds(parseInt(e.target.value))}
-                        className="w-full"
-                      />
-                   </div>
-                   
-                   <div>
-                      <label className="block text-sm text-gray-400 mb-1">Temps par manche ({roundTime}s)</label>
-                      <input 
-                        type="range" 
-                        min="15" 
-                        max="60" 
-                        value={roundTime} 
-                        onChange={(e) => setRoundTime(parseInt(e.target.value))}
-                        className="w-full"
-                      />
-                   </div>
-
-                   <div>
-                      <label className="block text-sm text-gray-400 mb-1">Tolérance ({tolerance}%)</label>
-                      <select 
-                        value={tolerance} 
-                        onChange={(e) => setTolerance(parseInt(e.target.value))}
-                        className="w-full bg-black/20 border border-white/20 rounded p-2"
-                      >
-                        <option value="5">±5% (Difficile)</option>
-                        <option value="10">±10% (Normal)</option>
-                        <option value="20">±20% (Facile)</option>
-                      </select>
-                   </div>
-
-                   <div>
-                      <label className="block text-sm text-gray-400 mb-1">Catégorie</label>
-                      <select 
-                        value={category} 
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="w-full bg-black/20 border border-white/20 rounded p-2"
-                      >
-                        <option value="all">Tout</option>
-                        <option value="tech">Tech & High-tech</option>
-                        <option value="food">Alimentation</option>
-                        <option value="fashion">Mode & Vêtements</option>
-                        <option value="home">Maison</option>
-                        <option value="luxury">Luxe</option>
-                      </select>
-                   </div>
-                </div>
-
-                <div className="flex flex-wrap justify-center gap-2 mt-4">
-                  {players.map((p) => (
-                    <div key={p.id} className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-white/10">
-                      <User className="w-3 h-3" />
-                      {p.name}
-                    </div>
-                  ))}
-                </div>
-
-                <Button size="lg" className="w-full mt-4" onClick={startRound}>
-                  Lancer la partie
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-                <p>En attente de l'hôte...</p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {players.map((p) => (
-                    <div key={p.id} className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-white/10">
-                      <User className="w-3 h-3" />
-                      {p.name}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : !roundEnded && productData ? (
-          <div className="w-full max-w-2xl flex flex-col items-center gap-6 animate-in fade-in duration-500">
-             <div className="relative w-64 h-64 bg-white rounded-xl overflow-hidden shadow-2xl p-4 flex items-center justify-center">
+        {!productData ? (
+            <div className="flex flex-col items-center gap-4">
+                <Loader2 className="w-12 h-12 animate-spin text-amber-400" />
+                <p className="text-xl font-medium animate-pulse text-amber-200">Chargement du produit...</p>
+            </div>
+        ) : !roundEnded ? (
+          <div className="w-full max-w-2xl flex flex-col items-center gap-8 animate-in fade-in duration-500">
+             <div className="relative w-full aspect-square max-w-sm bg-white rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(245,158,11,0.3)] border border-amber-500/20 p-4 flex items-center justify-center">
                 <Image 
                    src={productData.image} 
                    alt={productData.title} 
@@ -428,7 +325,7 @@ export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
              </div>
              
              <div className="text-center">
-                <h3 className="text-2xl font-bold mb-2">{productData.title}</h3>
+                <h3 className="text-2xl font-bold mb-2 text-white">{productData.title}</h3>
                 {productData.description && (
                     <p className="text-sm text-gray-400 max-w-md mx-auto line-clamp-2">{productData.description}</p>
                 )}
@@ -436,23 +333,24 @@ export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
 
              <div className="w-full max-w-md space-y-4">
                 <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-400 font-bold text-xl">$</span>
                     <Input 
                         type="number" 
                         placeholder="Prix en dollars..." 
                         value={userAnswer}
                         onChange={(e) => setUserAnswer(e.target.value)}
-                        className="pl-8 text-center text-xl py-6"
+                        className="pl-8 text-center text-2xl py-8 font-bold bg-slate-800/50 border-amber-500/30 focus:border-amber-500 rounded-xl transition-all"
                         disabled={hasAnswered}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') handleAnswerSubmit();
                         }}
+                        autoFocus
                     />
                 </div>
                 
                 <Button 
                     size="lg" 
-                    className="w-full" 
+                    className="w-full h-14 text-lg font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/20 hover:shadow-amber-600/40 rounded-xl transition-all"
                     onClick={handleAnswerSubmit}
                     disabled={hasAnswered || !userAnswer}
                 >
@@ -460,47 +358,54 @@ export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
                 </Button>
              </div>
           </div>
-        ) : roundEnded && productData ? (
+        ) : (
            <div className="w-full max-w-2xl flex flex-col items-center gap-6 animate-in zoom-in duration-300">
-              <h2 className="text-3xl font-bold text-yellow-400">Résultats</h2>
-              
-              <div className="flex flex-col items-center gap-2 mb-4">
-                 <div className="relative w-40 h-40 bg-white rounded-lg overflow-hidden shadow-lg mb-2">
-                    <Image 
-                       src={productData.image} 
-                       alt={productData.title} 
-                       fill 
-                       className="object-contain p-2"
-                    />
-                 </div>
-                 <h3 className="text-xl font-bold">{productData.title}</h3>
-                 <div className="text-4xl font-black text-green-400">
+              <div className="text-center mb-6">
+                <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-600 mb-2">
+                    Résultats
+                </h2>
+                <div className="text-6xl font-black text-white drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]">
                     ${productData.price}
-                 </div>
+                </div>
+              </div>
+              
+              <div className="relative w-40 h-40 bg-white rounded-xl overflow-hidden shadow-lg mb-4 border border-amber-500/20">
+                <Image 
+                   src={productData.image} 
+                   alt={productData.title} 
+                   fill 
+                   className="object-contain p-2"
+                />
               </div>
 
               <div className="w-full space-y-3">
                  {gameState.round_data.results?.map((res: PlayerAnswer, idx: number) => (
                     <div 
                         key={idx} 
-                        className={`flex items-center justify-between p-4 rounded-lg border ${
-                            idx === 0 ? 'bg-yellow-500/20 border-yellow-500' : 'bg-white/5 border-white/10'
+                        className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                            idx === 0 ? 'bg-amber-500/20 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-white/5 border-white/10'
                         }`}
                     >
-                        <div className="flex items-center gap-3">
-                            <span className="font-bold text-lg w-6">{idx + 1}.</span>
+                        <div className="flex items-center gap-4">
+                            <span className="font-black text-xl w-6 text-slate-400">{idx + 1}.</span>
                             <div className="flex flex-col">
-                                <span className="font-bold">{res.playerName}</span>
-                                <span className="text-xs text-gray-400">
-                                    {res.answer > 0 ? `$${res.answer}` : 'Pas de réponse'} 
-                                    (Diff: ${res.difference.toFixed(2)})
+                                <span className="font-bold text-lg text-white">{res.playerName}</span>
+                                <span className="text-sm text-slate-300">
+                                    {res.answer > 0 ? (
+                                        <>
+                                            <span className="font-mono font-bold text-white">${res.answer}</span>
+                                            <span className="text-xs text-slate-400 ml-2">
+                                                (Diff: {res.difference > 0 ? '+' : ''}{res.difference.toFixed(2)})
+                                            </span>
+                                        </>
+                                    ) : 'Pas de réponse'} 
                                 </span>
                             </div>
                         </div>
                         <div className="flex flex-col items-end">
-                            <span className="font-bold text-xl">+{res.score} pts</span>
+                            <span className="font-black text-xl text-amber-400">+{res.score} pts</span>
                             {res.timeBonus > 0 && (
-                                <span className="text-xs text-yellow-400 flex items-center gap-1">
+                                <span className="text-xs text-yellow-400 flex items-center gap-1 font-bold uppercase tracking-wider">
                                     <Zap className="w-3 h-3" /> Rapide
                                 </span>
                             )}
@@ -510,12 +415,12 @@ export default function PriceGuessr({ roomCode, settings }: PriceGuessrProps) {
               </div>
 
               {isHost && (
-                  <Button size="lg" className="mt-6" onClick={handleNextRound}>
+                  <Button size="lg" className="mt-6 w-full max-w-sm h-14 text-lg font-bold bg-white text-black hover:bg-gray-200 rounded-xl" onClick={handleNextRound}>
                       {currentRound < maxRounds ? 'Manche suivante' : 'Terminer la partie'}
                   </Button>
               )}
            </div>
-        ) : null}
+        )}
       </div>
     </GameLayout>
   );

@@ -9,5 +9,5 @@ export default function LyricsGuesserPage({
   params: { code: string },
   searchParams: { [key: string]: string }
 }) {
-  return <LyricsGuesser roomCode={params.code} settings={searchParams} />;
+  return <LyricsGuesser roomCode={params.code} />;
 }

@@ -7,5 +7,5 @@ export default function CaloriesGuessrPage({
   params: { code: string },
   searchParams: { [key: string]: string }
 }) {
-  return <CaloriesGuessr roomCode={params.code} settings={searchParams} />;
+  return <CaloriesGuessr roomCode={params.code} />;
 }

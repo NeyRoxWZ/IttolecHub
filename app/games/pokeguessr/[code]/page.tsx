@@ -9,5 +9,5 @@ export default function PokeGuessrPage({
   params: { code: string },
   searchParams: { [key: string]: string }
 }) {
-  return <PokeGuessr roomCode={params.code} settings={searchParams} />;
+  return <PokeGuessr roomCode={params.code} />;
 }

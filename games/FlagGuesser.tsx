@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { Trophy, CheckCircle, XCircle, Zap, Check, Flag } from 'lucide-react';
+import { Trophy, CheckCircle, XCircle, Zap, Check, Flag, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 
@@ -35,16 +35,11 @@ interface FlagGuesserProps {
   settings?: { [key: string]: string };
 }
 
-export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
+export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
   const [userAnswer, setUserAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(20);
-  const [maxRounds, setMaxRounds] = useState(8);
-  const [roundTime, setRoundTime] = useState(20);
   const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
-  
-  // Settings
-  const [selectedRegion, setSelectedRegion] = useState<string>('all'); 
   
   // Cache all countries for validation
   const allCountriesRef = useRef<CountryData[]>([]);
@@ -56,7 +51,6 @@ export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
     gameState,
     isHost,
     playerId,
-    updateSettings,
     startGame,
     submitAnswer,
     nextRound,
@@ -74,7 +68,11 @@ export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
       : 'Anonyme';
 
   // Derived State
-  const gameStarted = roomStatus === 'in_game';
+  const settings = gameState?.settings || {};
+  const maxRounds = Number(settings.rounds || 8);
+  const roundTime = Number(settings.time || 20);
+  const selectedRegion = settings.region || 'all';
+
   const roundEnded = gameState?.status === 'round_results' || gameState?.status === 'game_over';
   const country: CountryData | null = gameState?.round_data?.country || null;
   const currentRound = gameState?.current_round || 0;
@@ -82,27 +80,6 @@ export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
   const playersMap = useMemo(() => {
     return players.reduce((acc, p) => ({ ...acc, [p.name]: p.score }), {} as Record<string, number>);
   }, [players]);
-
-  // Sync settings
-  useEffect(() => {
-    if (gameState?.settings) {
-      if (gameState.settings.rounds) setMaxRounds(Number(gameState.settings.rounds));
-      if (gameState.settings.time) setRoundTime(Number(gameState.settings.time));
-      if (gameState.settings.region && gameState.settings.region !== selectedRegion) {
-          setSelectedRegion(gameState.settings.region);
-      }
-    }
-  }, [gameState?.settings]);
-
-  // Host updates DB when local state changes
-  useEffect(() => {
-      if (isHost) {
-          const newSettings = { rounds: maxRounds, time: roundTime, region: selectedRegion };
-          if (JSON.stringify(newSettings) !== JSON.stringify(gameState?.settings)) {
-              updateSettings(newSettings);
-          }
-      }
-  }, [maxRounds, roundTime, selectedRegion, isHost, gameState?.settings, updateSettings]);
 
   // Sync Timer
   useEffect(() => {
@@ -117,7 +94,7 @@ export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
   // Timer interval
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined;
-    if (gameStarted && !roundEnded && timeLeft > 0) {
+    if (timeLeft > 0 && !roundEnded) {
       interval = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -131,7 +108,7 @@ export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [gameStarted, roundEnded, timeLeft, isHost]);
+  }, [timeLeft, roundEnded, isHost]);
 
   const formattedTimer = useMemo(() => {
     const minutes = Math.floor(timeLeft / 60);
@@ -154,6 +131,7 @@ export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
 
   const startRound = async () => {
     if (!isHost || !roomCode) return;
+    if (gameState?.round_data?.phase === 'active' && gameState?.round_data?.country) return;
 
     try {
       const countries = await fetchCountries(selectedRegion);
@@ -172,6 +150,7 @@ export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
       const endTime = Date.now() + roundTime * 1000;
       
       await startGame({
+        phase: 'active',
         country: firstCountry,
         queue: queue, 
         endTime,
@@ -314,84 +293,32 @@ export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
     return () => clearTimeout(timeout);
   }, [userAnswer, broadcast, playerName]);
 
+  // Auto-start
+  useEffect(() => {
+      if (isHost && gameState?.round_data?.phase === 'setup') {
+          startRound();
+      }
+  }, [isHost, gameState?.round_data?.phase]);
+
   return (
     <GameLayout
       players={playersMap}
       roundCount={currentRound}
       maxRounds={maxRounds}
       timer={formattedTimer}
-      gameCode={roomCode ?? ''}
       gameTitle="Flag Guessr"
-      isHost={isHost}
-      gameStarted={gameStarted}
-      onStartGame={startRound}
+      gameStarted={true}
       timeLeft={timeLeft}
-      typingPlayer={typingPlayer}
     >
       <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto gap-8">
-        {!gameStarted ? (
-          <div className="text-center space-y-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold">Flag Guessr</h2>
-            {isHost ? (
-              <div className="p-6 bg-white/10 rounded-lg backdrop-blur-sm space-y-4">
-                <p className="mb-4">Configurez la partie :</p>
-                
-                <div className="space-y-4 text-left">
-                   <div>
-                      <label className="block text-sm text-gray-400 mb-1">Nombre de manches ({maxRounds})</label>
-                      <input 
-                        type="range" 
-                        min="1" 
-                        max="20" 
-                        value={maxRounds} 
-                        onChange={(e) => setMaxRounds(parseInt(e.target.value))}
-                        className="w-full"
-                      />
-                   </div>
-                   
-                   <div>
-                      <label className="block text-sm text-gray-400 mb-1">Temps par manche ({roundTime}s)</label>
-                      <input 
-                        type="range" 
-                        min="10" 
-                        max="60" 
-                        value={roundTime} 
-                        onChange={(e) => setRoundTime(parseInt(e.target.value))}
-                        className="w-full"
-                      />
-                   </div>
-
-                   <div>
-                      <label className="block text-sm text-gray-400 mb-1">Région</label>
-                      <select 
-                        value={selectedRegion} 
-                        onChange={(e) => setSelectedRegion(e.target.value)}
-                        className="w-full bg-black/20 border border-white/20 rounded p-2"
-                      >
-                        <option value="all">Monde entier</option>
-                        <option value="Europe">Europe</option>
-                        <option value="Americas">Amérique</option>
-                        <option value="Africa">Afrique</option>
-                        <option value="Asia">Asie</option>
-                        <option value="Oceania">Océanie</option>
-                      </select>
-                   </div>
-                </div>
-
-                <Button size="lg" className="w-full mt-4" onClick={startRound}>
-                  Lancer la partie
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-                <p>En attente de l'hôte...</p>
-              </div>
-            )}
-          </div>
-        ) : !roundEnded && country ? (
-          <div className="w-full max-w-2xl flex flex-col items-center gap-6 animate-in fade-in duration-500">
-             <div className="relative w-full h-64 bg-white/5 rounded-xl overflow-hidden shadow-2xl p-4 flex items-center justify-center">
+        {!country ? (
+            <div className="flex flex-col items-center gap-4">
+                <Loader2 className="w-12 h-12 animate-spin text-blue-400" />
+                <p className="text-xl font-medium animate-pulse text-blue-200">Chargement du drapeau...</p>
+            </div>
+        ) : !roundEnded ? (
+          <div className="w-full max-w-2xl flex flex-col items-center gap-8 animate-in fade-in duration-500">
+             <div className="relative w-full aspect-[3/2] bg-white/5 rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(59,130,246,0.3)] border border-blue-500/20 p-4 flex items-center justify-center">
                 <div className="relative w-full h-full">
                     <Image 
                         src={country.flags.svg} 
@@ -409,7 +336,7 @@ export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
                     placeholder="Quel est ce pays ?" 
                     value={userAnswer}
                     onChange={(e) => setUserAnswer(e.target.value)}
-                    className="text-center text-xl py-6"
+                    className="text-center text-2xl py-8 font-bold bg-slate-800/50 border-blue-500/30 focus:border-blue-500 rounded-xl transition-all"
                     disabled={hasAnswered}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') handleAnswerSubmit();
@@ -419,7 +346,7 @@ export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
                 
                 <Button 
                     size="lg" 
-                    className="w-full" 
+                    className="w-full h-14 text-lg font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 rounded-xl transition-all"
                     onClick={handleAnswerSubmit}
                     disabled={hasAnswered || !userAnswer}
                 >
@@ -427,59 +354,69 @@ export default function FlagGuesser({ roomCode, settings }: FlagGuesserProps) {
                 </Button>
              </div>
           </div>
-        ) : roundEnded && country ? (
+        ) : (
            <div className="w-full max-w-2xl flex flex-col items-center gap-6 animate-in zoom-in duration-300">
-              <h2 className="text-3xl font-bold text-green-400">Résultats</h2>
+              <div className="text-center mb-6">
+                <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-500 mb-2">
+                    Résultats
+                </h2>
+                <div className="text-3xl font-black text-white drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+                    {country.translations?.fra?.common || country.name.common}
+                </div>
+                <div className="text-sm text-blue-300 font-medium uppercase tracking-wider mt-1">
+                    {country.region}
+                </div>
+              </div>
               
-              <div className="flex flex-col items-center gap-2 mb-4">
-                 <div className="relative w-40 h-24 bg-white/5 rounded overflow-hidden shadow-lg mb-2">
-                    <Image 
-                       src={country.flags.svg} 
-                       alt="Drapeau" 
-                       fill 
-                       className="object-cover"
-                    />
-                 </div>
-                 <h3 className="text-2xl font-bold">{country.translations?.fra?.common || country.name.common}</h3>
-                 <p className="text-gray-400">{country.region}</p>
+              <div className="relative w-40 h-28 bg-white/5 rounded-lg overflow-hidden shadow-lg mb-2 border border-blue-500/20">
+                <Image 
+                    src={country.flags.svg} 
+                    alt="Drapeau" 
+                    fill 
+                    className="object-cover"
+                />
               </div>
 
               <div className="w-full space-y-3">
                  {gameState.round_data.results?.map((res: PlayerAnswer, idx: number) => (
                     <div 
                         key={idx} 
-                        className={`flex items-center justify-between p-4 rounded-lg border ${
-                            idx === 0 ? 'bg-green-500/20 border-green-500' : 'bg-white/5 border-white/10'
+                        className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                            idx === 0 ? 'bg-blue-500/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-white/5 border-white/10'
                         }`}
                     >
-                        <div className="flex items-center gap-3">
-                            <span className="font-bold text-lg w-6">{idx + 1}.</span>
+                        <div className="flex items-center gap-4">
+                            <span className="font-black text-xl w-6 text-slate-400">{idx + 1}.</span>
                             <div className="flex flex-col">
-                                <span className="font-bold">{res.player}</span>
-                                <span className="text-xs text-gray-400">
+                                <span className="font-bold text-lg text-white">{res.player}</span>
+                                <span className="text-sm text-slate-300">
                                     {res.answer} 
                                 </span>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                             {res.isCorrect ? (
-                                <CheckCircle className="text-green-400 w-6 h-6" />
+                                <span className="flex items-center gap-1 text-xs font-bold bg-green-500/20 text-green-400 px-2 py-0.5 rounded uppercase">
+                                    <CheckCircle className="w-3 h-3" /> Valide
+                                </span>
                             ) : (
-                                <XCircle className="text-red-400 w-6 h-6" />
+                                <span className="flex items-center gap-1 text-xs font-bold bg-red-500/20 text-red-400 px-2 py-0.5 rounded uppercase">
+                                    <XCircle className="w-3 h-3" /> Raté
+                                </span>
                             )}
-                            <span className="font-bold text-xl">+{res.score} pts</span>
+                            <span className="font-black text-xl text-blue-400">+{res.score}</span>
                         </div>
                     </div>
                  ))}
               </div>
 
               {isHost && (
-                  <Button size="lg" className="mt-6" onClick={handleNextRound}>
+                  <Button size="lg" className="mt-6 w-full max-w-sm h-14 text-lg font-bold bg-white text-black hover:bg-gray-200 rounded-xl" onClick={handleNextRound}>
                       {currentRound < maxRounds ? 'Manche suivante' : 'Terminer la partie'}
                   </Button>
               )}
            </div>
-        ) : null}
+        )}
       </div>
     </GameLayout>
   );

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { CheckCircle, XCircle, Zap, Check, Music } from 'lucide-react';
+import { CheckCircle, XCircle, Zap, Check, Music, Disc, Mic2, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 
 interface LyricsRoundData {
@@ -24,19 +24,12 @@ interface PlayerAnswer {
 
 interface LyricsGuesserProps {
   roomCode: string | null;
-  settings?: { [key: string]: string };
 }
 
-export default function LyricsGuesser({ roomCode, settings }: LyricsGuesserProps) {
+export default function LyricsGuesser({ roomCode }: LyricsGuesserProps) {
   const [userAnswer, setUserAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(45);
-  const [maxRounds, setMaxRounds] = useState(5);
-  const [roundTime, setRoundTime] = useState(45);
   const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
-  
-  // Settings
-  const [artistInput, setArtistInput] = useState('');
-  const [targetArtist, setTargetArtist] = useState('');
 
   // Sync with DB
   const {
@@ -45,7 +38,6 @@ export default function LyricsGuesser({ roomCode, settings }: LyricsGuesserProps
     gameState,
     isHost,
     playerId,
-    updateSettings,
     startGame,
     submitAnswer,
     nextRound,
@@ -68,28 +60,14 @@ export default function LyricsGuesser({ roomCode, settings }: LyricsGuesserProps
   const roundData: LyricsRoundData | null = gameState?.round_data?.lyrics || null;
   const currentRound = gameState?.current_round || 0;
   
+  // Settings from DB
+  const maxRounds = Number(gameState?.settings?.rounds || 5);
+  const roundTime = Number(gameState?.settings?.time || 45);
+  const targetArtist = gameState?.settings?.artist || 'Daft Punk';
+
   const playersMap = useMemo(() => {
     return players.reduce((acc, p) => ({ ...acc, [p.name]: p.score }), {} as Record<string, number>);
   }, [players]);
-
-  // Sync settings
-  useEffect(() => {
-    if (gameState?.settings) {
-      if (gameState.settings.rounds) setMaxRounds(Number(gameState.settings.rounds));
-      if (gameState.settings.time) setRoundTime(Number(gameState.settings.time));
-      if (gameState.settings.artist) setTargetArtist(gameState.settings.artist);
-    }
-  }, [gameState?.settings]);
-
-  // Host updates DB when local state changes
-  useEffect(() => {
-      if (isHost) {
-          const newSettings = { rounds: maxRounds, time: roundTime, artist: targetArtist };
-          if (JSON.stringify(newSettings) !== JSON.stringify(gameState?.settings)) {
-              updateSettings(newSettings);
-          }
-      }
-  }, [maxRounds, roundTime, targetArtist, isHost]);
 
   // Sync Timer
   useEffect(() => {
@@ -147,7 +125,6 @@ export default function LyricsGuesser({ roomCode, settings }: LyricsGuesserProps
       const songs = await fetchLyrics(artist, maxRounds);
       
       if (songs.length === 0) {
-          // Handle error (show message?)
           console.error("Impossible de trouver des chansons pour cet artiste.");
           return;
       }
@@ -168,6 +145,13 @@ export default function LyricsGuesser({ roomCode, settings }: LyricsGuesserProps
     }
   };
 
+  // Auto-start
+  useEffect(() => {
+    if (isHost && gameState?.round_data?.phase === 'setup') {
+        startRound();
+    }
+  }, [isHost, gameState?.round_data?.phase]);
+
   const handleNextRound = async () => {
     if (!isHost || !gameState?.round_data) return;
     
@@ -182,11 +166,7 @@ export default function LyricsGuesser({ roomCode, settings }: LyricsGuesserProps
                const endTime = Date.now() + roundTime * 1000;
                await nextRound({ lyrics: nextSong, queue: [], endTime });
            } else {
-               // End game
-               // The useGameSync hook handles game over if we call nextRound without data?
-               // No, it just increments round.
-               // We should probably force game over or restart.
-               // Let's just try to restart with what we have (nothing) -> Error
+               // End game logic here if needed
            }
            return;
       }
@@ -291,100 +271,60 @@ export default function LyricsGuesser({ roomCode, settings }: LyricsGuesserProps
 
   return (
     <GameLayout
-      players={playersMap}
+      gameTitle="LyricsGuessr"
       roundCount={currentRound}
       maxRounds={maxRounds}
       timer={formattedTimer}
-      gameCode={roomCode ?? ''}
-      gameTitle="LyricsGuessr"
-      isHost={isHost}
-      gameStarted={gameStarted}
-      onStartGame={startRound}
+      players={playersMap}
       timeLeft={timeLeft}
-      typingPlayer={typingPlayer}
+      gameStarted={gameStarted}
     >
-      <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto gap-8">
+      <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto gap-8 animate-in fade-in duration-700">
         {!gameStarted ? (
-          <div className="text-center space-y-6">
-            <h2 className="text-2xl font-bold">En attente du lancement...</h2>
+          <div className="flex flex-col items-center gap-6 text-center">
+            <Mic2 className="w-24 h-24 text-pink-500 animate-pulse" />
+            <h2 className="text-3xl font-bold text-white">Prêt pour le karaoké ?</h2>
+            <p className="text-slate-400 max-w-md">
+               Devinez le titre de la chanson à partir des paroles affichées.
+            </p>
+            <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                <span className="text-sm text-slate-400 uppercase tracking-widest block mb-1">Artiste sélectionné</span>
+                <span className="text-xl font-bold text-white">{targetArtist}</span>
+            </div>
             {isHost ? (
-              <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm w-full max-w-lg">
-                <p className="mb-4">Configurez la partie :</p>
-                <div className="grid grid-cols-2 gap-4 text-left mb-6">
-                   <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Rounds</span>
-                      <Input 
-                        type="number" 
-                        value={maxRounds} 
-                        onChange={e => setMaxRounds(parseInt(e.target.value))} 
-                        className="bg-white/5 border-white/10"
-                      />
-                   </div>
-                   <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Temps (s)</span>
-                      <Input 
-                        type="number" 
-                        value={roundTime} 
-                        onChange={e => setRoundTime(parseInt(e.target.value))} 
-                        className="bg-white/5 border-white/10"
-                      />
-                   </div>
-                </div>
-                
-                <div className="mb-6">
-                    <span className="text-sm text-gray-400 block mb-2">Artiste</span>
-                    <Input 
-                        type="text" 
-                        placeholder="Ex: Damso, Orelsan, Queen..."
-                        value={artistInput} 
-                        onChange={e => {
-                            setArtistInput(e.target.value);
-                            setTargetArtist(e.target.value);
-                        }} 
-                        className="bg-white/5 border-white/10"
-                    />
-                </div>
-
-                <Button size="lg" onClick={startRound} className="w-full" disabled={!artistInput && !targetArtist}>
+               <Button onClick={startRound} size="lg" className="mt-4 bg-pink-600 hover:bg-pink-500 text-lg px-8 py-6 rounded-xl shadow-lg shadow-pink-500/20">
                   Lancer la partie
-                </Button>
-              </div>
+               </Button>
             ) : (
-              <div className="flex flex-col items-center gap-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-                <p>L'hôte configure la partie...</p>
-                 <div className="grid grid-cols-2 gap-4 text-left max-w-md mx-auto mt-4 opacity-75">
-                   <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Rounds</span>
-                      <span className="font-bold">{maxRounds}</span>
-                   </div>
-                   <div className="flex flex-col">
-                      <span className="text-sm text-gray-400">Artiste</span>
-                      <span className="font-bold">{targetArtist || '...'}</span>
-                   </div>
-                </div>
-              </div>
+               <div className="flex items-center gap-2 text-pink-400 bg-pink-950/30 px-4 py-2 rounded-full border border-pink-500/30 animate-pulse">
+                  <div className="w-2 h-2 bg-pink-400 rounded-full" />
+                  En attente de l'hôte...
+               </div>
             )}
           </div>
         ) : (
           <>
             {roundData && (
-              <div className="w-full max-w-3xl mx-auto mb-8">
-                 <div className="bg-white/5 p-8 rounded-xl backdrop-blur-md border border-white/10 text-center relative overflow-hidden">
-                    <Music className="w-24 h-24 text-white/5 absolute -top-4 -right-4 -rotate-12" />
-                    <p className="text-xl md:text-2xl font-serif leading-relaxed italic text-white/90">
+              <div className="w-full max-w-3xl mx-auto mb-8 animate-in slide-in-from-bottom-8 duration-700">
+                 <div className="bg-slate-900/60 p-10 rounded-3xl backdrop-blur-md border border-white/10 text-center relative overflow-hidden shadow-2xl group hover:border-pink-500/30 transition-colors">
+                    <Music className="w-32 h-32 text-white/5 absolute -top-8 -right-8 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
+                    <p className="text-2xl md:text-4xl font-serif leading-relaxed italic text-white/90 drop-shadow-md">
                       "{roundData.extract}"
                     </p>
-                    <div className="mt-4 text-sm text-gray-400 uppercase tracking-widest">
-                       — {roundData.artist}
+                    <div className="mt-6 flex items-center justify-center gap-3">
+                       <div className="h-px w-12 bg-white/20" />
+                       <span className="text-sm text-pink-400 font-bold uppercase tracking-widest">
+                          {roundData.artist}
+                       </span>
+                       <div className="h-px w-12 bg-white/20" />
                     </div>
                  </div>
               </div>
             )}
 
             {!roundEnded ? (
-              <div className="w-full max-w-md space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="relative">
+              <div className="w-full max-w-md space-y-6 animate-in fade-in delay-300 duration-700">
+                <div className="relative group">
                   <Input
                     type="text"
                     placeholder="Titre de la chanson ?"
@@ -397,16 +337,23 @@ export default function LyricsGuesser({ roomCode, settings }: LyricsGuesserProps
                       });
                     }}
                     onKeyDown={(e) => e.key === 'Enter' && handleAnswer()}
-                    className="h-14 text-lg pr-12 text-center font-bold"
+                    className="h-16 text-xl pr-14 text-center font-bold bg-slate-800/50 border-white/10 focus:ring-pink-500 focus:border-pink-500 rounded-xl shadow-inner transition-all"
                     autoFocus
                   />
-                  <div className="absolute right-2 top-2 bottom-2 w-10 flex items-center justify-center text-gray-400">
-                    <Zap className="w-5 h-5" />
+                  <div className="absolute right-3 top-3 bottom-3 w-10 flex items-center justify-center text-slate-500 group-focus-within:text-pink-400 transition-colors">
+                    <Zap className="w-6 h-6" />
                   </div>
                 </div>
+
+                {typingPlayer && (
+                    <p className="text-center text-xs text-pink-400 animate-pulse font-mono -mt-4">
+                        {typingPlayer} est en train d'écrire...
+                    </p>
+                )}
+
                 <Button
                   size="lg"
-                  className="w-full h-14 text-lg font-bold shadow-lg shadow-pink-500/20 hover:shadow-pink-500/40 transition-all"
+                  className="w-full h-14 text-lg font-bold bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 shadow-lg shadow-pink-500/20 hover:shadow-pink-500/40 transition-all rounded-xl"
                   onClick={handleAnswer}
                 >
                   Valider
@@ -415,7 +362,7 @@ export default function LyricsGuesser({ roomCode, settings }: LyricsGuesserProps
                 {answeredPlayers.length > 0 && (
                    <div className="flex flex-wrap gap-2 justify-center mt-4">
                       {answeredPlayers.map(p => (
-                         <div key={p} className="flex items-center gap-1 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs">
+                         <div key={p} className="flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-medium animate-in zoom-in duration-300">
                            <Check className="w-3 h-3" /> {p}
                          </div>
                       ))}
@@ -423,57 +370,65 @@ export default function LyricsGuesser({ roomCode, settings }: LyricsGuesserProps
                 )}
               </div>
             ) : (
-              <div className="w-full max-w-2xl bg-white/5 rounded-2xl p-8 backdrop-blur-sm border border-white/10 animate-in zoom-in-95 duration-300">
-                <div className="text-center mb-8">
-                  <h3 className="text-3xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-600">
-                    C'était...
+              <div className="w-full max-w-2xl bg-slate-900/80 rounded-3xl p-8 backdrop-blur-xl border border-white/10 animate-in zoom-in-95 duration-500 shadow-2xl">
+                <div className="text-center mb-8 relative">
+                   <div className="absolute inset-0 bg-pink-500/20 blur-3xl rounded-full -z-10" />
+                  <h3 className="text-sm font-bold mb-4 text-pink-400 uppercase tracking-widest">
+                    La réponse était
                   </h3>
-                  <div className="flex items-center justify-center gap-6 mb-4">
-                      {roundData?.cover && (
-                          <div className="w-32 h-32 relative rounded-lg overflow-hidden shadow-lg">
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-8 mb-6">
+                      {roundData?.cover ? (
+                          <div className="w-40 h-40 relative rounded-xl overflow-hidden shadow-2xl border-2 border-white/10 rotate-3 transition-transform hover:rotate-0 duration-500">
                               <Image src={roundData.cover} alt="Cover" fill className="object-cover" />
                           </div>
+                      ) : (
+                          <div className="w-40 h-40 bg-slate-800 rounded-xl flex items-center justify-center">
+                              <Disc className="w-20 h-20 text-slate-600 animate-spin-slow" />
+                          </div>
                       )}
-                      <div className="text-left">
-                          <div className="text-4xl font-black text-white mb-1">
+                      <div className="text-center md:text-left">
+                          <div className="text-3xl md:text-5xl font-black text-white mb-2 leading-tight">
                             {roundData?.title}
                           </div>
-                          <div className="text-xl text-gray-400">
+                          <div className="text-xl text-slate-400 font-medium">
                             {roundData?.artist}
                           </div>
                       </div>
                   </div>
                 </div>
 
-                <div className="space-y-3 mb-8 max-h-60 overflow-y-auto custom-scrollbar">
+                <div className="space-y-3 mb-8 max-h-60 overflow-y-auto custom-scrollbar pr-2">
                   {playerResults.map((p, i) => (
                     <div
                       key={p.player}
-                      className={`flex items-center justify-between p-4 rounded-xl transition-all ${
+                      className={`flex items-center justify-between p-4 rounded-xl transition-all border ${
                         p.isCorrect
-                          ? 'bg-green-500/10 border border-green-500/30'
-                          : 'bg-red-500/10 border border-red-500/30'
+                          ? 'bg-emerald-500/10 border-emerald-500/20'
+                          : 'bg-rose-500/10 border-rose-500/20'
                       }`}
                     >
                       <div className="flex items-center gap-4">
-                        <span className="font-medium text-lg">{p.player}</span>
+                        <span className="font-bold text-lg text-slate-200">{p.player}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-lg">{p.answer}</span>
-                        {p.isCorrect ? <CheckCircle className="text-green-400 w-5 h-5" /> : <XCircle className="text-red-400 w-5 h-5" />}
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-sm text-slate-400 uppercase tracking-wide">{p.answer !== '-' ? p.answer : 'Pas de réponse'}</span>
+                        {p.isCorrect ? <CheckCircle className="text-emerald-400 w-6 h-6" /> : <XCircle className="text-rose-400 w-6 h-6" />}
                       </div>
                     </div>
                   ))}
                 </div>
 
                 {isHost && (
-                  <Button
-                    size="lg"
-                    className="w-full h-14 text-lg font-bold bg-white text-black hover:bg-gray-200"
-                    onClick={handleNextRound}
-                  >
-                    Manche suivante
-                  </Button>
+                  <div className="flex justify-center">
+                      <Button
+                        size="lg"
+                        className="bg-white text-black hover:bg-slate-200 text-lg px-10 py-6 rounded-full shadow-lg shadow-white/10 transition-all hover:scale-105 font-bold"
+                        onClick={handleNextRound}
+                      >
+                        Manche suivante
+                        <ArrowRight className="w-5 h-5 ml-2" />
+                      </Button>
+                  </div>
                 )}
               </div>
             )}

@@ -9,5 +9,5 @@ export default function FlagGuesserPage({
   params: { code: string },
   searchParams: { [key: string]: string }
 }) {
-  return <FlagGuesser roomCode={params.code} settings={searchParams} />;
+  return <FlagGuesser roomCode={params.code} />;
 }

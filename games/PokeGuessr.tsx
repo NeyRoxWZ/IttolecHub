@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { Trophy, CheckCircle, XCircle, Zap, Check } from 'lucide-react';
+import { CheckCircle, XCircle, Zap, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 
@@ -30,18 +30,11 @@ interface PokeGuessrProps {
   settings?: { [key: string]: string };
 }
 
-export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
+export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
   const [userAnswer, setUserAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(30);
-  const [maxRounds, setMaxRounds] = useState(5);
-  const [roundTime, setRoundTime] = useState(30);
-  const [typingPlayer, setTypingPlayer] = useState<string | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
   
-  // Settings
-  const [selectedGens, setSelectedGens] = useState<number[]>([1]);
-  const [difficulty, setDifficulty] = useState<string>('normal');
-
   // Sync with DB
   const {
     roomStatus,
@@ -49,7 +42,6 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     gameState,
     isHost,
     playerId,
-    updateSettings,
     startGame,
     submitAnswer,
     nextRound,
@@ -58,32 +50,21 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     updatePlayerScore
   } = useGameSync(roomCode ?? '', 'pokeguessr');
 
-  // DEBUG LOGS
-  useEffect(() => {
-    console.log('[PokeGuessr] roomCode:', roomCode);
-    console.log('[PokeGuessr] gameState:', gameState);
-    console.log('[PokeGuessr] roomStatus:', roomStatus);
-    console.log('[PokeGuessr] round_data:', gameState?.round_data);
-  }, [gameState, roomStatus, roomCode]);
-
-  // AUTO-START if setup phase
-  useEffect(() => {
-      if (isHost && gameState?.round_data?.phase === 'setup') {
-          console.log('[PokeGuessr] Triggering auto-start from setup phase...');
-          startRound();
-      }
-  }, [isHost, gameState?.round_data?.phase]);
-
   // Realtime
-  const { broadcast, messages } = useRealtime(roomCode ?? '', 'pokeguessr');
+  const { broadcast } = useRealtime(roomCode ?? '', 'pokeguessr');
 
   const playerName =
     typeof window !== 'undefined'
       ? sessionStorage.getItem('playerName') || 'Anonyme'
       : 'Anonyme';
 
-  // Derived State
-  const gameStarted = roomStatus === 'in_game';
+  // Derived State from GameState
+  const settings = gameState?.settings || {};
+  const maxRounds = Number(settings.rounds || 5);
+  const roundTime = Number(settings.time || 30);
+  const difficulty = settings.difficulty || 'normal';
+  const selectedGens = settings.gens || [1];
+
   const roundEnded = gameState?.status === 'round_results' || gameState?.status === 'game_over';
   const pokemon: PokemonData | null = gameState?.round_data?.pokemon || null;
   const currentRound = gameState?.current_round || 0;
@@ -91,36 +72,6 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
   const playersMap = useMemo(() => {
     return players.reduce((acc, p) => ({ ...acc, [p.name]: p.score }), {} as Record<string, number>);
   }, [players]);
-
-  // Sync settings
-  useEffect(() => {
-    if (gameState?.settings) {
-      if (gameState.settings.rounds) setMaxRounds(Number(gameState.settings.rounds));
-      if (gameState.settings.time) setRoundTime(Number(gameState.settings.time));
-      if (gameState.settings.difficulty) setDifficulty(gameState.settings.difficulty);
-      if (gameState.settings.gens && Array.isArray(gameState.settings.gens)) {
-          if (JSON.stringify(gameState.settings.gens) !== JSON.stringify(selectedGens)) {
-               setSelectedGens(gameState.settings.gens);
-          }
-      }
-    }
-  }, [gameState?.settings]);
-
-  // Host updates DB when local state changes
-  useEffect(() => {
-      if (isHost) {
-          const newSettings = { 
-              rounds: maxRounds, 
-              time: roundTime, 
-              gens: selectedGens,
-              difficulty
-          };
-          
-          if (JSON.stringify(newSettings) !== JSON.stringify(gameState?.settings)) {
-               updateSettings(newSettings);
-          }
-      }
-  }, [maxRounds, roundTime, selectedGens, difficulty, isHost, gameState?.settings, updateSettings]);
 
   // Sync Timer
   useEffect(() => {
@@ -135,7 +86,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
   // Timer interval
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined;
-    if (gameStarted && !roundEnded && timeLeft > 0) {
+    if (timeLeft > 0 && !roundEnded) {
       interval = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -149,7 +100,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [gameStarted, roundEnded, timeLeft, isHost]);
+  }, [timeLeft, roundEnded, isHost]);
 
   const formattedTimer = useMemo(() => {
     const minutes = Math.floor(timeLeft / 60);
@@ -157,6 +108,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }, [timeLeft]);
 
+  // Helper functions
   const fetchPokemon = async (id: number): Promise<PokemonData | null> => {
     try {
       const res = await fetch(`/api/games/pokemon?id=${id}`);
@@ -168,7 +120,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     }
   };
 
-  const getPokemonIdsForGens = async (gens: number[], count: number): Promise<number[]> => {
+  const getPokemonIdsForGens = async (gens: any, count: number): Promise<number[]> => {
       const genLimits = {
         1: { min: 1, max: 151 },
         2: { min: 152, max: 251 },
@@ -182,9 +134,10 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
       };
 
       let allIds: number[] = [];
-      const safeGens = (!gens || gens.length === 0) ? [1] : gens;
+      // Handle gens being string "1,2,3" or array [1,2,3]
+      const gensArray = Array.isArray(gens) ? gens : (typeof gens === 'string' ? gens.split(',').map(Number) : [1]);
       
-      safeGens.forEach(g => {
+      gensArray.forEach((g: number) => {
           const limit = genLimits[g as keyof typeof genLimits];
           if (limit) {
               for (let i = limit.min; i <= limit.max; i++) {
@@ -201,29 +154,22 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
       return allIds.slice(0, count);
   };
 
+  // Game Logic
   const startRound = async () => {
     if (!isHost || !roomCode) return;
-    
-    // Prevent multiple starts
     if (gameState?.round_data?.phase === 'active' && gameState?.round_data?.pokemon) return;
 
     try {
-      console.log('Fetching pokemon...');
       const ids = await getPokemonIdsForGens(selectedGens, maxRounds);
-      if (ids.length === 0) {
-          console.error('No pokemon IDs found');
-          return;
-      }
+      if (ids.length === 0) return;
 
       const firstId = ids[0];
       const pokemon = await fetchPokemon(firstId);
       const queue = ids.slice(1);
       const endTime = Date.now() + roundTime * 1000;
       
-      console.log('Starting game with:', pokemon);
-      
       await startGame({
-        phase: 'active', // Mark as active to avoid loops
+        phase: 'active',
         pokemon,
         queue,
         endTime,
@@ -308,8 +254,6 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
 
              if (correctNames.includes(normAnswer)) {
                  isCorrect = true;
-                 
-                 // Scoring: <5s -> 1000, <mid -> 700, >mid -> 400
                  const midTime = roundTime / 2;
                  if (timeTaken < 5) {
                      score = 1000;
@@ -358,123 +302,47 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     return () => clearTimeout(timeout);
   }, [userAnswer, broadcast, playerName]);
 
+  // Auto-start
+  useEffect(() => {
+      if (isHost && gameState?.round_data?.phase === 'setup') {
+          startRound();
+      }
+  }, [isHost, gameState?.round_data?.phase]);
+
   const getImageStyle = () => {
       if (roundEnded) return {};
-      
       switch(difficulty) {
-          case 'easy':
-              return { filter: 'blur(10px)' };
-          case 'hard':
-              return { filter: 'brightness(0) rotate(180deg)' };
-          case 'normal':
-          default:
-              return { filter: 'brightness(0)' };
+          case 'easy': return { filter: 'blur(10px)' };
+          case 'hard': return { filter: 'brightness(0) rotate(180deg)' };
+          case 'normal': default: return { filter: 'brightness(0)' };
       }
   };
 
   return (
     <GameLayout
-      players={playersMap}
+      gameTitle="PokéGuessr"
       roundCount={currentRound}
       maxRounds={maxRounds}
       timer={formattedTimer}
-      gameCode={roomCode ?? ''}
-      gameTitle="PokéGuessr"
-      isHost={isHost}
-      gameStarted={gameStarted}
-      onStartGame={startRound}
+      players={playersMap}
       timeLeft={timeLeft}
-      typingPlayer={typingPlayer}
     >
       <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto gap-8">
-        {!gameStarted ? (
-          <div className="text-center space-y-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold">PokéGuessr</h2>
-            {isHost ? (
-              <div className="p-6 bg-white/10 rounded-lg backdrop-blur-sm space-y-4">
-                <p className="mb-4">Configurez la partie :</p>
-                
-                <div className="space-y-4 text-left">
-                   <div>
-                      <label className="block text-sm text-gray-400 mb-1">Nombre de manches ({maxRounds})</label>
-                      <input 
-                        type="range" 
-                        min="1" 
-                        max="20" 
-                        value={maxRounds} 
-                        onChange={(e) => setMaxRounds(parseInt(e.target.value))}
-                        className="w-full"
-                      />
-                   </div>
-                   
-                   <div>
-                      <label className="block text-sm text-gray-400 mb-1">Temps par manche ({roundTime}s)</label>
-                      <input 
-                        type="range" 
-                        min="10" 
-                        max="60" 
-                        value={roundTime} 
-                        onChange={(e) => setRoundTime(parseInt(e.target.value))}
-                        className="w-full"
-                      />
-                   </div>
-
-                   <div>
-                      <label className="block text-sm text-gray-400 mb-1">Difficulté</label>
-                      <select 
-                        value={difficulty} 
-                        onChange={(e) => setDifficulty(e.target.value)}
-                        className="w-full bg-black/20 border border-white/20 rounded p-2"
-                      >
-                        <option value="easy">Facile (Flou)</option>
-                        <option value="normal">Normal (Silhouette)</option>
-                        <option value="hard">Difficile (Renversé)</option>
-                      </select>
-                   </div>
-                   
-                   <div>
-                      <label className="block text-sm text-gray-400 mb-1">Générations</label>
-                      <div className="flex flex-wrap gap-2">
-                          {[1,2,3,4,5,6,7,8,9].map(g => (
-                              <button 
-                                key={g}
-                                onClick={() => {
-                                    if (selectedGens.includes(g)) {
-                                        if (selectedGens.length > 1) setSelectedGens(selectedGens.filter(x => x !== g));
-                                    } else {
-                                        setSelectedGens([...selectedGens, g]);
-                                    }
-                                }}
-                                className={`px-2 py-1 rounded text-xs border ${selectedGens.includes(g) ? 'bg-white text-black border-white' : 'bg-transparent border-white/40'}`}
-                              >
-                                  Gen {g}
-                              </button>
-                          ))}
-                      </div>
-                   </div>
-                </div>
-
-                <Button size="lg" className="w-full mt-4" onClick={startRound}>
-                  Lancer la partie
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-                <p>En attente de l'hôte...</p>
-              </div>
-            )}
-          </div>
-        ) : !roundEnded && pokemon ? (
-          <div className="w-full max-w-2xl flex flex-col items-center gap-6 animate-in fade-in duration-500">
-             <div className="relative w-64 h-64 flex items-center justify-center">
+        {!pokemon ? (
+           <div className="flex flex-col items-center gap-4">
+              <Loader2 className="w-12 h-12 animate-spin text-yellow-400" />
+              <p className="text-xl font-medium animate-pulse">Chargement du Pokémon...</p>
+           </div>
+        ) : !roundEnded ? (
+          <div className="w-full max-w-2xl flex flex-col items-center gap-8 animate-in fade-in duration-500">
+             <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center drop-shadow-[0_0_15px_rgba(255,203,5,0.3)]">
                 <Image 
                    src={pokemon.imageUrl} 
                    alt="Pokemon" 
-                   width={256}
-                   height={256}
+                   fill
                    className="object-contain transition-all duration-500"
                    style={getImageStyle()}
+                   priority
                 />
              </div>
              
@@ -484,7 +352,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
                     placeholder="Quel est ce Pokémon ?" 
                     value={userAnswer}
                     onChange={(e) => setUserAnswer(e.target.value)}
-                    className="text-center text-xl py-6"
+                    className="text-center text-xl py-6 bg-slate-800/50 border-yellow-500/20 focus:border-yellow-500 transition-colors"
                     disabled={hasAnswered}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') handleAnswerSubmit();
@@ -494,7 +362,7 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
                 
                 <Button 
                     size="lg" 
-                    className="w-full" 
+                    className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-lg h-14" 
                     onClick={handleAnswerSubmit}
                     disabled={hasAnswered || !userAnswer}
                 >
@@ -502,59 +370,58 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
                 </Button>
              </div>
           </div>
-        ) : roundEnded && pokemon ? (
+        ) : (
            <div className="w-full max-w-2xl flex flex-col items-center gap-6 animate-in zoom-in duration-300">
-              <h2 className="text-3xl font-bold text-yellow-400">Résultats</h2>
-              
               <div className="flex flex-col items-center gap-2 mb-4">
-                 <div className="relative w-40 h-40 mb-2">
+                 <div className="relative w-48 h-48 mb-2 drop-shadow-[0_0_20px_rgba(255,203,5,0.6)]">
                     <Image 
                        src={pokemon.imageUrl} 
                        alt="Pokemon" 
-                       width={160}
-                       height={160}
+                       fill
                        className="object-contain"
                     />
                  </div>
-                 <h3 className="text-2xl font-bold capitalize">{pokemon.names.fr || Object.values(pokemon.names)[0]}</h3>
+                 <h2 className="text-4xl font-black text-yellow-400 uppercase tracking-wider">
+                    {pokemon.names.fr || Object.values(pokemon.names)[0]}
+                 </h2>
               </div>
 
               <div className="w-full space-y-3">
                  {gameState.round_data.results?.map((res: PlayerAnswer, idx: number) => (
                     <div 
                         key={idx} 
-                        className={`flex items-center justify-between p-4 rounded-lg border ${
-                            idx === 0 ? 'bg-yellow-500/20 border-yellow-500' : 'bg-white/5 border-white/10'
+                        className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                            idx === 0 ? 'bg-yellow-500/20 border-yellow-500 shadow-[0_0_10px_rgba(255,203,5,0.2)]' : 'bg-white/5 border-white/10'
                         }`}
                     >
-                        <div className="flex items-center gap-3">
-                            <span className="font-bold text-lg w-6">{idx + 1}.</span>
+                        <div className="flex items-center gap-4">
+                            <span className="font-black text-xl w-6 text-slate-400">{idx + 1}.</span>
                             <div className="flex flex-col">
-                                <span className="font-bold">{res.player}</span>
-                                <span className="text-xs text-gray-400">
+                                <span className="font-bold text-lg">{res.player}</span>
+                                <span className="text-sm text-slate-400">
                                     {res.answer} 
                                 </span>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                             {res.isCorrect ? (
                                 <CheckCircle className="text-green-400 w-6 h-6" />
                             ) : (
                                 <XCircle className="text-red-400 w-6 h-6" />
                             )}
-                            <span className="font-bold text-xl">+{res.score} pts</span>
+                            <span className="font-black text-xl text-yellow-400">+{res.score}</span>
                         </div>
                     </div>
                  ))}
               </div>
 
               {isHost && (
-                  <Button size="lg" className="mt-6" onClick={handleNextRound}>
+                  <Button size="lg" className="mt-6 w-full max-w-sm bg-indigo-600 hover:bg-indigo-500 h-14 text-lg font-bold" onClick={handleNextRound}>
                       {currentRound < maxRounds ? 'Manche suivante' : 'Terminer la partie'}
                   </Button>
               )}
            </div>
-        ) : null}
+        )}
       </div>
     </GameLayout>
   );
