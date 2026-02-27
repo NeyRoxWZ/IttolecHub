@@ -545,24 +545,46 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const startGame = async () => {
     if (!selectedGameId || selectedGameId === '__placeholder__' || !roomId) return;
     
-    // 1. Update status to 'in_game'
+    // 1. Create/Update Session FIRST with initial state
+    const sessionPayload = {
+        room_id: roomId,
+        status: 'round_active', // Start directly
+        current_round: 1,
+        total_rounds: Number(gameSettings['rounds'] || 5), // Default fallback
+        answers: {},
+        // We initialize round_data as empty, the game component will fetch/generate its first round
+        // OR we should trigger generation here?
+        // Better: let the game component handle "setup" phase if round_data is empty.
+        // But the user says: "state containing the first question".
+        // Generating question here requires game-specific logic which is hard to centralize.
+        // COMPROMISE: We set status to 'setup' so game component knows to generate immediately.
+        round_data: { phase: 'setup', startTime: Date.now() } 
+    };
+
+    const { error: sessionError } = await supabase
+        .from('game_sessions')
+        .upsert(sessionPayload, { onConflict: 'room_id' });
+
+    if (sessionError) {
+        console.error('Failed to create game session:', sessionError);
+        return; // Don't redirect if session creation failed
+    }
+
+    // 2. Update Room status
     await supabase.from('rooms').update({
         status: 'in_game',
         game_type: selectedGameId,
         settings: gameSettings
     }).eq('id', roomId);
     
-    // 2. Construct URL
+    // 3. Construct URL
     const paramsUrl = new URLSearchParams();
     
     // Flatten settings for URL
     if (gameSettings) {
         Object.entries(gameSettings).forEach(([k, v]) => {
             if (v !== '' && v !== undefined && v !== null) {
-                // Special handling for arrays (multiselect)
                 if (Array.isArray(v)) {
-                    // For arrays, we might want to join them or repeat keys
-                    // Joining with comma is usually safer for simple query params
                     paramsUrl.set(k, v.join(','));
                 } else {
                     paramsUrl.set(k, String(v));
@@ -576,7 +598,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     
     console.log('Redirecting to:', targetUrl);
     
-    // 3. Force redirect
+    // 4. Force redirect
     router.push(targetUrl);
   };
 

@@ -58,6 +58,22 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
     updatePlayerScore
   } = useGameSync(roomCode ?? '', 'pokeguessr');
 
+  // DEBUG LOGS
+  useEffect(() => {
+    console.log('[PokeGuessr] roomCode:', roomCode);
+    console.log('[PokeGuessr] gameState:', gameState);
+    console.log('[PokeGuessr] roomStatus:', roomStatus);
+    console.log('[PokeGuessr] round_data:', gameState?.round_data);
+  }, [gameState, roomStatus, roomCode]);
+
+  // AUTO-START if setup phase
+  useEffect(() => {
+      if (isHost && gameState?.round_data?.phase === 'setup') {
+          console.log('[PokeGuessr] Triggering auto-start from setup phase...');
+          startRound();
+      }
+  }, [isHost, gameState?.round_data?.phase]);
+
   // Realtime
   const { broadcast, messages } = useRealtime(roomCode ?? '', 'pokeguessr');
 
@@ -187,17 +203,27 @@ export default function PokeGuessr({ roomCode, settings }: PokeGuessrProps) {
 
   const startRound = async () => {
     if (!isHost || !roomCode) return;
+    
+    // Prevent multiple starts
+    if (gameState?.round_data?.phase === 'active' && gameState?.round_data?.pokemon) return;
 
     try {
+      console.log('Fetching pokemon...');
       const ids = await getPokemonIdsForGens(selectedGens, maxRounds);
-      if (ids.length === 0) return;
+      if (ids.length === 0) {
+          console.error('No pokemon IDs found');
+          return;
+      }
 
       const firstId = ids[0];
       const pokemon = await fetchPokemon(firstId);
       const queue = ids.slice(1);
       const endTime = Date.now() + roundTime * 1000;
       
+      console.log('Starting game with:', pokemon);
+      
       await startGame({
+        phase: 'active', // Mark as active to avoid loops
         pokemon,
         queue,
         endTime,
