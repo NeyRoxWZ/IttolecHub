@@ -67,6 +67,20 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   const currentRoundNumber = gameState?.current_round || 0;
   const readyPlayers = (roundData.readyPlayers as string[]) || [];
   const currentClueRound = roundData.currentClueRound || 1;
+  const notification = roundData.notification as { id: string, message: string, type: 'success' | 'info' | 'error' } | null;
+  const skipVotes = (roundData.skipVotes as string[]) || [];
+
+  // Notification Sync
+  useEffect(() => {
+    if (notification && notification.id !== lastNotificationId.current) {
+        lastNotificationId.current = notification.id;
+        if (notification.type === 'success') toast.success(notification.message);
+        else if (notification.type === 'error') toast.error(notification.message);
+        else toast.info(notification.message);
+    }
+  }, [notification]);
+
+  const lastNotificationId = useRef<string>('');
 
   // Players Map
   const playersMap = useMemo(() => {
@@ -77,6 +91,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   const isMyTurn = currentPhase === 'clues' && currentSpeakerId === playerId;
   const isAlive = playerId && alivePlayers.includes(playerId);
   const amIReady = playerId && readyPlayers.includes(playerId);
+  const [showRole, setShowRole] = useState(false);
 
   // Timer Sync using Server Time
   useEffect(() => {
@@ -97,6 +112,14 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   }, [roundData.endTime, getTimeLeft]);
 
 
+  // Fix: Force refresh if roles are present but phase is weird
+  useEffect(() => {
+      if (currentPhase === 'roles' && !myRole && roles && playerId && roles[playerId]) {
+          // This should trigger a re-render automatically, but if stuck:
+          console.log("Forcing role refresh", roles[playerId]);
+      }
+  }, [currentPhase, myRole, roles, playerId]);
+
   // --- HOST LOGIC ---
 
   // Phase Management
@@ -107,23 +130,26 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         // 1. Roles Phase -> Clues Phase (Wait for ALL Ready - NO TIMER)
         if (currentPhase === 'roles') {
              const allReady = alivePlayers.every(id => readyPlayers.includes(id));
-             if (allReady && alivePlayers.length > 0) { // Ensure players exist
+             if (allReady && alivePlayers.length > 0) { 
                  await updateRoundData({
                      ...roundData,
                      phase: 'clues',
                      currentSpeaker: alivePlayers[0],
-                     endTime: null,
-                     currentClueRound: 1
+                     endTime: null, // NO TIMER FOR CLUES
+                     currentClueRound: 1,
+                     notification: { id: Date.now().toString(), message: "Tout le monde est prêt ! Début des indices.", type: 'info' }
                  });
              }
         }
 
-        // 3. Discussion Phase -> Vote Phase (after time)
+        // 3. Discussion Phase -> Vote Phase (after time OR skipped)
+        // Note: Discussion phase is now mostly visual, actual skipping is manual or auto-triggered
         if (currentPhase === 'discussion' && timeLeft === 0 && roundData.endTime) {
              await updateRoundData({
                  ...roundData,
                  phase: 'vote',
-                 endTime: Date.now() + voteTime * 1000
+                 endTime: Date.now() + voteTime * 1000,
+                 notification: { id: Date.now().toString(), message: "Fin de la discussion ! Place au vote.", type: 'info' }
              });
         }
 
@@ -136,6 +162,17 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     managePhases();
   }, [isHost, currentPhase, timeLeft, roundData, alivePlayers, voteTime, readyPlayers]);
 
+
+  const notifyAll = async (message: string, type: 'success' | 'info' | 'error' = 'info') => {
+      await updateRoundData({
+          ...roundData,
+          notification: {
+              id: Date.now().toString(),
+              message,
+              type
+          }
+      });
+  };
 
   const startNewGame = async () => {
     if (!isHost) return;
@@ -167,9 +204,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             readyPlayers: [], // Reset ready
             currentClueRound: 1,
             queue: remainingQueue,
-            endTime: null // Manual ready (no timer)
+            endTime: null, // Manual ready (no timer)
+            notification: { id: Date.now().toString(), message: "Partie lancée ! Révélation des rôles...", type: 'success' }
         });
-        toast.success("Partie lancée !");
     } catch (e) {
         console.error(e);
         toast.error("Erreur au démarrage");
@@ -231,11 +268,16 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         // No elimination, back to clues? Or discussion?
         // Let's go back to clues for another round
         toast('Égalité ! Personne n\'est éliminé.');
+        
+        // Reset to discussion to allow re-vote if needed? No, rules say back to clues or next
+        // But if we came from "Skip to Vote", we might need to handle this.
+        
+        // Let's just restart vote phase with timer
         await updateRoundData({
             ...roundData,
-            phase: 'clues',
-            currentSpeaker: alivePlayers[0],
-            // clues: [] // Keep history
+            phase: 'vote',
+            endTime: Date.now() + voteTime * 1000,
+            notification: { id: Date.now().toString(), message: "Égalité ! Revotez !", type: 'error' }
         });
         return;
     }
@@ -249,13 +291,14 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             ...roundData,
             eliminated: eliminatedId,
             phase: 'mrwhite_guess',
-            endTime: Date.now() + 30000 // 30s to guess
+            endTime: Date.now() + 30000, // 30s to guess
+            notification: { id: Date.now().toString(), message: "Mr. White trouvé ! Il peut se sauver...", type: 'success' }
         });
         return;
     }
 
     // Standard Elimination
-    handleElimination(eliminatedId);
+    await handleElimination(eliminatedId);
   };
 
   const handleElimination = async (eliminatedId: string) => {
@@ -269,10 +312,10 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     const impostorsCount = (hasUndercover ? 1 : 0) + (hasMrWhite ? 1 : 0);
 
     if (!hasUndercover && !hasMrWhite) {
-        // Civils Win
+        // Civils Win (All impostors eliminated)
         await finishGame('CIVILS', newAlive);
     } else if (impostorsCount >= civilsCount) {
-        // Impostors Win
+        // Impostors Win (Equal or more impostors than civils)
         await finishGame('IMPOSTORS', newAlive);
     } else {
         // Continue
@@ -282,7 +325,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             alivePlayers: newAlive,
             phase: 'clues',
             currentSpeaker: newAlive[0],
-            endTime: null
+            endTime: null, // NO TIMER
+            notification: { id: Date.now().toString(), message: "Un joueur a été éliminé. La partie continue !", type: 'info' }
         });
     }
   };
@@ -292,7 +336,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
           ...roundData,
           winner,
           phase: 'results',
-          alivePlayers: alive
+          alivePlayers: alive,
+          notification: { id: Date.now().toString(), message: "Fin de la partie !", type: 'success' }
       });
   };
 
@@ -358,12 +403,63 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     });
   };
 
+  const toggleSkipVote = async () => {
+    if (!playerId) return;
+    
+    await submitAnswer({
+        type: 'skip_vote',
+        action: skipVotes.includes(playerId) ? 'remove' : 'add'
+    });
+  };
+
   // Host listening for answers/clues
   useEffect(() => {
     if (!isHost || !gameState?.answers) return;
 
     const processAnswers = async () => {
         const answers = gameState.answers;
+        
+        // Check for Skip Votes
+        if (currentPhase === 'clues') {
+            const currentSkipVotes = [...skipVotes];
+            let changed = false;
+
+            Object.entries(answers).forEach(([pid, val]: [string, any]) => {
+                 if (val.type === 'skip_vote') {
+                     if (val.action === 'add' && !currentSkipVotes.includes(pid)) {
+                         currentSkipVotes.push(pid);
+                         changed = true;
+                     } else if (val.action === 'remove' && currentSkipVotes.includes(pid)) {
+                         const idx = currentSkipVotes.indexOf(pid);
+                         if (idx > -1) {
+                             currentSkipVotes.splice(idx, 1);
+                             changed = true;
+                         }
+                     }
+                 }
+            });
+
+            if (changed) {
+                // Check Majority
+                const majority = Math.floor(alivePlayers.length / 2) + 1;
+                if (currentSkipVotes.length >= majority) {
+                     // Force Vote
+                     await updateRoundData({
+                         ...roundData,
+                         skipVotes: [], // Reset
+                         phase: 'vote',
+                         endTime: Date.now() + voteTime * 1000,
+                         notification: { id: Date.now().toString(), message: "Majorité atteinte ! Place au vote.", type: 'info' }
+                     });
+                } else {
+                     // Just update list
+                     await updateRoundData({
+                         ...roundData,
+                         skipVotes: currentSkipVotes
+                     });
+                }
+            }
+        }
         
         // Check for Ready Status
         if (currentPhase === 'roles') {
@@ -403,14 +499,15 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                         const nextRoundNum = currentClueRound + 1;
                         
                         if (nextRoundNum > clueRoundsBeforeVote) {
-                             // Go to Vote
+                             // Go to Vote immediately after last clue
                              await updateRoundData({
                                  ...roundData,
                                  clues: newClues,
                                  currentSpeaker: null,
                                  phase: 'vote',
                                  endTime: Date.now() + voteTime * 1000,
-                                 currentClueRound: nextRoundNum
+                                 currentClueRound: nextRoundNum,
+                                 notification: { id: Date.now().toString(), message: "Tous les indices sont donnés ! Place au vote.", type: 'info' }
                              });
                         } else {
                              // Next Clue Round
@@ -418,7 +515,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                  ...roundData,
                                  clues: newClues,
                                  currentSpeaker: nextSpeaker,
-                                 currentClueRound: nextRoundNum
+                                 currentClueRound: nextRoundNum,
+                                 notification: { id: Date.now().toString(), message: `Tour d'indices ${nextRoundNum} / ${clueRoundsBeforeVote}`, type: 'info' }
                              });
                         }
                     } else {
@@ -488,6 +586,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       gameTitle="Undercover"
       gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
+      showScores={false}
     >
       <div className="flex flex-col items-center w-full max-w-4xl mx-auto min-h-[400px]">
         
@@ -508,62 +607,84 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             </div>
         )}
 
-        {/* ROLES REVEAL */}
-        {currentPhase === 'roles' && myRole && (
-             <div className="flex flex-col items-center animate-in zoom-in duration-500 w-full max-w-lg">
-                <div className="bg-slate-900/80 p-8 rounded-2xl border border-white/10 text-center w-full shadow-[0_0_50px_rgba(239,68,68,0.2)] relative overflow-hidden">
-                    
-                    {amIReady && (
-                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-10 animate-in fade-in">
-                            <div className="text-center">
-                                <Check className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                                <h3 className="text-2xl font-bold text-white">Vous êtes prêt !</h3>
-                                <p className="text-gray-400 mt-2">En attente des autres joueurs ({readyPlayers.length}/{alivePlayers.length})</p>
-                            </div>
-                        </div>
-                    )}
+  {/* ROLES REVEAL */}
+  {currentPhase === 'roles' && myRole && (
+       <div className="flex flex-col items-center animate-in zoom-in duration-500 w-full max-w-lg">
+          <div className="bg-slate-900/80 p-8 rounded-2xl border border-white/10 text-center w-full shadow-[0_0_50px_rgba(239,68,68,0.2)] relative overflow-hidden">
+              
+              {amIReady && (
+                  <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-20 animate-in fade-in">
+                      <div className="text-center">
+                          <Check className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                          <h3 className="text-2xl font-bold text-white">Vous êtes prêt !</h3>
+                          <p className="text-gray-400 mt-2">En attente des autres joueurs ({readyPlayers.length}/{alivePlayers.length})</p>
+                      </div>
+                  </div>
+              )}
 
-                    <h3 className="text-2xl font-bold text-gray-400 mb-6">Votre rôle est</h3>
-                    
-                    {playersKnowRole ? (
-                        <>
-                            <div className="mb-8 flex justify-center">
-                                <div className={`p-6 rounded-full bg-white/5 border-2 ${myRole === 'CIVIL' ? 'border-blue-500' : 'border-red-500'}`}>
-                                     {getRoleIcon(myRole)}
-                                </div>
-                            </div>
-                            
-                            <h2 className={`text-4xl font-black mb-4 ${getRoleColor(myRole)}`}>
-                                {myRole === 'CIVIL' ? 'CIVIL' : myRole === 'UNDERCOVER' ? 'UNDERCOVER' : 'MR. WHITE'}
-                            </h2>
-                        </>
-                    ) : (
-                        <div className="mb-8 flex justify-center">
-                            <div className="p-6 rounded-full bg-white/5 border-2 border-gray-500">
-                                <User className="w-12 h-12 text-gray-300" />
-                            </div>
-                            <h2 className="text-4xl font-black mb-4 text-gray-300 sr-only">Rôle Caché</h2>
-                        </div>
-                    )}
+              <h3 className="text-2xl font-bold text-gray-400 mb-6">Votre rôle est</h3>
+              
+              <div className="min-h-[200px] flex flex-col items-center justify-center relative">
+                  {/* TOGGLE BUTTON */}
+                  <Button 
+                      variant="outline" 
+                      onClick={() => setShowRole(!showRole)}
+                      className="absolute top-0 right-0 z-10 bg-white/10 hover:bg-white/20 border-white/20"
+                  >
+                      {showRole ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+                      {showRole ? 'Masquer' : 'Afficher'}
+                  </Button>
 
-                    <div className="bg-white/5 p-4 rounded-xl mb-8">
-                        <p className="text-sm text-gray-400 mb-1">Votre mot secret :</p>
-                        <p className="text-3xl font-bold text-white tracking-widest uppercase">
-                            {myRole === 'MR_WHITE' ? '???' : myRole === 'UNDERCOVER' ? undercoverWord : civilWord}
-                        </p>
-                    </div>
+                  {showRole ? (
+                      <div className="animate-in fade-in zoom-in duration-300">
+                          {playersKnowRole ? (
+                              <>
+                                  <div className="mb-6 flex justify-center">
+                                      <div className={`p-6 rounded-full bg-white/5 border-2 ${myRole === 'CIVIL' ? 'border-blue-500' : 'border-red-500'}`}>
+                                           {getRoleIcon(myRole)}
+                                      </div>
+                                  </div>
+                                  
+                                  <h2 className={`text-4xl font-black mb-4 ${getRoleColor(myRole)}`}>
+                                      {myRole === 'CIVIL' ? 'CIVIL' : myRole === 'UNDERCOVER' ? 'UNDERCOVER' : 'MR. WHITE'}
+                                  </h2>
+                              </>
+                          ) : (
+                              <div className="mb-6 flex justify-center">
+                                  <div className="p-6 rounded-full bg-white/5 border-2 border-gray-500">
+                                      <User className="w-12 h-12 text-gray-300" />
+                                  </div>
+                                  <h2 className="text-xl font-bold mb-4 text-gray-300">Rôle Caché</h2>
+                              </div>
+                          )}
 
-                    <Button 
-                        size="lg" 
-                        onClick={sendReady} 
-                        disabled={!!amIReady}
-                        className="w-full h-16 text-xl font-bold bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-600/20"
-                    >
-                        JE SUIS PRÊT
-                    </Button>
-                </div>
-             </div>
-        )}
+                          <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                              <p className="text-sm text-gray-400 mb-1">Votre mot secret :</p>
+                              <p className="text-3xl font-bold text-white tracking-widest uppercase">
+                                  {myRole === 'MR_WHITE' ? '???' : myRole === 'UNDERCOVER' ? undercoverWord : civilWord}
+                              </p>
+                          </div>
+                      </div>
+                  ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-gray-500 animate-in fade-in">
+                          <EyeOff className="w-12 h-12 mb-4 opacity-50" />
+                          <p>Rôle masqué</p>
+                          <p className="text-sm opacity-70">Cliquez sur "Afficher" pour voir votre rôle</p>
+                      </div>
+                  )}
+              </div>
+
+              <Button 
+                  size="lg" 
+                  onClick={sendReady} 
+                  disabled={!!amIReady}
+                  className="w-full h-16 mt-8 text-xl font-bold bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-600/20 transition-all active:scale-95"
+              >
+                  JE SUIS PRÊT
+              </Button>
+          </div>
+       </div>
+  )}
 
         {/* GAMEPLAY: CLUES & DISCUSSION */}
         {(currentPhase === 'clues' || currentPhase === 'discussion') && (
@@ -603,6 +724,31 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                         })}
                      </div>
                  </div>
+
+                 {/* SKIP VOTE BUTTON (ALL PLAYERS) */}
+                 {isAlive && (
+                     <div className="fixed top-24 right-4 z-50">
+                         <Button 
+                            onClick={async () => {
+                                await submitAnswer({
+                                    type: 'skip_vote',
+                                    action: skipVotes.includes(playerId!) ? 'remove' : 'add'
+                                });
+                            }}
+                            className={`font-bold shadow-lg transition-all ${
+                                skipVotes.includes(playerId!) 
+                                ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
+                                : 'bg-slate-700 hover:bg-slate-600 text-gray-200'
+                            }`}
+                         >
+                            <AlertTriangle className="w-4 h-4 mr-2" />
+                            {skipVotes.includes(playerId!) ? 'Annuler le vote' : 'Passer au Vote'}
+                            <span className="ml-2 bg-black/20 px-2 py-0.5 rounded text-sm">
+                                {skipVotes.length}/{Math.floor(alivePlayers.length / 2) + 1}
+                            </span>
+                         </Button>
+                     </div>
+                 )}
 
                  {/* Input Area (Only for Clues phase & Current Speaker) */}
                  {currentPhase === 'clues' && isMyTurn && (

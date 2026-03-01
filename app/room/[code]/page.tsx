@@ -201,6 +201,17 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
                 { value: 'false', label: 'Non' }
             ]
         },
+        { 
+            id: 'playersKnowRole', 
+            label: 'Rôles Visibles', 
+            type: 'select', 
+            default: 'true',
+            options: [
+                { value: 'true', label: 'Oui (Civil/Undercover)' },
+                { value: 'false', label: 'Non (Juste le mot)' }
+            ]
+        },
+        { id: 'clueRounds', label: 'Tours de parole avant vote', type: 'number', default: 3 },
         { id: 'discussionTime', label: 'Temps de discussion (s)', type: 'number', default: 60 },
         { id: 'voteTime', label: 'Temps de vote (s)', type: 'number', default: 30 },
     ],

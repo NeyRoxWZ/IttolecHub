@@ -17,6 +17,7 @@ interface GameLayoutProps {
   timeLeft?: number;
   gameStarted?: boolean;
   className?: string;
+  showScores?: boolean; // New prop to toggle score display
 }
 
 export default function GameLayout({
@@ -28,7 +29,8 @@ export default function GameLayout({
   players,
   timeLeft = 0,
   gameStarted = true,
-  className
+  className,
+  showScores = true // Default true
 }: GameLayoutProps) {
   
   // Timer progress bar calculation
@@ -106,9 +108,11 @@ export default function GameLayout({
                     >
                         <div className="w-2 h-2 rounded-full bg-green-500" /> {/* Online status indicator */}
                         <span className="font-medium text-slate-200">{name}</span>
-                        <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-1.5 rounded ml-1">
-                            {score}
-                        </span>
+                        {showScores && (
+                            <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-1.5 rounded ml-1">
+                                {score}
+                            </span>
+                        )}
                     </div>
                 ))}
              </div>
