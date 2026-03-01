@@ -574,8 +574,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
   // --- CLIENT ---
   const sendReady = async () => {
-    if (amIReady || !setPlayerReady) return;
-    await setPlayerReady(true);
+    // Toggle ready state
+    if (!setPlayerReady) return;
+    await setPlayerReady(!amIReady);
   };
 
   const sendClue = async () => {
@@ -699,10 +700,20 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                     <Button 
                         size="lg" 
                         onClick={sendReady} 
-                        disabled={!!amIReady}
-                        className="w-full h-16 text-xl font-bold bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg shadow-indigo-600/20"
+                        // disabled={!!amIReady}
+                        className={`w-full h-16 text-xl font-bold rounded-xl shadow-lg transition-all ${
+                            amIReady 
+                            ? 'bg-green-600 hover:bg-green-500 shadow-green-600/20' 
+                            : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'
+                        }`}
                     >
-                        JE SUIS PRÊT
+                        {amIReady ? (
+                            <>
+                                <Check className="w-6 h-6 mr-2" /> PRÊT (Annuler)
+                            </>
+                        ) : (
+                            "JE SUIS PRÊT"
+                        )}
                     </Button>
                 </div>
             </div>

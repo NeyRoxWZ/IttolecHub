@@ -367,21 +367,29 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
       // Determine phase for vote tagging
       const votePhase = currentPhase === 'voting_finder' ? 'FINDER' : 'INFILTRE';
       
-      await supabase.from('infiltre_votes').insert({
-          room_id: roomId,
-          voter_id: playerId,
-          target_id: targetId,
-          vote_phase: votePhase
-      });
+      // Check if already voted
+      const myVote = votes.find((v: any) => v.voter_id === playerId && v.vote_phase === votePhase);
+      if (myVote) {
+          // Update existing vote
+          await supabase.from('infiltre_votes').update({
+              target_id: targetId
+          }).eq('id', myVote.id);
+          toast.success('Vote modifié');
+      } else {
+          // Insert new vote
+          await supabase.from('infiltre_votes').insert({
+              room_id: roomId,
+              voter_id: playerId,
+              target_id: targetId,
+              vote_phase: votePhase
+          });
+          toast.success('Vote enregistré');
+      }
       
-      toast.success('Vote enregistré');
-      
-      // Check if everyone voted
-      // We can do this client side or host side. Let's do host side check in useEffect if we want auto-resolution.
-      // But for simplicity, let's wait for manual resolution or implement a check.
-      // Host check:
+      // Check if everyone voted (Client-side trigger for Host)
       if (isHost) {
-          checkVoteCompletion(votePhase);
+          // Slight delay to allow propagation
+          setTimeout(() => checkVoteCompletion(votePhase), 500);
       }
   };
 
@@ -389,11 +397,25 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
       // Fetch fresh votes
       const { data: currentVotes } = await supabase.from('infiltre_votes').select('*').eq('room_id', roomId).eq('vote_phase', votePhase);
       
+      // Filter votes to ensure unique voters (in case of race conditions, take latest)
+      // Actually DB should handle uniqueness via RLS or constraint, but we don't have unique constraint on (room_id, voter_id, phase) yet?
+      // Let's assume frontend prevents it mostly, but let's be safe.
+      // Filter out duplicate voters if any.
+      
+      const uniqueVoters = new Set(currentVotes?.map((v: any) => v.voter_id));
+      
       // All players except Master vote? Or Master votes too?
       // Rules: "Majorité accuse..." usually implies everyone votes including Master.
-      // Let's assume everyone votes.
-      if (currentVotes && currentVotes.length >= players.length) {
-          processVotes(currentVotes, votePhase);
+      // But user said "le grand maitre est toujours dans les votes ils doit pas etre affiché".
+      // This refers to TARGETS. Does Master VOTE?
+      // Usually Master is impartial referee.
+      // If Master doesn't vote, we check against `players.length - 1`.
+      // Let's assume Master does NOT vote.
+      const votersCount = uniqueVoters.size;
+      const expectedVoters = players.length - 1; // Master doesn't vote
+      
+      if (votersCount >= expectedVoters) {
+          processVotes(currentVotes || [], votePhase);
       }
   };
 
@@ -538,8 +560,9 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
   // --- CLIENT ACTIONS ---
   const sendReady = async () => {
-    if (amIReady || !setPlayerReady) return;
-    await setPlayerReady(true);
+    // Toggle ready state
+    if (!setPlayerReady) return;
+    await setPlayerReady(!amIReady);
   };
 
   // --- RENDER HELPERS ---
@@ -626,10 +649,20 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                     <Button 
                         size="lg" 
                         onClick={sendReady} 
-                        disabled={!!amIReady}
-                        className="w-full h-16 text-xl font-bold bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg shadow-indigo-600/20"
+                        // disabled={!!amIReady} // Allow toggling ready
+                        className={`w-full h-16 text-xl font-bold rounded-xl shadow-lg transition-all ${
+                            amIReady 
+                            ? 'bg-green-600 hover:bg-green-500 shadow-green-600/20' 
+                            : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'
+                        }`}
                     >
-                        JE SUIS PRÊT
+                        {amIReady ? (
+                            <>
+                                <Check className="w-6 h-6 mr-2" /> PRÊT (Annuler)
+                            </>
+                        ) : (
+                            "JE SUIS PRÊT"
+                        )}
                     </Button>
                 </div>
             </div>
@@ -680,8 +713,28 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                         {questions.map((q: any) => {
                             const asker = players.find(p => p.id === q.playerId);
                             
-                            // Check if question likely contains secret word (Simple string matching)
-                            const likelySecret = isMaster && secretWord && q.text.toLowerCase().includes(secretWord.toLowerCase());
+                            // Fuzzy search for secret word detection
+                            const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                            const normalizedText = normalize(q.text);
+                            const normalizedSecret = secretWord ? normalize(secretWord) : '';
+                            
+                            // Check exact containment (normalized)
+                            let likelySecret = isMaster && secretWord && normalizedText.includes(normalizedSecret);
+                            
+                            // Check similarity (Levensthein-ish) if not found and word is long enough
+                            if (!likelySecret && isMaster && secretWord && normalizedSecret.length > 3) {
+                                const words = normalizedText.split(/\s+/);
+                                likelySecret = words.some(w => {
+                                    if (Math.abs(w.length - normalizedSecret.length) > 2) return false;
+                                    // Simple distance check: count different chars
+                                    let diff = 0;
+                                    for(let i=0; i<Math.min(w.length, normalizedSecret.length); i++) {
+                                        if(w[i] !== normalizedSecret[i]) diff++;
+                                    }
+                                    diff += Math.abs(w.length - normalizedSecret.length);
+                                    return diff <= 2; // Allow 2 typos
+                                });
+                            }
 
                             return (
                                 <div key={q.id} className={`bg-slate-900/50 border ${likelySecret ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-white/5'} rounded-xl p-4 animate-in slide-in-from-bottom-2 relative`}>
@@ -828,10 +881,8 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-7xl">
                             {alivePlayers.filter(pid => {
                                 const role = roles[pid];
-                                // If voting for Infiltrator, exclude Master from being a target (as Master is known)
-                                // Unless rules say Master can be accused? Usually Master is known and trusted referee.
-                                // Prompt says: "ne met pas le grand maitre ensuite".
-                                if (currentPhase === 'voting_infiltre' && role === 'MASTER') return false;
+                                // Exclude Master from being a target in both voting phases
+                                if (role === 'MASTER') return false;
                                 return true;
                             }).map(pid => {
                                 const p = players.find(pl => pl.id === pid);
