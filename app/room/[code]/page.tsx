@@ -183,6 +183,7 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 3 },
       { id: 'guessTime', label: 'Temps pour deviner (minutes)', type: 'number', default: 5 },
+      { id: 'voteTime', label: 'Temps de vote (secondes)', type: 'number', default: 30 },
       { 
         id: 'category', 
         label: 'Catégorie', 

@@ -79,14 +79,17 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
   }, [infiltre?.votes]);
 
   const alivePlayers = useMemo(() => {
-      // All players are "alive" in this game until the end, but we use this for filtering
-      return players.map(p => p.id);
+      // Sort players by ID to keep consistent order (or by joined_at if available in players object)
+      // We use players array which might be unsorted. Let's sort it.
+      const sorted = [...players].sort((a, b) => a.id.localeCompare(b.id));
+      return sorted.map(p => p.id);
   }, [players]);
 
   // Settings
   const settings = gameState?.settings || {};
   const rounds = Number(settings.rounds || 1);
   const guessTime = Number(settings.guessTime || 5) * 60; // Minutes to seconds
+  const voteTime = Number(settings.voteTime || 30); // Seconds
   const currentRoundNumber = gameState?.current_round || 0;
 
   // Ready Status
@@ -99,6 +102,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
   const [userQuestion, setUserQuestion] = useState('');
   const [timeLeft, setTimeLeft] = useState(0);
   const [showRole, setShowRole] = useState(false); // For Eye button logic
+  const [confirmingWinnerId, setConfirmingWinnerId] = useState<string | null>(null);
 
   const isMaster = myRole === 'MASTER';
   
@@ -191,7 +195,18 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         }
         
         // 3. Voting Phases (Time limit logic if we want to auto-resolve?)
-        // Let's keep manual voting resolution for now via processVotes
+        if ((currentPhase === 'voting_finder' || currentPhase === 'voting_infiltre') && game.timer_start_at) {
+             const timerStart = new Date(game.timer_start_at).getTime();
+             const duration = (game.timer_duration_seconds || 0) * 1000;
+             const now = Date.now();
+             
+             if (now > timerStart + duration + 1000) {
+                 // Time up for voting -> Force resolve
+                 const votePhase = currentPhase === 'voting_finder' ? 'FINDER' : 'INFILTRE';
+                 const { data: currentVotes } = await supabase.from('infiltre_votes').select('*').eq('room_id', roomId).eq('vote_phase', votePhase);
+                 await processVotes(currentVotes || [], votePhase);
+             }
+        }
     };
 
     managePhases();
@@ -285,15 +300,32 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
   const sendQuestion = async () => {
       if (!userQuestion.trim() || !roomId || !playerId) return;
       
-      // Check if word found (Client side simple check, Master validates anyway)
-      // Actually, if a player thinks they found it, they can just ask "Est-ce que c'est [MOT] ?"
-      // Or we can have a special "Propose Word" button.
-      // Let's stick to simple questions. If Master sees the correct word, they can trigger "Word Found".
+      const questionText = userQuestion;
+      
+      // AI-like suggestion (Simple check if secret word is in question)
+      // This is local check, but good enough.
+      // Master will see the question. We can add a "flag" or just rely on Master.
+      // The user asked for "AI suggests to Master".
+      // We can insert with a flag 'contains_secret' if we want, or just highlight it on Master side.
+      // But we can't easily check secretWord on client side for non-Master/non-Infiltre (it is hidden).
+      // Wait, 'secretWord' variable is only available if I am Master or Infiltre or Game Over.
+      // If I am Citizen, secretWord is undefined or hidden?
+      // In `useGameSync` -> `infiltre.game` -> `secret_word`.
+      // Row Level Security should hide it? Or is it sent to everyone?
+      // In `Infiltre.tsx`: `const secretWord = game.secret_word;`.
+      // If RLS is not set up to hide columns, everyone receives it.
+      // Assuming everyone receives it but UI hides it.
+      // If so, we can check it here.
+      // If RLS hides it, `secretWord` is null for Citizens.
+      // So we can't check on Client for Citizens.
+      // We must check on Server (Postgres Function) or just let Master see it.
+      // But we can't do server side logic easily here without Edge Function.
+      // Workaround: Master client detects it when receiving the question.
       
       await supabase.from('infiltre_questions').insert({
           room_id: roomId,
           player_id: playerId,
-          text: userQuestion,
+          text: questionText,
           answer: null
       });
       
@@ -310,12 +342,15 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
   const triggerWordFound = async (finderId: string) => {
       if (!isMaster || !roomId) return;
       
+      // Reset confirmation state
+      setConfirmingWinnerId(null);
+      
       // Move to Voting Phase 1
       await supabase.from('infiltre_games').update({
           phase: 'voting_finder',
           finder_id: finderId,
-          timer_start_at: null, // Stop timer
-          timer_duration_seconds: null
+          timer_start_at: new Date().toISOString(),
+          timer_duration_seconds: voteTime
       }).eq('room_id', roomId);
       
       await updateRoundData({
@@ -385,62 +420,34 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
               isTie = true;
           }
       });
-
-      if (isTie || !accusedId) {
-          // Tie -> Infiltrator Wins? Or Revote?
-          // Simplification: Infiltrator wins if not unanimous? Or Tie breaks in favor of accused?
-          // Let's say Tie = Infiltrator not caught.
-          // Or we trigger revote.
-          // Let's assume Tie = No consensus -> Proceed as if "Citizen Accused" (Fail to catch Infiltrator).
-          // But wait, we need to know WHO was accused to branch logic.
-          // If Tie, let's say "Personne n'est éliminé/accusé majoritairement".
-          // If Phase 1 (Finder): If majority thinks Finder is Infiltrator.
-          // If Tie, majority is NOT reached. So Finder is NOT accused of being Infiltrator.
-          // So we proceed to Phase 2.
-          accusedId = null; // No single accused
-      }
+      
+      // If we are in voting phase and timer is done, or if everyone voted.
+      // But this function is called either by "All Voted" or "Time Up".
+      // So we just process.
 
       const accusedRole = accusedId ? roles[accusedId] : null;
 
       if (votePhase === 'FINDER') {
           // Vote 1: Did the Finder find it because they are the Infiltrator?
-          // "Majorité accuse l'Infiltré -> Citoyens gagnent"
-          // Here "l'Infiltré" means "The person we are voting on" (The Finder).
-          // Actually, the vote is "Who is the Infiltrator?".
-          // If the majority votes for the Finder AND Finder IS Infiltrator -> Win.
           
           if (accusedId === finderId && accusedRole === 'INFILTRE') {
               // Caught!
               await finishGame('CITIZENS');
           } else {
-              // Not caught or Wrong person accused
-              // "Majorité accuse un Citoyen -> 2ème vote général"
-              // Even if they accused someone else who is not the Finder?
-              // The prompt says: "Si le mot est trouvé -> vote sur le joueur ayant trouvé".
-              // This implies the vote is YES/NO on the Finder?
-              // OR "Majorité accuse l'Infiltré" implies we voted for SOMEONE.
-              // Let's implement: General Vote.
-              // If Accused is Infiltrator -> Citizens Win.
-              // If Accused is NOT Infiltrator -> Go to 2nd Vote.
+              // Not caught or Wrong person accused -> 2nd Vote
+              await supabase.from('infiltre_games').update({
+                  phase: 'voting_infiltre',
+                  timer_start_at: new Date().toISOString(),
+                  timer_duration_seconds: voteTime
+              }).eq('room_id', roomId);
               
-              if (accusedRole === 'INFILTRE') {
-                  await finishGame('CITIZENS');
-              } else {
-                  // Wrong accusation (Citizen or Master or Tie) -> 2nd Vote
-                  await supabase.from('infiltre_games').update({
-                      phase: 'voting_infiltre'
-                  }).eq('room_id', roomId);
-                  
-                  await updateRoundData({
-                      phase: 'voting_infiltre',
-                      notification: { id: Date.now().toString(), message: "Infiltré non trouvé ! Dernière chance : Vote Final.", type: 'error' }
-                  });
-              }
+              await updateRoundData({
+                  phase: 'voting_infiltre',
+                  notification: { id: Date.now().toString(), message: "Infiltré non trouvé ! Dernière chance : Vote Final.", type: 'error' }
+              });
           }
       } else {
           // Vote 2: General Vote
-          // "Infiltré identifié -> Citoyens gagnent"
-          // "Infiltré non identifié -> Infiltré gagne seul"
           
           if (accusedRole === 'INFILTRE') {
               await finishGame('CITIZENS');
@@ -672,8 +679,17 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                         )}
                         {questions.map((q: any) => {
                             const asker = players.find(p => p.id === q.playerId);
+                            
+                            // Check if question likely contains secret word (Simple string matching)
+                            const likelySecret = isMaster && secretWord && q.text.toLowerCase().includes(secretWord.toLowerCase());
+
                             return (
-                                <div key={q.id} className="bg-slate-900/50 border border-white/5 rounded-xl p-4 animate-in slide-in-from-bottom-2">
+                                <div key={q.id} className={`bg-slate-900/50 border ${likelySecret ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-white/5'} rounded-xl p-4 animate-in slide-in-from-bottom-2 relative`}>
+                                    {likelySecret && !q.answer && (
+                                        <div className="absolute top-2 right-2 flex items-center gap-1 text-yellow-500 text-xs font-bold animate-pulse bg-yellow-500/10 px-2 py-1 rounded-full">
+                                            <Crown className="w-3 h-3" /> Mot trouvé ?
+                                        </div>
+                                    )}
                                     <div className="flex justify-between items-start mb-2">
                                         <span className="font-bold text-blue-300">{asker?.name}</span>
                                         <span className="text-xs text-gray-500">{new Date(q.timestamp).toLocaleTimeString()}</span>
@@ -690,10 +706,54 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                             {q.answer.replace('_', ' ')}
                                         </div>
                                     ) : isMaster ? (
-                                        <div className="flex gap-2">
-                                            <Button size="sm" onClick={() => answerQuestion(q.id, 'OUI')} className="bg-green-600 hover:bg-green-500 text-white">Oui</Button>
-                                            <Button size="sm" onClick={() => answerQuestion(q.id, 'NON')} className="bg-red-600 hover:bg-red-500 text-white">Non</Button>
-                                            <Button size="sm" onClick={() => answerQuestion(q.id, 'NE_SAIS_PAS')} className="bg-gray-600 hover:bg-gray-500 text-white">Je ne sais pas</Button>
+                                        <div className="flex flex-col gap-2">
+                                            {likelySecret && (
+                                                <div className="flex gap-2 w-full">
+                                                    {confirmingWinnerId === q.playerId ? (
+                                                        <div className="flex gap-2 w-full animate-in fade-in">
+                                                            <Button 
+                                                                size="sm" 
+                                                                onClick={() => triggerWordFound(q.playerId)} 
+                                                                className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold"
+                                                            >
+                                                                Confirmer
+                                                            </Button>
+                                                            <Button 
+                                                                size="sm" 
+                                                                onClick={() => setConfirmingWinnerId(null)} 
+                                                                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white"
+                                                            >
+                                                                Annuler
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <Button 
+                                                                size="sm" 
+                                                                onClick={() => setConfirmingWinnerId(q.playerId)} 
+                                                                className="flex-[2] bg-yellow-500 text-black hover:bg-yellow-400 font-bold animate-pulse"
+                                                            >
+                                                                <Crown className="w-4 h-4 mr-2" /> Valider que {asker?.name} a trouvé !
+                                                            </Button>
+                                                            <Button 
+                                                                size="sm" 
+                                                                onClick={() => answerQuestion(q.id, 'NON')} 
+                                                                className="flex-1 bg-red-600/80 hover:bg-red-600 text-white font-bold text-xs"
+                                                            >
+                                                                Non, pas trouvé
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {/* Hide regular buttons if we are in confirmation mode for this specific question */}
+                                            {likelySecret && confirmingWinnerId === q.playerId ? null : (
+                                                <div className="flex gap-2">
+                                                    <Button size="sm" onClick={() => answerQuestion(q.id, 'OUI')} className="bg-green-600 hover:bg-green-500 text-white flex-1">Oui</Button>
+                                                    <Button size="sm" onClick={() => answerQuestion(q.id, 'NON')} className="bg-red-600 hover:bg-red-500 text-white flex-1">Non</Button>
+                                                    <Button size="sm" onClick={() => answerQuestion(q.id, 'NE_SAIS_PAS')} className="bg-gray-600 hover:bg-gray-500 text-white flex-1">Je ne sais pas</Button>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <span className="text-sm text-gray-500 italic">En attente du Maître...</span>
@@ -766,7 +826,14 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                 <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4 w-full">
                     <div className="flex justify-center w-full">
                         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-7xl">
-                            {alivePlayers.map(pid => {
+                            {alivePlayers.filter(pid => {
+                                const role = roles[pid];
+                                // If voting for Infiltrator, exclude Master from being a target (as Master is known)
+                                // Unless rules say Master can be accused? Usually Master is known and trusted referee.
+                                // Prompt says: "ne met pas le grand maitre ensuite".
+                                if (currentPhase === 'voting_infiltre' && role === 'MASTER') return false;
+                                return true;
+                            }).map(pid => {
                                 const p = players.find(pl => pl.id === pid);
                                 const votesForThisPlayer = votes.filter((v: any) => v.target_id === pid && v.vote_phase === (currentPhase === 'voting_finder' ? 'FINDER' : 'INFILTRE'));
                                 const hasVotedForThis = votesForThisPlayer.some((v: any) => v.voter_id === playerId);
