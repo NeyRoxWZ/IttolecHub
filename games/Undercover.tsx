@@ -723,7 +723,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                 {/* MIDDLE: COLUMNS */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-24 md:pb-4 w-full">
                     <div className="flex justify-center w-full">
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-7xl">
+                        <div className="flex flex-wrap justify-center gap-4 w-full max-w-7xl">
                             {alivePlayers.map(pid => {
                                 const p = players.find(pl => pl.id === pid);
                                 const pClues = clues.filter(c => c.playerId === pid);
@@ -732,7 +732,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                 const hasVotedForThis = votesForThisPlayer.some((v: any) => v.voter_id === playerId);
                                 
                                 return (
-                                    <div key={pid} className="flex flex-col bg-slate-900/50 border border-white/5 rounded-xl overflow-hidden h-[400px] md:h-[500px] relative">
+                                    <div key={pid} className="flex flex-col bg-slate-900/50 border border-white/5 rounded-xl overflow-hidden h-[400px] md:h-[500px] relative w-full md:w-[31%] lg:w-[23%]">
                                         {/* Sticky Header */}
                                         <div className={`p-3 text-center border-b border-white/5 sticky top-0 z-10 backdrop-blur-md ${isSpeaking ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-slate-900/80'}`}>
                                             <div className={`font-bold truncate ${isSpeaking ? 'text-yellow-400' : 'text-white'}`}>
