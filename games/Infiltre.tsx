@@ -269,6 +269,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
         await updateRoundData({
             phase: 'roles',
+            current_round: 1,
             notification: { id: Date.now().toString(), message: "Rôles attribués ! Découvrez votre identité.", type: 'success' }
         });
     } catch (e) {
@@ -518,7 +519,8 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
           // Broadcast return to lobby
           if (broadcast) await broadcast('return_to_lobby', {});
-
+          
+          router.push(`/room/${roomCode}`);
           return;
       }
 
@@ -655,7 +657,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                         size="lg" 
                         onClick={sendReady} 
                         // disabled={!!amIReady} // Allow toggling ready
-                        className={`w-full h-16 text-xl font-bold rounded-xl shadow-lg transition-all ${
+                        className={`w-full h-16 text-xl font-bold rounded-xl shadow-lg transition-all relative z-30 ${
                             amIReady 
                             ? 'bg-green-600 hover:bg-green-500 shadow-green-600/20' 
                             : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'

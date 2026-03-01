@@ -386,6 +386,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
         await updateRoundData({
             phase: 'roles',
+            current_round: 1,
             notification: { id: Date.now().toString(), message: "Partie lancée ! Révélation des rôles...", type: 'success' }
         });
     } catch (e) {
@@ -439,10 +440,16 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     if (isTie || !eliminatedId) {
         await updateRoundData({
             phase: 'vote',
-            endTime: Date.now() + voteTime * 1000,
             notification: { id: Date.now().toString(), message: "Égalité ! Revotez !", type: 'error' }
         });
         await supabase.from('undercover_votes').delete().eq('room_id', roomId);
+        
+        // Reset Timer for Re-vote
+        await supabase.from('undercover_games').update({
+             timer_start_at: new Date().toISOString(),
+             timer_duration_seconds: voteTime
+        }).eq('room_id', roomId);
+        
         return;
     }
 
@@ -527,6 +534,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
           // Broadcast return to lobby
           if (broadcast) await broadcast('return_to_lobby', {});
           
+          router.push(`/room/${roomCode}`);
           return;
       }
 
@@ -701,7 +709,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                         size="lg" 
                         onClick={sendReady} 
                         // disabled={!!amIReady}
-                        className={`w-full h-16 text-xl font-bold rounded-xl shadow-lg transition-all ${
+                        className={`w-full h-16 text-xl font-bold rounded-xl shadow-lg transition-all relative z-30 ${
                             amIReady 
                             ? 'bg-green-600 hover:bg-green-500 shadow-green-600/20' 
                             : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'
