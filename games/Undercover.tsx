@@ -191,7 +191,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                       phase: 'clues',
                       current_speaker_id: alivePlayers[0],
                       current_clue_round: 1
-                  }).eq('room_id', roomCode);
+                  }).eq('room_id', roomId); // Fixed: roomCode -> roomId (UUID)
                   
                   // Legacy sync for notification
                   await updateRoundData({
@@ -205,7 +205,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
          if (currentPhase === 'discussion' && timeLeft === 0 && gameState?.round_data?.endTime) {
               await supabase.from('undercover_games').update({
                   phase: 'vote'
-              }).eq('room_id', roomCode);
+              }).eq('room_id', roomId); // Fixed: roomCode -> roomId (UUID)
               
               await updateRoundData({
                   phase: 'vote',
@@ -335,7 +335,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
   const processVotes = async () => {
     // We need to fetch votes from SQL `undercover_votes` table now
-    const { data: votesData } = await supabase.from('undercover_votes').select('*').eq('room_id', roomCode);
+    const { data: votesData } = await supabase.from('undercover_votes').select('*').eq('room_id', roomId); // Fixed
     
     const voteCounts: Record<string, number> = {};
     
@@ -370,7 +370,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         });
         
         // Reset SQL votes?
-        await supabase.from('undercover_votes').delete().eq('room_id', roomCode);
+        await supabase.from('undercover_votes').delete().eq('room_id', roomId); // Fixed
         return;
     }
 
@@ -382,7 +382,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         await supabase.from('undercover_games').update({
             phase: 'mrwhite_guess',
             eliminated_player_id: eliminatedId
-        }).eq('room_id', roomCode);
+        }).eq('room_id', roomId); // Fixed
         
         await updateRoundData({
             notification: { id: Date.now().toString(), message: "Mr. White trouvé ! Il peut se sauver...", type: 'success' }
@@ -396,7 +396,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
   const handleElimination = async (eliminatedId: string) => {
     // Update player status in SQL
-    await supabase.from('undercover_players').update({ is_alive: false }).eq('room_id', roomCode).eq('player_id', eliminatedId);
+    await supabase.from('undercover_players').update({ is_alive: false }).eq('room_id', roomId).eq('player_id', eliminatedId); // Fixed
 
     const newAlive = alivePlayers.filter(id => id !== eliminatedId);
     
@@ -419,7 +419,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             phase: 'clues',
             current_speaker_id: newAlive[0],
             eliminated_player_id: eliminatedId
-        }).eq('room_id', roomCode);
+        }).eq('room_id', roomId); // Fixed
         
         await updateRoundData({
             phase: 'clues',
@@ -432,7 +432,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       await supabase.from('undercover_games').update({
           phase: 'results',
           winner: winner
-      }).eq('room_id', roomCode);
+      }).eq('room_id', roomId); // Fixed
 
       await updateRoundData({
           phase: 'results',
@@ -466,15 +466,15 @@ export default function Undercover({ roomCode }: UndercoverProps) {
               current_clue_round: 1,
               winner: null,
               eliminated_player_id: null
-          }).eq('room_id', roomCode);
+          }).eq('room_id', roomId); // Fixed
 
           // Reset Tables
-          await supabase.from('undercover_clues').delete().eq('room_id', roomCode);
-          await supabase.from('undercover_votes').delete().eq('room_id', roomCode);
+          await supabase.from('undercover_clues').delete().eq('room_id', roomId); // Fixed
+          await supabase.from('undercover_votes').delete().eq('room_id', roomId); // Fixed
           
           // Re-insert players with new roles
           const playerInserts = players.map(p => ({
-              room_id: roomCode,
+              room_id: roomId, // Fixed
               player_id: p.id,
               role: newRoles[p.id],
               is_alive: true
