@@ -36,12 +36,21 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     setPlayerReady,
     moves,
     setGameStatus,
-    roomId
+    roomId,
+    roomStatus
   } = useGameSync(roomCode, 'undercover');
 
   // --- DERIVED STATE ---
   const game = undercover?.game || {};
   const currentPhase = (game.phase as Phase) || 'setup';
+
+  // --- EFFECTS ---
+  // Redirect to lobby if game is closed or reset
+  useEffect(() => {
+    if (roomStatus === 'waiting' && currentPhase === 'setup') {
+        router.push(`/room/${roomCode}`);
+    }
+  }, [roomStatus, currentPhase, roomCode, router]);
   
   const roles = useMemo(() => {
       const r: Record<string, Role> = {};
@@ -507,6 +516,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
               current_round: 0,
               notification: { id: Date.now().toString(), message: "Retour au salon...", type: 'info' }
           });
+
+          await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
           return;
       }
 
@@ -913,4 +924,4 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       </div>
     </GameLayout>
   );
-}
+} 

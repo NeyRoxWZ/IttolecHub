@@ -181,7 +181,24 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
     description: "Déduction sociale avec Maître du jeu, Infiltré et Citoyens.",
     icon: Gamepad2,
     settings: [
-      { id: 'time', label: 'Temps de questions (s)', type: 'number', default: 180 },
+      { id: 'rounds', label: 'Manches', type: 'number', default: 3 },
+      { id: 'guessTime', label: 'Temps pour deviner (minutes)', type: 'number', default: 5 },
+      { 
+        id: 'category', 
+        label: 'Catégorie', 
+        type: 'select', 
+        default: 'all',
+        options: [
+            { value: 'all', label: 'Tout' },
+            { value: 'Lieu/Bâtiment', label: 'Lieu/Bâtiment' },
+            { value: 'Objet', label: 'Objet' },
+            { value: 'Animal', label: 'Animal' },
+            { value: 'Métier', label: 'Métier' },
+            { value: 'Concept', label: 'Concept' },
+            { value: 'Concept/Nature', label: 'Concept/Nature' },
+            { value: 'Objet/Nature', label: 'Objet/Nature' }
+        ]
+      },
     ],
   },
   {

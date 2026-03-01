@@ -34,12 +34,21 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
     resetAllPlayersReady,
     setPlayerReady,
     setGameStatus,
-    roomId
+    roomId,
+    roomStatus
   } = useGameSync(roomCode, 'infiltre');
 
   // --- DERIVED STATE ---
   const game = infiltre?.game || {};
   const currentPhase = (game.phase as Phase) || 'setup';
+
+  // --- EFFECTS ---
+  // Redirect to lobby if game is closed or reset
+  useEffect(() => {
+    if (roomStatus === 'waiting' && currentPhase === 'setup') {
+        router.push(`/room/${roomCode}`);
+    }
+  }, [roomStatus, currentPhase, roomCode, router]);
   
   const roles = useMemo(() => {
       const r: Record<string, Role> = {};
@@ -158,18 +167,25 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         }
 
         // 2. Playing -> Results (Time limit reached = Defeat)
-        if (currentPhase === 'playing' && timeLeft === 0 && game.timer_start_at) {
-             // Time up! Everyone loses? Or Infiltrator wins?
-             // "Si le mot n'est pas trouvé → tout le monde perd"
-             await supabase.from('infiltre_games').update({
-                 phase: 'results',
-                 winner: 'NONE' // Everyone loses
-             }).eq('room_id', roomId);
+        if (currentPhase === 'playing' && game.timer_start_at) {
+             const timerStart = new Date(game.timer_start_at).getTime();
+             const duration = (game.timer_duration_seconds || 0) * 1000;
+             const now = Date.now();
              
-             await updateRoundData({
-                 phase: 'results',
-                 notification: { id: Date.now().toString(), message: "Temps écoulé ! Personne n'a trouvé le mot.", type: 'error' }
-             });
+             // Check strict expiry with a small buffer
+             if (now > timerStart + duration + 1000) {
+                 // Time up! Everyone loses? Or Infiltrator wins?
+                 // "Si le mot n'est pas trouvé → tout le monde perd"
+                 await supabase.from('infiltre_games').update({
+                     phase: 'results',
+                     winner: 'NONE' // Everyone loses
+                 }).eq('room_id', roomId);
+                 
+                 await updateRoundData({
+                     phase: 'results',
+                     notification: { id: Date.now().toString(), message: "Temps écoulé ! Personne n'a trouvé le mot.", type: 'error' }
+                 });
+             }
         }
         
         // 3. Voting Phases (Time limit logic if we want to auto-resolve?)
@@ -196,7 +212,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
     }
 
     try {
-        const res = await fetch(`/api/games/infiltre`);
+        const res = await fetch(`/api/games/infiltre?category=${settings.category}`);
         const data = await res.json();
         if (!data || !data.secretWord) return;
 
@@ -459,12 +475,14 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
               current_round: 0,
               notification: { id: Date.now().toString(), message: "Retour au salon...", type: 'info' }
           });
+          
+          await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
           return;
       }
 
       // Next Round
       try {
-          const res = await fetch(`/api/games/infiltre`);
+          const res = await fetch(`/api/games/infiltre?category=${settings.category}`);
           const data = await res.json();
           if (!data || !data.secretWord) return;
 
