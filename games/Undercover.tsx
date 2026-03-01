@@ -70,7 +70,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
   // Players Map
   const playersMap = useMemo(() => {
-    return players.reduce((acc, p) => ({ ...acc, [p.name]: p.score }), {} as Record<string, number>);
+    // Undercover doesn't use scores, but we keep the map for compatibility
+    return players.reduce((acc, p) => ({ ...acc, [p.name]: 0 }), {} as Record<string, number>);
   }, [players]);
 
   const isMyTurn = currentPhase === 'clues' && currentSpeakerId === playerId;
@@ -95,6 +96,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     }
   }, [roundData.endTime, getTimeLeft]);
 
+
   // --- HOST LOGIC ---
 
   // Phase Management
@@ -102,10 +104,10 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     if (!isHost) return;
 
     const managePhases = async () => {
-        // 1. Roles Phase -> Clues Phase (Wait for ALL Ready)
+        // 1. Roles Phase -> Clues Phase (Wait for ALL Ready - NO TIMER)
         if (currentPhase === 'roles') {
              const allReady = alivePlayers.every(id => readyPlayers.includes(id));
-             if (allReady) {
+             if (allReady && alivePlayers.length > 0) { // Ensure players exist
                  await updateRoundData({
                      ...roundData,
                      phase: 'clues',
@@ -137,7 +139,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
   const startNewGame = async () => {
     if (!isHost) return;
-    if (players.length < 3) { // Should be 4 per spec, but 3 for testing
+    if (players.length < 3) {
         toast.error("Il faut au moins 3 joueurs !");
         return;
     }
@@ -165,8 +167,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             readyPlayers: [], // Reset ready
             currentClueRound: 1,
             queue: remainingQueue,
-            endTime: null // Manual ready
+            endTime: null // Manual ready (no timer)
         });
+        toast.success("Partie lancée !");
     } catch (e) {
         console.error(e);
         toast.error("Erreur au démarrage");
@@ -317,6 +320,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             queue: remaining,
             endTime: null
       });
+      toast.success("Manche suivante !");
   };
 
   // --- CLIENT ACTIONS ---
@@ -404,9 +408,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                  ...roundData,
                                  clues: newClues,
                                  currentSpeaker: null,
-                                 phase: 'vote', // Skip discussion for now as per user request to vote at round X+1? 
-                                 // User said: "at round clueRoundsBeforeVote + 1, activate Vote button". 
-                                 // Let's interpret: after X rounds of clues, go to vote.
+                                 phase: 'vote',
                                  endTime: Date.now() + voteTime * 1000,
                                  currentClueRound: nextRoundNum
                              });
