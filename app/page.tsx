@@ -18,7 +18,8 @@ import {
   Users,
   BookOpen,
   DollarSign,
-  PenTool
+  PenTool,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -38,7 +39,7 @@ const games = [
     id: 'pokeguessr',
     name: 'PokéGuessr',
     description: 'Reconnais les Pokémon floutés ou pixelisés. Attrape-les tous !',
-    icon: Gamepad2,
+    icon: Zap,
     color: 'from-red-500 to-orange-500',
     tags: ['Vitesse', 'Culture G'],
   },

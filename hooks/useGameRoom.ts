@@ -36,6 +36,10 @@ export interface GameRoomState {
       game: any;
       players: any[];
   };
+  poke: {
+      game: any;
+      players: any[];
+  };
   isConnected: boolean;
   lastEvent: { type: string; payload: any; timestamp: number } | null;
 }
@@ -74,6 +78,10 @@ export function useGameRoom(roomId: string, playerId: string) {
         game: null,
         players: []
     },
+    poke: {
+        game: null,
+        players: []
+    },
     isConnected: false,
     lastEvent: null
   });
@@ -104,7 +112,8 @@ export function useGameRoom(roomId: string, playerId: string) {
           flagGame, flagPlayers,
           wikiGame, wikiPlayers,
           budgetGame, budgetPlayers,
-          drawGame, drawPlayers
+          drawGame, drawPlayers,
+          pokeGame, pokePlayers
       ] = await Promise.all([
         supabase.from('rooms').select('*').eq('id', roomId).maybeSingle(),
         supabase.from('game_sessions').select('*').eq('room_id', roomId).maybeSingle(),
@@ -131,7 +140,10 @@ export function useGameRoom(roomId: string, playerId: string) {
         supabase.from('budget_players').select('*').eq('room_id', roomId),
         // Draw Tables
         supabase.from('draw_games').select('*').eq('room_id', roomId).maybeSingle(),
-        supabase.from('draw_players').select('*').eq('room_id', roomId)
+        supabase.from('draw_players').select('*').eq('room_id', roomId),
+        // Poke Tables
+        supabase.from('poke_games').select('*').eq('room_id', roomId).maybeSingle(),
+        supabase.from('poke_players').select('*').eq('room_id', roomId)
       ]);
 
       if (isMounted) {
@@ -168,6 +180,10 @@ export function useGameRoom(roomId: string, playerId: string) {
           draw: {
               game: drawGame.data,
               players: drawPlayers.data || []
+          },
+          poke: {
+              game: pokeGame.data,
+              players: pokePlayers.data || []
           }
         }));
       }
@@ -263,6 +279,15 @@ export function useGameRoom(roomId: string, playerId: string) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'draw_players', filter: `room_id=eq.${roomId}` }, async () => {
           const { data } = await supabase.from('draw_players').select('*').eq('room_id', roomId);
           if (isMounted && data) setState(prev => ({ ...prev, draw: { ...prev.draw, players: data } }));
+      })
+
+      // --- POKE TABLES ---
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'poke_games', filter: `room_id=eq.${roomId}` }, (payload) => {
+          if (isMounted && payload.new) setState(prev => ({ ...prev, poke: { ...prev.poke, game: payload.new } }));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'poke_players', filter: `room_id=eq.${roomId}` }, async () => {
+          const { data } = await supabase.from('poke_players').select('*').eq('room_id', roomId);
+          if (isMounted && data) setState(prev => ({ ...prev, poke: { ...prev.poke, players: data } }));
       })
 
       // --- BROADCAST EVENTS ---

@@ -1,1 +1,1 @@
-{"version":1,"functions":{"/api/games/budget":{},"/api/games/draw":{},"/api/games/infiltre":{},"/api/games/pokemon":{},"/api/games/wiki":{},"/api/rooms/cleanup":{},"/api/rooms/delete":{},"/api/rooms/join":{},"/api/games/undercover":{},"/api/games/flag":{}}}
+{"version":1,"functions":{"/api/games/draw":{},"/api/games/budget":{},"/api/games/pokemon":{},"/api/games/flag":{},"/api/games/wiki":{},"/api/games/infiltre":{},"/api/games/undercover":{},"/api/rooms/join":{},"/api/rooms/cleanup":{},"/api/rooms/delete":{}}}

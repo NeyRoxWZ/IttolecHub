@@ -12,7 +12,6 @@ export async function GET(request: NextRequest) {
 
     if (!pokemonId && !name) {
          // Random if no ID provided (legacy support or simple usage)
-         // But better to use client logic for complex generation selection
          pokemonId = (Math.floor(Math.random() * 1025) + 1).toString();
     }
     

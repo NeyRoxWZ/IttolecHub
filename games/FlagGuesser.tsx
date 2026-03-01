@@ -111,6 +111,11 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
       const manageGame = async () => {
           // 1. Playing -> Round Results (Time up or All Answered)
           if (currentPhase === 'playing') {
+              // Safety check: ensure round has started for at least 2 seconds before checking "all answered"
+              // This prevents race conditions where phase updates before player 'has_answered' reset
+              const roundDuration = timerStartAt ? Date.now() - new Date(timerStartAt).getTime() : 0;
+              if (roundDuration < 2000) return;
+
               const allAnswered = players.length > 0 && gamePlayers.filter((p: any) => p.has_answered).length >= players.length;
               const timeIsUp = timeLeft === 0 && timerStartAt && (Date.now() > new Date(timerStartAt).getTime() + timerSeconds * 1000);
 

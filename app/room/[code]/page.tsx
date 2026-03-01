@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool } from 'lucide-react';
+import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
 interface Player {
@@ -110,7 +110,7 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
     id: 'pokeguessr',
     name: 'PokeGuessr',
     description: 'Devinez le Pokémon à partir de son ombre.',
-    icon: Gamepad2,
+    icon: Zap,
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },

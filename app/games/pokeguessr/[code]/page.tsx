@@ -1,13 +1,5 @@
-'use client';
-
 import PokeGuessr from '@/games/PokeGuessr';
 
-export default function PokeGuessrPage({ 
-  params, 
-  searchParams 
-}: { 
-  params: { code: string },
-  searchParams: { [key: string]: string }
-}) {
+export default function Page({ params }: { params: { code: string } }) {
   return <PokeGuessr roomCode={params.code} />;
 }
