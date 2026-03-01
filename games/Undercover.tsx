@@ -37,7 +37,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     moves,
     setGameStatus,
     roomId,
-    roomStatus
+    roomStatus,
+    lastEvent,
+    broadcast
   } = useGameSync(roomCode, 'undercover');
 
   // --- DERIVED STATE ---
@@ -45,12 +47,12 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   const currentPhase = (game.phase as Phase) || 'setup';
 
   // --- EFFECTS ---
-  // Redirect to lobby if game is closed or reset
+  // Broadcast Listener for Lobby Return
   useEffect(() => {
-    if (roomStatus === 'waiting' && currentPhase === 'setup') {
+    if (lastEvent && lastEvent.type === 'return_to_lobby') {
         router.push(`/room/${roomCode}`);
     }
-  }, [roomStatus, currentPhase, roomCode, router]);
+  }, [lastEvent, roomCode, router]);
   
   const roles = useMemo(() => {
       const r: Record<string, Role> = {};
@@ -378,6 +380,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
         await supabase.from('undercover_clues').delete().eq('room_id', roomId);
         await supabase.from('undercover_votes').delete().eq('room_id', roomId);
+        
+        // Ensure room status is in_game so players are redirected if they are in lobby
+        await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
 
         await updateRoundData({
             phase: 'roles',
@@ -518,6 +523,10 @@ export default function Undercover({ roomCode }: UndercoverProps) {
           });
 
           await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+          
+          // Broadcast return to lobby
+          if (broadcast) await broadcast('return_to_lobby', {});
+          
           return;
       }
 

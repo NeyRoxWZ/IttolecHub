@@ -21,6 +21,7 @@ export interface GameRoomState {
       votes: any[];
   };
   isConnected: boolean;
+  lastEvent: { type: string; payload: any; timestamp: number } | null;
 }
 
 export function useGameRoom(roomId: string, playerId: string) {
@@ -41,19 +42,20 @@ export function useGameRoom(roomId: string, playerId: string) {
         questions: [],
         votes: []
     },
-    isConnected: false
+    isConnected: false,
+    lastEvent: null
   });
   
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Broadcast helper
-  const broadcast = useCallback((event: string, payload: any) => {
+  const broadcast = useCallback(async (event: string, payload: any) => {
     if (!channelRef.current) return;
-    channelRef.current.send({
+    await channelRef.current.send({
       type: 'broadcast',
-      event,
-      payload
-    }).catch(err => console.error('Broadcast error:', err));
+      event: event,
+      payload: payload
+    });
   }, []);
 
   useEffect(() => {
@@ -161,6 +163,14 @@ export function useGameRoom(roomId: string, playerId: string) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'infiltre_votes', filter: `room_id=eq.${roomId}` }, async () => {
            const { data } = await supabase.from('infiltre_votes').select('*').eq('room_id', roomId);
            if (isMounted && data) setState(prev => ({ ...prev, infiltre: { ...prev.infiltre, votes: data } }));
+      })
+
+      // --- BROADCAST EVENTS ---
+      .on('broadcast', { event: '*' }, (payload) => {
+          if (isMounted) setState(prev => ({ 
+              ...prev, 
+              lastEvent: { type: payload.event, payload: payload.payload, timestamp: Date.now() } 
+          }));
       })
 
       .subscribe((status) => {
