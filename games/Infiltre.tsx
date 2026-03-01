@@ -281,16 +281,20 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
     const shuffled = [...allPlayers].sort(() => Math.random() - 0.5);
     const newRoles: Record<string, Role> = {};
     
-    // 1 Master
-    const master = shuffled.pop();
-    if (master) newRoles[master.id] = 'MASTER';
+    // 1 Master (Random from ALL players)
+    const masterIndex = Math.floor(Math.random() * shuffled.length);
+    const master = shuffled[masterIndex];
+    newRoles[master.id] = 'MASTER';
     
-    // 1 Infiltre
-    const infiltre = shuffled.pop();
+    // Remove Master from pool for other roles
+    const remaining = shuffled.filter((_, i) => i !== masterIndex);
+    
+    // 1 Infiltre (Random from remaining)
+    const infiltre = remaining.pop();
     if (infiltre) newRoles[infiltre.id] = 'INFILTRE';
     
     // Rest Citizens
-    shuffled.forEach(p => newRoles[p.id] = 'CITIZEN');
+    remaining.forEach(p => newRoles[p.id] = 'CITIZEN');
 
     return { newRoles };
   };
@@ -362,7 +366,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
   // --- VOTING ACTIONS ---
 
   const sendVote = async (targetId: string) => {
-      if (!roomId || !playerId) return;
+      if (!roomId || !playerId || isMaster) return; // Master cannot vote
       
       // Determine phase for vote tagging
       const votePhase = currentPhase === 'voting_finder' ? 'FINDER' : 'INFILTRE';
@@ -539,6 +543,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
               winner: null
           }).eq('room_id', roomId);
 
+          // Clear previous questions and votes
           await supabase.from('infiltre_questions').delete().eq('room_id', roomId);
           await supabase.from('infiltre_votes').delete().eq('room_id', roomId);
           
@@ -878,7 +883,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                 {/* VOTING COLUMNS */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4 w-full">
                     <div className="flex justify-center w-full">
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-7xl">
+                        <div className="flex flex-wrap justify-center gap-4 w-full max-w-7xl">
                             {alivePlayers.filter(pid => {
                                 const role = roles[pid];
                                 // Exclude Master from being a target in both voting phases
@@ -890,7 +895,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                 const hasVotedForThis = votesForThisPlayer.some((v: any) => v.voter_id === playerId);
                                 
                                 return (
-                                    <div key={pid} className="flex flex-col bg-slate-900/50 border border-white/5 rounded-xl overflow-hidden h-[300px] relative">
+                                    <div key={pid} className="flex flex-col bg-slate-900/50 border border-white/5 rounded-xl overflow-hidden h-[300px] relative w-full md:w-[31%] lg:w-[23%]">
                                         <div className="p-4 text-center border-b border-white/5 bg-slate-900/80">
                                             <div className="font-bold text-xl text-white">{p?.name}</div>
                                             {pid === finderId && currentPhase === 'voting_finder' && (
@@ -912,14 +917,21 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
                                         {/* Vote Button */}
                                         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-900 to-transparent pt-6">
-                                            <Button 
-                                                onClick={() => sendVote(pid)}
-                                                className={`w-full font-bold ${hasVotedForThis ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
-                                                disabled={pid === playerId} // Can't vote for self? Rules don't specify, but usually yes.
-                                            >
-                                                {hasVotedForThis ? <Check className="w-4 h-4 mr-2" /> : <Skull className="w-4 h-4 mr-2" />}
-                                                {hasVotedForThis ? 'Voté' : 'Accuser'}
-                                            </Button>
+                                            {!isMaster && (
+                                                <Button 
+                                                    onClick={() => sendVote(pid)}
+                                                    className={`w-full font-bold ${hasVotedForThis ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+                                                    disabled={pid === playerId} // Can't vote for self? Rules don't specify, but usually yes.
+                                                >
+                                                    {hasVotedForThis ? <Check className="w-4 h-4 mr-2" /> : <Skull className="w-4 h-4 mr-2" />}
+                                                    {hasVotedForThis ? 'Voté' : 'Accuser'}
+                                                </Button>
+                                            )}
+                                            {isMaster && (
+                                                <div className="text-center text-xs text-gray-500 italic pb-2">
+                                                    Le Maître observe le vote...
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 );
