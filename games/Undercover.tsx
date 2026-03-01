@@ -50,10 +50,11 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   const settings = gameState?.settings || {};
   const rounds = Number(settings.rounds || 1);
   const mrWhiteEnabled = settings.mrWhiteEnabled === 'true' || settings.mrWhiteEnabled === true;
-  const discussionTime = Number(settings.discussionTime || 60);
+  // discussionTime removed
   const voteTime = Number(settings.voteTime || 30);
   const playersKnowRole = settings.playersKnowRole === 'true' || settings.playersKnowRole === true;
   const clueRoundsBeforeVote = Number(settings.clueRounds || 3);
+  const undercoverCount = Number(settings.undercoverCount || 1);
 
   const roundData = gameState?.round_data || {};
   const currentPhase = (roundData.phase as Phase) || 'setup';
@@ -232,7 +233,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         const remainingQueue = Array.isArray(words) ? words.slice(1) : [];
 
         // Assign Roles
-        const { newRoles, alive } = assignRoles(players, mrWhiteEnabled);
+        const { newRoles, alive } = assignRoles(players, mrWhiteEnabled, undercoverCount);
 
         await startGame({
             civilWord: firstPair.civilWord,
@@ -253,16 +254,18 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     }
   };
 
-  const assignRoles = (allPlayers: any[], includeMrWhite: boolean) => {
+  const assignRoles = (allPlayers: any[], includeMrWhite: boolean, ucCount: number) => {
     const shuffled = [...allPlayers].sort(() => Math.random() - 0.5);
     const newRoles: Record<string, Role> = {};
     const alive: string[] = [];
 
     let available = [...shuffled];
     
-    // Undercover
-    const undercover = available.pop();
-    if (undercover) newRoles[undercover.id] = 'UNDERCOVER';
+    // Undercovers
+    for (let i = 0; i < ucCount; i++) {
+        const undercover = available.pop();
+        if (undercover) newRoles[undercover.id] = 'UNDERCOVER';
+    }
 
     // Mr White
     if (includeMrWhite && available.length > 0) {
@@ -391,7 +394,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       
       const nextPair = queue[0];
       const remaining = queue.slice(1);
-      const { newRoles, alive } = assignRoles(players, settings.mrWhiteEnabled);
+      const { newRoles, alive } = assignRoles(players, settings.mrWhiteEnabled, undercoverCount);
 
       if (resetAllPlayersReady) await resetAllPlayersReady();
 
@@ -595,7 +598,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     };
 
     processAnswers();
-  }, [isHost, gameState?.answers, currentPhase, currentSpeakerId, clues, alivePlayers, discussionTime, eliminatedPlayerId, civilWord]);
+  }, [isHost, gameState?.answers, currentPhase, currentSpeakerId, clues, alivePlayers, eliminatedPlayerId, civilWord, clueRoundsBeforeVote, voteTime, roundData, currentClueRound, skipVotes, playerId]);
 
   // Auto-start
   useEffect(() => {
@@ -736,33 +739,97 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
         {/* GAMEPLAY: CLUES & DISCUSSION */}
         {(currentPhase === 'clues' || currentPhase === 'discussion') && (
-            <div className="w-full max-w-6xl space-y-6 flex flex-col items-center">
+            <div className="w-full max-w-6xl flex flex-col items-center relative min-h-screen">
                  
+                 {/* STICKY TURN DIALOG */}
+                 {currentPhase === 'clues' && isMyTurn && (
+                     <div className="sticky top-4 z-50 w-full max-w-xl animate-in slide-in-from-top-10 mb-6">
+                        <div className="bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 rounded-2xl border border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.3)]">
+                             <p className="text-yellow-400 font-bold mb-3 text-sm uppercase tracking-wider flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"/>
+                                C'est à votre tour !
+                             </p>
+                             <div className="flex gap-3">
+                                 <Input 
+                                    placeholder="Donnez votre indice (1 mot)..." 
+                                    value={userClue}
+                                    onChange={e => setUserClue(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && sendClue()}
+                                    className="bg-slate-800 border-white/20 text-lg h-12 text-white placeholder:text-gray-500"
+                                    autoFocus
+                                 />
+                                 <Button 
+                                    onClick={sendClue} 
+                                    disabled={!userClue.trim()}
+                                    className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold h-12 px-6 shrink-0"
+                                 >
+                                     <Send className="w-5 h-5" />
+                                 </Button>
+                             </div>
+                        </div>
+                     </div>
+                 )}
+
                  {/* GRID OF CLUES */}
                  <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
-                     <div className="flex justify-center gap-4 min-w-max px-4">
+                     <div className="flex flex-col md:flex-row justify-center gap-4 min-w-max md:min-w-0 px-4 w-full">
                         {alivePlayers.map(pid => {
                             const p = players.find(pl => pl.id === pid);
                             const pClues = clues.filter(c => c.playerId === pid);
                             const isSpeaking = currentPhase === 'clues' && currentSpeakerId === pid;
+                            const isMe = pid === playerId;
 
                             return (
-                                <div key={pid} className={`w-48 flex flex-col transition-all duration-300 ${isSpeaking ? 'scale-105' : 'opacity-90'}`}>
-                                    <div className={`p-3 rounded-t-xl text-center border-b-4 ${isSpeaking ? 'bg-slate-700 border-yellow-500' : 'bg-slate-800 border-slate-600'}`}>
+                                <div key={pid} className={`w-full md:w-48 flex flex-col transition-all duration-300 ${isSpeaking ? 'scale-[1.02] md:scale-105 z-10' : 'opacity-90'}`}>
+                                    {/* Player Card Header */}
+                                    <div className={`p-3 rounded-t-xl text-center border-b-4 relative ${isSpeaking ? 'bg-slate-700 border-yellow-500' : 'bg-slate-800 border-slate-600'}`}>
                                         <div className="font-bold text-white truncate text-lg">{p?.name}</div>
-                                        {isSpeaking && <div className="text-xs text-yellow-400 font-bold animate-pulse mt-1">À TOI DE JOUER</div>}
+                                        {isSpeaking && (
+                                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase shadow-sm whitespace-nowrap">
+                                                En train d'écrire...
+                                            </div>
+                                        )}
+                                        {/* PRESS TO REVEAL BUTTON (ONLY FOR ME) */}
+                                        {isMe && (
+                                            <button
+                                                className="absolute top-1 right-1 p-1.5 text-gray-400 hover:text-white bg-black/20 hover:bg-black/40 rounded-lg transition-colors"
+                                                onMouseDown={() => setShowRole(true)}
+                                                onMouseUp={() => setShowRole(false)}
+                                                onTouchStart={() => setShowRole(true)}
+                                                onTouchEnd={() => setShowRole(false)}
+                                                title="Maintenir pour voir mon rôle"
+                                            >
+                                                {showRole ? <Eye className="w-4 h-4 text-blue-400" /> : <EyeOff className="w-4 h-4" />}
+                                            </button>
+                                        )}
                                     </div>
-                                    <div className="bg-slate-900/60 p-2 rounded-b-xl min-h-[300px] flex flex-col gap-2 border border-white/5">
+
+                                    {/* Clues List */}
+                                    <div className="bg-slate-900/60 p-2 rounded-b-xl min-h-[150px] md:min-h-[300px] max-h-[calc(100vh-250px)] overflow-y-auto custom-scrollbar flex flex-col gap-2 border border-white/5 relative">
+                                        
+                                        {/* Overlay Role Reveal */}
+                                        {isMe && showRole && myRole && (
+                                            <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur flex flex-col items-center justify-center p-2 text-center animate-in fade-in duration-100">
+                                                <div className={`text-xs font-black uppercase mb-1 ${getRoleColor(myRole)}`}>
+                                                    {myRole === 'CIVIL' ? 'CIVIL' : myRole === 'UNDERCOVER' ? 'UNDERCOVER' : 'MR. WHITE'}
+                                                </div>
+                                                <div className="text-xl font-bold text-white break-all leading-tight">
+                                                    {myRole === 'MR_WHITE' ? '???' : myRole === 'UNDERCOVER' ? undercoverWord : civilWord}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {pClues.map((c, idx) => (
-                                            <div key={idx} className="bg-white/10 p-3 rounded-lg text-white font-medium break-words animate-in slide-in-from-bottom-2 fade-in shadow-sm relative group">
-                                                <span className="absolute -left-2 -top-2 w-5 h-5 bg-slate-700 rounded-full text-[10px] flex items-center justify-center text-gray-400 border border-white/10">
+                                            <div key={idx} className="bg-white/10 p-3 rounded-lg text-white font-medium break-words animate-in slide-in-from-bottom-2 fade-in shadow-sm relative group text-sm md:text-base">
+                                                <span className="absolute -left-2 -top-2 w-5 h-5 bg-slate-700 rounded-full text-[10px] flex items-center justify-center text-gray-400 border border-white/10 select-none">
                                                     {idx + 1}
                                                 </span>
                                                 {c.text}
                                             </div>
                                         ))}
+                                        
                                         {isSpeaking && (
-                                            <div className="bg-yellow-400/5 p-3 rounded-lg border border-yellow-400/20 animate-pulse flex justify-center">
+                                            <div className="bg-yellow-400/5 p-3 rounded-lg border border-yellow-400/20 animate-pulse flex justify-center mt-auto">
                                                 <Loader2 className="w-5 h-5 text-yellow-400 animate-spin" />
                                             </div>
                                         )}
@@ -773,9 +840,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                      </div>
                  </div>
 
-                 {/* SKIP VOTE BUTTON (ALL PLAYERS) */}
+                 {/* SKIP VOTE BUTTON (ALL PLAYERS) - STICKY BOTTOM MOBILE */}
                  {isAlive && (
-                     <div className="fixed top-24 right-4 z-50">
+                     <div className="fixed bottom-4 right-4 md:top-24 md:right-4 z-40">
                          <Button 
                             onClick={async () => {
                                 await submitAnswer({
@@ -783,44 +850,24 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                     action: skipVotes.includes(playerId!) ? 'remove' : 'add'
                                 });
                             }}
-                            className={`font-bold shadow-lg transition-all ${
+                            className={`font-bold shadow-xl transition-all h-14 md:h-10 px-6 rounded-full md:rounded-lg ${
                                 skipVotes.includes(playerId!) 
-                                ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
-                                : 'bg-slate-700 hover:bg-slate-600 text-gray-200'
+                                ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse ring-4 ring-red-600/30' 
+                                : 'bg-slate-800 hover:bg-slate-700 text-gray-200 border border-white/10'
                             }`}
                          >
-                            <AlertTriangle className="w-4 h-4 mr-2" />
-                            {skipVotes.includes(playerId!) ? 'Annuler le vote' : 'Passer au Vote'}
-                            <span className="ml-2 bg-black/20 px-2 py-0.5 rounded text-sm">
+                            <AlertTriangle className="w-5 h-5 mr-2" />
+                            <span className="mr-1">{skipVotes.includes(playerId!) ? 'Annuler' : 'Voter'}</span>
+                            <span className="bg-black/30 px-2 py-0.5 rounded text-xs font-mono">
                                 {skipVotes.length}/{Math.floor(alivePlayers.length / 2) + 1}
                             </span>
                          </Button>
                      </div>
                  )}
-
-                 {/* Input Area (Only for Clues phase & Current Speaker) */}
-                 {currentPhase === 'clues' && isMyTurn && (
-                     <div className="bg-slate-900/90 p-6 rounded-2xl border border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.2)] w-full max-w-xl animate-in slide-in-from-bottom-10 fixed bottom-8 z-50">
-                         <p className="text-yellow-400 font-bold mb-2 text-sm uppercase tracking-wider">C'est à votre tour !</p>
-                         <div className="flex gap-3">
-                             <Input 
-                                placeholder="Donnez votre indice (1 mot)..." 
-                                value={userClue}
-                                onChange={e => setUserClue(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && sendClue()}
-                                className="bg-slate-800 border-white/20 text-lg h-12"
-                                autoFocus
-                             />
-                             <Button onClick={sendClue} className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold h-12 px-6">
-                                 <Send className="w-5 h-5" />
-                             </Button>
-                         </div>
-                     </div>
-                 )}
                  
                  {currentPhase === 'discussion' && (
-                     <div className="fixed bottom-8 z-50 bg-red-600 text-white px-8 py-4 rounded-full font-bold text-xl shadow-lg animate-bounce flex items-center gap-3">
-                         <MessageSquare className="w-6 h-6" />
+                     <div className="fixed bottom-24 md:bottom-8 z-30 bg-red-600 text-white px-6 py-3 rounded-full font-bold text-lg shadow-lg animate-bounce flex items-center gap-3 max-w-[90vw] text-center justify-center">
+                         <MessageSquare className="w-5 h-5 shrink-0" />
                          Débattez ! Qui est l'intrus ?
                      </div>
                  )}

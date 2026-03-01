@@ -191,6 +191,7 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
     icon: Gamepad2,
     settings: [
         { id: 'rounds', label: 'Manches', type: 'number', default: 1 },
+        { id: 'undercoverCount', label: "Nombre d'Undercovers", type: 'number', default: 1 }, // New Setting
         { 
             id: 'mrWhiteEnabled', 
             label: 'Activer Mr. White', 
@@ -212,7 +213,6 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
             ]
         },
         { id: 'clueRounds', label: 'Tours de parole avant vote', type: 'number', default: 3 },
-        { id: 'discussionTime', label: 'Temps de discussion (s)', type: 'number', default: 60 },
         { id: 'voteTime', label: 'Temps de vote (s)', type: 'number', default: 30 },
     ],
   },
