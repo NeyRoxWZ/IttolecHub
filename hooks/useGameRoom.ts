@@ -7,6 +7,13 @@ export interface GameRoomState {
   room: any;
   session: any;
   players: any[];
+  moves: any[];
+  undercover: {
+      game: any;
+      roles: any[];
+      clues: any[];
+      votes: any[];
+  };
   isConnected: boolean;
 }
 
@@ -15,6 +22,13 @@ export function useGameRoom(roomId: string, playerId: string) {
     room: null,
     session: null,
     players: [],
+    moves: [],
+    undercover: {
+        game: null,
+        roles: [],
+        clues: [],
+        votes: []
+    },
     isConnected: false
   });
   
@@ -37,10 +51,16 @@ export function useGameRoom(roomId: string, playerId: string) {
     
     // Initial fetch
     const fetchInitialState = async () => {
-      const [roomRes, sessionRes, playersRes] = await Promise.all([
+      const [roomRes, sessionRes, playersRes, movesRes, ucGame, ucRoles, ucClues, ucVotes] = await Promise.all([
         supabase.from('rooms').select('*').eq('id', roomId).maybeSingle(),
         supabase.from('game_sessions').select('*').eq('room_id', roomId).maybeSingle(),
-        supabase.from('players').select('*').eq('room_id', roomId)
+        supabase.from('players').select('*').eq('room_id', roomId),
+        supabase.from('game_moves').select('*').eq('room_id', roomId).order('created_at', { ascending: true }),
+        // Undercover Tables
+        supabase.from('undercover_games').select('*').eq('room_id', roomId).maybeSingle(),
+        supabase.from('undercover_players').select('*').eq('room_id', roomId),
+        supabase.from('undercover_clues').select('*').eq('room_id', roomId).order('created_at', { ascending: true }),
+        supabase.from('undercover_votes').select('*').eq('room_id', roomId)
       ]);
 
       if (isMounted) {
@@ -48,7 +68,14 @@ export function useGameRoom(roomId: string, playerId: string) {
           ...prev,
           room: roomRes.data,
           session: sessionRes.data,
-          players: playersRes.data || []
+          players: playersRes.data || [],
+          moves: movesRes.data || [],
+          undercover: {
+              game: ucGame.data,
+              roles: ucRoles.data || [],
+              clues: ucClues.data || [],
+              votes: ucVotes.data || []
+          }
         }));
       }
     };
@@ -57,49 +84,41 @@ export function useGameRoom(roomId: string, playerId: string) {
 
     // Setup Realtime Subscription
     const channel = supabase.channel(`room_sync:${roomId}`)
-      // Listen to Room updates (status, settings)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
-        (payload) => {
-          if (isMounted) {
-            setState(prev => ({ ...prev, room: payload.new }));
-          }
-        }
-      )
-      // Listen to Session updates (game state, round data)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'game_sessions', filter: `room_id=eq.${roomId}` },
-        (payload) => {
-          if (isMounted && payload.new) {
-            setState(prev => ({ ...prev, session: payload.new }));
-          }
-        }
-      )
-      // Listen to Player updates (score, join/leave)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${roomId}` },
-        async () => {
-          // Re-fetch all players to ensure consistency
-          const { data } = await supabase.from('players').select('*').eq('room_id', roomId);
-          if (isMounted && data) {
-            setState(prev => ({ ...prev, players: data }));
-          }
-        }
-      )
-      // Broadcast events
-      .on('broadcast', { event: 'player_answer' }, ({ payload }) => {
-        // Handle optimistic UI updates or notifications here if needed
-        console.log('Player answered:', payload);
+      // Room
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` }, (payload) => {
+          if (isMounted) setState(prev => ({ ...prev, room: payload.new }));
       })
+      // Session
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_sessions', filter: `room_id=eq.${roomId}` }, (payload) => {
+          if (isMounted && payload.new) setState(prev => ({ ...prev, session: payload.new }));
+      })
+      // Players
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${roomId}` }, async () => {
+          const { data } = await supabase.from('players').select('*').eq('room_id', roomId);
+          if (isMounted && data) setState(prev => ({ ...prev, players: data }));
+      })
+      // Moves
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_moves', filter: `room_id=eq.${roomId}` }, (payload) => {
+          if (isMounted && payload.new) setState(prev => ({ ...prev, moves: [...prev.moves, payload.new] }));
+      })
+      // --- UNDERCOVER TABLES ---
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'undercover_games', filter: `room_id=eq.${roomId}` }, (payload) => {
+          if (isMounted && payload.new) setState(prev => ({ ...prev, undercover: { ...prev.undercover, game: payload.new } }));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'undercover_players', filter: `room_id=eq.${roomId}` }, async () => {
+          const { data } = await supabase.from('undercover_players').select('*').eq('room_id', roomId);
+          if (isMounted && data) setState(prev => ({ ...prev, undercover: { ...prev.undercover, roles: data } }));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'undercover_clues', filter: `room_id=eq.${roomId}` }, (payload) => {
+          if (isMounted && payload.new) setState(prev => ({ ...prev, undercover: { ...prev.undercover, clues: [...prev.undercover.clues, payload.new] } }));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'undercover_votes', filter: `room_id=eq.${roomId}` }, (payload) => {
+          if (isMounted && payload.new) setState(prev => ({ ...prev, undercover: { ...prev.undercover, votes: [...prev.undercover.votes, payload.new] } }));
+      })
+      
       .subscribe((status) => {
         if (isMounted) {
           setState(prev => ({ ...prev, isConnected: status === 'SUBSCRIBED' }));
-          if (status === 'SUBSCRIBED') {
-             console.log(`Connected to room ${roomId}`);
-          }
         }
       });
 

@@ -29,7 +29,7 @@ export function useGameSync(roomCode: string, gameType: string) {
   const { now } = useServerTime();
   
   // Use the new robust hook for sync
-  const { room, session, players, isConnected } = useGameRoom(roomId || '', playerId || '');
+  const { room, session, players, moves, undercover, isConnected } = useGameRoom(roomId || '', playerId || '');
 
   // Derived state
   const roomStatus = room?.status || 'waiting';
@@ -219,6 +219,17 @@ export function useGameSync(roomCode: string, gameType: string) {
     await supabase.from('players').update({ is_ready: false }).eq('room_id', roomId);
   };
 
+  const sendMove = async (actionType: string, payload: any) => {
+    if (!roomId || !playerId) return;
+    await supabase.from('game_moves').insert({
+        room_id: roomId,
+        player_id: playerId,
+        action_type: actionType,
+        game_type: gameType,
+        payload
+    });
+  };
+
   const nextRound = async (nextRoundData: any = {}) => {
     if (!roomId || !isHost || !gameState) return;
     const nextRound = gameState.current_round + 1;
@@ -273,6 +284,9 @@ export function useGameSync(roomCode: string, gameType: string) {
     updatePlayerScore,
     setPlayerReady, // Exposed
     resetAllPlayersReady, // Exposed
+    sendMove, // Exposed robust move function
+    moves, // Exposed moves history
+    undercover, // Exposed dedicated tables
     getTimeLeft, // Exposed for components
     serverTime: now // Exposed if needed
   };
