@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useGameRoom } from './useGameRoom';
+import { useServerTime } from './useServerTime';
 
 export interface Player {
   id: string;
@@ -25,6 +26,7 @@ export function useGameSync(roomCode: string, gameType: string) {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
+  const { now } = useServerTime();
   
   // Use the new robust hook for sync
   const { room, session, players, isConnected } = useGameRoom(roomId || '', playerId || '');
@@ -238,6 +240,14 @@ export function useGameSync(roomCode: string, gameType: string) {
     await supabase.from('players').update({ score }).eq('id', playerId);
   };
 
+  // Helper to get synced time left
+  const getTimeLeft = useCallback((endTime?: number | null) => {
+    if (!endTime) return 0;
+    const current = now(); // Synced server time
+    const diff = Math.ceil((endTime - current) / 1000);
+    return diff > 0 ? diff : 0;
+  }, [now]);
+
   return {
     roomStatus,
     players,
@@ -250,6 +260,8 @@ export function useGameSync(roomCode: string, gameType: string) {
     nextRound,
     updateRoundData,
     setGameStatus,
-    updatePlayerScore
+    updatePlayerScore,
+    getTimeLeft, // Exposed for components
+    serverTime: now // Exposed if needed
   };
 }

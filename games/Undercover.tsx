@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Crown, Skull, Loader2, Send, Home, LogOut } from 'lucide-react';
+import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Crown, Skull, Loader2, Send, Home, LogOut, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -35,7 +35,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     updateRoundData,
     nextRound,
     submitAnswer,
-    setGameStatus
+    setGameStatus,
+    getTimeLeft // New helper
   } = useGameSync(roomCode, 'undercover');
 
   // Local UI State
@@ -46,9 +47,11 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   // Derived State from GameState
   const settings = gameState?.settings || {};
   const rounds = Number(settings.rounds || 1);
-  const mrWhiteEnabled = settings.mrWhiteEnabled === 'true' || settings.mrWhiteEnabled === true; // Handle string or bool
+  const mrWhiteEnabled = settings.mrWhiteEnabled === 'true' || settings.mrWhiteEnabled === true;
   const discussionTime = Number(settings.discussionTime || 60);
   const voteTime = Number(settings.voteTime || 30);
+  const playersKnowRole = settings.playersKnowRole === 'true' || settings.playersKnowRole === true;
+  const clueRoundsBeforeVote = Number(settings.clueRounds || 3);
 
   const roundData = gameState?.round_data || {};
   const currentPhase = (roundData.phase as Phase) || 'setup';
@@ -60,9 +63,11 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   const clues = (roundData.clues as Clue[]) || [];
   const alivePlayers = (roundData.alivePlayers as string[]) || [];
   const eliminatedPlayerId = roundData.eliminated as string | null;
-  const winner = roundData.winner as string | null; // 'CIVILS', 'IMPOSTORS', 'MR_WHITE'
+  const winner = roundData.winner as string | null;
   const currentRoundNumber = gameState?.current_round || 0;
-  
+  const readyPlayers = (roundData.readyPlayers as string[]) || [];
+  const currentClueRound = roundData.currentClueRound || 1;
+
   // Players Map
   const playersMap = useMemo(() => {
     return players.reduce((acc, p) => ({ ...acc, [p.name]: p.score }), {} as Record<string, number>);
@@ -70,22 +75,25 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
   const isMyTurn = currentPhase === 'clues' && currentSpeakerId === playerId;
   const isAlive = playerId && alivePlayers.includes(playerId);
+  const amIReady = playerId && readyPlayers.includes(playerId);
 
-  // Timer Sync
+  // Timer Sync using Server Time
   useEffect(() => {
     if (roundData.endTime) {
-        const diff = Math.ceil((roundData.endTime - Date.now()) / 1000);
-        setTimeLeft(diff > 0 ? diff : 0);
+        // Update immediately
+        setTimeLeft(getTimeLeft(roundData.endTime));
+        
+        // Interval for visual countdown
+        const interval = setInterval(() => {
+            const tl = getTimeLeft(roundData.endTime);
+            setTimeLeft(tl);
+            if (tl <= 0) clearInterval(interval);
+        }, 250); // 4Hz refresh for smooth feeling
+        return () => clearInterval(interval);
+    } else {
+        setTimeLeft(0);
     }
-  }, [roundData.endTime]);
-
-  // Timer Tick
-  useEffect(() => {
-    if (timeLeft > 0) {
-        const timer = setInterval(() => setTimeLeft(t => Math.max(0, t - 1)), 1000);
-        return () => clearInterval(timer);
-    }
-  }, [timeLeft]);
+  }, [roundData.endTime, getTimeLeft]);
 
   // --- HOST LOGIC ---
 
@@ -94,18 +102,22 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     if (!isHost) return;
 
     const managePhases = async () => {
-        // 1. Roles Phase -> Clues Phase (after 5s)
-        if (currentPhase === 'roles' && timeLeft === 0) {
-            await updateRoundData({
-                ...roundData,
-                phase: 'clues',
-                currentSpeaker: alivePlayers[0], // Start with first alive player
-                endTime: null // No timer for clues (or per-turn timer?)
-            });
+        // 1. Roles Phase -> Clues Phase (Wait for ALL Ready)
+        if (currentPhase === 'roles') {
+             const allReady = alivePlayers.every(id => readyPlayers.includes(id));
+             if (allReady) {
+                 await updateRoundData({
+                     ...roundData,
+                     phase: 'clues',
+                     currentSpeaker: alivePlayers[0],
+                     endTime: null,
+                     currentClueRound: 1
+                 });
+             }
         }
 
         // 3. Discussion Phase -> Vote Phase (after time)
-        if (currentPhase === 'discussion' && timeLeft === 0) {
+        if (currentPhase === 'discussion' && timeLeft === 0 && roundData.endTime) {
              await updateRoundData({
                  ...roundData,
                  phase: 'vote',
@@ -114,13 +126,13 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         }
 
         // 4. Vote Phase -> Results/Elimination (after time)
-        if (currentPhase === 'vote' && timeLeft === 0) {
+        if (currentPhase === 'vote' && timeLeft === 0 && roundData.endTime) {
              await processVotes();
         }
     };
 
     managePhases();
-  }, [isHost, currentPhase, timeLeft, roundData, alivePlayers, voteTime]);
+  }, [isHost, currentPhase, timeLeft, roundData, alivePlayers, voteTime, readyPlayers]);
 
 
   const startNewGame = async () => {
@@ -150,8 +162,10 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             alivePlayers: alive,
             phase: 'roles',
             clues: [],
+            readyPlayers: [], // Reset ready
+            currentClueRound: 1,
             queue: remainingQueue,
-            endTime: Date.now() + 5000 // 5s to see roles
+            endTime: null // Manual ready
         });
     } catch (e) {
         console.error(e);
@@ -298,12 +312,21 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             alivePlayers: alive,
             phase: 'roles',
             clues: [],
+            readyPlayers: [],
+            currentClueRound: 1,
             queue: remaining,
-            endTime: Date.now() + 5000
+            endTime: null
       });
   };
 
   // --- CLIENT ACTIONS ---
+
+  const sendReady = async () => {
+    if (amIReady) return;
+    await submitAnswer({
+        type: 'ready'
+    });
+  };
 
   const sendClue = async () => {
     if (!userClue.trim()) return;
@@ -338,40 +361,66 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     const processAnswers = async () => {
         const answers = gameState.answers;
         
+        // Check for Ready Status
+        if (currentPhase === 'roles') {
+            const newReady = [...readyPlayers];
+            let changed = false;
+            
+            Object.entries(answers).forEach(([pid, val]: [string, any]) => {
+                if (val.type === 'ready' && !newReady.includes(pid)) {
+                    newReady.push(pid);
+                    changed = true;
+                }
+            });
+
+            if (changed) {
+                await updateRoundData({ ...roundData, readyPlayers: newReady });
+            }
+        }
+        
         // Check for Clues
         if (currentPhase === 'clues' && currentSpeakerId) {
             const speakerAnswer = answers[currentSpeakerId];
             if (speakerAnswer && speakerAnswer.type === 'clue') {
-                // Check if this clue is new (compare timestamp or text)
                 const lastClue = clues.find(c => c.playerId === currentSpeakerId && c.text === speakerAnswer.text);
                 if (!lastClue) {
-                    // New clue!
                     const newClues = [...clues, {
                         playerId: currentSpeakerId,
                         text: speakerAnswer.text,
                         timestamp: speakerAnswer.timestamp
                     }];
                     
-                    // Next speaker
                     const currentIndex = alivePlayers.indexOf(currentSpeakerId);
                     const nextIndex = (currentIndex + 1) % alivePlayers.length;
                     const nextSpeaker = alivePlayers[nextIndex];
                     
-                    // If we looped back to first speaker of this round?
-                    // We need to know who started. 
-                    // Let's assume `alivePlayers` order is fixed.
-                    // If nextIndex === 0, everyone has spoken.
-                    
                     if (nextIndex === 0) {
-                        // All spoken -> Discussion
-                        await updateRoundData({
-                            ...roundData,
-                            clues: newClues,
-                            currentSpeaker: null,
-                            phase: 'discussion',
-                            endTime: Date.now() + discussionTime * 1000
-                        });
+                        // End of Clue Round
+                        const nextRoundNum = currentClueRound + 1;
+                        
+                        if (nextRoundNum > clueRoundsBeforeVote) {
+                             // Go to Vote
+                             await updateRoundData({
+                                 ...roundData,
+                                 clues: newClues,
+                                 currentSpeaker: null,
+                                 phase: 'vote', // Skip discussion for now as per user request to vote at round X+1? 
+                                 // User said: "at round clueRoundsBeforeVote + 1, activate Vote button". 
+                                 // Let's interpret: after X rounds of clues, go to vote.
+                                 endTime: Date.now() + voteTime * 1000,
+                                 currentClueRound: nextRoundNum
+                             });
+                        } else {
+                             // Next Clue Round
+                             await updateRoundData({
+                                 ...roundData,
+                                 clues: newClues,
+                                 currentSpeaker: nextSpeaker,
+                                 currentClueRound: nextRoundNum
+                             });
+                        }
                     } else {
+                        // Next Player in same round
                         await updateRoundData({
                             ...roundData,
                             clues: newClues,
@@ -459,89 +508,124 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
         {/* ROLES REVEAL */}
         {currentPhase === 'roles' && myRole && (
-             <div className="flex flex-col items-center animate-in zoom-in duration-500">
-                <div className="bg-slate-900/80 p-8 rounded-2xl border border-white/10 text-center max-w-md w-full shadow-[0_0_50px_rgba(239,68,68,0.2)]">
+             <div className="flex flex-col items-center animate-in zoom-in duration-500 w-full max-w-lg">
+                <div className="bg-slate-900/80 p-8 rounded-2xl border border-white/10 text-center w-full shadow-[0_0_50px_rgba(239,68,68,0.2)] relative overflow-hidden">
+                    
+                    {amIReady && (
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-10 animate-in fade-in">
+                            <div className="text-center">
+                                <Check className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                                <h3 className="text-2xl font-bold text-white">Vous êtes prêt !</h3>
+                                <p className="text-gray-400 mt-2">En attente des autres joueurs ({readyPlayers.length}/{alivePlayers.length})</p>
+                            </div>
+                        </div>
+                    )}
+
                     <h3 className="text-2xl font-bold text-gray-400 mb-6">Votre rôle est</h3>
                     
-                    <div className="mb-8 flex justify-center">
-                        <div className={`p-6 rounded-full bg-white/5 border-2 ${myRole === 'CIVIL' ? 'border-blue-500' : 'border-red-500'}`}>
-                             {getRoleIcon(myRole)}
+                    {playersKnowRole ? (
+                        <>
+                            <div className="mb-8 flex justify-center">
+                                <div className={`p-6 rounded-full bg-white/5 border-2 ${myRole === 'CIVIL' ? 'border-blue-500' : 'border-red-500'}`}>
+                                     {getRoleIcon(myRole)}
+                                </div>
+                            </div>
+                            
+                            <h2 className={`text-4xl font-black mb-4 ${getRoleColor(myRole)}`}>
+                                {myRole === 'CIVIL' ? 'CIVIL' : myRole === 'UNDERCOVER' ? 'UNDERCOVER' : 'MR. WHITE'}
+                            </h2>
+                        </>
+                    ) : (
+                        <div className="mb-8 flex justify-center">
+                            <div className="p-6 rounded-full bg-white/5 border-2 border-gray-500">
+                                <User className="w-12 h-12 text-gray-300" />
+                            </div>
+                            <h2 className="text-4xl font-black mb-4 text-gray-300 sr-only">Rôle Caché</h2>
                         </div>
-                    </div>
-                    
-                    <h2 className={`text-4xl font-black mb-4 ${getRoleColor(myRole)}`}>
-                        {myRole === 'CIVIL' ? 'CIVIL' : myRole === 'UNDERCOVER' ? 'UNDERCOVER' : 'MR. WHITE'}
-                    </h2>
+                    )}
 
-                    <div className="bg-white/5 p-4 rounded-xl">
+                    <div className="bg-white/5 p-4 rounded-xl mb-8">
                         <p className="text-sm text-gray-400 mb-1">Votre mot secret :</p>
-                        <p className="text-2xl font-bold text-white tracking-widest uppercase">
+                        <p className="text-3xl font-bold text-white tracking-widest uppercase">
                             {myRole === 'MR_WHITE' ? '???' : myRole === 'UNDERCOVER' ? undercoverWord : civilWord}
                         </p>
                     </div>
+
+                    <Button 
+                        size="lg" 
+                        onClick={sendReady} 
+                        disabled={!!amIReady}
+                        className="w-full h-16 text-xl font-bold bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-600/20"
+                    >
+                        JE SUIS PRÊT
+                    </Button>
                 </div>
-                <p className="mt-8 text-red-400 animate-pulse">Début de la partie dans {timeLeft}s...</p>
              </div>
         )}
 
         {/* GAMEPLAY: CLUES & DISCUSSION */}
         {(currentPhase === 'clues' || currentPhase === 'discussion') && (
-            <div className="w-full max-w-3xl space-y-6">
-                 {/* Clues History */}
-                 <div className="bg-slate-900/50 rounded-2xl p-6 border border-white/10 min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar">
-                     <h3 className="text-lg font-bold text-gray-400 mb-4 sticky top-0 bg-slate-900/90 py-2 z-10 border-b border-white/5">
-                         Indices
-                     </h3>
-                     <div className="space-y-3">
-                         {clues.map((c, idx) => {
-                             const pName = players.find(p => p.id === c.playerId)?.name || 'Inconnu';
-                             return (
-                                 <div key={idx} className="flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
-                                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold">
-                                         {pName.charAt(0)}
-                                     </div>
-                                     <div className="bg-white/5 px-4 py-2 rounded-r-xl rounded-bl-xl text-white">
-                                         <span className="text-xs text-gray-500 block mb-0.5">{pName}</span>
-                                         "{c.text}"
-                                     </div>
-                                 </div>
-                             );
-                         })}
-                         {clues.length === 0 && (
-                             <div className="text-center text-gray-600 italic py-10">Aucun indice pour le moment...</div>
-                         )}
+            <div className="w-full max-w-6xl space-y-6 flex flex-col items-center">
+                 
+                 {/* GRID OF CLUES */}
+                 <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
+                     <div className="flex justify-center gap-4 min-w-max px-4">
+                        {alivePlayers.map(pid => {
+                            const p = players.find(pl => pl.id === pid);
+                            const pClues = clues.filter(c => c.playerId === pid);
+                            const isSpeaking = currentPhase === 'clues' && currentSpeakerId === pid;
+
+                            return (
+                                <div key={pid} className={`w-48 flex flex-col transition-all duration-300 ${isSpeaking ? 'scale-105' : 'opacity-90'}`}>
+                                    <div className={`p-3 rounded-t-xl text-center border-b-4 ${isSpeaking ? 'bg-slate-700 border-yellow-500' : 'bg-slate-800 border-slate-600'}`}>
+                                        <div className="font-bold text-white truncate text-lg">{p?.name}</div>
+                                        {isSpeaking && <div className="text-xs text-yellow-400 font-bold animate-pulse mt-1">À TOI DE JOUER</div>}
+                                    </div>
+                                    <div className="bg-slate-900/60 p-2 rounded-b-xl min-h-[300px] flex flex-col gap-2 border border-white/5">
+                                        {pClues.map((c, idx) => (
+                                            <div key={idx} className="bg-white/10 p-3 rounded-lg text-white font-medium break-words animate-in slide-in-from-bottom-2 fade-in shadow-sm relative group">
+                                                <span className="absolute -left-2 -top-2 w-5 h-5 bg-slate-700 rounded-full text-[10px] flex items-center justify-center text-gray-400 border border-white/10">
+                                                    {idx + 1}
+                                                </span>
+                                                {c.text}
+                                            </div>
+                                        ))}
+                                        {isSpeaking && (
+                                            <div className="bg-yellow-400/5 p-3 rounded-lg border border-yellow-400/20 animate-pulse flex justify-center">
+                                                <Loader2 className="w-5 h-5 text-yellow-400 animate-spin" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )
+                        })}
                      </div>
                  </div>
 
                  {/* Input Area (Only for Clues phase & Current Speaker) */}
-                 {currentPhase === 'clues' && (
-                     <div className="bg-slate-900/80 p-4 rounded-xl border border-red-500/30">
-                         {isMyTurn ? (
-                             <div className="flex gap-2">
-                                 <Input 
-                                    placeholder="Donnez votre indice (1 mot)..." 
-                                    value={userClue}
-                                    onChange={e => setUserClue(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && sendClue()}
-                                    className="bg-slate-800 border-white/10"
-                                    autoFocus
-                                 />
-                                 <Button onClick={sendClue} className="bg-red-600 hover:bg-red-500">
-                                     <Send className="w-4 h-4" />
-                                 </Button>
-                             </div>
-                         ) : (
-                             <div className="text-center text-gray-400 flex items-center justify-center gap-2">
-                                 <Loader2 className="w-4 h-4 animate-spin" />
-                                 En attente de {players.find(p => p.id === currentSpeakerId)?.name || '...'}
-                             </div>
-                         )}
+                 {currentPhase === 'clues' && isMyTurn && (
+                     <div className="bg-slate-900/90 p-6 rounded-2xl border border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.2)] w-full max-w-xl animate-in slide-in-from-bottom-10 fixed bottom-8 z-50">
+                         <p className="text-yellow-400 font-bold mb-2 text-sm uppercase tracking-wider">C'est à votre tour !</p>
+                         <div className="flex gap-3">
+                             <Input 
+                                placeholder="Donnez votre indice (1 mot)..." 
+                                value={userClue}
+                                onChange={e => setUserClue(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && sendClue()}
+                                className="bg-slate-800 border-white/20 text-lg h-12"
+                                autoFocus
+                             />
+                             <Button onClick={sendClue} className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold h-12 px-6">
+                                 <Send className="w-5 h-5" />
+                             </Button>
+                         </div>
                      </div>
                  )}
                  
                  {currentPhase === 'discussion' && (
-                     <div className="text-center bg-red-500/10 p-4 rounded-xl border border-red-500/30 text-red-200 animate-pulse">
-                         🗣️ Discussion libre ! Débattez pour trouver l'intrus.
+                     <div className="fixed bottom-8 z-50 bg-red-600 text-white px-8 py-4 rounded-full font-bold text-xl shadow-lg animate-bounce flex items-center gap-3">
+                         <MessageSquare className="w-6 h-6" />
+                         Débattez ! Qui est l'intrus ?
                      </div>
                  )}
             </div>
