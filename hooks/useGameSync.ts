@@ -209,6 +209,16 @@ export function useGameSync(roomCode: string, gameType: string) {
     await supabase.from('game_sessions').update({ answers: newAnswers }).eq('room_id', roomId);
   };
 
+  const setPlayerReady = async (isReady: boolean) => {
+    if (!playerId) return;
+    await supabase.from('players').update({ is_ready: isReady }).eq('id', playerId);
+  };
+  
+  const resetAllPlayersReady = async () => {
+    if (!roomId || !isHost) return;
+    await supabase.from('players').update({ is_ready: false }).eq('room_id', roomId);
+  };
+
   const nextRound = async (nextRoundData: any = {}) => {
     if (!roomId || !isHost || !gameState) return;
     const nextRound = gameState.current_round + 1;
@@ -261,6 +271,8 @@ export function useGameSync(roomCode: string, gameType: string) {
     updateRoundData,
     setGameStatus,
     updatePlayerScore,
+    setPlayerReady, // Exposed
+    resetAllPlayersReady, // Exposed
     getTimeLeft, // Exposed for components
     serverTime: now // Exposed if needed
   };

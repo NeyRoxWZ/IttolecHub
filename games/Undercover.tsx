@@ -36,6 +36,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     nextRound,
     submitAnswer,
     setGameStatus,
+    setPlayerReady, // New function
+    resetAllPlayersReady, // New function
     getTimeLeft // New helper
   } = useGameSync(roomCode, 'undercover');
 
@@ -93,6 +95,27 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   const amIReady = playerId && readyPlayers.includes(playerId);
   const [showRole, setShowRole] = useState(false);
 
+  // Use players table 'is_ready' column if available for more robustness
+  // We need to merge both systems or migrate to new one.
+  // Let's use the new system primarily if we can.
+  // But wait, `readyPlayers` comes from `roundData`.
+  // We need the HOST to read `players` table and update `roundData.readyPlayers`?
+  // OR we just use `players` table directly.
+  
+  // Let's filter players who are ready based on `players` prop (which comes from DB)
+  // Assuming `players` has `is_ready` field now.
+  const readyPlayersFromTable = useMemo(() => {
+      return players.filter((p: any) => p.is_ready).map(p => p.id);
+  }, [players]);
+
+  // Merge legacy and new
+  const allReadyIds = useMemo(() => {
+      return Array.from(new Set([...readyPlayers, ...readyPlayersFromTable]));
+  }, [readyPlayers, readyPlayersFromTable]);
+
+  const isPlayerReady = (pid: string) => allReadyIds.includes(pid);
+  const amIReadyRobust = playerId && isPlayerReady(playerId);
+
   // Timer Sync using Server Time
   useEffect(() => {
     if (roundData.endTime) {
@@ -129,8 +152,22 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     const managePhases = async () => {
         // 1. Roles Phase -> Clues Phase (Wait for ALL Ready - NO TIMER)
         if (currentPhase === 'roles') {
-             const allReady = alivePlayers.every(id => readyPlayers.includes(id));
+             // Check robust readiness
+             const allReady = alivePlayers.every(id => allReadyIds.includes(id));
+             
              if (allReady && alivePlayers.length > 0) { 
+                 // Reset ready status for next round?
+                 // We should probably reset `is_ready` in DB too.
+                 // But for now, let's just proceed.
+                 // We will reset `readyPlayers` in `round_data` but `players` table needs manual reset.
+                 // Or we ignore it next round?
+                 
+                 // If we use `is_ready` column, we must reset it.
+                 // Host can reset all players?
+                 // `await supabase.from('players').update({ is_ready: false }).eq('room_id', roomId)`
+                 // But we don't have supabase here directly.
+                 // We need to add `resetPlayersReady` to `useGameSync`.
+                 
                  await updateRoundData({
                      ...roundData,
                      phase: 'clues',
@@ -186,6 +223,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         const words = await res.json();
         
         if (!words || words.length === 0) return;
+
+        // Reset player ready status in DB
+        if (resetAllPlayersReady) await resetAllPlayersReady();
 
         // Init Game
         const firstPair = Array.isArray(words) ? words[0] : words;
@@ -353,6 +393,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       const remaining = queue.slice(1);
       const { newRoles, alive } = assignRoles(players, settings.mrWhiteEnabled);
 
+      if (resetAllPlayersReady) await resetAllPlayersReady();
+
       await nextRound({
             civilWord: nextPair.civilWord,
             undercoverWord: nextPair.undercoverWord,
@@ -371,10 +413,15 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   // --- CLIENT ACTIONS ---
 
   const sendReady = async () => {
-    if (amIReady) return;
-    await submitAnswer({
-        type: 'ready'
-    });
+    if (amIReadyRobust) return;
+    
+    // Legacy update
+    await submitAnswer({ type: 'ready' });
+    
+    // Robust update
+    if (setPlayerReady) {
+        await setPlayerReady(true);
+    }
   };
 
   const sendClue = async () => {
@@ -612,31 +659,22 @@ export default function Undercover({ roomCode }: UndercoverProps) {
        <div className="flex flex-col items-center animate-in zoom-in duration-500 w-full max-w-lg">
           <div className="bg-slate-900/80 p-8 rounded-2xl border border-white/10 text-center w-full shadow-[0_0_50px_rgba(239,68,68,0.2)] relative overflow-hidden">
               
-              {amIReady && (
+              {amIReadyRobust && (
                   <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-20 animate-in fade-in">
                       <div className="text-center">
                           <Check className="w-16 h-16 text-green-500 mx-auto mb-4" />
                           <h3 className="text-2xl font-bold text-white">Vous êtes prêt !</h3>
-                          <p className="text-gray-400 mt-2">En attente des autres joueurs ({readyPlayers.length}/{alivePlayers.length})</p>
+                          <p className="text-gray-400 mt-2">En attente des autres joueurs ({allReadyIds.length}/{alivePlayers.length})</p>
                       </div>
                   </div>
               )}
 
               <h3 className="text-2xl font-bold text-gray-400 mb-6">Votre rôle est</h3>
               
-              <div className="min-h-[200px] flex flex-col items-center justify-center relative">
-                  {/* TOGGLE BUTTON */}
-                  <Button 
-                      variant="outline" 
-                      onClick={() => setShowRole(!showRole)}
-                      className="absolute top-0 right-0 z-10 bg-white/10 hover:bg-white/20 border-white/20"
-                  >
-                      {showRole ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-                      {showRole ? 'Masquer' : 'Afficher'}
-                  </Button>
-
+              <div className="min-h-[200px] flex flex-col items-center justify-center relative w-full gap-6">
+                  
                   {showRole ? (
-                      <div className="animate-in fade-in zoom-in duration-300">
+                      <div className="animate-in fade-in zoom-in duration-300 w-full">
                           {playersKnowRole ? (
                               <>
                                   <div className="mb-6 flex justify-center">
@@ -658,29 +696,39 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                               </div>
                           )}
 
-                          <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                          <div className="bg-white/5 p-4 rounded-xl border border-white/10 w-full">
                               <p className="text-sm text-gray-400 mb-1">Votre mot secret :</p>
-                              <p className="text-3xl font-bold text-white tracking-widest uppercase">
+                              <p className="text-3xl font-bold text-white tracking-widest uppercase break-all">
                                   {myRole === 'MR_WHITE' ? '???' : myRole === 'UNDERCOVER' ? undercoverWord : civilWord}
                               </p>
                           </div>
                       </div>
                   ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-gray-500 animate-in fade-in">
+                      <div className="flex flex-col items-center justify-center h-full text-gray-500 animate-in fade-in py-10">
                           <EyeOff className="w-12 h-12 mb-4 opacity-50" />
                           <p>Rôle masqué</p>
-                          <p className="text-sm opacity-70">Cliquez sur "Afficher" pour voir votre rôle</p>
+                          <p className="text-sm opacity-70">Cliquez ci-dessous pour révéler</p>
                       </div>
                   )}
+
+                  {/* TOGGLE BUTTON IN FLOW */}
+                  <Button 
+                      variant="outline" 
+                      onClick={() => setShowRole(!showRole)}
+                      className="w-full bg-white/5 hover:bg-white/10 border-white/20 h-12"
+                  >
+                      {showRole ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+                      {showRole ? 'Masquer mon rôle' : 'Afficher mon rôle'}
+                  </Button>
               </div>
 
               <Button 
                   size="lg" 
                   onClick={sendReady} 
                   disabled={!!amIReady}
-                  className="w-full h-16 mt-8 text-xl font-bold bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-600/20 transition-all active:scale-95"
+                  className="w-full h-16 mt-6 text-xl font-bold bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-600/20 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
               >
-                  JE SUIS PRÊT
+                  {amIReady ? 'VOUS ÊTES PRÊT' : 'JE SUIS PRÊT'}
               </Button>
           </div>
        </div>
