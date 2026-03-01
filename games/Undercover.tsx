@@ -65,6 +65,11 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       })) || [];
   }, [undercover?.clues]);
 
+  // Read votes from SQL
+  const votes = useMemo(() => {
+      return undercover?.votes || [];
+  }, [undercover?.votes]);
+
   const alivePlayers = useMemo(() => {
       return undercover?.roles?.filter((p: any) => p.is_alive).map((p: any) => p.player_id) || [];
   }, [undercover?.roles]);
@@ -103,26 +108,73 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   useEffect(() => {
     if (notification && notification.id !== lastNotificationId.current) {
         lastNotificationId.current = notification.id;
-        if (notification.type === 'success') toast.success(notification.message);
-        else if (notification.type === 'error') toast.error(notification.message);
-        else toast.info(notification.message);
+        const options = { duration: 2000 };
+        if (notification.type === 'success') toast.success(notification.message, options);
+        else if (notification.type === 'error') toast.error(notification.message, options);
+        else toast.info(notification.message, options);
     }
   }, [notification]);
 
+  // Server-Authoritative Timer Logic
   useEffect(() => {
-    const endTime = (gameState?.round_data?.endTime as number) || null;
-    if (endTime) {
-        setTimeLeft(getTimeLeft(endTime));
-        const interval = setInterval(() => {
-            const tl = getTimeLeft(endTime);
-            setTimeLeft(tl);
-            if (tl <= 0) clearInterval(interval);
-        }, 250);
-        return () => clearInterval(interval);
-    } else {
+    if (!game.timer_start_at || !game.timer_duration_seconds) {
         setTimeLeft(0);
+        return;
     }
-  }, [gameState?.round_data?.endTime, getTimeLeft]);
+
+    const timerStart = new Date(game.timer_start_at).getTime();
+    const duration = game.timer_duration_seconds * 1000;
+    
+    const calculateRemaining = () => {
+        const now = Date.now(); // Local time, but we rely on relative difference from start
+        // Ideally we should sync server time offset, but for short durations, assuming synced clocks or relative drift is minor.
+        // Or better: Supabase Realtime timestamp? No, simpler: 
+        // We use the DB timestamp. Client clocks might be off.
+        // Ideally we need `serverTime`. `useGameSync` provides `serverTime` (approx).
+        // Let's use Date.now() for relative check if we trust NTP, or `serverTime` if available.
+        // Actually, `game.timer_start_at` is server time.
+        // `Date.now()` is client time. 
+        // Difference = (ServerNow - Start) vs (ClientNow - Start).
+        // If Client is ahead/behind, it breaks.
+        // Robust way: Store `endTime` in DB (Start + Duration).
+        // Then `remaining = endTime - serverTime`.
+        // If we only have `start` and `duration`:
+        // `endTime = start + duration`.
+        // We need `serverNow`.
+        // Let's use `new Date()` and accept small drift, or correct with offset if `serverTime` is passed.
+        // We will assume `new Date()` is close enough for game logic (seconds resolution).
+        
+        // Actually, better pattern: `expires_at` column.
+        // But we have `start_at` + `duration`.
+        // `expires_at = new Date(game.timer_start_at).getTime() + duration`.
+        // `remaining = expires_at - Date.now()`.
+        
+        const expiresAt = timerStart + duration;
+        const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+        return remaining;
+    };
+
+    // Initial sync
+    setTimeLeft(calculateRemaining());
+
+    const interval = setInterval(() => {
+        const remaining = calculateRemaining();
+        setTimeLeft(prev => {
+            // Smooth snap: only update if diff > 1s to avoid jitter, but for countdown we want every second.
+            // Actually we want to tick down every second.
+            // But we want to ensure we don't drift.
+            // `calculateRemaining` IS the authoritative source.
+            // So we just set it.
+            return remaining;
+        });
+        
+        if (remaining <= 0) {
+            clearInterval(interval);
+        }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [game.timer_start_at, game.timer_duration_seconds]);
 
   const toggleSkipVote = async () => {
     if (!playerId || !roomId) return;
@@ -155,12 +207,13 @@ export default function Undercover({ roomCode }: UndercoverProps) {
            const triggerVote = async () => {
                await supabase.from('undercover_games').update({
                    phase: 'vote',
-                   skip_votes: [] // Reset skip votes
+                   skip_votes: [], // Reset skip votes
+                   timer_start_at: new Date().toISOString(),
+                   timer_duration_seconds: voteTime
                }).eq('room_id', roomId);
                
                await updateRoundData({
                    phase: 'vote',
-                   endTime: Date.now() + voteTime * 1000,
                    notification: { id: Date.now().toString(), message: "Majorité atteinte ! Place au vote.", type: 'info' }
                });
            };
@@ -189,12 +242,13 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                         await supabase.from('undercover_games').update({
                             phase: 'vote',
                             current_speaker_id: null,
-                            current_clue_round: nextRoundNum
+                            current_clue_round: nextRoundNum,
+                            timer_start_at: new Date().toISOString(),
+                            timer_duration_seconds: voteTime
                         }).eq('room_id', roomId);
 
                         await updateRoundData({
                             phase: 'vote',
-                            endTime: Date.now() + voteTime * 1000,
                             notification: { id: Date.now().toString(), message: "Tous les indices sont donnés ! Place au vote.", type: 'info' }
                         });
                   } else {
@@ -242,26 +296,27 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         }
 
         // 3. Discussion -> Vote (Time limit)
-        if (currentPhase === 'discussion' && timeLeft === 0 && gameState?.round_data?.endTime) {
+        if (currentPhase === 'discussion' && timeLeft === 0 && game.timer_start_at) {
              await supabase.from('undercover_games').update({
-                 phase: 'vote'
+                 phase: 'vote',
+                 timer_start_at: new Date().toISOString(),
+                 timer_duration_seconds: voteTime
              }).eq('room_id', roomId);
              
              await updateRoundData({
                  phase: 'vote',
-                 endTime: Date.now() + voteTime * 1000,
                  notification: { id: Date.now().toString(), message: "Fin de la discussion ! Place au vote.", type: 'info' }
              });
         }
 
         // 4. Vote -> Results (Time limit)
-        if (currentPhase === 'vote' && timeLeft === 0 && gameState?.round_data?.endTime) {
+        if (currentPhase === 'vote' && timeLeft === 0 && game.timer_start_at) {
              await processVotes();
         }
     };
 
     managePhases();
-  }, [isHost, currentPhase, timeLeft, alivePlayers, voteTime, readyPlayersFromTable, gameState, roomId]);
+  }, [isHost, currentPhase, timeLeft, alivePlayers, voteTime, readyPlayersFromTable, gameState, roomId, game.timer_start_at]);
 
   // Auto-start
   useEffect(() => {
@@ -637,46 +692,95 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
                 {/* MIDDLE: COLUMNS */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-24 md:pb-4 w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-7xl mx-auto">
-                        {alivePlayers.map(pid => {
-                            const p = players.find(pl => pl.id === pid);
-                            const pClues = clues.filter(c => c.playerId === pid);
-                            const isSpeaking = currentPhase === 'clues' && currentSpeakerId === pid;
-                            
-                            return (
-                                <div key={pid} className="flex flex-col bg-slate-900/50 border border-white/5 rounded-xl overflow-hidden h-[400px] md:h-[500px]">
-                                    {/* Sticky Header */}
-                                    <div className={`p-3 text-center border-b border-white/5 sticky top-0 z-10 backdrop-blur-md ${isSpeaking ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-slate-900/80'}`}>
-                                        <div className={`font-bold truncate ${isSpeaking ? 'text-yellow-400' : 'text-white'}`}>
-                                            {p?.name}
-                                        </div>
-                                        {isSpeaking && <div className="text-[10px] text-yellow-500 font-black uppercase tracking-wider animate-pulse mt-1">En train d'écrire...</div>}
-                                    </div>
-
-                                    {/* Scrollable Content */}
-                                    <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-                                        {pClues.map((c, idx) => (
-                                            <div key={idx} className="bg-white/5 p-3 rounded-lg text-sm text-gray-200 animate-in slide-in-from-bottom-2">
-                                                <span className="opacity-50 mr-2 text-xs">#{idx + 1}</span>
-                                                {c.text}
+                    <div className="flex justify-center w-full">
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-7xl">
+                            {alivePlayers.map(pid => {
+                                const p = players.find(pl => pl.id === pid);
+                                const pClues = clues.filter(c => c.playerId === pid);
+                                const isSpeaking = currentPhase === 'clues' && currentSpeakerId === pid;
+                                const votesForThisPlayer = votes.filter((v: any) => v.target_id === pid);
+                                const hasVotedForThis = votesForThisPlayer.some((v: any) => v.voter_id === playerId);
+                                
+                                return (
+                                    <div key={pid} className="flex flex-col bg-slate-900/50 border border-white/5 rounded-xl overflow-hidden h-[400px] md:h-[500px] relative">
+                                        {/* Sticky Header */}
+                                        <div className={`p-3 text-center border-b border-white/5 sticky top-0 z-10 backdrop-blur-md ${isSpeaking ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-slate-900/80'}`}>
+                                            <div className={`font-bold truncate ${isSpeaking ? 'text-yellow-400' : 'text-white'}`}>
+                                                {p?.name}
                                             </div>
-                                        ))}
+                                            {isSpeaking && <div className="text-[10px] text-yellow-500 font-black uppercase tracking-wider animate-pulse mt-1">En train d'écrire...</div>}
+                                            
+                                            {/* Votes Received Display */}
+                                            {currentPhase === 'vote' && (
+                                                <div className="mt-2 min-h-[20px]">
+                                                    {votesForThisPlayer.length > 0 ? (
+                                                        <div className="flex flex-wrap justify-center gap-1">
+                                                            <span className="text-xs text-gray-400 mr-1">🗳</span>
+                                                            {votesForThisPlayer.map((v: any) => {
+                                                                const voterName = players.find(pl => pl.id === v.voter_id)?.name;
+                                                                return (
+                                                                    <span key={v.id} className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-300">
+                                                                        {voterName}
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-5"></div> // Placeholder
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Scrollable Content */}
+                                        <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar pb-16">
+                                            {pClues.map((c, idx) => (
+                                                <div key={idx} className="bg-white/5 p-3 rounded-lg text-sm text-gray-200 animate-in slide-in-from-bottom-2">
+                                                    <span className="opacity-50 mr-2 text-xs">#{idx + 1}</span>
+                                                    {c.text}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Vote Button (Absolute Bottom of Column) */}
                                         {currentPhase === 'vote' && (
-                                            <Button 
-                                                onClick={() => sendVoteAction(pid)}
-                                                className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white font-bold"
-                                                disabled={pid === playerId}
-                                            >
-                                                <Skull className="w-4 h-4 mr-2" />
-                                                Voter
-                                            </Button>
+                                            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-900 to-transparent pt-6">
+                                                <Button 
+                                                    onClick={() => sendVoteAction(pid)}
+                                                    className={`w-full font-bold ${hasVotedForThis ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+                                                    disabled={pid === playerId}
+                                                >
+                                                    {hasVotedForThis ? <Check className="w-4 h-4 mr-2" /> : <Skull className="w-4 h-4 mr-2" />}
+                                                    {hasVotedForThis ? 'Voté' : 'Voter'}
+                                                </Button>
+                                            </div>
                                         )}
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
+
+                {/* SKIP VOTE BUTTON (Static below columns) */}
+                {currentPhase === 'clues' && (
+                    <div className="flex justify-center w-full py-4">
+                        <Button 
+                            onClick={toggleSkipVote}
+                            className={`rounded-full shadow-lg font-bold transition-all px-6 py-6 text-lg ${skipVotes.includes(playerId || '') ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-700 hover:bg-slate-600'}`}
+                        >
+                            {skipVotes.includes(playerId || '') ? (
+                                <>
+                                    <Check className="w-5 h-5 mr-2" /> Prêt à voter ({skipVotes.length}/{Math.floor(alivePlayers.length / 2) + 1})
+                                </>
+                            ) : (
+                                <>
+                                    Passer au vote ({skipVotes.length}/{Math.floor(alivePlayers.length / 2) + 1})
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                )}
 
                 {/* BOTTOM: INPUT (Desktop & Mobile Fixed) */}
                 {isMyTurn && (
@@ -706,26 +810,6 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                     <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-2 rounded-full font-bold shadow-lg animate-bounce z-40">
                         <MessageSquare className="w-4 h-4 inline mr-2" />
                         Débattez !
-                    </div>
-                )}
-
-                {/* SKIP VOTE BUTTON (CLUES PHASE) */}
-                {currentPhase === 'clues' && (
-                    <div className="fixed bottom-24 md:bottom-8 right-4 md:right-8 z-40">
-                        <Button 
-                            onClick={toggleSkipVote}
-                            className={`rounded-full shadow-lg font-bold transition-all ${skipVotes.includes(playerId || '') ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-700 hover:bg-slate-600'}`}
-                        >
-                            {skipVotes.includes(playerId || '') ? (
-                                <>
-                                    <Check className="w-4 h-4 mr-2" /> Prêt à voter ({skipVotes.length}/{Math.floor(alivePlayers.length / 2) + 1})
-                                </>
-                            ) : (
-                                <>
-                                    Passer au vote ({skipVotes.length}/{Math.floor(alivePlayers.length / 2) + 1})
-                                </>
-                            )}
-                        </Button>
                     </div>
                 )}
             </div>

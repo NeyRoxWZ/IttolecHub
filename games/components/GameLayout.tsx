@@ -92,32 +92,6 @@ export default function GameLayout({
       )}>
           {children}
       </main>
-
-      {/* FOOTER / PLAYERS LIST */}
-      <footer className="relative z-40 bg-slate-900/80 backdrop-blur-md border-t border-white/10 p-2 md:p-4">
-         <div className="max-w-7xl mx-auto">
-             <div className="flex items-center gap-4 overflow-x-auto pb-2 md:pb-0 custom-scrollbar mask-fade-right">
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-400 whitespace-nowrap mr-2">
-                    <Users className="w-4 h-4" />
-                    Joueurs :
-                </div>
-                {Object.entries(players).sort((a, b) => b[1] - a[1]).map(([name, score]) => (
-                    <div 
-                        key={name} 
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 whitespace-nowrap"
-                    >
-                        <div className="w-2 h-2 rounded-full bg-green-500" /> {/* Online status indicator */}
-                        <span className="font-medium text-slate-200">{name}</span>
-                        {showScores && (
-                            <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-1.5 rounded ml-1">
-                                {score}
-                            </span>
-                        )}
-                    </div>
-                ))}
-             </div>
-         </div>
-      </footer>
     </div>
   );
 }
