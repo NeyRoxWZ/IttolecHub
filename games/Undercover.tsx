@@ -108,6 +108,10 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   useEffect(() => {
     if (notification && notification.id !== lastNotificationId.current) {
         lastNotificationId.current = notification.id;
+        
+        // Dismiss previous toasts to avoid stacking and overlapping text
+        toast.dismiss();
+        
         const options = { duration: 2000 };
         if (notification.type === 'success') toast.success(notification.message, options);
         else if (notification.type === 'error') toast.error(notification.message, options);
@@ -488,6 +492,25 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
   const nextGameRound = async () => {
       if (!isHost || !roomId) return;
+      
+      const nextRoundNum = currentRoundNumber + 1;
+      
+      // If we reached max rounds, return to lobby (reset to setup)
+      if (nextRoundNum > rounds) {
+          await supabase.from('undercover_games').delete().eq('room_id', roomId);
+          await supabase.from('undercover_players').delete().eq('room_id', roomId);
+          await supabase.from('undercover_clues').delete().eq('room_id', roomId);
+          await supabase.from('undercover_votes').delete().eq('room_id', roomId);
+          
+          await updateRoundData({
+              phase: 'setup',
+              current_round: 0,
+              notification: { id: Date.now().toString(), message: "Retour au salon...", type: 'info' }
+          });
+          return;
+      }
+
+      // Else, start next round
       try {
           const res = await fetch(`/api/games/undercover?count=1`);
           const words = await res.json();
@@ -504,7 +527,10 @@ export default function Undercover({ roomCode }: UndercoverProps) {
               current_speaker_id: null,
               current_clue_round: 1,
               winner: null,
-              eliminated_player_id: null
+              eliminated_player_id: null,
+              skip_votes: [],
+              timer_start_at: null,
+              timer_duration_seconds: null
           }).eq('room_id', roomId);
 
           await supabase.from('undercover_clues').delete().eq('room_id', roomId);
@@ -518,7 +544,11 @@ export default function Undercover({ roomCode }: UndercoverProps) {
           }));
           await supabase.from('undercover_players').upsert(playerInserts, { onConflict: 'room_id,player_id' });
           
-          toast.success("Manche suivante !");
+          await updateRoundData({
+              current_round: nextRoundNum,
+              notification: { id: Date.now().toString(), message: `Manche ${nextRoundNum} commencée !`, type: 'success' }
+          });
+          
       } catch (e) { console.error(e); }
   };
 
@@ -870,7 +900,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
                     {isHost && (
                         <Button onClick={nextGameRound} className="mt-8 w-full h-14 text-lg font-bold bg-white text-black hover:bg-gray-200 rounded-xl">
-                            Manche Suivante
+                            {currentRoundNumber >= rounds ? "Revenir au salon" : "Manche Suivante"}
                         </Button>
                     )}
                     <Button variant="ghost" onClick={() => router.push('/')} className="mt-4 text-gray-500 hover:text-white">

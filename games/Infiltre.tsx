@@ -1,15 +1,18 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { Clock, EyeOff, Shield, User, HelpCircle, AlertTriangle, ArrowRight, Gavel, Check, Home, LogOut } from 'lucide-react';
+import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Skull, Loader2, Send, Check, Crown, Home, ThumbsUp, ThumbsDown, HelpCircle, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
 
-type Role = 'MASTER' | 'INFILTRÉ' | 'CITOYEN';
-type Phase = 'roles' | 'question' | 'vote' | 'end';
+type Role = 'MASTER' | 'INFILTRE' | 'CITIZEN';
+type Phase = 'setup' | 'roles' | 'playing' | 'voting_finder' | 'voting_infiltre' | 'results';
+type AnswerType = 'OUI' | 'NON' | 'NE_SAIS_PAS';
 
 interface InfiltreProps {
   roomCode: string;
@@ -17,483 +20,809 @@ interface InfiltreProps {
 
 export default function Infiltre({ roomCode }: InfiltreProps) {
   const router = useRouter();
+  
+  // --- SYNC ---
   const {
     gameState,
     isHost,
     players,
     playerId,
-    startGame: hostStartGame,
+    infiltre,
+    sendMove,
+    getTimeLeft,
     updateRoundData,
-    nextRound: hostNextRound,
-    submitAnswer
+    resetAllPlayersReady,
+    setPlayerReady,
+    setGameStatus,
+    roomId
   } = useGameSync(roomCode, 'infiltre');
 
-  // Local state for timer
-  const [timeLeft, setTimeLeft] = useState<number>(0);
-  const [countdown, setCountdown] = useState<number | null>(null);
+  // --- DERIVED STATE ---
+  const game = infiltre?.game || {};
+  const currentPhase = (game.phase as Phase) || 'setup';
+  
+  const roles = useMemo(() => {
+      const r: Record<string, Role> = {};
+      infiltre?.roles?.forEach((p: any) => r[p.player_id] = p.role as Role);
+      return r;
+  }, [infiltre?.roles]);
+  
+  const myRole = playerId ? roles[playerId] : null;
+  const secretWord = game.secret_word;
+  const masterId = game.master_id;
+  const finderId = game.finder_id;
+  
+  const questions = useMemo(() => {
+      return infiltre?.questions?.map((q: any) => ({
+          id: q.id,
+          playerId: q.player_id,
+          text: q.text,
+          answer: q.answer as AnswerType | null,
+          timestamp: new Date(q.created_at).getTime()
+      })) || [];
+  }, [infiltre?.questions]);
 
-  // Derived state from gameState.round_data
-  const roundData = gameState?.round_data || {};
-  const queue = roundData.queue || [];
-  const phase = (roundData.phase as Phase) || 'roles';
-  const roles = roundData.roles || {};
-  const myRole = playerId ? roles[playerId] : undefined;
-  const currentVotes = gameState?.answers || {};
-  const myVote = playerId && currentVotes[playerId] ? currentVotes[playerId].answer : null;
-  const questionDuration = 180; // 3 minutes default
-  const { word: secretWord, category, lastAnswer, winner, voteResult } = roundData;
-  const gameStarted = phase !== 'roles';
+  // Read votes from SQL
+  const votes = useMemo(() => {
+      return infiltre?.votes || [];
+  }, [infiltre?.votes]);
 
-  const playersMap = useMemo(() => {
-      return players.reduce((acc, p) => ({ ...acc, [p.name]: p.score }), {} as Record<string, number>);
+  const alivePlayers = useMemo(() => {
+      // All players are "alive" in this game until the end, but we use this for filtering
+      return players.map(p => p.id);
   }, [players]);
 
-  // Listen for countdown
-  useEffect(() => {
-      if (gameState?.round_data?.countdown) {
-          const end = gameState.round_data.countdown;
-          const now = Date.now();
-          const diff = Math.ceil((end - now) / 1000);
-          if (diff > 0) {
-              setCountdown(diff);
-              const interval = setInterval(() => {
-                  setCountdown(prev => {
-                      if (prev && prev > 1) return prev - 1;
-                      return 0;
-                  });
-              }, 1000);
-              return () => clearInterval(interval);
-          } else {
-              setCountdown(null);
-          }
-      } else {
-          setCountdown(null);
-      }
-  }, [gameState?.round_data?.countdown]);
+  // Settings
+  const settings = gameState?.settings || {};
+  const rounds = Number(settings.rounds || 1);
+  const guessTime = Number(settings.guessTime || 5) * 60; // Minutes to seconds
+  const currentRoundNumber = gameState?.current_round || 0;
 
-  // Sync Timer for question phase
+  // Ready Status
+  const readyPlayersFromTable = useMemo(() => {
+      return players.filter((p: any) => p.is_ready).map(p => p.id);
+  }, [players]);
+  const amIReady = playerId && readyPlayersFromTable.includes(playerId);
+
+  // Local State
+  const [userQuestion, setUserQuestion] = useState('');
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [showRole, setShowRole] = useState(false); // For Eye button logic
+
+  const isMaster = myRole === 'MASTER';
+  
+  // --- NOTIFICATIONS & TIMER ---
+  const lastNotificationId = useRef<string>('');
+  const notification = (gameState?.round_data?.notification as { id: string, message: string, type: 'success' | 'info' | 'error' } | null) || null;
+
   useEffect(() => {
-    if (phase === 'question' && roundData.endTime) {
-         const end = roundData.endTime;
-         const now = Date.now();
-         const diff = Math.ceil((end - now) / 1000);
-         setTimeLeft(diff > 0 ? diff : 0);
-         
-         const interval = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    if (isHost && phase === 'question') {
-                         // Time ran out -> Infiltré Wins
-                         updateRoundData({
-                             ...roundData,
-                             phase: 'end',
-                             winner: 'INFILTRÉ',
-                             voteResult: null
-                         });
-                    }
-                    return 0;
-                }
-                return prev - 1;
-            });
-         }, 1000);
-         return () => clearInterval(interval);
+    if (notification && notification.id !== lastNotificationId.current) {
+        lastNotificationId.current = notification.id;
+        toast.dismiss();
+        const options = { duration: 2000 };
+        if (notification.type === 'success') toast.success(notification.message, options);
+        else if (notification.type === 'error') toast.error(notification.message, options);
+        else toast.info(notification.message, options);
     }
-  }, [phase, roundData.endTime, isHost]);
+  }, [notification]);
 
-  const handleStartGame = async () => {
-    if (!isHost) return;
+  // Server-Authoritative Timer Logic
+  useEffect(() => {
+    if (!game.timer_start_at || !game.timer_duration_seconds) {
+        setTimeLeft(0);
+        return;
+    }
+
+    const timerStart = new Date(game.timer_start_at).getTime();
+    const duration = game.timer_duration_seconds * 1000;
     
-    // Start countdown
-    const countdownEnd = Date.now() + 3000;
-    await updateRoundData({ ...roundData, countdown: countdownEnd });
-    
-    setTimeout(async () => {
-        try {
-          const res = await fetch('/api/games/infiltre?count=20');
-          const data = await res.json();
-          if (!Array.isArray(data)) {
-            toast.error('Erreur chargement mots');
-            return;
-          }
+    const calculateRemaining = () => {
+        const expiresAt = timerStart + duration;
+        const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+        return remaining;
+    };
 
-          const firstWord = data[0];
-          const remainingQueue = data.slice(1);
+    setTimeLeft(calculateRemaining());
 
-          // Assign roles
-          const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
-          
-          const master = shuffledPlayers[0];
-          const infiltre = shuffledPlayers[1]; // Might be undefined if 1 player
-          const newRoles: Record<string, Role> = {};
-          
-          players.forEach(p => {
-            if (master && p.id === master.id) newRoles[p.id] = 'MASTER';
-            else if (infiltre && p.id === infiltre.id) newRoles[p.id] = 'INFILTRÉ';
-            else newRoles[p.id] = 'CITOYEN';
-          });
-          
-          // Clear countdown
-          await updateRoundData({ ...roundData, countdown: null });
-
-          await hostStartGame({
-            queue: remainingQueue,
-            word: firstWord.word,
-            category: firstWord.category,
-            roles: newRoles,
-            phase: 'question',
-            lastAnswer: null,
-            voteResult: null,
-            winner: null,
-            endTime: Date.now() + questionDuration * 1000
-          });
-
-        } catch (err) {
-          console.error(err);
-          toast.error('Impossible de démarrer');
+    const interval = setInterval(() => {
+        const remaining = calculateRemaining();
+        setTimeLeft(remaining);
+        if (remaining <= 0) {
+            clearInterval(interval);
         }
-    }, 3000);
-  };
+    }, 1000);
 
-  const handleNextRound = async () => {
-    if (!isHost) return;
-    if (queue.length === 0) {
-      handleStartGame(); // Restart with new batch
-      return;
+    return () => clearInterval(interval);
+  }, [game.timer_start_at, game.timer_duration_seconds]);
+
+  // --- HOST LOGIC ---
+  useEffect(() => {
+    if (!isHost || !roomId) return;
+
+    const managePhases = async () => {
+        // 1. Roles -> Playing (All Ready)
+        if (currentPhase === 'roles') {
+             const allReady = alivePlayers.every(id => readyPlayersFromTable.includes(id));
+             if (allReady && alivePlayers.length > 0) { 
+                 await supabase.from('infiltre_games').update({
+                     phase: 'playing',
+                     timer_start_at: new Date().toISOString(),
+                     timer_duration_seconds: guessTime
+                 }).eq('room_id', roomId);
+                 
+                 await updateRoundData({
+                     phase: 'playing',
+                     notification: { id: Date.now().toString(), message: "La partie commence ! Posez vos questions.", type: 'info' }
+                 });
+             }
+        }
+
+        // 2. Playing -> Results (Time limit reached = Defeat)
+        if (currentPhase === 'playing' && timeLeft === 0 && game.timer_start_at) {
+             // Time up! Everyone loses? Or Infiltrator wins?
+             // "Si le mot n'est pas trouvé → tout le monde perd"
+             await supabase.from('infiltre_games').update({
+                 phase: 'results',
+                 winner: 'NONE' // Everyone loses
+             }).eq('room_id', roomId);
+             
+             await updateRoundData({
+                 phase: 'results',
+                 notification: { id: Date.now().toString(), message: "Temps écoulé ! Personne n'a trouvé le mot.", type: 'error' }
+             });
+        }
+        
+        // 3. Voting Phases (Time limit logic if we want to auto-resolve?)
+        // Let's keep manual voting resolution for now via processVotes
+    };
+
+    managePhases();
+  }, [isHost, currentPhase, timeLeft, alivePlayers, guessTime, readyPlayersFromTable, gameState, roomId, game.timer_start_at]);
+
+  // Auto-start
+  useEffect(() => {
+      if (isHost && gameState?.round_data?.phase === 'setup' && players.length >= 4 && currentPhase === 'setup') {
+          startNewGame();
+      }
+  }, [isHost, gameState?.round_data?.phase, players.length, currentPhase]);
+
+  // --- ACTIONS ---
+
+  const startNewGame = async () => {
+    if (!isHost || !roomId) return;
+    if (players.length < 4) {
+        toast.error("Il faut au moins 4 joueurs !");
+        return;
     }
 
-    const nextWord = queue[0];
-    const newQueue = queue.slice(1);
+    try {
+        const res = await fetch(`/api/games/infiltre`);
+        const data = await res.json();
+        if (!data || !data.secretWord) return;
 
-    const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
-    const master = shuffledPlayers[0];
-    const infiltre = shuffledPlayers[1];
+        if (resetAllPlayersReady) await resetAllPlayersReady();
+
+        const { newRoles } = assignRoles(players);
+
+        // Find Master ID
+        const newMasterId = Object.keys(newRoles).find(id => newRoles[id] === 'MASTER');
+
+        // SQL Initialization
+        await supabase.from('infiltre_games').upsert({
+            room_id: roomId,
+            phase: 'roles',
+            secret_word: data.secretWord,
+            category: data.category,
+            master_id: newMasterId,
+            finder_id: null,
+            timer_start_at: null,
+            timer_duration_seconds: null,
+            created_at: new Date().toISOString()
+        }, { onConflict: 'room_id' });
+
+        const playerInserts = players.map(p => ({
+            room_id: roomId,
+            player_id: p.id,
+            role: newRoles[p.id],
+            is_alive: true
+        }));
+        await supabase.from('infiltre_players').upsert(playerInserts, { onConflict: 'room_id,player_id' });
+
+        await supabase.from('infiltre_questions').delete().eq('room_id', roomId);
+        await supabase.from('infiltre_votes').delete().eq('room_id', roomId);
+
+        await updateRoundData({
+            phase: 'roles',
+            notification: { id: Date.now().toString(), message: "Rôles attribués ! Découvrez votre identité.", type: 'success' }
+        });
+    } catch (e) {
+        console.error(e);
+        toast.error("Erreur au démarrage");
+    }
+  };
+
+  const assignRoles = (allPlayers: any[]) => {
+    const shuffled = [...allPlayers].sort(() => Math.random() - 0.5);
     const newRoles: Record<string, Role> = {};
+    
+    // 1 Master
+    const master = shuffled.pop();
+    if (master) newRoles[master.id] = 'MASTER';
+    
+    // 1 Infiltre
+    const infiltre = shuffled.pop();
+    if (infiltre) newRoles[infiltre.id] = 'INFILTRE';
+    
+    // Rest Citizens
+    shuffled.forEach(p => newRoles[p.id] = 'CITIZEN');
+
+    return { newRoles };
+  };
+
+  // --- PLAYING ACTIONS ---
+
+  const sendQuestion = async () => {
+      if (!userQuestion.trim() || !roomId || !playerId) return;
       
-    players.forEach(p => {
-      if (p.id === master?.id) newRoles[p.id] = 'MASTER';
-      else if (p.id === infiltre?.id) newRoles[p.id] = 'INFILTRÉ';
-      else newRoles[p.id] = 'CITOYEN';
-    });
-
-    await hostNextRound({
-      queue: newQueue,
-      word: nextWord.word,
-      category: nextWord.category,
-      roles: newRoles,
-      phase: 'question',
-      lastAnswer: null,
-      voteResult: null,
-      winner: null,
-      endTime: Date.now() + questionDuration * 1000
-    });
+      // Check if word found (Client side simple check, Master validates anyway)
+      // Actually, if a player thinks they found it, they can just ask "Est-ce que c'est [MOT] ?"
+      // Or we can have a special "Propose Word" button.
+      // Let's stick to simple questions. If Master sees the correct word, they can trigger "Word Found".
+      
+      await supabase.from('infiltre_questions').insert({
+          room_id: roomId,
+          player_id: playerId,
+          text: userQuestion,
+          answer: null
+      });
+      
+      setUserQuestion('');
   };
 
-  const handleMasterAnswer = (answer: 'yes' | 'no' | 'maybe') => {
-    if (myRole !== 'MASTER') return;
-    updateRoundData({ ...roundData, lastAnswer: answer });
+  const answerQuestion = async (questionId: string, answer: AnswerType) => {
+      if (!isMaster || !roomId) return;
+      await supabase.from('infiltre_questions').update({
+          answer: answer
+      }).eq('id', questionId);
   };
 
-  const startVote = () => {
-    if (!isHost) return;
-    updateRoundData({ ...roundData, phase: 'vote' });
-  };
-
-  const castVote = async (targetId: string | null) => {
-    if (!playerId) return;
-    if (targetId) {
-        await submitAnswer(targetId);
-    }
-  };
-
-  const declareCitizensWin = async () => {
-      if (myRole !== 'MASTER') return;
-      updateRoundData({
-          ...roundData,
-          phase: 'end',
-          winner: 'CITOYENS',
-          voteResult: null
+  const triggerWordFound = async (finderId: string) => {
+      if (!isMaster || !roomId) return;
+      
+      // Move to Voting Phase 1
+      await supabase.from('infiltre_games').update({
+          phase: 'voting_finder',
+          finder_id: finderId,
+          timer_start_at: null, // Stop timer
+          timer_duration_seconds: null
+      }).eq('room_id', roomId);
+      
+      await updateRoundData({
+          phase: 'voting_finder',
+          notification: { id: Date.now().toString(), message: "Le mot a été trouvé ! Votez : Qui est l'Infiltré ?", type: 'success' }
       });
   };
 
-  const closeVote = async () => {
-    if (!isHost) return;
-    
-    const voteCounts: Record<string, number> = {};
-    Object.values(currentVotes).forEach((v: any) => {
-        const target = v.answer;
-        if (target) voteCounts[target] = (voteCounts[target] || 0) + 1;
-    });
+  // --- VOTING ACTIONS ---
 
-    let maxVotes = 0;
-    let suspect = null;
-    // Simple majority logic
-    Object.entries(voteCounts).forEach(([id, count]) => {
-        if (count > maxVotes) {
-            maxVotes = count;
-            suspect = id;
-        }
-    });
-
-    const infiltreId = Object.keys(roles).find(id => roles[id] === 'INFILTRÉ');
-    // If suspect is Infiltré -> Citizens Win. Else Infiltré Wins.
-    const citizensWin = suspect === infiltreId;
-    
-    updateRoundData({
-        ...roundData,
-        phase: 'end',
-        voteResult: suspect,
-        winner: citizensWin ? 'CITOYENS' : 'INFILTRÉ'
-    });
+  const sendVote = async (targetId: string) => {
+      if (!roomId || !playerId) return;
+      
+      // Determine phase for vote tagging
+      const votePhase = currentPhase === 'voting_finder' ? 'FINDER' : 'INFILTRE';
+      
+      await supabase.from('infiltre_votes').insert({
+          room_id: roomId,
+          voter_id: playerId,
+          target_id: targetId,
+          vote_phase: votePhase
+      });
+      
+      toast.success('Vote enregistré');
+      
+      // Check if everyone voted
+      // We can do this client side or host side. Let's do host side check in useEffect if we want auto-resolution.
+      // But for simplicity, let's wait for manual resolution or implement a check.
+      // Host check:
+      if (isHost) {
+          checkVoteCompletion(votePhase);
+      }
   };
 
-  const formattedTimer = useMemo(() => {
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  }, [timeLeft]);
+  const checkVoteCompletion = async (votePhase: string) => {
+      // Fetch fresh votes
+      const { data: currentVotes } = await supabase.from('infiltre_votes').select('*').eq('room_id', roomId).eq('vote_phase', votePhase);
+      
+      // All players except Master vote? Or Master votes too?
+      // Rules: "Majorité accuse..." usually implies everyone votes including Master.
+      // Let's assume everyone votes.
+      if (currentVotes && currentVotes.length >= players.length) {
+          processVotes(currentVotes, votePhase);
+      }
+  };
+
+  const processVotes = async (currentVotes: any[], votePhase: string) => {
+      if (!roomId) return;
+      
+      // Count votes
+      const voteCounts: Record<string, number> = {};
+      currentVotes.forEach((v: any) => {
+          voteCounts[v.target_id] = (voteCounts[v.target_id] || 0) + 1;
+      });
+
+      // Find max
+      let maxVotes = 0;
+      let accusedId: string | null = null;
+      let isTie = false;
+
+      Object.entries(voteCounts).forEach(([pid, count]) => {
+          if (count > maxVotes) {
+              maxVotes = count;
+              accusedId = pid;
+              isTie = false;
+          } else if (count === maxVotes) {
+              isTie = true;
+          }
+      });
+
+      if (isTie || !accusedId) {
+          // Tie -> Infiltrator Wins? Or Revote?
+          // Simplification: Infiltrator wins if not unanimous? Or Tie breaks in favor of accused?
+          // Let's say Tie = Infiltrator not caught.
+          // Or we trigger revote.
+          // Let's assume Tie = No consensus -> Proceed as if "Citizen Accused" (Fail to catch Infiltrator).
+          // But wait, we need to know WHO was accused to branch logic.
+          // If Tie, let's say "Personne n'est éliminé/accusé majoritairement".
+          // If Phase 1 (Finder): If majority thinks Finder is Infiltrator.
+          // If Tie, majority is NOT reached. So Finder is NOT accused of being Infiltrator.
+          // So we proceed to Phase 2.
+          accusedId = null; // No single accused
+      }
+
+      const accusedRole = accusedId ? roles[accusedId] : null;
+
+      if (votePhase === 'FINDER') {
+          // Vote 1: Did the Finder find it because they are the Infiltrator?
+          // "Majorité accuse l'Infiltré -> Citoyens gagnent"
+          // Here "l'Infiltré" means "The person we are voting on" (The Finder).
+          // Actually, the vote is "Who is the Infiltrator?".
+          // If the majority votes for the Finder AND Finder IS Infiltrator -> Win.
+          
+          if (accusedId === finderId && accusedRole === 'INFILTRE') {
+              // Caught!
+              await finishGame('CITIZENS');
+          } else {
+              // Not caught or Wrong person accused
+              // "Majorité accuse un Citoyen -> 2ème vote général"
+              // Even if they accused someone else who is not the Finder?
+              // The prompt says: "Si le mot est trouvé -> vote sur le joueur ayant trouvé".
+              // This implies the vote is YES/NO on the Finder?
+              // OR "Majorité accuse l'Infiltré" implies we voted for SOMEONE.
+              // Let's implement: General Vote.
+              // If Accused is Infiltrator -> Citizens Win.
+              // If Accused is NOT Infiltrator -> Go to 2nd Vote.
+              
+              if (accusedRole === 'INFILTRE') {
+                  await finishGame('CITIZENS');
+              } else {
+                  // Wrong accusation (Citizen or Master or Tie) -> 2nd Vote
+                  await supabase.from('infiltre_games').update({
+                      phase: 'voting_infiltre'
+                  }).eq('room_id', roomId);
+                  
+                  await updateRoundData({
+                      phase: 'voting_infiltre',
+                      notification: { id: Date.now().toString(), message: "Infiltré non trouvé ! Dernière chance : Vote Final.", type: 'error' }
+                  });
+              }
+          }
+      } else {
+          // Vote 2: General Vote
+          // "Infiltré identifié -> Citoyens gagnent"
+          // "Infiltré non identifié -> Infiltré gagne seul"
+          
+          if (accusedRole === 'INFILTRE') {
+              await finishGame('CITIZENS');
+          } else {
+              await finishGame('INFILTRE');
+          }
+      }
+  };
+
+  const finishGame = async (winner: string) => {
+      if (!roomId) return;
+      await supabase.from('infiltre_games').update({
+          phase: 'results',
+          winner: winner
+      }).eq('room_id', roomId);
+
+      await updateRoundData({
+          phase: 'results',
+          notification: { id: Date.now().toString(), message: "Fin de la partie !", type: 'success' }
+      });
+  };
+
+  const nextGameRound = async () => {
+      if (!isHost || !roomId) return;
+      
+      const nextRoundNum = currentRoundNumber + 1;
+      
+      if (nextRoundNum > rounds) {
+          // Return to lobby
+          await supabase.from('infiltre_games').delete().eq('room_id', roomId);
+          await supabase.from('infiltre_players').delete().eq('room_id', roomId);
+          await supabase.from('infiltre_questions').delete().eq('room_id', roomId);
+          await supabase.from('infiltre_votes').delete().eq('room_id', roomId);
+          
+          await updateRoundData({
+              phase: 'setup',
+              current_round: 0,
+              notification: { id: Date.now().toString(), message: "Retour au salon...", type: 'info' }
+          });
+          return;
+      }
+
+      // Next Round
+      try {
+          const res = await fetch(`/api/games/infiltre`);
+          const data = await res.json();
+          if (!data || !data.secretWord) return;
+
+          if (resetAllPlayersReady) await resetAllPlayersReady();
+          const { newRoles } = assignRoles(players);
+          const newMasterId = Object.keys(newRoles).find(id => newRoles[id] === 'MASTER');
+
+          await supabase.from('infiltre_games').update({
+              phase: 'roles',
+              secret_word: data.secretWord,
+              category: data.category,
+              master_id: newMasterId,
+              finder_id: null,
+              timer_start_at: null,
+              timer_duration_seconds: null,
+              winner: null
+          }).eq('room_id', roomId);
+
+          await supabase.from('infiltre_questions').delete().eq('room_id', roomId);
+          await supabase.from('infiltre_votes').delete().eq('room_id', roomId);
+          
+          const playerInserts = players.map(p => ({
+              room_id: roomId,
+              player_id: p.id,
+              role: newRoles[p.id],
+              is_alive: true
+          }));
+          await supabase.from('infiltre_players').upsert(playerInserts, { onConflict: 'room_id,player_id' });
+          
+          await updateRoundData({
+              current_round: nextRoundNum,
+              notification: { id: Date.now().toString(), message: `Manche ${nextRoundNum} commencée !`, type: 'success' }
+          });
+          
+      } catch (e) { console.error(e); }
+  };
+
+  // --- CLIENT ACTIONS ---
+  const sendReady = async () => {
+    if (amIReady || !setPlayerReady) return;
+    await setPlayerReady(true);
+  };
+
+  // --- RENDER HELPERS ---
+  const playersMap = useMemo(() => {
+     return players.reduce((acc, p) => ({ ...acc, [p.name]: 0 }), {} as Record<string, number>);
+  }, [players]);
 
   return (
     <GameLayout
-      gameTitle="L'Infiltré"
-      roundCount={0}
-      maxRounds={0}
-      timer={formattedTimer}
       players={playersMap}
+      roundCount={currentRoundNumber}
+      maxRounds={rounds}
+      timer={timeLeft > 0 ? `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}` : '--:--'}
+      gameTitle="L'Infiltré"
+      gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
-      gameStarted={gameStarted}
+      showScores={false}
     >
-      <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto gap-8 animate-in fade-in duration-700">
+      <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)]">
         
-        {/* Countdown Overlay */}
-        {countdown && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-                <div className="text-9xl font-black text-white animate-pulse">
-                    {countdown}
+        {/* PHASE: SETUP */}
+        {currentPhase === 'setup' && (
+            <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in">
+               {players.length < 4 ? (
+                 <>
+                    <User className="w-16 h-16 text-gray-600 animate-pulse" />
+                    <p className="text-2xl font-medium text-gray-400">En attente de joueurs ({players.length}/4+)...</p>
+                 </>
+               ) : (
+                 <>
+                    <Loader2 className="w-16 h-16 animate-spin text-red-500" />
+                    <p className="text-2xl font-medium animate-pulse text-red-200">Démarrage de la mission...</p>
+                 </>
+               )}
+            </div>
+        )}
+
+        {/* PHASE: ROLES */}
+        {currentPhase === 'roles' && myRole && (
+            <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
+                <div className="bg-slate-900/80 p-8 rounded-3xl border border-white/10 text-center w-full shadow-2xl relative overflow-hidden">
+                    {amIReady && (
+                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in">
+                            <Check className="w-20 h-20 text-green-500 mb-4" />
+                            <h3 className="text-3xl font-bold text-white">Vous êtes prêt !</h3>
+                            <p className="text-gray-400 mt-2">En attente des autres...</p>
+                        </div>
+                    )}
+
+                    <h3 className="text-2xl font-bold text-gray-400 mb-8">Votre Identité</h3>
+                    
+                    <div className="flex flex-col items-center gap-6 mb-8 min-h-[200px] justify-center">
+                        {showRole ? (
+                            <div className="animate-in zoom-in duration-200 flex flex-col items-center">
+                                <div className={`text-4xl font-black mb-4 ${myRole === 'MASTER' ? 'text-yellow-400' : myRole === 'INFILTRE' ? 'text-red-500' : 'text-blue-400'}`}>
+                                    {myRole === 'MASTER' ? 'MAÎTRE DU JEU' : myRole === 'INFILTRE' ? 'INFILTRÉ' : 'CITOYEN'}
+                                </div>
+                                <div className="bg-white/10 px-8 py-4 rounded-xl border border-white/20">
+                                    <span className="block text-sm text-gray-400 uppercase tracking-widest mb-1">Mot Secret</span>
+                                    <span className="text-3xl font-bold text-white">
+                                        {myRole === 'CITIZEN' ? '???' : secretWord}
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-gray-500 flex flex-col items-center animate-in fade-in">
+                                <EyeOff className="w-16 h-16 mb-4 opacity-50" />
+                                <p className="text-lg">Maintenez pour révéler</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <button
+                        className="w-full bg-white/5 hover:bg-white/10 active:bg-white/20 border border-white/20 rounded-xl p-4 mb-4 transition-colors select-none touch-none"
+                        onMouseDown={() => setShowRole(true)}
+                        onMouseUp={() => setShowRole(false)}
+                        onMouseLeave={() => setShowRole(false)}
+                        onTouchStart={() => setShowRole(true)}
+                        onTouchEnd={() => setShowRole(false)}
+                    >
+                        <Eye className="w-6 h-6 mx-auto text-gray-300" />
+                    </button>
+
+                    <Button 
+                        size="lg" 
+                        onClick={sendReady} 
+                        disabled={!!amIReady}
+                        className="w-full h-16 text-xl font-bold bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg shadow-indigo-600/20"
+                    >
+                        JE SUIS PRÊT
+                    </Button>
                 </div>
             </div>
         )}
 
-        {phase === 'roles' ? (
-           <div className="flex flex-col items-center gap-6 text-center">
-             <div className="w-24 h-24 bg-indigo-500/20 rounded-full flex items-center justify-center animate-pulse">
-                <Shield className="w-12 h-12 text-indigo-400" />
-             </div>
-             <h2 className="text-3xl font-bold text-white">Préparez-vous à enquêter</h2>
-             <p className="text-slate-400 max-w-md">
-                Un joueur est l'Infiltré. Il ne connaît pas le mot secret. Les Citoyens doivent le démasquer sans trop en révéler !
-             </p>
-             {isHost ? (
-                <Button 
-                    onClick={handleStartGame} 
-                    size="lg" 
-                    className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-lg px-8 py-6 rounded-xl shadow-lg shadow-indigo-500/20"
-                    disabled={players.length < 3}
-                >
-                   {players.length < 3 ? 'En attente de joueurs (min 3)' : 'Distribuer les rôles'}
-                </Button>
-             ) : (
-                <div className="flex items-center gap-2 text-indigo-400 bg-indigo-950/30 px-4 py-2 rounded-full border border-indigo-500/30 animate-pulse">
-                   <div className="w-2 h-2 bg-indigo-400 rounded-full" />
-                   En attente de l'hôte...
+        {/* PHASE: PLAYING */}
+        {currentPhase === 'playing' && (
+            <div className="flex flex-col w-full h-full relative">
+                {/* TOP ZONE: ROLE/WORD */}
+                <div className="flex justify-center w-full mb-6 px-4">
+                    <div className="bg-slate-900/90 backdrop-blur border border-white/10 rounded-full px-6 py-2 flex items-center gap-4 shadow-lg select-none touch-none">
+                        <span className="text-gray-400 text-sm font-bold uppercase">Votre Mot</span>
+                        <div className="w-px h-4 bg-white/20" />
+                        <div 
+                            className="cursor-pointer flex items-center gap-2"
+                            onMouseDown={() => setShowRole(true)}
+                            onMouseUp={() => setShowRole(false)}
+                            onMouseLeave={() => setShowRole(false)}
+                            onTouchStart={() => setShowRole(true)}
+                            onTouchEnd={() => setShowRole(false)}
+                        >
+                            {showRole ? (
+                                <span className="font-bold text-white animate-in fade-in">
+                                    <span className={myRole === 'MASTER' ? 'text-yellow-400 mr-2' : myRole === 'INFILTRE' ? 'text-red-500 mr-2' : 'text-blue-400 mr-2'}>
+                                        {myRole === 'MASTER' ? 'MAÎTRE' : myRole === 'INFILTRE' ? 'INFILTRÉ' : 'CITOYEN'}
+                                    </span>
+                                    {myRole === 'CITIZEN' ? '???' : secretWord}
+                                </span>
+                            ) : (
+                                <div className="flex items-center gap-2 text-gray-500">
+                                    <Eye className="w-4 h-4" />
+                                    <span className="text-sm">Maintenir</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
-             )}
-           </div>
-        ) : (
-          <div className="w-full flex flex-col gap-6">
-            {/* Header Status */}
-            <div className="flex justify-between items-center bg-slate-900/50 p-4 rounded-xl border border-white/5">
-                <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full animate-pulse ${phase === 'question' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                    <span className="text-sm font-bold uppercase tracking-widest text-slate-300">
-                        {phase === 'question' ? 'Phase de questions' : phase === 'vote' ? 'Phase de vote' : 'Résultats'}
-                    </span>
+
+                {/* QUESTIONS FEED */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-32 md:pb-4 w-full max-w-4xl mx-auto">
+                    <div className="space-y-4">
+                        {questions.length === 0 && (
+                            <div className="text-center text-gray-500 mt-10">
+                                <HelpCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p>Posez des questions pour trouver le mot !</p>
+                            </div>
+                        )}
+                        {questions.map((q: any) => {
+                            const asker = players.find(p => p.id === q.playerId);
+                            return (
+                                <div key={q.id} className="bg-slate-900/50 border border-white/5 rounded-xl p-4 animate-in slide-in-from-bottom-2">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="font-bold text-blue-300">{asker?.name}</span>
+                                        <span className="text-xs text-gray-500">{new Date(q.timestamp).toLocaleTimeString()}</span>
+                                    </div>
+                                    <p className="text-lg text-white mb-3">{q.text}</p>
+                                    
+                                    {/* ANSWER AREA */}
+                                    {q.answer ? (
+                                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold 
+                                            ${q.answer === 'OUI' ? 'bg-green-500/20 text-green-400' : 
+                                              q.answer === 'NON' ? 'bg-red-500/20 text-red-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                                            {q.answer === 'OUI' ? <ThumbsUp className="w-4 h-4 mr-2" /> : 
+                                             q.answer === 'NON' ? <ThumbsDown className="w-4 h-4 mr-2" /> : <HelpCircle className="w-4 h-4 mr-2" />}
+                                            {q.answer.replace('_', ' ')}
+                                        </div>
+                                    ) : isMaster ? (
+                                        <div className="flex gap-2">
+                                            <Button size="sm" onClick={() => answerQuestion(q.id, 'OUI')} className="bg-green-600 hover:bg-green-500 text-white">Oui</Button>
+                                            <Button size="sm" onClick={() => answerQuestion(q.id, 'NON')} className="bg-red-600 hover:bg-red-500 text-white">Non</Button>
+                                            <Button size="sm" onClick={() => answerQuestion(q.id, 'NE_SAIS_PAS')} className="bg-gray-600 hover:bg-gray-500 text-white">Je ne sais pas</Button>
+                                        </div>
+                                    ) : (
+                                        <span className="text-sm text-gray-500 italic">En attente du Maître...</span>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
-                {phase === 'question' && (
-                    <div className="flex items-center gap-2 text-slate-400 font-mono">
-                        <Clock className="w-4 h-4" />
-                        {formattedTimer}
+
+                {/* BOTTOM INPUT (Fixed Mobile) */}
+                {!isMaster && (
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/90 backdrop-blur-lg border-t border-white/10 z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4">
+                        <div className="max-w-2xl mx-auto flex gap-2">
+                            <Input 
+                                placeholder="Posez une question..." 
+                                value={userQuestion}
+                                onChange={e => setUserQuestion(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && sendQuestion()}
+                                className="h-14 bg-slate-900 border-white/20 text-lg md:h-12"
+                            />
+                            <Button 
+                                onClick={sendQuestion} 
+                                disabled={!userQuestion.trim()}
+                                className="h-14 px-8 bg-indigo-600 hover:bg-indigo-500 font-bold md:h-12"
+                            >
+                                <Send className="w-5 h-5" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* MASTER CONTROLS */}
+                {isMaster && (
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/90 backdrop-blur-lg border-t border-white/10 z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4 text-center">
+                        <p className="text-gray-400 mb-2">Quelqu'un a trouvé le mot ?</p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {players.filter(p => p.id !== playerId).map(p => (
+                                <Button 
+                                    key={p.id}
+                                    onClick={() => triggerWordFound(p.id)}
+                                    variant="outline"
+                                    className="border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10"
+                                >
+                                    <Crown className="w-4 h-4 mr-2" />
+                                    {p.name} a trouvé
+                                </Button>
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
+        )}
 
-            {/* Role Card */}
-            <div className="w-full bg-slate-800/50 rounded-2xl p-6 border border-white/10 flex flex-col items-center text-center relative overflow-hidden group">
-                 <div className={`absolute inset-0 opacity-10 ${
-                     myRole === 'MASTER' ? 'bg-blue-600' : 
-                     myRole === 'INFILTRÉ' ? 'bg-red-600' : 'bg-emerald-600'
-                 }`} />
-                 
-                 <p className="text-xs text-slate-400 uppercase tracking-widest mb-2 z-10">Votre rôle</p>
-                 <h3 className={`text-3xl font-black mb-4 z-10 ${
-                     myRole === 'MASTER' ? 'text-blue-400' : 
-                     myRole === 'INFILTRÉ' ? 'text-red-400' : 'text-emerald-400'
-                 }`}>
-                     {myRole === 'MASTER' ? 'MAÎTRE DU JEU' : myRole === 'INFILTRÉ' ? 'INFILTRÉ' : 'CITOYEN'}
-                 </h3>
-                 
-                 <div className="bg-black/40 p-4 rounded-xl w-full max-w-sm backdrop-blur-sm border border-white/5 z-10">
-                    {(myRole === 'MASTER' || myRole === 'INFILTRÉ') ? (
-                        <div className="flex flex-col gap-2">
-                             <div className="text-xs text-slate-500 uppercase tracking-widest">Le mot secret est</div>
-                             <p className="font-black text-2xl text-white tracking-tight">{secretWord}</p>
-                             {category && <p className="text-xs text-blue-400 bg-blue-500/10 px-2 py-1 rounded-full self-center">{category}</p>}
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-2">
-                             <EyeOff className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-                             <p className="font-bold text-lg text-white">Mot Secret Inconnu</p>
-                             <p className="text-sm text-slate-400">Posez des questions pour le trouver !</p>
-                        </div>
-                    )}
-                 </div>
-            </div>
-
-            {/* Phase: Question */}
-            {phase === 'question' && (
-                <div className="flex flex-col items-center gap-6 animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="w-full max-w-2xl bg-slate-900/50 rounded-2xl p-6 border border-white/5 text-center">
-                        <HelpCircle className="w-10 h-10 text-indigo-400 mx-auto mb-4" />
-                        <p className="text-lg text-slate-300 mb-6">
-                            Les joueurs posent des questions au Maître du Jeu qui ne peut répondre que par Oui, Non ou ???
-                        </p>
-                        
-                        {/* Last Answer Display */}
-                        {lastAnswer && (
-                             <div className="mb-8 animate-in zoom-in duration-300">
-                                 <p className="text-xs text-slate-500 uppercase tracking-widest mb-2">Dernière réponse du Maître</p>
-                                 <div className={`inline-flex items-center justify-center px-8 py-4 rounded-xl text-2xl font-black border ${
-                                     lastAnswer === 'yes' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' :
-                                     lastAnswer === 'no' ? 'bg-rose-500/20 text-rose-400 border-rose-500/50' :
-                                     'bg-slate-500/20 text-slate-300 border-slate-500/50'
-                                 }`}>
-                                     {lastAnswer === 'yes' ? 'OUI' : lastAnswer === 'no' ? 'NON' : '???'}
-                                 </div>
-                             </div>
-                        )}
-
-                        {/* Master Controls */}
-                        {myRole === 'MASTER' ? (
-                            <div className="flex flex-col gap-4 w-full">
-                                <div className="flex gap-2 justify-center w-full">
-                                    <Button onClick={() => handleMasterAnswer('yes')} className="flex-1 h-14 bg-emerald-600 hover:bg-emerald-500 text-lg font-bold">OUI</Button>
-                                    <Button onClick={() => handleMasterAnswer('no')} className="flex-1 h-14 bg-rose-600 hover:bg-rose-500 text-lg font-bold">NON</Button>
-                                    <Button onClick={() => handleMasterAnswer('maybe')} className="flex-1 h-14 bg-slate-600 hover:bg-slate-500 text-lg font-bold">???</Button>
-                                </div>
-                                {isHost && (
-                                    <Button onClick={declareCitizensWin} className="w-full h-12 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50">
-                                        <Check className="w-4 h-4 mr-2" />
-                                        Le mot a été trouvé ! (Victoire Citoyens)
-                                    </Button>
-                                )}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-slate-500 animate-pulse">En attente d'une réponse...</p>
-                        )}
-                    </div>
-
-                    {isHost && (
-                        <Button onClick={startVote} variant="primary" className="w-full max-w-sm rounded-xl py-6 bg-red-600 hover:bg-red-700">
-                            <Gavel className="w-5 h-5 mr-2" />
-                            Lancer le vote maintenant
-                        </Button>
-                    )}
+        {/* PHASE: VOTING (FINDER or INFILTRE) */}
+        {(currentPhase === 'voting_finder' || currentPhase === 'voting_infiltre') && (
+            <div className="flex flex-col w-full h-full relative">
+                <div className="text-center mb-6">
+                    <h2 className="text-3xl font-bold text-white mb-2">
+                        {currentPhase === 'voting_finder' ? "Qui est l'Infiltré ?" : "Dernière chance !"}
+                    </h2>
+                    <p className="text-gray-400">
+                        {currentPhase === 'voting_finder' 
+                            ? `Le mot a été trouvé par ${players.find(p => p.id === finderId)?.name}. Est-ce l'Infiltré ?`
+                            : "Le précédent vote a échoué. Trouvez l'Infiltré pour gagner !"}
+                    </p>
                 </div>
-            )}
 
-            {/* Phase: Vote */}
-            {phase === 'vote' && (
-                <div className="flex flex-col items-center gap-6 animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="text-center">
-                        <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4 animate-bounce" />
-                        <h3 className="text-2xl font-bold text-white mb-2">Qui est l'Infiltré ?</h3>
-                        <p className="text-slate-400">Votez pour la personne que vous soupçonnez.</p>
-                    </div>
+                {/* VOTING COLUMNS */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4 w-full">
+                    <div className="flex justify-center w-full">
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-7xl">
+                            {alivePlayers.map(pid => {
+                                const p = players.find(pl => pl.id === pid);
+                                const votesForThisPlayer = votes.filter((v: any) => v.target_id === pid && v.vote_phase === (currentPhase === 'voting_finder' ? 'FINDER' : 'INFILTRE'));
+                                const hasVotedForThis = votesForThisPlayer.some((v: any) => v.voter_id === playerId);
+                                
+                                return (
+                                    <div key={pid} className="flex flex-col bg-slate-900/50 border border-white/5 rounded-xl overflow-hidden h-[300px] relative">
+                                        <div className="p-4 text-center border-b border-white/5 bg-slate-900/80">
+                                            <div className="font-bold text-xl text-white">{p?.name}</div>
+                                            {pid === finderId && currentPhase === 'voting_finder' && (
+                                                <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full mt-1 inline-block">A trouvé le mot</span>
+                                            )}
+                                        </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full">
-                        {players.map(p => (
-                            <button
-                                key={p.id}
-                                onClick={() => castVote(p.id)}
-                                disabled={myVote !== null}
-                                className={`relative p-4 rounded-xl border-2 transition-all ${
-                                    myVote === p.id 
-                                    ? 'bg-indigo-600/20 border-indigo-500 ring-2 ring-indigo-500/50' 
-                                    : 'bg-slate-800 border-white/5 hover:border-white/20 hover:bg-slate-700'
-                                }`}
-                            >
-                                <div className="font-bold text-lg text-white">{p.name}</div>
-                                {currentVotes[p.id] && isHost && (
-                                    <div className="text-xs text-slate-500 mt-1">A voté</div>
-                                )}
-                                {myVote === p.id && (
-                                    <div className="absolute top-2 right-2 bg-indigo-500 rounded-full p-1">
-                                        <Check className="w-3 h-3 text-white" />
+                                        {/* Votes Display */}
+                                        <div className="flex-1 p-4 flex flex-wrap content-start gap-2 justify-center">
+                                            {votesForThisPlayer.map((v: any) => {
+                                                const voterName = players.find(pl => pl.id === v.voter_id)?.name;
+                                                return (
+                                                    <span key={v.id} className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300 flex items-center">
+                                                        🗳 {voterName}
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Vote Button */}
+                                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-900 to-transparent pt-6">
+                                            <Button 
+                                                onClick={() => sendVote(pid)}
+                                                className={`w-full font-bold ${hasVotedForThis ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+                                                disabled={pid === playerId} // Can't vote for self? Rules don't specify, but usually yes.
+                                            >
+                                                {hasVotedForThis ? <Check className="w-4 h-4 mr-2" /> : <Skull className="w-4 h-4 mr-2" />}
+                                                {hasVotedForThis ? 'Voté' : 'Accuser'}
+                                            </Button>
+                                        </div>
                                     </div>
-                                )}
-                            </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* PHASE: RESULTS */}
+        {currentPhase === 'results' && (
+            <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4">
+                <div className="bg-slate-900 p-8 rounded-3xl border border-white/10 text-center w-full relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-red-500" />
+                    
+                    <Crown className="w-20 h-20 text-yellow-400 mx-auto mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
+                    
+                    <h2 className="text-4xl font-black text-white mb-2 uppercase tracking-tight">
+                        Victoire {game.winner === 'CITIZENS' ? 'des Citoyens' : game.winner === 'INFILTRE' ? "de l'Infiltré" : 'de Personne'} !
+                    </h2>
+                    
+                    <div className="grid gap-2 mt-8 text-left max-h-[300px] overflow-y-auto custom-scrollbar bg-black/20 p-4 rounded-xl">
+                        {players.map(p => (
+                            <div key={p.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                                <span className="font-bold text-white">{p.name}</span>
+                                <span className={`font-mono text-sm font-bold ${
+                                    roles[p.id] === 'MASTER' ? 'text-yellow-400' : 
+                                    roles[p.id] === 'INFILTRE' ? 'text-red-500' : 'text-blue-400'
+                                }`}>
+                                    {roles[p.id] === 'MASTER' ? 'MAÎTRE' : roles[p.id] === 'INFILTRE' ? 'INFILTRÉ' : 'CITOYEN'}
+                                </span>
+                            </div>
                         ))}
                     </div>
 
                     {isHost && (
-                        <Button onClick={closeVote} className="w-full max-w-sm mt-4 bg-indigo-600 hover:bg-indigo-500 py-6 rounded-xl">
-                            Clôturer le vote
+                        <Button onClick={nextGameRound} className="mt-8 w-full h-14 text-lg font-bold bg-white text-black hover:bg-gray-200 rounded-xl">
+                            {currentRoundNumber >= rounds ? "Revenir au salon" : "Manche Suivante"}
                         </Button>
                     )}
+                    <Button variant="ghost" onClick={() => router.push('/')} className="mt-4 text-gray-500 hover:text-white">
+                        <Home className="w-4 h-4 mr-2" /> Retour au menu
+                    </Button>
                 </div>
-            )}
-
-            {/* Phase: End */}
-            {phase === 'end' && (
-                <div className="w-full max-w-2xl mx-auto animate-in zoom-in-95 duration-500">
-                    <div className="bg-slate-900/80 backdrop-blur-xl rounded-3xl p-8 border border-white/10 text-center shadow-2xl overflow-hidden relative">
-                         <div className={`absolute inset-0 opacity-20 ${winner === 'CITOYENS' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                         
-                         <h2 className="text-4xl font-black text-white mb-2 relative z-10">
-                             {winner === 'CITOYENS' ? '🎉 Les Citoyens gagnent !' : '🕵️ L\'Infiltré gagne !'}
-                         </h2>
-                         
-                         <div className="mt-8 space-y-4 relative z-10 text-left bg-black/20 p-6 rounded-2xl">
-                             <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                 <span className="text-slate-400">Le mot était</span>
-                                 <span className="font-bold text-xl text-white">{secretWord}</span>
-                             </div>
-                             <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                 <span className="text-slate-400">L'Infiltré était</span>
-                                 <span className="font-bold text-xl text-rose-400">
-                                     {players.find(p => roles[p.id] === 'INFILTRÉ')?.name || 'Inconnu'}
-                                 </span>
-                             </div>
-                             <div className="flex justify-between items-center">
-                                 <span className="text-slate-400">Suspect voté</span>
-                                 <span className="font-bold text-xl text-slate-200">
-                                     {players.find(p => p.id === voteResult)?.name || 'Aucun'}
-                                 </span>
-                             </div>
-                         </div>
-
-                         <div className="flex gap-4 w-full mt-8">
-                            <Button variant="outline" className="flex-1 h-14" onClick={() => router.push(`/room/${roomCode}`)}>
-                                <Home className="w-5 h-5 mr-2" /> Retour au lobby
-                            </Button>
-                            {isHost ? (
-                                <Button 
-                                    onClick={handleNextRound}
-                                    className="flex-1 h-14 text-lg font-bold bg-white text-black hover:bg-slate-200"
-                                >
-                                    Manche suivante <ArrowRight className="w-5 h-5 ml-2" />
-                                </Button>
-                            ) : (
-                                <Button className="flex-1 h-14 bg-red-600 hover:bg-red-700 text-white" onClick={() => router.push('/')}>
-                                    <LogOut className="w-5 h-5 mr-2" /> Quitter
-                                </Button>
-                            )}
-                         </div>
-                    </div>
-                </div>
-            )}
-
-          </div>
+            </div>
         )}
+
       </div>
     </GameLayout>
   );

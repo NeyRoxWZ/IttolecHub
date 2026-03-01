@@ -14,6 +14,12 @@ export interface GameRoomState {
       clues: any[];
       votes: any[];
   };
+  infiltre: {
+      game: any;
+      roles: any[];
+      questions: any[];
+      votes: any[];
+  };
   isConnected: boolean;
 }
 
@@ -27,6 +33,12 @@ export function useGameRoom(roomId: string, playerId: string) {
         game: null,
         roles: [],
         clues: [],
+        votes: []
+    },
+    infiltre: {
+        game: null,
+        roles: [],
+        questions: [],
         votes: []
     },
     isConnected: false
@@ -51,7 +63,11 @@ export function useGameRoom(roomId: string, playerId: string) {
     
     // Initial fetch
     const fetchInitialState = async () => {
-      const [roomRes, sessionRes, playersRes, movesRes, ucGame, ucRoles, ucClues, ucVotes] = await Promise.all([
+      const [
+          roomRes, sessionRes, playersRes, movesRes, 
+          ucGame, ucRoles, ucClues, ucVotes,
+          infGame, infRoles, infQuestions, infVotes
+      ] = await Promise.all([
         supabase.from('rooms').select('*').eq('id', roomId).maybeSingle(),
         supabase.from('game_sessions').select('*').eq('room_id', roomId).maybeSingle(),
         supabase.from('players').select('*').eq('room_id', roomId),
@@ -60,7 +76,12 @@ export function useGameRoom(roomId: string, playerId: string) {
         supabase.from('undercover_games').select('*').eq('room_id', roomId).maybeSingle(),
         supabase.from('undercover_players').select('*').eq('room_id', roomId),
         supabase.from('undercover_clues').select('*').eq('room_id', roomId).order('created_at', { ascending: true }),
-        supabase.from('undercover_votes').select('*').eq('room_id', roomId)
+        supabase.from('undercover_votes').select('*').eq('room_id', roomId),
+        // Infiltre Tables
+        supabase.from('infiltre_games').select('*').eq('room_id', roomId).maybeSingle(),
+        supabase.from('infiltre_players').select('*').eq('room_id', roomId),
+        supabase.from('infiltre_questions').select('*').eq('room_id', roomId).order('created_at', { ascending: true }),
+        supabase.from('infiltre_votes').select('*').eq('room_id', roomId)
       ]);
 
       if (isMounted) {
@@ -75,6 +96,12 @@ export function useGameRoom(roomId: string, playerId: string) {
               roles: ucRoles.data || [],
               clues: ucClues.data || [],
               votes: ucVotes.data || []
+          },
+          infiltre: {
+              game: infGame.data,
+              roles: infRoles.data || [],
+              questions: infQuestions.data || [],
+              votes: infVotes.data || []
           }
         }));
       }
@@ -101,6 +128,7 @@ export function useGameRoom(roomId: string, playerId: string) {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_moves', filter: `room_id=eq.${roomId}` }, (payload) => {
           if (isMounted && payload.new) setState(prev => ({ ...prev, moves: [...prev.moves, payload.new] }));
       })
+      
       // --- UNDERCOVER TABLES ---
       .on('postgres_changes', { event: '*', schema: 'public', table: 'undercover_games', filter: `room_id=eq.${roomId}` }, (payload) => {
           if (isMounted && payload.new) setState(prev => ({ ...prev, undercover: { ...prev.undercover, game: payload.new } }));
@@ -115,7 +143,26 @@ export function useGameRoom(roomId: string, playerId: string) {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'undercover_votes', filter: `room_id=eq.${roomId}` }, (payload) => {
           if (isMounted && payload.new) setState(prev => ({ ...prev, undercover: { ...prev.undercover, votes: [...prev.undercover.votes, payload.new] } }));
       })
-      
+
+      // --- INFILTRE TABLES ---
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'infiltre_games', filter: `room_id=eq.${roomId}` }, (payload) => {
+          if (isMounted && payload.new) setState(prev => ({ ...prev, infiltre: { ...prev.infiltre, game: payload.new } }));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'infiltre_players', filter: `room_id=eq.${roomId}` }, async () => {
+          const { data } = await supabase.from('infiltre_players').select('*').eq('room_id', roomId);
+          if (isMounted && data) setState(prev => ({ ...prev, infiltre: { ...prev.infiltre, roles: data } }));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'infiltre_questions', filter: `room_id=eq.${roomId}` }, async () => {
+          // For questions (updates happen on answers), fetch all might be safer to keep order/updates correct
+          // Or handle INSERT and UPDATE separately. Let's fetch all for robust sync for now.
+          const { data } = await supabase.from('infiltre_questions').select('*').eq('room_id', roomId).order('created_at', { ascending: true });
+          if (isMounted && data) setState(prev => ({ ...prev, infiltre: { ...prev.infiltre, questions: data } }));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'infiltre_votes', filter: `room_id=eq.${roomId}` }, async () => {
+           const { data } = await supabase.from('infiltre_votes').select('*').eq('room_id', roomId);
+           if (isMounted && data) setState(prev => ({ ...prev, infiltre: { ...prev.infiltre, votes: data } }));
+      })
+
       .subscribe((status) => {
         if (isMounted) {
           setState(prev => ({ ...prev, isConnected: status === 'SUBSCRIBED' }));

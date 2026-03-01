@@ -29,7 +29,7 @@ export function useGameSync(roomCode: string, gameType: string) {
   const { now } = useServerTime();
   
   // Use the new robust hook for sync
-  const { room, session, players, moves, undercover, isConnected } = useGameRoom(roomId || '', playerId || '');
+  const { room, session, players, moves, undercover, infiltre, isConnected } = useGameRoom(roomId || '', playerId || '');
 
   // Derived state
   const roomStatus = room?.status || 'waiting';
@@ -287,6 +287,7 @@ export function useGameSync(roomCode: string, gameType: string) {
     sendMove, // Exposed robust move function
     moves, // Exposed moves history
     undercover, // Exposed dedicated tables
+    infiltre, // Exposed dedicated tables
     getTimeLeft, // Exposed for components
     serverTime: now, // Exposed if needed
     roomId // Exposed UUID
