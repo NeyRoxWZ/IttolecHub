@@ -228,6 +228,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                    timer_duration_seconds: voteTime
                }).eq('room_id', roomId);
                
+               // Clear previous votes just in case
+               await supabase.from('undercover_votes').delete().eq('room_id', roomId);
+               
                await updateRoundData({
                    phase: 'vote',
                    notification: { id: Date.now().toString(), message: "Majorité atteinte ! Place au vote.", type: 'info' }
@@ -262,6 +265,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                             timer_start_at: new Date().toISOString(),
                             timer_duration_seconds: voteTime
                         }).eq('room_id', roomId);
+
+                        // Clear previous votes
+                        await supabase.from('undercover_votes').delete().eq('room_id', roomId);
 
                         await updateRoundData({
                             phase: 'vote',
@@ -304,6 +310,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                      current_clue_round: 1
                  }).eq('room_id', roomId);
                  
+                 // Clear clues from DB for new round if not done
+                 // Usually done at startNewGame or nextGameRound
+                 
                  await updateRoundData({
                      phase: 'clues',
                      notification: { id: Date.now().toString(), message: "Tout le monde est prêt ! Début des indices.", type: 'info' }
@@ -318,6 +327,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                  timer_start_at: new Date().toISOString(),
                  timer_duration_seconds: voteTime
              }).eq('room_id', roomId);
+             
+             // Clear previous votes
+             await supabase.from('undercover_votes').delete().eq('room_id', roomId);
              
              await updateRoundData({
                  phase: 'vote',
@@ -608,14 +620,24 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   const sendVoteAction = async (targetId: string) => {
     if (!roomId || !playerId || !isAlive) return; // Only alive players can vote
     
-    // Direct SQL Insert
-    await supabase.from('undercover_votes').insert({
-        room_id: roomId,
-        voter_id: playerId,
-        target_id: targetId
-    });
+    // Check if already voted
+    const { data: existingVotes } = await supabase.from('undercover_votes').select('id').eq('room_id', roomId).eq('voter_id', playerId);
     
-    toast.success('Vote enregistré');
+    if (existingVotes && existingVotes.length > 0) {
+        // Update vote
+        await supabase.from('undercover_votes').update({
+            target_id: targetId
+        }).eq('id', existingVotes[0].id);
+        toast.success('Vote modifié');
+    } else {
+        // Insert new vote
+        await supabase.from('undercover_votes').insert({
+            room_id: roomId,
+            voter_id: playerId,
+            target_id: targetId
+        });
+        toast.success('Vote enregistré');
+    }
   };
 
   const sendMrWhiteGuess = async () => {
