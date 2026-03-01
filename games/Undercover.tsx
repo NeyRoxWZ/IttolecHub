@@ -185,28 +185,28 @@ export default function Undercover({ roomCode }: UndercoverProps) {
               const allReady = alivePlayers.every(id => allReadyIds.includes(id));
               
               if (allReady && alivePlayers.length > 0) { 
-                  await updateRoundData({
-                      ...gameState?.round_data, // Keep legacy sync for phase transition trigger
-                      phase: 'clues',
-                      currentSpeaker: alivePlayers[0],
-                      endTime: null, 
-                      currentClueRound: 1,
-                      notification: { id: Date.now().toString(), message: "Tout le monde est prêt ! Début des indices.", type: 'info' }
-                  });
-                  
                   // Also update SQL game state
                   await supabase.from('undercover_games').update({
                       phase: 'clues',
                       current_speaker_id: alivePlayers[0],
                       current_clue_round: 1
                   }).eq('room_id', roomCode);
+                  
+                  // Legacy sync for notification
+                  await updateRoundData({
+                      phase: 'clues',
+                      notification: { id: Date.now().toString(), message: "Tout le monde est prêt ! Début des indices.", type: 'info' }
+                  });
               }
          }
  
          // 3. Discussion Phase -> Vote Phase (after time OR skipped)
          if (currentPhase === 'discussion' && timeLeft === 0 && gameState?.round_data?.endTime) {
+              await supabase.from('undercover_games').update({
+                  phase: 'vote'
+              }).eq('room_id', roomCode);
+              
               await updateRoundData({
-                  ...gameState?.round_data,
                   phase: 'vote',
                   endTime: Date.now() + voteTime * 1000,
                   notification: { id: Date.now().toString(), message: "Fin de la discussion ! Place au vote.", type: 'info' }
@@ -257,19 +257,48 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         // Assign Roles
         const { newRoles, alive } = assignRoles(players, mrWhiteEnabled, undercoverCount);
 
-        await startGame({
-            civilWord: firstPair.civilWord,
-            undercoverWord: firstPair.undercoverWord,
-            roles: newRoles,
-            alivePlayers: alive,
+        // SQL Initialization
+        // 1. Upsert Game State
+        const { error: gameError } = await supabase.from('undercover_games').upsert({
+            room_id: roomCode, // Assuming roomCode is UUID. If not, we need roomId from props/hook
             phase: 'roles',
-            clues: [],
-            readyPlayers: [], // Reset ready
-            currentClueRound: 1,
-            queue: remainingQueue,
-            endTime: null, // Manual ready (no timer)
+            civil_word: firstPair.civilWord,
+            undercover_word: firstPair.undercoverWord,
+            current_speaker_id: null,
+            current_clue_round: 1,
+            created_at: new Date().toISOString()
+        }, { onConflict: 'room_id' });
+        
+        if (gameError) {
+             console.error("Game Init Error", gameError);
+             toast.error("Erreur init jeu");
+             return;
+        }
+
+        // 2. Upsert Players Roles
+        const playerInserts = players.map(p => ({
+            room_id: roomCode,
+            player_id: p.id,
+            role: newRoles[p.id],
+            is_alive: true
+        }));
+        
+        const { error: playersError } = await supabase.from('undercover_players').upsert(playerInserts, { onConflict: 'room_id,player_id' });
+
+        if (playersError) {
+             console.error("Players Init Error", playersError);
+        }
+
+        // 3. Reset Clues & Votes
+        await supabase.from('undercover_clues').delete().eq('room_id', roomCode);
+        await supabase.from('undercover_votes').delete().eq('room_id', roomCode);
+
+        // Legacy support (optional, for notifications)
+        await updateRoundData({
+            phase: 'roles',
             notification: { id: Date.now().toString(), message: "Partie lancée ! Révélation des rôles...", type: 'success' }
         });
+        
     } catch (e) {
         console.error(e);
         toast.error("Erreur au démarrage");
@@ -304,13 +333,15 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   };
 
   const processVotes = async () => {
-    const votes = gameState?.answers || {};
+    // We need to fetch votes from SQL `undercover_votes` table now
+    const { data: votesData } = await supabase.from('undercover_votes').select('*').eq('room_id', roomCode);
+    
     const voteCounts: Record<string, number> = {};
     
     // Count votes
-    Object.values(votes).forEach((v: any) => {
-        if (v.type === 'vote' && v.targetId) {
-            voteCounts[v.targetId] = (voteCounts[v.targetId] || 0) + 1;
+    votesData?.forEach((v: any) => {
+        if (v.target_id) {
+            voteCounts[v.target_id] = (voteCounts[v.target_id] || 0) + 1;
         }
     });
 
@@ -330,20 +361,15 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     });
 
     if (isTie || !eliminatedId) {
-        // No elimination, back to clues? Or discussion?
-        // Let's go back to clues for another round
-        toast('Égalité ! Personne n\'est éliminé.');
-        
-        // Reset to discussion to allow re-vote if needed? No, rules say back to clues or next
-        // But if we came from "Skip to Vote", we might need to handle this.
-        
-        // Let's just restart vote phase with timer
+        // Tie logic
         await updateRoundData({
-            ...roundData,
             phase: 'vote',
             endTime: Date.now() + voteTime * 1000,
             notification: { id: Date.now().toString(), message: "Égalité ! Revotez !", type: 'error' }
         });
+        
+        // Reset SQL votes?
+        await supabase.from('undercover_votes').delete().eq('room_id', roomCode);
         return;
     }
 
@@ -351,12 +377,13 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     const eliminatedRole = roles[eliminatedId];
     
     if (eliminatedRole === 'MR_WHITE') {
-        // Mr White chance to guess
-        await updateRoundData({
-            ...roundData,
-            eliminated: eliminatedId,
+        // Update SQL game state
+        await supabase.from('undercover_games').update({
             phase: 'mrwhite_guess',
-            endTime: Date.now() + 30000, // 30s to guess
+            eliminated_player_id: eliminatedId
+        }).eq('room_id', roomCode);
+        
+        await updateRoundData({
             notification: { id: Date.now().toString(), message: "Mr. White trouvé ! Il peut se sauver...", type: 'success' }
         });
         return;
@@ -367,6 +394,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   };
 
   const handleElimination = async (eliminatedId: string) => {
+    // Update player status in SQL
+    await supabase.from('undercover_players').update({ is_alive: false }).eq('room_id', roomCode).eq('player_id', eliminatedId);
+
     const newAlive = alivePlayers.filter(id => id !== eliminatedId);
     
     // Check Win Conditions
@@ -377,62 +407,83 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     const impostorsCount = (hasUndercover ? 1 : 0) + (hasMrWhite ? 1 : 0);
 
     if (!hasUndercover && !hasMrWhite) {
-        // Civils Win (All impostors eliminated)
+        // Civils Win
         await finishGame('CIVILS', newAlive);
     } else if (impostorsCount >= civilsCount) {
-        // Impostors Win (Equal or more impostors than civils)
+        // Impostors Win
         await finishGame('IMPOSTORS', newAlive);
     } else {
         // Continue
-        await updateRoundData({
-            ...roundData,
-            eliminated: eliminatedId,
-            alivePlayers: newAlive,
+        await supabase.from('undercover_games').update({
             phase: 'clues',
-            currentSpeaker: newAlive[0],
-            endTime: null, // NO TIMER
+            current_speaker_id: newAlive[0],
+            eliminated_player_id: eliminatedId
+        }).eq('room_id', roomCode);
+        
+        await updateRoundData({
+            phase: 'clues',
             notification: { id: Date.now().toString(), message: "Un joueur a été éliminé. La partie continue !", type: 'info' }
         });
     }
   };
 
   const finishGame = async (winner: string, alive: string[]) => {
-      await updateRoundData({
-          ...roundData,
-          winner,
+      await supabase.from('undercover_games').update({
           phase: 'results',
-          alivePlayers: alive,
+          winner: winner
+      }).eq('room_id', roomCode);
+
+      await updateRoundData({
+          phase: 'results',
           notification: { id: Date.now().toString(), message: "Fin de la partie !", type: 'success' }
       });
   };
 
   const nextGameRound = async () => {
       if (!isHost) return;
-      const queue = roundData.queue || [];
-      if (queue.length === 0) {
-          await setGameStatus('game_over');
-          return;
-      }
+      // We need to fetch queue from somewhere or just fetch new words
+      // Since we are SQL based now, we don't store queue in JSON roundData ideally.
+      // Let's just fetch new words API again for simplicity
       
-      const nextPair = queue[0];
-      const remaining = queue.slice(1);
-      const { newRoles, alive } = assignRoles(players, settings.mrWhiteEnabled, undercoverCount);
+      try {
+          const res = await fetch(`/api/games/undercover?count=1`);
+          const words = await res.json();
+          const nextPair = Array.isArray(words) ? words[0] : words;
+          
+          if (!nextPair) return;
 
-      if (resetAllPlayersReady) await resetAllPlayersReady();
+          const { newRoles, alive } = assignRoles(players, settings.mrWhiteEnabled, undercoverCount);
 
-      await nextRound({
-            civilWord: nextPair.civilWord,
-            undercoverWord: nextPair.undercoverWord,
-            roles: newRoles,
-            alivePlayers: alive,
-            phase: 'roles',
-            clues: [],
-            readyPlayers: [],
-            currentClueRound: 1,
-            queue: remaining,
-            endTime: null
-      });
-      toast.success("Manche suivante !");
+          if (resetAllPlayersReady) await resetAllPlayersReady();
+
+          // SQL Update
+          await supabase.from('undercover_games').update({
+              phase: 'roles',
+              civil_word: nextPair.civilWord,
+              undercover_word: nextPair.undercoverWord,
+              current_speaker_id: null,
+              current_clue_round: 1,
+              winner: null,
+              eliminated_player_id: null
+          }).eq('room_id', roomCode);
+
+          // Reset Tables
+          await supabase.from('undercover_clues').delete().eq('room_id', roomCode);
+          await supabase.from('undercover_votes').delete().eq('room_id', roomCode);
+          
+          // Re-insert players with new roles
+          const playerInserts = players.map(p => ({
+              room_id: roomCode,
+              player_id: p.id,
+              role: newRoles[p.id],
+              is_alive: true
+          }));
+          await supabase.from('undercover_players').upsert(playerInserts, { onConflict: 'room_id,player_id' });
+          
+          toast.success("Manche suivante !");
+      } catch (e) {
+          console.error(e);
+      }
   };
 
   // --- CLIENT ACTIONS ---
@@ -440,8 +491,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   const sendReady = async () => {
     if (amIReadyRobust) return;
     
-    // Legacy update
-    await submitAnswer({ type: 'ready' });
+    // Legacy update (keep for compatibility if needed)
+    // await submitAnswer({ type: 'ready' });
     
     // Robust update
     if (setPlayerReady) {
@@ -525,21 +576,6 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
       const processNewMoves = async () => {
           // Process all new moves
-          const newMoves = moves.filter(m => {
-              // Simple check: if we have a last processed ID, we take everything after it.
-              // But array order is time-based.
-              // Actually, we can just check if we processed this ID.
-              // Since `moves` appends, we can look at indices? No, network sync might reorder?
-              // `useGameRoom` orders by created_at.
-              
-              // Let's iterate and skip processed.
-              return true;
-          });
-
-          // Optimization: Only process the very last one if we assume sequentiality?
-          // No, we might miss batch updates.
-          
-          // Let's just process the last move if it's different from ref
           const lastMove = moves[moves.length - 1];
           if (lastMove.id === lastProcessedMoveId.current) return;
           lastProcessedMoveId.current = lastMove.id;
@@ -550,15 +586,13 @@ export default function Undercover({ roomCode }: UndercoverProps) {
           if (action_type === 'clue' && currentPhase === 'clues') {
               if (player_id !== currentSpeakerId) return; // Ignore out of turn (robustness)
               
-              // Check duplicate (idempotency)
-              const alreadyExists = clues.some(c => c.playerId === player_id && c.text === payload.text);
-              if (alreadyExists) return;
-
-              const newClues = [...clues, {
-                  playerId: player_id,
+              // Insert into SQL
+              await supabase.from('undercover_clues').insert({
+                  room_id: roomCode,
+                  player_id: player_id,
                   text: payload.text,
-                  timestamp: payload.timestamp
-              }];
+                  round_number: currentClueRound
+              });
               
               const currentIndex = alivePlayers.indexOf(player_id);
               const nextIndex = (currentIndex + 1) % alivePlayers.length;
@@ -569,30 +603,31 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                   const nextRoundNum = currentClueRound + 1;
                   
                   if (nextRoundNum > clueRoundsBeforeVote) {
+                        await supabase.from('undercover_games').update({
+                            phase: 'vote',
+                            current_speaker_id: null,
+                            current_clue_round: nextRoundNum
+                        }).eq('room_id', roomCode);
+
                         await updateRoundData({
-                            ...roundData,
-                            clues: newClues,
-                            currentSpeaker: null,
                             phase: 'vote',
                             endTime: Date.now() + voteTime * 1000,
-                            currentClueRound: nextRoundNum,
                             notification: { id: Date.now().toString(), message: "Tous les indices sont donnés ! Place au vote.", type: 'info' }
                         });
                   } else {
+                        await supabase.from('undercover_games').update({
+                            current_speaker_id: nextSpeaker,
+                            current_clue_round: nextRoundNum
+                        }).eq('room_id', roomCode);
+
                         await updateRoundData({
-                            ...roundData,
-                            clues: newClues,
-                            currentSpeaker: nextSpeaker,
-                            currentClueRound: nextRoundNum,
                             notification: { id: Date.now().toString(), message: `Tour d'indices ${nextRoundNum} / ${clueRoundsBeforeVote}`, type: 'info' }
                         });
                   }
               } else {
-                  await updateRoundData({
-                      ...roundData,
-                      clues: newClues,
-                      currentSpeaker: nextSpeaker
-                  });
+                  await supabase.from('undercover_games').update({
+                      current_speaker_id: nextSpeaker
+                  }).eq('room_id', roomCode);
               }
           }
 
@@ -615,8 +650,11 @@ export default function Undercover({ roomCode }: UndercoverProps) {
               if (changed) {
                   const majority = Math.floor(alivePlayers.length / 2) + 1;
                   if (currentSkipVotes.length >= majority) {
+                       await supabase.from('undercover_games').update({
+                           phase: 'vote'
+                       }).eq('room_id', roomCode);
+                       
                        await updateRoundData({
-                           ...roundData,
                            skipVotes: [],
                            phase: 'vote',
                            endTime: Date.now() + voteTime * 1000,
@@ -624,7 +662,6 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                        });
                   } else {
                        await updateRoundData({
-                           ...roundData,
                            skipVotes: currentSkipVotes
                        });
                   }
@@ -633,26 +670,12 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
           // --- VOTE ---
           if (action_type === 'vote' && currentPhase === 'vote') {
-              // We need to store votes in roundData or calculate them from moves history?
-              // Currently `processVotes` uses `answers` which was JSONB.
-              // Let's update `answers` map in `round_data` manually or keep using `submitAnswer` for things that don't need queue?
-              // The user asked to use SQL for "sending clues etc".
-              // For votes, let's use `answers` inside `roundData` or a new field `votes`.
-              
-              const currentVotes = (roundData.votes || {}) as Record<string, string>;
-              const newVotes = { ...currentVotes, [player_id]: payload.targetId };
-              
-              // Update votes
-              await updateRoundData({
-                  ...roundData,
-                  votes: newVotes
+              // Insert into SQL
+              await supabase.from('undercover_votes').insert({
+                  room_id: roomCode,
+                  voter_id: player_id,
+                  target_id: payload.targetId
               });
-              
-              // Check if everyone voted
-              // This is a bit heavy to do on every vote, but ok for small groups
-              // Actually `processVotes` logic was running on timer end.
-              // We can also trigger early if everyone voted.
-              // But let's stick to timer or simple check.
           }
           
           // --- GUESS ---
@@ -678,10 +701,10 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
   // Auto-start
   useEffect(() => {
-      if (isHost && gameState?.round_data?.phase === 'setup' && players.length >= 3) {
+      if (isHost && gameState?.round_data?.phase === 'setup' && players.length >= 3 && currentPhase === 'setup') {
           startNewGame();
       }
-  }, [isHost, gameState?.round_data?.phase, players.length]);
+  }, [isHost, gameState?.round_data?.phase, players.length, currentPhase]);
 
 
   // --- RENDER ---
