@@ -4,24 +4,21 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Gamepad2, 
-  Music, 
-  Flame, 
   Flag, 
-  Users, 
-  Mic2, 
   Shield, 
   EyeOff, 
-  Zap, 
-  Globe, 
-  Search,
-  ArrowRight,
   Sun,
   Moon,
   Plus,
   LogIn,
   Menu,
   X,
-  DollarSign
+  Globe,
+  ArrowRight,
+  Users,
+  BookOpen,
+  DollarSign,
+  PenTool
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -29,6 +26,14 @@ import { toast } from 'sonner';
 import { Card } from '@/components/ui/Card';
 
 const games = [
+  {
+    id: 'wikiguessr',
+    name: 'WikiGuessr',
+    description: 'Devine l\'article Wikipédia caché derrière les mots masqués.',
+    icon: Globe,
+    color: 'from-gray-500 to-slate-600',
+    tags: ['Culture G', 'Rapidité'],
+  },
   {
     id: 'pokeguessr',
     name: 'PokéGuessr',
@@ -38,52 +43,12 @@ const games = [
     tags: ['Vitesse', 'Culture G'],
   },
   {
-    id: 'caloriesguessr',
-    name: 'CaloriesGuessr',
-    description: 'Plus ou moins calorique ? Teste tes connaissances nutritionnelles.',
-    icon: Flame,
-    color: 'from-orange-500 to-amber-500',
-    tags: ['Réflexion', 'Nutrition'],
-  },
-  {
     id: 'flagguessr',
     name: 'FlagGuessr',
     description: 'Voyage à travers le monde en devinant les drapeaux.',
     icon: Flag,
     color: 'from-green-500 to-emerald-500',
     tags: ['Géographie', 'Mémoire'],
-  },
-  {
-    id: 'populationguessr',
-    name: 'PopulationGuessr',
-    description: 'Quelle ville est la plus peuplée ? Un duel de démographie.',
-    icon: Users,
-    color: 'from-blue-500 to-cyan-500',
-    tags: ['Stratégie', 'Culture'],
-  },
-  {
-    id: 'lyricsguessr',
-    name: 'LyricsGuessr',
-    description: 'Complète les paroles ou trouve le titre de la chanson.',
-    icon: Mic2,
-    color: 'from-pink-500 to-rose-500',
-    tags: ['Musique', 'Karaoké'],
-  },
-  {
-    id: 'rhymeguessr',
-    name: 'RhymeGuessr',
-    description: 'Trouve la rime parfaite avant la fin du temps imparti.',
-    icon: Music,
-    color: 'from-purple-500 to-violet-500',
-    tags: ['Créativité', 'Vocabulaire'],
-  },
-  {
-    id: 'priceguessr',
-    name: 'PriceGuessr',
-    description: 'Devine le juste prix ! Attention aux centimes près.',
-    icon: DollarSign,
-    color: 'from-yellow-500 to-amber-600',
-    tags: ['Estimation', 'Shopping'],
   },
   {
     id: 'infiltre',
@@ -100,6 +65,14 @@ const games = [
     icon: EyeOff,
     color: 'from-indigo-500 to-blue-600',
     tags: ['Social', 'Enquête'],
+  },
+  {
+    id: 'drawguessr',
+    name: 'DrawGuessr',
+    description: 'Dessine et devine en temps réel !',
+    icon: PenTool,
+    color: 'from-pink-500 to-rose-600',
+    tags: ['Créativité', 'Vitesse'],
   },
 ];
 

@@ -6,10 +6,7 @@ Plateforme web multijoueur gratuite regroupant plusieurs mini-jeux de type "Gues
 
 - **PokeGuessr** : Devine le Pokémon avec des images floues
 - **ComplèteGuessr** : Trouve les suggestions Google les plus bizarres  
-- **RhymeGuessr** : Invente la meilleure punchline qui rime
-- **CaloriesGuessr** : Devine les calories des aliments
 - **FlagGuessr** : Devine le pays ou sa population
-- **LyricsGuessr** : Devine la chanson depuis une phrase
 - **TrollTrivia** : QCM de culture générale absurde
 
 ## 🛠️ Stack technique

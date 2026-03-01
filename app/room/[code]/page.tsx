@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Users, Gamepad2, Copy } from 'lucide-react';
+import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
 interface Player {
@@ -26,6 +26,86 @@ interface GameSetting {
 }
 
 const gamesList: { id: string; name: string; description: string; icon: typeof Gamepad2; settings: GameSetting[] }[] = [
+  {
+    id: 'drawguessr',
+    name: 'DrawGuessr',
+    description: 'Dessine et devine en temps réel.',
+    icon: PenTool,
+    settings: [
+      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
+      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 90 },
+      { 
+        id: 'difficulty', 
+        label: 'Difficulté', 
+        type: 'select', 
+        default: 'mix',
+        options: [
+          { value: 'mix', label: 'Mix' },
+          { value: 'easy', label: 'Facile' },
+          { value: 'medium', label: 'Moyen' },
+          { value: 'hard', label: 'Difficile' },
+        ]
+      },
+    ],
+  },
+  {
+    id: 'budgetguessr',
+    name: 'BudgetGuessr',
+    description: 'Devine le budget de production.',
+    icon: DollarSign,
+    settings: [
+      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
+      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
+      { 
+        id: 'decade', 
+        label: 'Décennie', 
+        type: 'select', 
+        default: 'all',
+        options: [
+          { value: 'all', label: 'Toutes' },
+          { value: '2020s', label: '2020s' },
+          { value: '2010s', label: '2010s' },
+          { value: '2000s', label: '2000s' },
+          { value: '90s', label: '90s' },
+          { value: '80s', label: '80s' },
+        ]
+      },
+      { 
+        id: 'difficulty', 
+        label: 'Difficulté', 
+        type: 'select', 
+        default: 'normal',
+        options: [
+          { value: 'easy', label: 'Très connus (Facile)' },
+          { value: 'normal', label: 'Connus (Normal)' },
+          { value: 'hard', label: 'Tous (Difficile)' },
+        ]
+      },
+    ],
+  },
+  {
+    id: 'wikiguessr',
+    name: 'WikiGuessr',
+    description: 'Devinez l\'article Wikipédia caché.',
+    icon: Globe,
+    settings: [
+      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
+      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 60 },
+      { 
+        id: 'category', 
+        label: 'Catégorie', 
+        type: 'select', 
+        default: 'all',
+        options: [
+          { value: 'all', label: 'Tout' },
+          { value: 'Personnages', label: 'Personnages' },
+          { value: 'Géographie', label: 'Géographie' },
+          { value: 'Sciences', label: 'Sciences' },
+          { value: 'Culture', label: 'Culture' },
+        ]
+      },
+    ],
+  },
   {
     id: 'pokeguessr',
     name: 'PokeGuessr',
@@ -65,72 +145,6 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
     ],
   },
   {
-    id: 'rhymeguessr',
-    name: 'RhymeGuessr',
-    description: 'Trouvez le mot qui rime.',
-    icon: Gamepad2,
-    settings: [
-      { id: 'rounds', label: 'Manches', type: 'number', default: 7 },
-      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 15 },
-    ],
-  },
-  {
-    id: 'priceguessr',
-    name: 'PriceGuessr',
-    description: 'Le Juste Prix : Estimez la valeur des objets.',
-    icon: Gamepad2,
-    settings: [
-      { id: 'rounds', label: 'Manches', type: 'number', default: 6 },
-      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
-      { 
-        id: 'tolerance', 
-        label: 'Tolérance (%)', 
-        type: 'select', 
-        default: '10',
-        options: [
-          { value: '5', label: '±5% (Difficile)' },
-          { value: '10', label: '±10% (Normal)' },
-          { value: '20', label: '±20% (Facile)' },
-        ]
-      },
-      { 
-        id: 'category', 
-        label: 'Catégorie', 
-        type: 'select', 
-        default: 'all',
-        options: [
-          { value: 'all', label: 'Tout' },
-          { value: 'tech', label: 'Tech' },
-          { value: 'food', label: 'Alimentation' },
-          { value: 'fashion', label: 'Mode' },
-          { value: 'home', label: 'Maison' },
-          { value: 'luxury', label: 'Luxe' },
-        ]
-      },
-    ],
-  },
-  {
-    id: 'caloriesguessr',
-    name: 'CaloriesGuessr',
-    description: 'Estimez les calories des aliments.',
-    icon: Gamepad2,
-    settings: [
-      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
-      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 25 },
-      { 
-        id: 'tolerance', 
-        label: 'Tolérance (%)', 
-        type: 'select', 
-        default: '20',
-        options: [
-          { value: '10', label: '±10% (Difficile)' },
-          { value: '20', label: '±20% (Normal)' },
-          { value: '30', label: '±30% (Facile)' },
-        ]
-      },
-    ],
-  },
-  {
     id: 'flagguessr',
     name: 'FlagGuessr',
     description: 'Identifiez le pays au drapeau.',
@@ -152,27 +166,6 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
           { value: 'Oceania', label: 'Océanie' },
         ]
       },
-    ],
-  },
-  {
-    id: 'populationguessr',
-    name: 'PopulationGuessr',
-    description: 'Devinez la population du pays.',
-    icon: Gamepad2,
-    settings: [
-      { id: 'rounds', label: 'Manches', type: 'number', default: 10 },
-      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 20 },
-    ],
-  },
-  {
-    id: 'lyricsguessr',
-    name: 'LyricsGuessr',
-    description: 'Devinez la chanson à partir des paroles.',
-    icon: Gamepad2,
-    settings: [
-      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
-      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 45 },
-      { id: 'artist', label: 'Artiste (ex: Daft Punk)', type: 'text', default: '' },
     ],
   },
   {

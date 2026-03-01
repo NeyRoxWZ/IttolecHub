@@ -20,6 +20,22 @@ export interface GameRoomState {
       questions: any[];
       votes: any[];
   };
+  flag: {
+      game: any;
+      players: any[];
+  };
+  wiki: {
+      game: any;
+      players: any[];
+  };
+  budget: {
+      game: any;
+      players: any[];
+  };
+  draw: {
+      game: any;
+      players: any[];
+  };
   isConnected: boolean;
   lastEvent: { type: string; payload: any; timestamp: number } | null;
 }
@@ -41,6 +57,22 @@ export function useGameRoom(roomId: string, playerId: string) {
         roles: [],
         questions: [],
         votes: []
+    },
+    flag: {
+        game: null,
+        players: []
+    },
+    wiki: {
+        game: null,
+        players: []
+    },
+    budget: {
+        game: null,
+        players: []
+    },
+    draw: {
+        game: null,
+        players: []
     },
     isConnected: false,
     lastEvent: null
@@ -68,7 +100,11 @@ export function useGameRoom(roomId: string, playerId: string) {
       const [
           roomRes, sessionRes, playersRes, movesRes, 
           ucGame, ucRoles, ucClues, ucVotes,
-          infGame, infRoles, infQuestions, infVotes
+          infGame, infRoles, infQuestions, infVotes,
+          flagGame, flagPlayers,
+          wikiGame, wikiPlayers,
+          budgetGame, budgetPlayers,
+          drawGame, drawPlayers
       ] = await Promise.all([
         supabase.from('rooms').select('*').eq('id', roomId).maybeSingle(),
         supabase.from('game_sessions').select('*').eq('room_id', roomId).maybeSingle(),
@@ -83,7 +119,19 @@ export function useGameRoom(roomId: string, playerId: string) {
         supabase.from('infiltre_games').select('*').eq('room_id', roomId).maybeSingle(),
         supabase.from('infiltre_players').select('*').eq('room_id', roomId),
         supabase.from('infiltre_questions').select('*').eq('room_id', roomId).order('created_at', { ascending: true }),
-        supabase.from('infiltre_votes').select('*').eq('room_id', roomId)
+        supabase.from('infiltre_votes').select('*').eq('room_id', roomId),
+        // Flag Tables
+        supabase.from('flag_games').select('*').eq('room_id', roomId).maybeSingle(),
+        supabase.from('flag_players').select('*').eq('room_id', roomId),
+        // Wiki Tables
+        supabase.from('wiki_games').select('*').eq('room_id', roomId).maybeSingle(),
+        supabase.from('wiki_players').select('*').eq('room_id', roomId),
+        // Budget Tables
+        supabase.from('budget_games').select('*').eq('room_id', roomId).maybeSingle(),
+        supabase.from('budget_players').select('*').eq('room_id', roomId),
+        // Draw Tables
+        supabase.from('draw_games').select('*').eq('room_id', roomId).maybeSingle(),
+        supabase.from('draw_players').select('*').eq('room_id', roomId)
       ]);
 
       if (isMounted) {
@@ -104,6 +152,22 @@ export function useGameRoom(roomId: string, playerId: string) {
               roles: infRoles.data || [],
               questions: infQuestions.data || [],
               votes: infVotes.data || []
+          },
+          flag: {
+              game: flagGame.data,
+              players: flagPlayers.data || []
+          },
+          wiki: {
+              game: wikiGame.data,
+              players: wikiPlayers.data || []
+          },
+          budget: {
+              game: budgetGame.data,
+              players: budgetPlayers.data || []
+          },
+          draw: {
+              game: drawGame.data,
+              players: drawPlayers.data || []
           }
         }));
       }
@@ -139,11 +203,13 @@ export function useGameRoom(roomId: string, playerId: string) {
           const { data } = await supabase.from('undercover_players').select('*').eq('room_id', roomId);
           if (isMounted && data) setState(prev => ({ ...prev, undercover: { ...prev.undercover, roles: data } }));
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'undercover_clues', filter: `room_id=eq.${roomId}` }, (payload) => {
-          if (isMounted && payload.new) setState(prev => ({ ...prev, undercover: { ...prev.undercover, clues: [...prev.undercover.clues, payload.new] } }));
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'undercover_clues', filter: `room_id=eq.${roomId}` }, async () => {
+          const { data } = await supabase.from('undercover_clues').select('*').eq('room_id', roomId).order('created_at', { ascending: true });
+          if (isMounted && data) setState(prev => ({ ...prev, undercover: { ...prev.undercover, clues: data } }));
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'undercover_votes', filter: `room_id=eq.${roomId}` }, (payload) => {
-          if (isMounted && payload.new) setState(prev => ({ ...prev, undercover: { ...prev.undercover, votes: [...prev.undercover.votes, payload.new] } }));
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'undercover_votes', filter: `room_id=eq.${roomId}` }, async () => {
+          const { data } = await supabase.from('undercover_votes').select('*').eq('room_id', roomId);
+          if (isMounted && data) setState(prev => ({ ...prev, undercover: { ...prev.undercover, votes: data } }));
       })
 
       // --- INFILTRE TABLES ---
@@ -155,14 +221,48 @@ export function useGameRoom(roomId: string, playerId: string) {
           if (isMounted && data) setState(prev => ({ ...prev, infiltre: { ...prev.infiltre, roles: data } }));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'infiltre_questions', filter: `room_id=eq.${roomId}` }, async () => {
-          // For questions (updates happen on answers), fetch all might be safer to keep order/updates correct
-          // Or handle INSERT and UPDATE separately. Let's fetch all for robust sync for now.
           const { data } = await supabase.from('infiltre_questions').select('*').eq('room_id', roomId).order('created_at', { ascending: true });
           if (isMounted && data) setState(prev => ({ ...prev, infiltre: { ...prev.infiltre, questions: data } }));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'infiltre_votes', filter: `room_id=eq.${roomId}` }, async () => {
            const { data } = await supabase.from('infiltre_votes').select('*').eq('room_id', roomId);
            if (isMounted && data) setState(prev => ({ ...prev, infiltre: { ...prev.infiltre, votes: data } }));
+      })
+
+      // --- FLAG TABLES ---
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flag_games', filter: `room_id=eq.${roomId}` }, (payload) => {
+          if (isMounted && payload.new) setState(prev => ({ ...prev, flag: { ...prev.flag, game: payload.new } }));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flag_players', filter: `room_id=eq.${roomId}` }, async () => {
+          const { data } = await supabase.from('flag_players').select('*').eq('room_id', roomId);
+          if (isMounted && data) setState(prev => ({ ...prev, flag: { ...prev.flag, players: data } }));
+      })
+
+      // --- WIKI TABLES ---
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wiki_games', filter: `room_id=eq.${roomId}` }, (payload) => {
+          if (isMounted && payload.new) setState(prev => ({ ...prev, wiki: { ...prev.wiki, game: payload.new } }));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wiki_players', filter: `room_id=eq.${roomId}` }, async () => {
+          const { data } = await supabase.from('wiki_players').select('*').eq('room_id', roomId);
+          if (isMounted && data) setState(prev => ({ ...prev, wiki: { ...prev.wiki, players: data } }));
+      })
+
+      // --- BUDGET TABLES ---
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'budget_games', filter: `room_id=eq.${roomId}` }, (payload) => {
+          if (isMounted && payload.new) setState(prev => ({ ...prev, budget: { ...prev.budget, game: payload.new } }));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'budget_players', filter: `room_id=eq.${roomId}` }, async () => {
+          const { data } = await supabase.from('budget_players').select('*').eq('room_id', roomId);
+          if (isMounted && data) setState(prev => ({ ...prev, budget: { ...prev.budget, players: data } }));
+      })
+
+      // --- DRAW TABLES ---
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'draw_games', filter: `room_id=eq.${roomId}` }, (payload) => {
+          if (isMounted && payload.new) setState(prev => ({ ...prev, draw: { ...prev.draw, game: payload.new } }));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'draw_players', filter: `room_id=eq.${roomId}` }, async () => {
+          const { data } = await supabase.from('draw_players').select('*').eq('room_id', roomId);
+          if (isMounted && data) setState(prev => ({ ...prev, draw: { ...prev.draw, players: data } }));
       })
 
       // --- BROADCAST EVENTS ---
