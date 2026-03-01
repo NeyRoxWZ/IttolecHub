@@ -1,46 +1,69 @@
 {
   "pages": {
     "/_not-found": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
+      "static/chunks/webpack-28241562635f188a.js",
       "static/chunks/fd9d1056-cf46a9edc84a6575.js",
       "static/chunks/938-3f4b901b9cad0e8e.js",
       "static/chunks/main-app-b0c1a9794663b8f1.js",
       "static/chunks/app/_not-found-3bd4129c31d6d560.js"
     ],
     "/layout": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
+      "static/chunks/webpack-28241562635f188a.js",
       "static/chunks/fd9d1056-cf46a9edc84a6575.js",
       "static/chunks/938-3f4b901b9cad0e8e.js",
       "static/chunks/main-app-b0c1a9794663b8f1.js",
       "static/chunks/424-f567edfc5734fdd5.js",
-      "static/css/06e5e4c701c7ba21.css",
-      "static/chunks/app/layout-5103ba47ff941b5b.js"
+      "static/css/d8e95e50373735bc.css",
+      "static/chunks/app/layout-e19a31c7bd45b4fc.js"
+    ],
+    "/games/caloriesguessr/[code]/page": [
+      "static/chunks/webpack-28241562635f188a.js",
+      "static/chunks/fd9d1056-cf46a9edc84a6575.js",
+      "static/chunks/938-3f4b901b9cad0e8e.js",
+      "static/chunks/main-app-b0c1a9794663b8f1.js",
+      "static/chunks/484-754ef69e480a0895.js",
+      "static/chunks/226-b607d61b0cc1b952.js",
+      "static/chunks/424-f567edfc5734fdd5.js",
+      "static/chunks/854-34c813b99b44d5dd.js",
+      "static/chunks/269-d3faaa15716e4f86.js",
+      "static/chunks/app/games/caloriesguessr/[code]/page-118d9b3eb06f0382.js"
+    ],
+    "/games/flagguessr/[code]/page": [
+      "static/chunks/webpack-28241562635f188a.js",
+      "static/chunks/fd9d1056-cf46a9edc84a6575.js",
+      "static/chunks/938-3f4b901b9cad0e8e.js",
+      "static/chunks/main-app-b0c1a9794663b8f1.js",
+      "static/chunks/484-754ef69e480a0895.js",
+      "static/chunks/226-b607d61b0cc1b952.js",
+      "static/chunks/424-f567edfc5734fdd5.js",
+      "static/chunks/854-34c813b99b44d5dd.js",
+      "static/chunks/269-d3faaa15716e4f86.js",
+      "static/chunks/app/games/flagguessr/[code]/page-27d318c8fc61a176.js"
+    ],
+    "/games/infiltre/[code]/page": [
+      "static/chunks/webpack-28241562635f188a.js",
+      "static/chunks/fd9d1056-cf46a9edc84a6575.js",
+      "static/chunks/938-3f4b901b9cad0e8e.js",
+      "static/chunks/main-app-b0c1a9794663b8f1.js",
+      "static/chunks/484-754ef69e480a0895.js",
+      "static/chunks/226-b607d61b0cc1b952.js",
+      "static/chunks/424-f567edfc5734fdd5.js",
+      "static/chunks/269-d3faaa15716e4f86.js",
+      "static/chunks/app/games/infiltre/[code]/page-1f0d56f6e0829910.js"
     ],
     "/games/lyricsguessr/[code]/page": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
+      "static/chunks/webpack-28241562635f188a.js",
       "static/chunks/fd9d1056-cf46a9edc84a6575.js",
       "static/chunks/938-3f4b901b9cad0e8e.js",
       "static/chunks/main-app-b0c1a9794663b8f1.js",
       "static/chunks/484-754ef69e480a0895.js",
       "static/chunks/226-b607d61b0cc1b952.js",
       "static/chunks/854-34c813b99b44d5dd.js",
-      "static/chunks/269-a9b8b5a3f3d1da91.js",
+      "static/chunks/269-d3faaa15716e4f86.js",
       "static/chunks/app/games/lyricsguessr/[code]/page-4601ceda1bcdbada.js"
     ],
-    "/games/pokeguessr/[code]/page": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
-      "static/chunks/fd9d1056-cf46a9edc84a6575.js",
-      "static/chunks/938-3f4b901b9cad0e8e.js",
-      "static/chunks/main-app-b0c1a9794663b8f1.js",
-      "static/chunks/484-754ef69e480a0895.js",
-      "static/chunks/226-b607d61b0cc1b952.js",
-      "static/chunks/424-f567edfc5734fdd5.js",
-      "static/chunks/854-34c813b99b44d5dd.js",
-      "static/chunks/269-a9b8b5a3f3d1da91.js",
-      "static/chunks/app/games/pokeguessr/[code]/page-f82c4cb662989a61.js"
-    ],
     "/games/populationguessr/[code]/page": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
+      "static/chunks/webpack-28241562635f188a.js",
       "static/chunks/fd9d1056-cf46a9edc84a6575.js",
       "static/chunks/938-3f4b901b9cad0e8e.js",
       "static/chunks/main-app-b0c1a9794663b8f1.js",
@@ -48,11 +71,11 @@
       "static/chunks/226-b607d61b0cc1b952.js",
       "static/chunks/424-f567edfc5734fdd5.js",
       "static/chunks/854-34c813b99b44d5dd.js",
-      "static/chunks/269-a9b8b5a3f3d1da91.js",
+      "static/chunks/269-d3faaa15716e4f86.js",
       "static/chunks/app/games/populationguessr/[code]/page-a8fa2dcc35efc07a.js"
     ],
-    "/games/priceguessr/[code]/page": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
+    "/games/pokeguessr/[code]/page": [
+      "static/chunks/webpack-28241562635f188a.js",
       "static/chunks/fd9d1056-cf46a9edc84a6575.js",
       "static/chunks/938-3f4b901b9cad0e8e.js",
       "static/chunks/main-app-b0c1a9794663b8f1.js",
@@ -60,41 +83,34 @@
       "static/chunks/226-b607d61b0cc1b952.js",
       "static/chunks/424-f567edfc5734fdd5.js",
       "static/chunks/854-34c813b99b44d5dd.js",
-      "static/chunks/269-a9b8b5a3f3d1da91.js",
+      "static/chunks/269-d3faaa15716e4f86.js",
+      "static/chunks/app/games/pokeguessr/[code]/page-f82c4cb662989a61.js"
+    ],
+    "/games/priceguessr/[code]/page": [
+      "static/chunks/webpack-28241562635f188a.js",
+      "static/chunks/fd9d1056-cf46a9edc84a6575.js",
+      "static/chunks/938-3f4b901b9cad0e8e.js",
+      "static/chunks/main-app-b0c1a9794663b8f1.js",
+      "static/chunks/484-754ef69e480a0895.js",
+      "static/chunks/226-b607d61b0cc1b952.js",
+      "static/chunks/424-f567edfc5734fdd5.js",
+      "static/chunks/854-34c813b99b44d5dd.js",
+      "static/chunks/269-d3faaa15716e4f86.js",
       "static/chunks/app/games/priceguessr/[code]/page-347e0c47dd63607a.js"
     ],
-    "/games/rhymeguessr/[code]/page": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
-      "static/chunks/fd9d1056-cf46a9edc84a6575.js",
-      "static/chunks/938-3f4b901b9cad0e8e.js",
-      "static/chunks/main-app-b0c1a9794663b8f1.js",
-      "static/chunks/484-754ef69e480a0895.js",
-      "static/chunks/226-b607d61b0cc1b952.js",
-      "static/chunks/269-a9b8b5a3f3d1da91.js",
-      "static/chunks/app/games/rhymeguessr/[code]/page-3d500e1fd3d04c61.js"
-    ],
     "/games/undercover/[code]/page": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
+      "static/chunks/webpack-28241562635f188a.js",
       "static/chunks/fd9d1056-cf46a9edc84a6575.js",
       "static/chunks/938-3f4b901b9cad0e8e.js",
       "static/chunks/main-app-b0c1a9794663b8f1.js",
       "static/chunks/484-754ef69e480a0895.js",
       "static/chunks/226-b607d61b0cc1b952.js",
       "static/chunks/424-f567edfc5734fdd5.js",
-      "static/chunks/269-a9b8b5a3f3d1da91.js",
-      "static/chunks/app/games/undercover/[code]/page-339e8211096bf3c6.js"
-    ],
-    "/page": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
-      "static/chunks/fd9d1056-cf46a9edc84a6575.js",
-      "static/chunks/938-3f4b901b9cad0e8e.js",
-      "static/chunks/main-app-b0c1a9794663b8f1.js",
-      "static/chunks/484-754ef69e480a0895.js",
-      "static/chunks/424-f567edfc5734fdd5.js",
-      "static/chunks/app/page-bf0a0e65a02037a4.js"
+      "static/chunks/269-d3faaa15716e4f86.js",
+      "static/chunks/app/games/undercover/[code]/page-a3f1c5507ec50506.js"
     ],
     "/room/[code]/page": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
+      "static/chunks/webpack-28241562635f188a.js",
       "static/chunks/fd9d1056-cf46a9edc84a6575.js",
       "static/chunks/938-3f4b901b9cad0e8e.js",
       "static/chunks/main-app-b0c1a9794663b8f1.js",
@@ -103,40 +119,24 @@
       "static/chunks/891-a016bf57f9a01fca.js",
       "static/chunks/app/room/[code]/page-d54127ce813d6bfe.js"
     ],
-    "/games/caloriesguessr/[code]/page": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
+    "/games/rhymeguessr/[code]/page": [
+      "static/chunks/webpack-28241562635f188a.js",
       "static/chunks/fd9d1056-cf46a9edc84a6575.js",
       "static/chunks/938-3f4b901b9cad0e8e.js",
       "static/chunks/main-app-b0c1a9794663b8f1.js",
       "static/chunks/484-754ef69e480a0895.js",
       "static/chunks/226-b607d61b0cc1b952.js",
-      "static/chunks/424-f567edfc5734fdd5.js",
-      "static/chunks/854-34c813b99b44d5dd.js",
-      "static/chunks/269-a9b8b5a3f3d1da91.js",
-      "static/chunks/app/games/caloriesguessr/[code]/page-118d9b3eb06f0382.js"
+      "static/chunks/269-d3faaa15716e4f86.js",
+      "static/chunks/app/games/rhymeguessr/[code]/page-3d500e1fd3d04c61.js"
     ],
-    "/games/flagguessr/[code]/page": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
+    "/page": [
+      "static/chunks/webpack-28241562635f188a.js",
       "static/chunks/fd9d1056-cf46a9edc84a6575.js",
       "static/chunks/938-3f4b901b9cad0e8e.js",
       "static/chunks/main-app-b0c1a9794663b8f1.js",
       "static/chunks/484-754ef69e480a0895.js",
-      "static/chunks/226-b607d61b0cc1b952.js",
       "static/chunks/424-f567edfc5734fdd5.js",
-      "static/chunks/854-34c813b99b44d5dd.js",
-      "static/chunks/269-a9b8b5a3f3d1da91.js",
-      "static/chunks/app/games/flagguessr/[code]/page-27d318c8fc61a176.js"
-    ],
-    "/games/infiltre/[code]/page": [
-      "static/chunks/webpack-4ae04fbd1435fda2.js",
-      "static/chunks/fd9d1056-cf46a9edc84a6575.js",
-      "static/chunks/938-3f4b901b9cad0e8e.js",
-      "static/chunks/main-app-b0c1a9794663b8f1.js",
-      "static/chunks/484-754ef69e480a0895.js",
-      "static/chunks/226-b607d61b0cc1b952.js",
-      "static/chunks/424-f567edfc5734fdd5.js",
-      "static/chunks/269-a9b8b5a3f3d1da91.js",
-      "static/chunks/app/games/infiltre/[code]/page-1f0d56f6e0829910.js"
+      "static/chunks/app/page-bf0a0e65a02037a4.js"
     ]
   }
 }

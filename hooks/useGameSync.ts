@@ -225,7 +225,7 @@ export function useGameSync(roomCode: string, gameType: string) {
         room_id: roomId,
         player_id: playerId,
         action_type: actionType,
-        game_type: gameType,
+        // game_type removed as it's not in the schema
         payload
     });
   };
