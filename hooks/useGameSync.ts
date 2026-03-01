@@ -288,6 +288,7 @@ export function useGameSync(roomCode: string, gameType: string) {
     moves, // Exposed moves history
     undercover, // Exposed dedicated tables
     getTimeLeft, // Exposed for components
-    serverTime: now // Exposed if needed
+    serverTime: now, // Exposed if needed
+    roomId // Exposed UUID
   };
 }

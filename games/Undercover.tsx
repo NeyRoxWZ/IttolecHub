@@ -42,7 +42,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     submitAnswer,
     setPlayerReady,
     moves,
-    setGameStatus // Need this for game over
+    setGameStatus, // Need this for game over
+    roomId // UUID from hook
   } = useGameSync(roomCode, 'undercover');
 
   // SQL State Extraction
@@ -260,7 +261,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         // SQL Initialization
         // 1. Upsert Game State
         const { error: gameError } = await supabase.from('undercover_games').upsert({
-            room_id: roomCode, // Assuming roomCode is UUID. If not, we need roomId from props/hook
+            room_id: roomId, // Use UUID from hook
             phase: 'roles',
             civil_word: firstPair.civilWord,
             undercover_word: firstPair.undercoverWord,
@@ -277,7 +278,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
         // 2. Upsert Players Roles
         const playerInserts = players.map(p => ({
-            room_id: roomCode,
+            room_id: roomId, // Use UUID from hook
             player_id: p.id,
             role: newRoles[p.id],
             is_alive: true
@@ -290,8 +291,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         }
 
         // 3. Reset Clues & Votes
-        await supabase.from('undercover_clues').delete().eq('room_id', roomCode);
-        await supabase.from('undercover_votes').delete().eq('room_id', roomCode);
+        await supabase.from('undercover_clues').delete().eq('room_id', roomId);
+        await supabase.from('undercover_votes').delete().eq('room_id', roomId);
 
         // Legacy support (optional, for notifications)
         await updateRoundData({
