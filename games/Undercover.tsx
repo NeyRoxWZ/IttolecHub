@@ -217,8 +217,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       if (!isHost || !roomId || currentPhase !== 'clues') return;
 
       const majority = Math.floor(alivePlayers.length / 2) + 1;
+      const validSkipVotes = skipVotes.filter(id => alivePlayers.includes(id));
       
-      if (skipVotes.length >= majority) {
+      if (validSkipVotes.length >= majority) {
            const triggerVote = async () => {
                await supabase.from('undercover_games').update({
                    phase: 'vote',
@@ -545,9 +546,10 @@ export default function Undercover({ roomCode }: UndercoverProps) {
           const nextPair = Array.isArray(words) ? words[0] : words;
           if (!nextPair) return;
 
-          const { newRoles } = assignRoles(players, settings.mrWhiteEnabled, undercoverCount);
+          const { newRoles } = assignRoles(players, mrWhiteEnabled, undercoverCount);
           if (resetAllPlayersReady) await resetAllPlayersReady();
 
+          // Reset everything for next round
           await supabase.from('undercover_games').update({
               phase: 'roles',
               civil_word: nextPair.civilWord,
@@ -561,14 +563,16 @@ export default function Undercover({ roomCode }: UndercoverProps) {
               timer_duration_seconds: null
           }).eq('room_id', roomId);
 
+          // Clear clues and votes
           await supabase.from('undercover_clues').delete().eq('room_id', roomId);
           await supabase.from('undercover_votes').delete().eq('room_id', roomId);
           
+          // Reset players state (alive, etc.)
           const playerInserts = players.map(p => ({
               room_id: roomId,
               player_id: p.id,
               role: newRoles[p.id],
-              is_alive: true
+              is_alive: true // Make everyone alive again
           }));
           await supabase.from('undercover_players').upsert(playerInserts, { onConflict: 'room_id,player_id' });
           
@@ -602,12 +606,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   };
 
   const sendVoteAction = async (targetId: string) => {
-    if (!roomId || !playerId) return;
+    if (!roomId || !playerId || !isAlive) return; // Only alive players can vote
     
     // Direct SQL Insert
-    // Optional: Check if already voted (client side check only for UX)
-    // await supabase.from('undercover_votes').delete().eq('room_id', roomId).eq('voter_id', playerId); // If we want to allow changing vote
-    
     await supabase.from('undercover_votes').insert({
         room_id: roomId,
         voter_id: playerId,
@@ -832,7 +833,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                 </div>
 
                 {/* SKIP VOTE BUTTON (Static below columns) */}
-                {currentPhase === 'clues' && (
+                {currentPhase === 'clues' && isAlive && (
                     <div className="flex justify-center w-full py-4">
                         <Button 
                             onClick={toggleSkipVote}

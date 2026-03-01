@@ -104,6 +104,11 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
   const [showRole, setShowRole] = useState(false); // For Eye button logic
   const [confirmingWinnerId, setConfirmingWinnerId] = useState<string | null>(null);
 
+  const isAlive = useMemo(() => {
+    // Check if player is alive in DB (if we add elimination)
+    // For now, everyone is alive until game end.
+    return true;
+  }, []);
   const isMaster = myRole === 'MASTER';
   
   // --- NOTIFICATIONS & TIMER ---
@@ -367,7 +372,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
   // --- VOTING ACTIONS ---
 
   const sendVote = async (targetId: string) => {
-      if (!roomId || !playerId || isMaster) return; // Master cannot vote
+      if (!roomId || !playerId || isMaster || !isAlive) return; // Master cannot vote, Dead cannot vote (if any dead logic)
       
       // Determine phase for vote tagging
       const votePhase = currentPhase === 'voting_finder' ? 'FINDER' : 'INFILTRE';
@@ -402,22 +407,32 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
       // Fetch fresh votes
       const { data: currentVotes } = await supabase.from('infiltre_votes').select('*').eq('room_id', roomId).eq('vote_phase', votePhase);
       
-      // Filter votes to ensure unique voters (in case of race conditions, take latest)
-      // Actually DB should handle uniqueness via RLS or constraint, but we don't have unique constraint on (room_id, voter_id, phase) yet?
-      // Let's assume frontend prevents it mostly, but let's be safe.
-      // Filter out duplicate voters if any.
-      
       const uniqueVoters = new Set(currentVotes?.map((v: any) => v.voter_id));
       
-      // All players except Master vote? Or Master votes too?
-      // Rules: "Majorité accuse..." usually implies everyone votes including Master.
-      // But user said "le grand maitre est toujours dans les votes ils doit pas etre affiché".
-      // This refers to TARGETS. Does Master VOTE?
-      // Usually Master is impartial referee.
-      // If Master doesn't vote, we check against `players.length - 1`.
-      // Let's assume Master does NOT vote.
       const votersCount = uniqueVoters.size;
       const expectedVoters = players.length - 1; // Master doesn't vote
+      
+      // If we are in the second vote, maybe fewer people?
+      // "si y'en a que 3 a voté si un mec meurt il doit plus pouvoir voté"
+      // In Infiltre, no one dies before the end.
+      // But if user wants "handle early end if only 2 players left" -> implies elimination?
+      // In Infiltre, usually you vote, if wrong -> game continues?
+      // No, rules say: "Si Infiltré non trouvé -> Infiltré gagne" OR "2ème vote".
+      // Our logic: Vote 1 (Finder) -> if fail -> Vote 2 (General).
+      // If Vote 2 fails -> Infiltré Wins.
+      // So no one dies in between.
+      // But maybe user refers to "Undercover" logic mixed with Infiltre?
+      // "le deuxieme vote sers a rien a l'infiltré si il reste que 2 joueur"
+      // Ah, if only 2 players (Master + Finder + Infiltre? No 2 players total?)
+      // Minimum 4 players.
+      // If 4 players: 1 Master, 1 Infiltre, 2 Citizens.
+      // Master doesn't vote.
+      // Voters: 3 (Infiltre + 2 Citizens).
+      // If Infiltre is Finder -> Vote 1 on Finder.
+      // Voters: 3.
+      // If Vote 1 fails -> Vote 2 on Everyone.
+      // Voters: 3.
+      // So always > 2 voters.
       
       if (votersCount >= expectedVoters) {
           processVotes(currentVotes || [], votePhase);
@@ -448,10 +463,6 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
           }
       });
       
-      // If we are in voting phase and timer is done, or if everyone voted.
-      // But this function is called either by "All Voted" or "Time Up".
-      // So we just process.
-
       const accusedRole = accusedId ? roles[accusedId] : null;
 
       if (votePhase === 'FINDER') {
@@ -462,16 +473,46 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
               await finishGame('CITIZENS');
           } else {
               // Not caught or Wrong person accused -> 2nd Vote
-              await supabase.from('infiltre_games').update({
-                  phase: 'voting_infiltre',
-                  timer_start_at: new Date().toISOString(),
-                  timer_duration_seconds: voteTime
-              }).eq('room_id', roomId);
+              // BUT if remaining players count is low (e.g. only 3 people playing), 2nd vote is same people?
+              // The user said: "le deuxieme vote sers a rien a l'infiltré si il reste que 2 joueur".
+              // Maybe if 3 players total (Master + 2).
+              // If Finder is NOT Infiltrator.
+              // Then the OTHER person IS Infiltrator (by elimination, if we trust Master).
+              // So if Vote 1 fails (Finder cleared), then automatically the other person is guilty?
+              // Logic:
+              // Players: Master, A, B.
+              // A finds word.
+              // Vote 1: Is A Infiltrator?
+              // If NO (or A is innocent): Then B MUST be Infiltrator.
+              // So Citizens win automatically? Or we vote to confirm?
+              // If we proceed to Vote 2: "Who is Infiltrator?".
+              // Options: A, B.
+              // We know A is innocent (or at least majority voted so).
+              // So everyone votes B.
+              // So if (Players - Master) <= 2, we can skip Vote 2?
+              // Let's implement this shortcut.
               
-              await updateRoundData({
-                  phase: 'voting_infiltre',
-                  notification: { id: Date.now().toString(), message: "Infiltré non trouvé ! Dernière chance : Vote Final.", type: 'error' }
-              });
+              const activeVoters = players.length - 1; // Exclude Master
+              if (activeVoters <= 2) {
+                   // If only 2 active players (Finder + 1 Other), and Finder is cleared.
+                   // Then the Other is Infiltrator.
+                   // Citizens Win (because we found him by elimination).
+                   // OR Infiltrator Wins if he wasn't found?
+                   // No, usually elimination means we know.
+                   // Let's say Citizens Win.
+                   await finishGame('CITIZENS');
+              } else {
+                  await supabase.from('infiltre_games').update({
+                      phase: 'voting_infiltre',
+                      timer_start_at: new Date().toISOString(),
+                      timer_duration_seconds: voteTime
+                  }).eq('room_id', roomId);
+                  
+                  await updateRoundData({
+                      phase: 'voting_infiltre',
+                      notification: { id: Date.now().toString(), message: "Infiltré non trouvé ! Dernière chance : Vote Final.", type: 'error' }
+                  });
+              }
           }
       } else {
           // Vote 2: General Vote
