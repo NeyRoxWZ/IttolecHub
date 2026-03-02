@@ -1,0 +1,996 @@
+[
+  {
+    "name": "Nike",
+    "slug": "nike",
+    "svg_url": "https://cdn.simpleicons.org/nike",
+    "sector": "sport",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Apple",
+    "slug": "apple",
+    "svg_url": "https://cdn.simpleicons.org/apple",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Netflix",
+    "slug": "netflix",
+    "svg_url": "https://cdn.simpleicons.org/netflix",
+    "sector": "entertainment",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Adidas",
+    "slug": "adidas",
+    "svg_url": "https://cdn.simpleicons.org/adidas",
+    "sector": "sport",
+    "difficulty": "easy"
+  },
+  {
+    "name": "McDonald's",
+    "slug": "mcdonalds",
+    "svg_url": "https://cdn.simpleicons.org/mcdonalds",
+    "sector": "food",
+    "difficulty": "easy"
+  },
+  {
+    "name": "IKEA",
+    "slug": "ikea",
+    "svg_url": "https://cdn.simpleicons.org/ikea",
+    "sector": "retail",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Zara",
+    "slug": "zara",
+    "svg_url": "https://cdn.simpleicons.org/zara",
+    "sector": "fashion",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Samsung",
+    "slug": "samsung",
+    "svg_url": "https://cdn.simpleicons.org/samsung",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Google",
+    "slug": "google",
+    "svg_url": "https://cdn.simpleicons.org/google",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Coca-Cola",
+    "slug": "cocacola",
+    "svg_url": "https://cdn.simpleicons.org/cocacola",
+    "sector": "food",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Amazon",
+    "slug": "amazon",
+    "svg_url": "https://cdn.simpleicons.org/amazon",
+    "sector": "retail",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Microsoft",
+    "slug": "microsoft",
+    "svg_url": "https://cdn.simpleicons.org/microsoft",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Spotify",
+    "slug": "spotify",
+    "svg_url": "https://cdn.simpleicons.org/spotify",
+    "sector": "entertainment",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Facebook",
+    "slug": "facebook",
+    "svg_url": "https://cdn.simpleicons.org/facebook",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Instagram",
+    "slug": "instagram",
+    "svg_url": "https://cdn.simpleicons.org/instagram",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "YouTube",
+    "slug": "youtube",
+    "svg_url": "https://cdn.simpleicons.org/youtube",
+    "sector": "entertainment",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Twitter",
+    "slug": "twitter",
+    "svg_url": "https://cdn.simpleicons.org/twitter",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "WhatsApp",
+    "slug": "whatsapp",
+    "svg_url": "https://cdn.simpleicons.org/whatsapp",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Pepsi",
+    "slug": "pepsi",
+    "svg_url": "https://cdn.simpleicons.org/pepsi",
+    "sector": "food",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Starbucks",
+    "slug": "starbucks",
+    "svg_url": "https://cdn.simpleicons.org/starbucks",
+    "sector": "food",
+    "difficulty": "easy"
+  },
+  {
+    "name": "BMW",
+    "slug": "bmw",
+    "svg_url": "https://cdn.simpleicons.org/bmw",
+    "sector": "auto",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Mercedes-Benz",
+    "slug": "mercedesbenz",
+    "svg_url": "https://cdn.simpleicons.org/mercedesbenz",
+    "sector": "auto",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Toyota",
+    "slug": "toyota",
+    "svg_url": "https://cdn.simpleicons.org/toyota",
+    "sector": "auto",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Tesla",
+    "slug": "tesla",
+    "svg_url": "https://cdn.simpleicons.org/tesla",
+    "sector": "auto",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Volkswagen",
+    "slug": "volkswagen",
+    "svg_url": "https://cdn.simpleicons.org/volkswagen",
+    "sector": "auto",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Audi",
+    "slug": "audi",
+    "svg_url": "https://cdn.simpleicons.org/audi",
+    "sector": "auto",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Honda",
+    "slug": "honda",
+    "svg_url": "https://cdn.simpleicons.org/honda",
+    "sector": "auto",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Ford",
+    "slug": "ford",
+    "svg_url": "https://cdn.simpleicons.org/ford",
+    "sector": "auto",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Puma",
+    "slug": "puma",
+    "svg_url": "https://cdn.simpleicons.org/puma",
+    "sector": "sport",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Reebok",
+    "slug": "reebok",
+    "svg_url": "https://cdn.simpleicons.org/reebok",
+    "sector": "sport",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Under Armour",
+    "slug": "underarmour",
+    "svg_url": "https://cdn.simpleicons.org/underarmour",
+    "sector": "sport",
+    "difficulty": "medium"
+  },
+  {
+    "name": "New Balance",
+    "slug": "newbalance",
+    "svg_url": "https://cdn.simpleicons.org/newbalance",
+    "sector": "sport",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Gucci",
+    "slug": "gucci",
+    "svg_url": "https://cdn.simpleicons.org/gucci",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Louis Vuitton",
+    "slug": "louisvuitton",
+    "svg_url": "https://cdn.simpleicons.org/louisvuitton",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "H&M",
+    "slug": "hm",
+    "svg_url": "https://cdn.simpleicons.org/hm",
+    "sector": "fashion",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Chanel",
+    "slug": "chanel",
+    "svg_url": "https://cdn.simpleicons.org/chanel",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Visa",
+    "slug": "visa",
+    "svg_url": "https://cdn.simpleicons.org/visa",
+    "sector": "finance",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Mastercard",
+    "slug": "mastercard",
+    "svg_url": "https://cdn.simpleicons.org/mastercard",
+    "sector": "finance",
+    "difficulty": "easy"
+  },
+  {
+    "name": "PayPal",
+    "slug": "paypal",
+    "svg_url": "https://cdn.simpleicons.org/paypal",
+    "sector": "finance",
+    "difficulty": "easy"
+  },
+  {
+    "name": "American Express",
+    "slug": "americanexpress",
+    "svg_url": "https://cdn.simpleicons.org/americanexpress",
+    "sector": "finance",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Disney",
+    "slug": "disney",
+    "svg_url": "https://cdn.simpleicons.org/disney",
+    "sector": "entertainment",
+    "difficulty": "easy"
+  },
+  {
+    "name": "PlayStation",
+    "slug": "playstation",
+    "svg_url": "https://cdn.simpleicons.org/playstation",
+    "sector": "gaming",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Xbox",
+    "slug": "xbox",
+    "svg_url": "https://cdn.simpleicons.org/xbox",
+    "sector": "gaming",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Nintendo",
+    "slug": "nintendo",
+    "svg_url": "https://cdn.simpleicons.org/nintendo",
+    "sector": "gaming",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Twitch",
+    "slug": "twitch",
+    "svg_url": "https://cdn.simpleicons.org/twitch",
+    "sector": "entertainment",
+    "difficulty": "easy"
+  },
+  {
+    "name": "TikTok",
+    "slug": "tiktok",
+    "svg_url": "https://cdn.simpleicons.org/tiktok",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Snapchat",
+    "slug": "snapchat",
+    "svg_url": "https://cdn.simpleicons.org/snapchat",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "LinkedIn",
+    "slug": "linkedin",
+    "svg_url": "https://cdn.simpleicons.org/linkedin",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Reddit",
+    "slug": "reddit",
+    "svg_url": "https://cdn.simpleicons.org/reddit",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Discord",
+    "slug": "discord",
+    "svg_url": "https://cdn.simpleicons.org/discord",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Telegram",
+    "slug": "telegram",
+    "svg_url": "https://cdn.simpleicons.org/telegram",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Slack",
+    "slug": "slack",
+    "svg_url": "https://cdn.simpleicons.org/slack",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Zoom",
+    "slug": "zoom",
+    "svg_url": "https://cdn.simpleicons.org/zoom",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Dropbox",
+    "slug": "dropbox",
+    "svg_url": "https://cdn.simpleicons.org/dropbox",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Adobe",
+    "slug": "adobe",
+    "svg_url": "https://cdn.simpleicons.org/adobe",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Intel",
+    "slug": "intel",
+    "svg_url": "https://cdn.simpleicons.org/intel",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "AMD",
+    "slug": "amd",
+    "svg_url": "https://cdn.simpleicons.org/amd",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Nvidia",
+    "slug": "nvidia",
+    "svg_url": "https://cdn.simpleicons.org/nvidia",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "HP",
+    "slug": "hp",
+    "svg_url": "https://cdn.simpleicons.org/hp",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Dell",
+    "slug": "dell",
+    "svg_url": "https://cdn.simpleicons.org/dell",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Lenovo",
+    "slug": "lenovo",
+    "svg_url": "https://cdn.simpleicons.org/lenovo",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Canon",
+    "slug": "canon",
+    "svg_url": "https://cdn.simpleicons.org/canon",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Nikon",
+    "slug": "nikon",
+    "svg_url": "https://cdn.simpleicons.org/nikon",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Sony",
+    "slug": "sony",
+    "svg_url": "https://cdn.simpleicons.org/sony",
+    "sector": "tech",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Panasonic",
+    "slug": "panasonic",
+    "svg_url": "https://cdn.simpleicons.org/panasonic",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "LG",
+    "slug": "lg",
+    "svg_url": "https://cdn.simpleicons.org/lg",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Philips",
+    "slug": "philips",
+    "svg_url": "https://cdn.simpleicons.org/philips",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Huawei",
+    "slug": "huawei",
+    "svg_url": "https://cdn.simpleicons.org/huawei",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Xiaomi",
+    "slug": "xiaomi",
+    "svg_url": "https://cdn.simpleicons.org/xiaomi",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "OnePlus",
+    "slug": "oneplus",
+    "svg_url": "https://cdn.simpleicons.org/oneplus",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Oppo",
+    "slug": "oppo",
+    "svg_url": "https://cdn.simpleicons.org/oppo",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Vivo",
+    "slug": "vivo",
+    "svg_url": "https://cdn.simpleicons.org/vivo",
+    "sector": "tech",
+    "difficulty": "hard"
+  },
+  {
+    "name": "Nokia",
+    "slug": "nokia",
+    "svg_url": "https://cdn.simpleicons.org/nokia",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Motorola",
+    "slug": "motorola",
+    "svg_url": "https://cdn.simpleicons.org/motorola",
+    "sector": "tech",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Burger King",
+    "slug": "burgerking",
+    "svg_url": "https://cdn.simpleicons.org/burgerking",
+    "sector": "food",
+    "difficulty": "easy"
+  },
+  {
+    "name": "KFC",
+    "slug": "kfc",
+    "svg_url": "https://cdn.simpleicons.org/kfc",
+    "sector": "food",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Subway",
+    "slug": "subway",
+    "svg_url": "https://cdn.simpleicons.org/subway",
+    "sector": "food",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Pizza Hut",
+    "slug": "pizzahut",
+    "svg_url": "https://cdn.simpleicons.org/pizzahut",
+    "sector": "food",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Domino's Pizza",
+    "slug": "dominos",
+    "svg_url": "https://cdn.simpleicons.org/dominos",
+    "sector": "food",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Dunkin'",
+    "slug": "dunkindonuts",
+    "svg_url": "https://cdn.simpleicons.org/dunkindonuts",
+    "sector": "food",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Nestlé",
+    "slug": "nestle",
+    "svg_url": "https://cdn.simpleicons.org/nestle",
+    "sector": "food",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Lay's",
+    "slug": "lays",
+    "svg_url": "https://cdn.simpleicons.org/lays",
+    "sector": "food",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Pringles",
+    "slug": "pringles",
+    "svg_url": "https://cdn.simpleicons.org/pringles",
+    "sector": "food",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Red Bull",
+    "slug": "redbull",
+    "svg_url": "https://cdn.simpleicons.org/redbull",
+    "sector": "food",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Heineken",
+    "slug": "heineken",
+    "svg_url": "https://cdn.simpleicons.org/heineken",
+    "sector": "food",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Corona",
+    "slug": "corona",
+    "svg_url": "https://cdn.simpleicons.org/corona",
+    "sector": "food",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Budweiser",
+    "slug": "budweiser",
+    "svg_url": "https://cdn.simpleicons.org/budweiser",
+    "sector": "food",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Carlsberg",
+    "slug": "carlsberg",
+    "svg_url": "https://cdn.simpleicons.org/carlsberg",
+    "sector": "food",
+    "difficulty": "hard"
+  },
+  {
+    "name": "Walmart",
+    "slug": "walmart",
+    "svg_url": "https://cdn.simpleicons.org/walmart",
+    "sector": "retail",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Target",
+    "slug": "target",
+    "svg_url": "https://cdn.simpleicons.org/target",
+    "sector": "retail",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Costco",
+    "slug": "costco",
+    "svg_url": "https://cdn.simpleicons.org/costco",
+    "sector": "retail",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Carrefour",
+    "slug": "carrefour",
+    "svg_url": "https://cdn.simpleicons.org/carrefour",
+    "sector": "retail",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Decathlon",
+    "slug": "decathlon",
+    "svg_url": "https://cdn.simpleicons.org/decathlon",
+    "sector": "sport",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Leroy Merlin",
+    "slug": "leroymerlin",
+    "svg_url": "https://cdn.simpleicons.org/leroymerlin",
+    "sector": "retail",
+    "difficulty": "medium"
+  },
+  {
+    "name": "eBay",
+    "slug": "ebay",
+    "svg_url": "https://cdn.simpleicons.org/ebay",
+    "sector": "retail",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Alibaba",
+    "slug": "alibaba",
+    "svg_url": "https://cdn.simpleicons.org/alibaba",
+    "sector": "retail",
+    "difficulty": "medium"
+  },
+  {
+    "name": "AliExpress",
+    "slug": "aliexpress",
+    "svg_url": "https://cdn.simpleicons.org/aliexpress",
+    "sector": "retail",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Etsy",
+    "slug": "etsy",
+    "svg_url": "https://cdn.simpleicons.org/etsy",
+    "sector": "retail",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Uber",
+    "slug": "uber",
+    "svg_url": "https://cdn.simpleicons.org/uber",
+    "sector": "transport",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Uber Eats",
+    "slug": "ubereats",
+    "svg_url": "https://cdn.simpleicons.org/ubereats",
+    "sector": "food",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Lyft",
+    "slug": "lyft",
+    "svg_url": "https://cdn.simpleicons.org/lyft",
+    "sector": "transport",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Airbnb",
+    "slug": "airbnb",
+    "svg_url": "https://cdn.simpleicons.org/airbnb",
+    "sector": "travel",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Booking.com",
+    "slug": "bookingdotcom",
+    "svg_url": "https://cdn.simpleicons.org/bookingdotcom",
+    "sector": "travel",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Expedia",
+    "slug": "expedia",
+    "svg_url": "https://cdn.simpleicons.org/expedia",
+    "sector": "travel",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Lufthansa",
+    "slug": "lufthansa",
+    "svg_url": "https://cdn.simpleicons.org/lufthansa",
+    "sector": "travel",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Air France",
+    "slug": "airfrance",
+    "svg_url": "https://cdn.simpleicons.org/airfrance",
+    "sector": "travel",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Emirates",
+    "slug": "emirates",
+    "svg_url": "https://cdn.simpleicons.org/emirates",
+    "sector": "travel",
+    "difficulty": "medium"
+  },
+  {
+    "name": "FedEx",
+    "slug": "fedex",
+    "svg_url": "https://cdn.simpleicons.org/fedex",
+    "sector": "logistics",
+    "difficulty": "easy"
+  },
+  {
+    "name": "DHL",
+    "slug": "dhl",
+    "svg_url": "https://cdn.simpleicons.org/dhl",
+    "sector": "logistics",
+    "difficulty": "easy"
+  },
+  {
+    "name": "UPS",
+    "slug": "ups",
+    "svg_url": "https://cdn.simpleicons.org/ups",
+    "sector": "logistics",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Hilton",
+    "slug": "hilton",
+    "svg_url": "https://cdn.simpleicons.org/hilton",
+    "sector": "travel",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Marriott",
+    "slug": "marriott",
+    "svg_url": "https://cdn.simpleicons.org/marriott",
+    "sector": "travel",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Rolex",
+    "slug": "rolex",
+    "svg_url": "https://cdn.simpleicons.org/rolex",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Ray-Ban",
+    "slug": "rayban",
+    "svg_url": "https://cdn.simpleicons.org/rayban",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Lacoste",
+    "slug": "lacoste",
+    "svg_url": "https://cdn.simpleicons.org/lacoste",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Ralph Lauren",
+    "slug": "ralphlauren",
+    "svg_url": "https://cdn.simpleicons.org/ralphlauren",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Tommy Hilfiger",
+    "slug": "tommyhilfiger",
+    "svg_url": "https://cdn.simpleicons.org/tommyhilfiger",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Calvin Klein",
+    "slug": "calvinklein",
+    "svg_url": "https://cdn.simpleicons.org/calvinklein",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Hugo Boss",
+    "slug": "hugoboss",
+    "svg_url": "https://cdn.simpleicons.org/hugoboss",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Versace",
+    "slug": "versace",
+    "svg_url": "https://cdn.simpleicons.org/versace",
+    "sector": "fashion",
+    "difficulty": "hard"
+  },
+  {
+    "name": "Prada",
+    "slug": "prada",
+    "svg_url": "https://cdn.simpleicons.org/prada",
+    "sector": "fashion",
+    "difficulty": "hard"
+  },
+  {
+    "name": "Balenciaga",
+    "slug": "balenciaga",
+    "svg_url": "https://cdn.simpleicons.org/balenciaga",
+    "sector": "fashion",
+    "difficulty": "hard"
+  },
+  {
+    "name": "Dior",
+    "slug": "dior",
+    "svg_url": "https://cdn.simpleicons.org/dior",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Armani",
+    "slug": "giorgioarmani",
+    "svg_url": "https://cdn.simpleicons.org/giorgioarmani",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Burberry",
+    "slug": "burberry",
+    "svg_url": "https://cdn.simpleicons.org/burberry",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Uniqlo",
+    "slug": "uniqlo",
+    "svg_url": "https://cdn.simpleicons.org/uniqlo",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Gap",
+    "slug": "gap",
+    "svg_url": "https://cdn.simpleicons.org/gap",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Levi's",
+    "slug": "levis",
+    "svg_url": "https://cdn.simpleicons.org/levis",
+    "sector": "fashion",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Converse",
+    "slug": "converse",
+    "svg_url": "https://cdn.simpleicons.org/converse",
+    "sector": "sport",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Vans",
+    "slug": "vans",
+    "svg_url": "https://cdn.simpleicons.org/vans",
+    "sector": "sport",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Fila",
+    "slug": "fila",
+    "svg_url": "https://cdn.simpleicons.org/fila",
+    "sector": "sport",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Asics",
+    "slug": "asics",
+    "svg_url": "https://cdn.simpleicons.org/asics",
+    "sector": "sport",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Skechers",
+    "slug": "skechers",
+    "svg_url": "https://cdn.simpleicons.org/skechers",
+    "sector": "sport",
+    "difficulty": "medium"
+  },
+  {
+    "name": "The North Face",
+    "slug": "thenorthface",
+    "svg_url": "https://cdn.simpleicons.org/thenorthface",
+    "sector": "sport",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Patagonia",
+    "slug": "patagonia",
+    "svg_url": "https://cdn.simpleicons.org/patagonia",
+    "sector": "sport",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Columbia",
+    "slug": "columbia",
+    "svg_url": "https://cdn.simpleicons.org/columbia",
+    "sector": "sport",
+    "difficulty": "medium"
+  },
+  {
+    "name": "HBO",
+    "slug": "hbo",
+    "svg_url": "https://cdn.simpleicons.org/hbo",
+    "sector": "entertainment",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Hulu",
+    "slug": "hulu",
+    "svg_url": "https://cdn.simpleicons.org/hulu",
+    "sector": "entertainment",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Prime Video",
+    "slug": "primevideo",
+    "svg_url": "https://cdn.simpleicons.org/primevideo",
+    "sector": "entertainment",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Disney+",
+    "slug": "disneyplus",
+    "svg_url": "https://cdn.simpleicons.org/disneyplus",
+    "sector": "entertainment",
+    "difficulty": "easy"
+  },
+  {
+    "name": "Apple TV",
+    "slug": "appletv",
+    "svg_url": "https://cdn.simpleicons.org/appletv",
+    "sector": "entertainment",
+    "difficulty": "medium"
+  },
+  {
+    "name": "Paramount",
+    "slug": "paramount",
+    "svg_url": "https://cdn.simpleicons.org/paramount",
+    "sector": "entertainment",
+    "difficulty": "medium"
+  }
+]

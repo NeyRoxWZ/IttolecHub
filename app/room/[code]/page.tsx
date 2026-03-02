@@ -351,6 +351,9 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                if (!existingPlayer.is_host) {
                    await supabase.from('players').update({ is_host: true }).eq('id', existingPlayer.id);
                }
+           } else if (existingPlayer.is_host) {
+               // Fallback: Player marked as host in players table but maybe not synced to room table
+               isCurrentHost = true;
            }
         }
 
