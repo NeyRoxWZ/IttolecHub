@@ -6,8 +6,9 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap } from 'lucide-react';
+import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap, Shield, EyeOff, Settings, Play, LogOut, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 
 interface Player {
   id: string;
@@ -25,69 +26,13 @@ interface GameSetting {
   options?: { value: string; label: string }[];
 }
 
-const gamesList: { id: string; name: string; description: string; icon: typeof Gamepad2; settings: GameSetting[] }[] = [
-  {
-    id: 'drawguessr',
-    name: 'DrawGuessr',
-    description: 'Dessine et devine en temps réel.',
-    icon: PenTool,
-    settings: [
-      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
-      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 90 },
-      { 
-        id: 'difficulty', 
-        label: 'Difficulté', 
-        type: 'select', 
-        default: 'mix',
-        options: [
-          { value: 'mix', label: 'Mix' },
-          { value: 'easy', label: 'Facile' },
-          { value: 'medium', label: 'Moyen' },
-          { value: 'hard', label: 'Difficile' },
-        ]
-      },
-    ],
-  },
-  {
-    id: 'budgetguessr',
-    name: 'BudgetGuessr',
-    description: 'Devine le budget de production.',
-    icon: DollarSign,
-    settings: [
-      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
-      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
-      { 
-        id: 'decade', 
-        label: 'Décennie', 
-        type: 'select', 
-        default: 'all',
-        options: [
-          { value: 'all', label: 'Toutes' },
-          { value: '2020s', label: '2020s' },
-          { value: '2010s', label: '2010s' },
-          { value: '2000s', label: '2000s' },
-          { value: '90s', label: '90s' },
-          { value: '80s', label: '80s' },
-        ]
-      },
-      { 
-        id: 'difficulty', 
-        label: 'Difficulté', 
-        type: 'select', 
-        default: 'normal',
-        options: [
-          { value: 'easy', label: 'Très connus (Facile)' },
-          { value: 'normal', label: 'Connus (Normal)' },
-          { value: 'hard', label: 'Tous (Difficile)' },
-        ]
-      },
-    ],
-  },
+const gamesList: { id: string; name: string; description: string; icon: any; color: string; settings: GameSetting[] }[] = [
   {
     id: 'wikiguessr',
     name: 'WikiGuessr',
-    description: 'Devinez l\'article Wikipédia caché.',
+    description: 'Devine l\'article Wikipédia caché.',
     icon: Globe,
+    color: 'from-gray-500 to-slate-600',
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 60 },
@@ -108,9 +53,10 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
   },
   {
     id: 'pokeguessr',
-    name: 'PokeGuessr',
+    name: 'PokéGuessr',
     description: 'Devinez le Pokémon à partir de son ombre.',
     icon: Zap,
+    color: 'from-red-500 to-orange-500',
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
@@ -148,7 +94,8 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
     id: 'flagguessr',
     name: 'FlagGuessr',
     description: 'Identifiez le pays au drapeau.',
-    icon: Gamepad2,
+    icon: Gamepad2, // Flag icon imported but using generic fallback if needed, ideally Flag
+    color: 'from-green-500 to-emerald-500',
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 10 },
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 15 },
@@ -171,8 +118,9 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
   {
     id: 'infiltre',
     name: "L'Infiltré",
-    description: "Déduction sociale avec Maître du jeu, Infiltré et Citoyens.",
-    icon: Gamepad2,
+    description: "Déduction sociale avec Maître du jeu.",
+    icon: Shield,
+    color: 'from-slate-500 to-slate-700',
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 3 },
       { id: 'guessTime', label: 'Temps pour deviner (minutes)', type: 'number', default: 5 },
@@ -198,11 +146,12 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
   {
     id: 'undercover',
     name: 'Undercover',
-    description: 'Civils, Undercover et Mr. White avec mots proches.',
-    icon: Gamepad2,
+    description: 'Trouvez l\'intrus parmi les civils.',
+    icon: EyeOff,
+    color: 'from-indigo-500 to-blue-600',
     settings: [
         { id: 'rounds', label: 'Manches', type: 'number', default: 1 },
-        { id: 'undercoverCount', label: "Nombre d'Undercovers", type: 'number', default: 1 }, // New Setting
+        { id: 'undercoverCount', label: "Nombre d'Undercovers", type: 'number', default: 1 },
         { 
             id: 'mrWhiteEnabled', 
             label: 'Activer Mr. White', 
@@ -225,6 +174,65 @@ const gamesList: { id: string; name: string; description: string; icon: typeof G
         },
         { id: 'clueRounds', label: 'Tours de parole avant vote', type: 'number', default: 3 },
         { id: 'voteTime', label: 'Temps de vote (s)', type: 'number', default: 30 },
+    ],
+  },
+  {
+    id: 'drawguessr',
+    name: 'DrawGuessr',
+    description: 'Dessine et devine en temps réel.',
+    icon: PenTool,
+    color: 'from-pink-500 to-rose-600',
+    settings: [
+      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
+      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 90 },
+      { 
+        id: 'difficulty', 
+        label: 'Difficulté', 
+        type: 'select', 
+        default: 'mix',
+        options: [
+          { value: 'mix', label: 'Mix' },
+          { value: 'easy', label: 'Facile' },
+          { value: 'medium', label: 'Moyen' },
+          { value: 'hard', label: 'Difficile' },
+        ]
+      },
+    ],
+  },
+  {
+    id: 'budgetguessr',
+    name: 'BudgetGuessr',
+    description: 'Devine le budget de production.',
+    icon: DollarSign,
+    color: 'from-green-600 to-emerald-700',
+    settings: [
+      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
+      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
+      { 
+        id: 'decade', 
+        label: 'Décennie', 
+        type: 'select', 
+        default: 'all',
+        options: [
+          { value: 'all', label: 'Toutes' },
+          { value: '2020s', label: '2020s' },
+          { value: '2010s', label: '2010s' },
+          { value: '2000s', label: '2000s' },
+          { value: '90s', label: '90s' },
+          { value: '80s', label: '80s' },
+        ]
+      },
+      { 
+        id: 'difficulty', 
+        label: 'Difficulté', 
+        type: 'select', 
+        default: 'normal',
+        options: [
+          { value: 'easy', label: 'Très connus (Facile)' },
+          { value: 'normal', label: 'Connus (Normal)' },
+          { value: 'hard', label: 'Tous (Difficile)' },
+        ]
+      },
     ],
   },
 ];
@@ -647,235 +655,311 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 p-4 sm:p-6 game-layout">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 sm:mb-8">
-          <Button onClick={leaveRoom} variant="outline" className="rounded-xl">
-            ← Quitter
-          </Button>
-          {/* Code display removed as requested */}
-        </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 font-sans selection:bg-indigo-500/30">
+      
+      {/* Background Gradients */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px] animate-pulse-slow" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Configuration / Game Info - Left Column for Players as requested */}
-          <div className="lg:col-span-2 order-2 lg:order-1">
-            <Card className="p-4 sm:p-6 rounded-2xl h-full">
-              <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                <Gamepad2 className="h-5 w-5" />
-                {isHost ? 'Configuration de la partie' : 'Informations de la partie'}
-              </h2>
-              
-              <div className="space-y-6">
-                {/* Game Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Jeu sélectionné
-                  </label>
-                  {isHost ? (
-                    <Select 
-                        onValueChange={setSelectedGameId} 
-                        value={selectedGameId}
-                    >
-                        <SelectTrigger className="w-full rounded-xl text-slate-800 dark:text-slate-100 h-12">
-                        <SelectValue placeholder="Sélectionner un jeu..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="__placeholder__">Sélectionner un jeu...</SelectItem>
-                        {gamesList.map((game) => (
-                            <SelectItem key={game.id} value={game.id}>{game.name}</SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex items-center gap-3 p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+      <div className="relative z-10 max-w-7xl mx-auto">
+        
+        {/* Header */}
+        <header className="flex items-center justify-between mb-8 sm:mb-12">
+            <div className="flex items-center gap-3">
+                <Button 
+                    onClick={leaveRoom} 
+                    variant="ghost" 
+                    className="rounded-full h-10 w-10 p-0 hover:bg-white/10 text-slate-400 hover:text-white"
+                >
+                    <LogOut className="h-5 w-5" />
+                </Button>
+                <div className="flex flex-col">
+                    <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
+                        Salon de jeu
+                    </h1>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        En ligne
+                    </div>
+                </div>
+            </div>
+
+            <div 
+                className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full cursor-pointer hover:bg-white/10 transition-colors group"
+                onClick={copyRoomCode}
+            >
+                <span className="text-xs text-slate-400 uppercase tracking-widest font-bold">Code</span>
+                <span className="font-mono text-lg font-bold tracking-widest text-white group-hover:text-indigo-300 transition-colors">
+                    {params.code}
+                </span>
+                {copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-slate-500 group-hover:text-white" />}
+            </div>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+          
+          {/* LEFT: Game Configuration (Host) or Info (Client) */}
+          <div className="lg:col-span-8 space-y-6">
+            
+            {/* Game Selection Card */}
+            <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 rounded-xl bg-indigo-500/20 text-indigo-400">
+                        <Gamepad2 className="h-6 w-6" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white">Choix du jeu</h2>
+                </div>
+
+                {isHost ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {gamesList.map((game) => {
+                            const isSelected = selectedGameId === game.id;
+                            const Icon = game.icon;
+                            
+                            return (
+                                <div 
+                                    key={game.id}
+                                    onClick={() => setSelectedGameId(game.id)}
+                                    className={`cursor-pointer relative overflow-hidden rounded-2xl border-2 transition-all duration-300 hover:scale-[1.02] ${
+                                        isSelected 
+                                        ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/20' 
+                                        : 'border-white/5 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                                    }`}
+                                >
+                                    <div className="p-4 flex items-center gap-4">
+                                        <div className={`p-3 rounded-xl bg-gradient-to-br ${game.color} shadow-lg`}>
+                                            <Icon className="h-6 w-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-white">{game.name}</h3>
+                                            <p className="text-xs text-slate-400 line-clamp-1">{game.description}</p>
+                                        </div>
+                                        {isSelected && (
+                                            <div className="absolute top-2 right-2">
+                                                <div className="w-3 h-3 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="bg-white/5 rounded-2xl p-8 text-center border border-white/10">
                         {selectedGame ? (
-                            <>
-                                <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                                    <selectedGame.icon className="h-6 w-6" />
+                            <div className="flex flex-col items-center gap-4 animate-in zoom-in duration-300">
+                                <div className={`p-6 rounded-3xl bg-gradient-to-br ${selectedGame.color} shadow-2xl`}>
+                                    <selectedGame.icon className="h-12 w-12 text-white" />
                                 </div>
                                 <div>
-                                    <div className="font-bold text-lg">{selectedGame.name}</div>
-                                    <div className="text-xs text-slate-500">{selectedGame.description}</div>
+                                    <h3 className="text-3xl font-bold text-white mb-2">{selectedGame.name}</h3>
+                                    <p className="text-slate-400 max-w-md mx-auto">{selectedGame.description}</p>
                                 </div>
-                            </>
+                            </div>
                         ) : (
-                            <span className="text-slate-500 italic">En attente de sélection...</span>
+                            <div className="flex flex-col items-center gap-4 text-slate-500 py-8">
+                                <div className="animate-spin-slow">
+                                    <Settings className="h-12 w-12 opacity-20" />
+                                </div>
+                                <p>L'hôte choisit un jeu...</p>
+                            </div>
                         )}
                     </div>
-                  )}
-                </div>
+                )}
+            </div>
 
-                {/* Game Settings */}
-                {selectedGame && (
-                  <div className="p-5 rounded-2xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 transition-all duration-300">
-                    {isHost && (
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
-                            {selectedGame.description}
-                        </p>
-                    )}
-                    
-                    <h3 className="font-semibold mb-4 text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                        <span>Paramètres</span>
-                        {!isHost && <span className="text-xs font-normal text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full">Synchronisé</span>}
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {selectedGame.settings.map((setting) => (
-                        <div key={setting.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-                          <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">
-                            {setting.label}
-                          </label>
-                          
-                          {isHost ? (
-                            <>
-                                {setting.type === 'number' && (
-                                    <Input
-                                    type="number"
-                                    value={String(gameSettings[setting.id] ?? setting.default)}
-                                    onChange={(e) => handleSettingChange(setting.id, e.target.value === '' ? setting.default : Number(e.target.value))}
-                                    className="rounded-lg h-9"
-                                    />
-                                )}
-                                {setting.type === 'text' && (
-                                    <Input
-                                    type="text"
-                                    value={String(gameSettings[setting.id] ?? setting.default)}
-                                    onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-                                    className="rounded-lg h-9"
-                                    placeholder={setting.label}
-                                    />
-                                )}
-                                {setting.type === 'select' && setting.options && (
-                                    <Select
-                                    value={String(gameSettings[setting.id] ?? setting.default)}
-                                    onValueChange={(v) => handleSettingChange(setting.id, v)}
-                                    >
-                                    <SelectTrigger className="rounded-lg h-9">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {setting.options.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                    </Select>
-                                )}
-                                {setting.type === 'multiselect' && setting.options && (
-                                    <div className="flex flex-wrap gap-2">
-                                        {setting.options.map((opt) => {
-                                            const currentVal = gameSettings[setting.id];
-                                            const current = Array.isArray(currentVal) ? currentVal : (setting.default as any[]);
-                                            const isSelected = Array.isArray(current) && current.includes(Number(opt.value));
-                                            
-                                            return (
-                                                <button
-                                                    key={opt.value}
-                                                    onClick={() => {
-                                                        const val = Number(opt.value);
-                                                        let newVal;
-                                                        if (isSelected) {
-                                                            newVal = current.filter((x: any) => x !== val);
-                                                            if (newVal.length === 0) newVal = [1]; // Prevent empty
-                                                        } else {
-                                                            newVal = [...current, val];
-                                                        }
-                                                        handleSettingChange(setting.id, newVal);
-                                                    }}
-                                                    className={`px-2 py-1 text-xs rounded border transition-colors ${
-                                                        isSelected 
-                                                        ? 'bg-blue-500 text-white border-blue-500' 
-                                                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
-                                                    }`}
-                                                >
-                                                    {opt.label}
-                                                </button>
-                                            );
-                                        })}
+            {/* Settings Card */}
+            {selectedGame && (
+                <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 rounded-xl bg-pink-500/20 text-pink-400">
+                                <Settings className="h-6 w-6" />
+                            </div>
+                            <h2 className="text-xl font-bold text-white">Paramètres</h2>
+                        </div>
+                        {!isHost && (
+                            <span className="text-xs font-medium px-3 py-1 rounded-full bg-white/10 text-slate-400 border border-white/5">
+                                Synchronisé avec l'hôte
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {selectedGame.settings.map((setting) => (
+                            <div key={setting.id} className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                                    {setting.label}
+                                </label>
+                                
+                                {isHost ? (
+                                    <div className="relative">
+                                        {setting.type === 'number' && (
+                                            <Input
+                                                type="number"
+                                                value={String(gameSettings[setting.id] ?? setting.default)}
+                                                onChange={(e) => handleSettingChange(setting.id, e.target.value === '' ? setting.default : Number(e.target.value))}
+                                                className="bg-slate-950 border-white/10 text-white rounded-xl h-12 focus:ring-indigo-500 focus:border-indigo-500"
+                                            />
+                                        )}
+                                        {setting.type === 'text' && (
+                                            <Input
+                                                type="text"
+                                                value={String(gameSettings[setting.id] ?? setting.default)}
+                                                onChange={(e) => handleSettingChange(setting.id, e.target.value)}
+                                                className="bg-slate-950 border-white/10 text-white rounded-xl h-12"
+                                            />
+                                        )}
+                                        {setting.type === 'select' && setting.options && (
+                                            <Select
+                                                value={String(gameSettings[setting.id] ?? setting.default)}
+                                                onValueChange={(v) => handleSettingChange(setting.id, v)}
+                                            >
+                                                <SelectTrigger className="bg-slate-950 border-white/10 text-white rounded-xl h-12">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                                    {setting.options.map((opt) => (
+                                                        <SelectItem key={opt.value} value={opt.value} className="focus:bg-white/10 cursor-pointer">
+                                                            {opt.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                        {setting.type === 'multiselect' && setting.options && (
+                                            <div className="flex flex-wrap gap-2 bg-slate-950 p-2 rounded-xl border border-white/10 min-h-[48px]">
+                                                {setting.options.map((opt) => {
+                                                    const currentVal = gameSettings[setting.id];
+                                                    const current = Array.isArray(currentVal) ? currentVal : (setting.default as any[]);
+                                                    const isSelected = Array.isArray(current) && current.includes(Number(opt.value));
+                                                    
+                                                    return (
+                                                        <button
+                                                            key={opt.value}
+                                                            onClick={() => {
+                                                                const val = Number(opt.value);
+                                                                let newVal;
+                                                                if (isSelected) {
+                                                                    newVal = current.filter((x: any) => x !== val);
+                                                                    if (newVal.length === 0) newVal = [1];
+                                                                } else {
+                                                                    newVal = [...current, val];
+                                                                }
+                                                                handleSettingChange(setting.id, newVal);
+                                                            }}
+                                                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                                                                isSelected 
+                                                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
+                                                                : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                                                            }`}
+                                                        >
+                                                            {opt.label}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="h-12 flex items-center px-4 bg-white/5 border border-white/5 rounded-xl text-white font-medium">
+                                        {setting.type === 'select' && setting.options 
+                                            ? setting.options.find(o => o.value === String(gameSettings[setting.id] ?? setting.default))?.label 
+                                            : setting.type === 'multiselect'
+                                                ? (Array.isArray(gameSettings[setting.id]) ? (gameSettings[setting.id] as unknown as any[]).join(', ') : String(setting.default))
+                                                : (gameSettings[setting.id] ?? setting.default)
+                                        }
                                     </div>
                                 )}
-                            </>
-                          ) : (
-                            <div className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-                                {setting.type === 'select' && setting.options 
-                                    ? setting.options.find(o => o.value === String(gameSettings[setting.id] ?? setting.default))?.label 
-                                    : setting.type === 'multiselect'
-                                        ? (Array.isArray(gameSettings[setting.id]) ? (gameSettings[setting.id] as unknown as any[]).join(', ') : String(setting.default))
-                                        : (gameSettings[setting.id] ?? setting.default)
-                                }
                             </div>
-                          )}
-                        </div>
-                      ))}
+                        ))}
                     </div>
-                  </div>
-                )}
 
-                <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
-                    {isHost ? (
-                    <Button
-                        onClick={startGame}
-                        disabled={!selectedGameId || selectedGameId === '__placeholder__'}
-                        className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-12 text-lg font-bold shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02]"
-                    >
-                        Lancer la partie
-                    </Button>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center p-4 text-center space-y-2 animate-pulse">
-                             <div className="text-indigo-500 font-medium">En attente de {getHostName()}...</div>
-                             <div className="text-sm text-slate-500">La partie va bientôt commencer !</div>
+                    {isHost && (
+                        <div className="mt-8 pt-6 border-t border-white/10">
+                            <Button
+                                onClick={startGame}
+                                className="w-full h-14 text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl shadow-xl shadow-indigo-500/20 transition-all hover:scale-[1.02] hover:shadow-indigo-500/30"
+                            >
+                                <Play className="w-5 h-5 mr-2 fill-current" /> Lancer la partie
+                            </Button>
                         </div>
                     )}
                 </div>
-              </div>
-            </Card>
+            )}
           </div>
 
-          {/* Player List - Right Column */}
-          <div className="lg:col-span-1 order-1 lg:order-2">
-            <Card className="p-4 sm:p-6 rounded-2xl h-full border-slate-200 dark:border-slate-800">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                <Users className="h-5 w-5" />
-                Joueurs ({players.length})
-              </h2>
-              <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto pr-2 custom-scrollbar">
-                {players.map((player) => (
-                  <div key={player.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-transform hover:scale-[1.02]">
-                    <div className="flex items-center gap-3 overflow-hidden">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            player.isHost 
-                            ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' 
-                            : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-                        }`}>
-                            {player.name.charAt(0).toUpperCase()}
+          {/* RIGHT: Players List */}
+          <div className="lg:col-span-4 h-full">
+            <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 h-full min-h-[400px] flex flex-col shadow-2xl">
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-3 rounded-xl bg-green-500/20 text-green-400">
+                            <Users className="h-6 w-6" />
                         </div>
-                        <div className="flex flex-col truncate">
-                            <span className="font-medium text-slate-800 dark:text-slate-100 truncate">
-                                {player.name}
-                            </span>
-                            {player.isHost && (
-                                <span className="text-[10px] uppercase tracking-wider text-blue-500 font-bold">Host</span>
-                            )}
-                        </div>
+                        <h2 className="text-xl font-bold text-white">Joueurs</h2>
                     </div>
-                    {/* Score (optional in lobby) */}
-                    {/* <span className="text-sm text-slate-600 dark:text-slate-400">{player.score} pts</span> */}
-                  </div>
-                ))}
-              </div>
-              
-              {/* Share invite link */}
-              <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
-                  <p className="text-xs text-center text-slate-500 mb-2">Invite tes amis avec ce code</p>
-                  <div 
-                    className="bg-slate-100 dark:bg-slate-900 p-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors group"
-                    onClick={copyRoomCode}
-                  >
-                      <span className="font-mono text-xl font-bold tracking-widest">{params.code}</span>
-                      <Copy className="h-4 w-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300" />
-                  </div>
-              </div>
-            </Card>
+                    <span className="bg-white/10 px-3 py-1 rounded-full text-sm font-bold text-white">
+                        {players.length}
+                    </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                    {players.map((player) => (
+                        <div 
+                            key={player.id} 
+                            className="group flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all hover:translate-x-1"
+                        >
+                            <div className="flex items-center gap-3 overflow-hidden">
+                                <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-black shadow-lg ${
+                                    player.isHost 
+                                    ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' 
+                                    : 'bg-slate-800 text-slate-400 group-hover:text-white'
+                                }`}>
+                                    {player.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="flex flex-col truncate">
+                                    <span className={`font-bold truncate ${player.isHost ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                                        {player.name}
+                                    </span>
+                                    {player.isHost && (
+                                        <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400">
+                                            Hôte
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            {/* Status Indicator (Optional) */}
+                            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                        </div>
+                    ))}
+                    
+                    {/* Empty slots placeholders to fill space visually */}
+                    {Array.from({ length: Math.max(0, 4 - players.length) }).map((_, i) => (
+                        <div key={`empty-${i}`} className="border-2 border-dashed border-white/5 rounded-xl p-3 flex items-center justify-center text-slate-600 text-sm h-[66px]">
+                            En attente...
+                        </div>
+                    ))}
+                </div>
+
+                {!isHost && (
+                    <div className="mt-6 pt-6 border-t border-white/10 text-center space-y-3">
+                        <div className="inline-block p-3 rounded-full bg-indigo-500/10 mb-2">
+                            <div className="animate-spin-slow">
+                                <Settings className="h-6 w-6 text-indigo-400" />
+                            </div>
+                        </div>
+                        <p className="text-sm text-slate-400">
+                            En attente du lancement par <span className="text-white font-bold">{getHostName()}</span>
+                        </p>
+                    </div>
+                )}
+            </div>
           </div>
+
         </div>
       </div>
     </div>
