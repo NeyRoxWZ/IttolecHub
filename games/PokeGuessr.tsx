@@ -343,6 +343,18 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
       }
   };
 
+  const returnToLobby = async () => {
+      if (!isHost || !roomId) return;
+      
+      // Cleanup
+      await supabase.from('poke_games').delete().eq('room_id', roomId);
+      await supabase.from('poke_players').delete().eq('room_id', roomId);
+      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      
+      if (broadcast) await broadcast('return_to_lobby', {});
+      router.push(`/room/${roomCode}`);
+  };
+
   // --- RENDER HELPERS ---
   const getImageStyle = () => {
       if (currentPhase === 'playing') {
@@ -532,10 +544,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                 </div>
                 
                 {isHost && (
-                    <Button onClick={() => {
-                        broadcast('return_to_lobby', {});
-                        router.push(`/room/${roomCode}`);
-                    }} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
+                    <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
                         Retour au salon
                     </Button>
                 )}

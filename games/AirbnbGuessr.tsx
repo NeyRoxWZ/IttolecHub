@@ -277,6 +277,18 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
       toast.success("Estimation envoyée !");
   };
 
+  const returnToLobby = async () => {
+      if (!isHost || !roomId) return;
+      
+      // Cleanup
+      await supabase.from('airbnb_games').delete().eq('room_id', roomId);
+      await supabase.from('airbnb_players').delete().eq('room_id', roomId);
+      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      
+      if (broadcast) await broadcast('return_to_lobby', {});
+      router.push(`/room/${roomCode}`);
+  };
+
   // --- RENDER ---
   
   return (
@@ -514,10 +526,7 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
                   </div>
                   
                   {isHost && (
-                      <Button onClick={() => {
-                          broadcast('return_to_lobby', {});
-                          router.push(`/room/${roomCode}`);
-                      }} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
+                      <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
                           Retour au salon
                       </Button>
                   )}
