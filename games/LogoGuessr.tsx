@@ -312,10 +312,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           {currentPhase === 'setup' && (
               <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500">
                   <div className="relative">
-                      <div className="absolute -inset-1 bg-orange-400 rounded-full blur opacity-25 animate-pulse"></div>
-                      <div className="relative p-8 bg-slate-900 rounded-full border-4 border-orange-500 shadow-2xl">
-                          <ImageIcon className="w-16 h-16 text-orange-400" />
-                      </div>
+                      <ImageIcon className="w-24 h-24 text-orange-400" />
                   </div>
                   
                   <div className="text-center space-y-4 max-w-lg">
