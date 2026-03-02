@@ -345,10 +345,24 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
 
   // --- RENDER HELPERS ---
   const getImageStyle = () => {
-      if (currentPhase === 'playing' && difficulty !== 'easy') {
-          // Silhouette for normal/hard
-          return { filter: 'brightness(0) grayscale(100%)', opacity: 1 };
+      if (currentPhase === 'playing') {
+          if (difficulty === 'easy') {
+              // Facile: Flou (Blur)
+              return { filter: 'blur(15px)', opacity: 1 };
+          } else if (difficulty === 'hard') {
+              // Difficile: Renversé (Upside Down)
+              // User doubted it was reversed, so let's make sure it is.
+              // Assuming Hard is just Reversed Image (visible but upside down) to differentiate from Silhouette?
+              // Or Upside Down Silhouette?
+              // Prompt said: "Difficulté (Silhouette / Image nette)". 
+              // Settings said: "Hard (Renversé)".
+              // Let's do Upside Down Silhouette for max difficulty.
+              return { filter: 'brightness(0)', transform: 'rotate(180deg)', opacity: 1 };
+          }
+          // Normal (default): Silhouette
+          return { filter: 'brightness(0)', opacity: 1 };
       }
+      // Results: Reveal
       return { filter: 'none', opacity: 1 };
   };
 
@@ -371,24 +385,36 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
     >
         {/* SETUP */}
         {currentPhase === 'setup' && (
-            <div className="flex flex-col items-center justify-center space-y-6 animate-in fade-in zoom-in duration-500">
-                <div className="p-6 bg-gradient-to-br from-yellow-400 to-blue-500 rounded-full shadow-2xl animate-bounce">
-                   <Zap className="w-16 h-16 text-white" />
+            <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500">
+                <div className="relative">
+                    <div className="absolute -inset-1 bg-yellow-400 rounded-full blur opacity-25 animate-pulse"></div>
+                    <div className="relative p-8 bg-slate-900 rounded-full border-4 border-yellow-500 shadow-2xl">
+                        <Zap className="w-16 h-16 text-yellow-400" />
+                    </div>
                 </div>
-                <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Quel est ce Pokémon ?</h2>
-                <p className="text-slate-500 dark:text-slate-400 max-w-md text-center">
-                    Devinez le nom du Pokémon à partir de sa silhouette ou de son image !
-                </p>
                 
+                <div className="text-center space-y-4 max-w-lg">
+                    <h2 className="text-4xl font-black text-white uppercase tracking-wider drop-shadow-lg">
+                        Quel est ce <span className="text-yellow-400">Pokémon</span> ?
+                    </h2>
+                    <p className="text-slate-400 text-lg">
+                        Devinez le nom du Pokémon à partir de sa silhouette ou de son image !
+                    </p>
+                </div>
+
                 {isHost ? (
-                    <Button onClick={startNewGame} size="lg" className="w-full max-w-sm text-lg h-14 rounded-xl shadow-xl bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
+                    <Button 
+                        onClick={startNewGame} 
+                        size="lg" 
+                        className="w-full max-w-xs h-16 text-xl bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(234,179,8,0.3)] transition-all hover:scale-105"
+                    >
                         Lancer la partie
                     </Button>
                 ) : (
-                    <div className="flex items-center gap-2 text-yellow-500 animate-pulse">
-                        <Clock className="w-5 h-5" />
-                        <span>En attente du dresseur...</span>
-                    </div>
+                   <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                       <Loader2 className="w-5 h-5 animate-spin text-yellow-400" />
+                       <span className="text-slate-300 font-medium">En attente du dresseur...</span>
+                   </div>
                 )}
             </div>
         )}
@@ -398,7 +424,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
             <div className="flex flex-col items-center justify-center w-full h-full gap-8">
                 
                 {/* POKEMON IMAGE */}
-                <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center drop-shadow-[0_0_25px_rgba(255,203,5,0.4)] transition-all duration-700">
+                <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center transition-all duration-700">
                     {/* Using standard img tag to avoid Next.js domain config issues */}
                     <img 
                        src={currentPokemon.imageUrl} 
@@ -464,13 +490,13 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                                 }`}>
                                     <div className="flex items-center gap-3">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                                            p.is_correct ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                                            p.is_correct ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                                         }`}>
                                             {playerInfo?.name.charAt(0)}
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-slate-800 dark:text-slate-100">{playerInfo?.name}</span>
-                                            <span className="text-xs text-slate-500">{p.last_guess || '-'}</span>
+                                            <span className="font-bold text-slate-100">{playerInfo?.name}</span>
+                                            <span className="text-xs text-slate-400">{p.last_guess || '-'}</span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -486,54 +512,33 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
 
         {/* PODIUM */}
         {currentPhase === 'podium' && (
-            <div className="flex flex-col items-center justify-center h-full space-y-8 w-full">
-                <div className="flex items-end justify-center gap-4 h-64">
-                    {/* 2nd Place */}
-                    {players.sort((a, b) => b.score - a.score)[1] && (
-                        <div className="flex flex-col items-center animate-in slide-in-from-bottom duration-700 delay-200">
-                            <div className="w-20 h-20 rounded-full bg-slate-300 border-4 border-white shadow-xl flex items-center justify-center text-2xl font-bold text-slate-600 mb-4 relative">
-                                {players.sort((a, b) => b.score - a.score)[1].name.charAt(0)}
-                                <div className="absolute -bottom-3 bg-slate-500 text-white text-xs px-2 py-1 rounded-full">2ème</div>
+            <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
+                <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
+                <h2 className="text-4xl font-black text-white mb-8">Classement Final</h2>
+                
+                <div className="w-full space-y-2 mb-8">
+                    {players.sort((a, b) => b.score - a.score).map((p, i) => (
+                        <div key={p.id} className={`flex items-center justify-between p-4 rounded-xl ${
+                            i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-transparent border border-yellow-500/50' : 
+                            i === 1 ? 'bg-white/10' : 
+                            i === 2 ? 'bg-white/5' : 'opacity-50'
+                        }`}>
+                            <div className="flex items-center gap-4">
+                                <span className={`w-8 h-8 flex items-center justify-center rounded-full font-black ${
+                                    i === 0 ? 'bg-yellow-500 text-black' : 'bg-slate-700 text-white'
+                                }`}>{i + 1}</span>
+                                <span className="text-xl font-bold text-white">{p.name}</span>
                             </div>
-                            <div className="w-24 h-32 bg-slate-300 rounded-t-lg flex items-end justify-center pb-4 shadow-lg">
-                                <span className="font-bold text-slate-600">{players.sort((a, b) => b.score - a.score)[1].score} pts</span>
-                            </div>
+                            <span className="text-2xl font-mono font-black text-yellow-400">{p.score} pts</span>
                         </div>
-                    )}
-                    
-                    {/* 1st Place */}
-                    {players.sort((a, b) => b.score - a.score)[0] && (
-                        <div className="flex flex-col items-center z-10 animate-in slide-in-from-bottom duration-700">
-                            <div className="w-24 h-24 rounded-full bg-yellow-400 border-4 border-white shadow-xl flex items-center justify-center text-3xl font-bold text-yellow-800 mb-4 relative">
-                                <Trophy className="w-8 h-8 absolute -top-10 text-yellow-400 drop-shadow-lg animate-bounce" />
-                                {players.sort((a, b) => b.score - a.score)[0].name.charAt(0)}
-                                <div className="absolute -bottom-3 bg-yellow-600 text-white text-xs px-3 py-1 rounded-full">1er</div>
-                            </div>
-                            <div className="w-28 h-48 bg-yellow-400 rounded-t-lg flex items-end justify-center pb-4 shadow-xl">
-                                <span className="font-bold text-yellow-900 text-xl">{players.sort((a, b) => b.score - a.score)[0].score} pts</span>
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* 3rd Place */}
-                    {players.sort((a, b) => b.score - a.score)[2] && (
-                        <div className="flex flex-col items-center animate-in slide-in-from-bottom duration-700 delay-400">
-                            <div className="w-20 h-20 rounded-full bg-orange-300 border-4 border-white shadow-xl flex items-center justify-center text-2xl font-bold text-orange-800 mb-4 relative">
-                                {players.sort((a, b) => b.score - a.score)[2].name.charAt(0)}
-                                <div className="absolute -bottom-3 bg-orange-600 text-white text-xs px-2 py-1 rounded-full">3ème</div>
-                            </div>
-                            <div className="w-24 h-24 bg-orange-300 rounded-t-lg flex items-end justify-center pb-4 shadow-lg">
-                                <span className="font-bold text-orange-800">{players.sort((a, b) => b.score - a.score)[2].score} pts</span>
-                            </div>
-                        </div>
-                    )}
+                    ))}
                 </div>
                 
                 {isHost && (
                     <Button onClick={() => {
                         broadcast('return_to_lobby', {});
                         router.push(`/room/${roomCode}`);
-                    }} size="lg" className="mt-8 bg-slate-700 hover:bg-slate-600">
+                    }} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
                         Retour au salon
                     </Button>
                 )}
