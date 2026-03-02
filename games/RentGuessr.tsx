@@ -130,6 +130,12 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
           
           const nextProperty = properties[0];
           
+          // Use photos_url array if available, otherwise fallback to photo_url (single) or placeholder
+          // The new JSON has photos_url array
+          if (nextProperty.photos_url && Array.isArray(nextProperty.photos_url) && nextProperty.photos_url.length > 0) {
+             nextProperty.photo_url = nextProperty.photos_url[0]; // For backward compatibility in view
+          }
+          
           // 1. Initial Setup if needed (First Round)
           if (currentPhase === 'setup') {
               // Initialize players
@@ -361,9 +367,16 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                           )}
                           <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2">
                               <MapPin className="w-4 h-4 text-red-400" />
-                              {currentProperty?.city} ({currentProperty?.postal_code})
+                              {currentProperty?.district ? `${currentProperty.district}, ` : ''}{currentProperty?.city} ({currentProperty?.postal_code})
                           </div>
                       </div>
+
+                      {/* Description (if available) */}
+                      {currentProperty?.description && (
+                        <div className="text-xs text-slate-400 italic line-clamp-2 px-1">
+                          "{currentProperty.description.replace(/<[^>]*>?/gm, '')}"
+                        </div>
+                      )}
 
                       {/* Details Grid */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

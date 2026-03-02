@@ -19,7 +19,10 @@ import {
   BookOpen,
   DollarSign,
   PenTool,
-  Zap
+  Zap,
+  Home,
+  MapPin,
+  Image as ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -40,7 +43,7 @@ const games = [
     name: 'PokéGuessr',
     description: 'Reconnais les Pokémon floutés ou pixelisés. Attrape-les tous !',
     icon: Zap,
-    color: 'from-red-500 to-orange-500',
+    color: 'from-yellow-400 to-orange-500',
     tags: ['Vitesse', 'Culture G'],
   },
   {
@@ -50,6 +53,31 @@ const games = [
     icon: Flag,
     color: 'from-green-500 to-emerald-500',
     tags: ['Géographie', 'Mémoire'],
+  },
+  {
+    id: 'rentguessr',
+    name: 'RentGuessr',
+    description: 'Estime le loyer mensuel de biens immobiliers à travers la France.',
+    icon: Home,
+    color: 'from-indigo-500 to-purple-600',
+    tags: ['Estimation', 'Immobilier'],
+  },
+  {
+    id: 'logoguessr',
+    name: 'LogoGuessr',
+    description: 'Devine la marque derrière le logo flouté qui se dévoile peu à peu.',
+    icon: ImageIcon,
+    color: 'from-orange-400 to-red-500',
+    tags: ['Marques', 'Observation'],
+  },
+  {
+    id: 'airbnbguessr',
+    name: 'AirbnbGuessr',
+    description: 'Devine le prix par nuit de logements Airbnb incroyables.',
+    icon: MapPin,
+    color: 'from-rose-500 to-pink-600',
+    tags: ['Voyage', 'Estimation'],
+    comingSoon: true
   },
   {
     id: 'infiltre',
@@ -74,6 +102,14 @@ const games = [
     icon: PenTool,
     color: 'from-pink-500 to-rose-600',
     tags: ['Créativité', 'Vitesse'],
+  },
+  {
+    id: 'budgetguessr',
+    name: 'BudgetGuessr',
+    description: 'Estime le prix juste d\'objets du quotidien ou de luxe.',
+    icon: DollarSign,
+    color: 'from-green-400 to-emerald-600',
+    tags: ['Prix', 'Culture G'],
   },
 ];
 
@@ -354,14 +390,25 @@ export default function HomePage() {
                                 
                                 <Button 
                                     onClick={() => {
+                                        if (game.comingSoon) {
+                                            toast.info(`${game.name} arrive bientôt !`);
+                                            return;
+                                        }
                                         window.scrollTo({ top: 0, behavior: 'smooth' });
                                         toast.info(`Crée une partie pour jouer à ${game.name} !`);
                                     }}
                                     variant="ghost" 
-                                    className={`w-full justify-between group-hover:translate-x-1 transition-all ${isDarkMode ? 'hover:bg-slate-800 text-slate-300 hover:text-white' : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'}`}
+                                    disabled={game.comingSoon}
+                                    className={`w-full justify-between group-hover:translate-x-1 transition-all ${
+                                        game.comingSoon 
+                                        ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
+                                        : isDarkMode 
+                                            ? 'hover:bg-slate-800 text-slate-300 hover:text-white' 
+                                            : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
+                                    }`}
                                 >
-                                    Jouer
-                                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    {game.comingSoon ? 'Bientôt...' : 'Jouer'}
+                                    {!game.comingSoon && <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />}
                                 </Button>
                             </div>
                         </div>

@@ -73,6 +73,18 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
 
   // Timer & Blur Logic
   useEffect(() => {
+    // Initial blur for setup/playing
+    if (currentPhase === 'playing') {
+        // Ensure blur starts high
+        if (timeLeft > timerSeconds * 0.66) {
+            setBlurAmount(20);
+        }
+    } else if (currentPhase === 'setup') {
+        setBlurAmount(0);
+    } else {
+        setBlurAmount(0);
+    }
+
     if (!timerStartAt || currentPhase !== 'playing') {
         if (currentPhase !== 'playing') {
             setTimeLeft(0);
@@ -95,10 +107,6 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
         setTimeLeft(remaining);
         
         // Progressive Blur Logic
-        // Step 1: 20px
-        // Step 2: 8px
-        // Step 3: 0px
-        
         if (elapsed < stepDuration) {
             setBlurAmount(20);
         } else if (elapsed < stepDuration * 2) {
@@ -133,58 +141,68 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
       }
   }, [gamePlayers, playerId, currentPhase]);
 
-  // Fuzzy Matching Logic
+  // Matching Logic
   const checkAnswer = async (guess: string) => {
       if (!currentLogo || hasFound || !roomId || !playerId) return;
       
-      const targetName = currentLogo.name;
+      const targetName = currentLogo.name.toLowerCase().trim();
+      const userGuessNormalized = guess.toLowerCase().trim();
       
+      // Strict matching first
+      if (userGuessNormalized === targetName) {
+          handleCorrectAnswer(guess);
+          return;
+      }
+
+      // Fuzzy matching with strict threshold
       const fuse = new Fuse([targetName], {
           includeScore: true,
-          threshold: 0.3, // Tolerance
+          threshold: 0.2, // Stricter tolerance (0.0 is perfect match, 1.0 is match anything)
       });
       
-      const result = fuse.search(guess);
+      const result = fuse.search(userGuessNormalized);
       
-      if (result.length > 0) {
-          // Correct!
-          setHasFound(true);
-          setInputDisabled(true);
-          toast.success("Correct !");
-          
-          const now = Date.now();
-          const start = new Date(timerStartAt).getTime();
-          const timeTaken = now - start;
-          const duration = timerSeconds * 1000;
-          const stepDuration = duration / 3;
-          
-          // Calculate Score
-          let points = 0;
-          if (timeTaken < stepDuration) points = 1000;      // Step 1
-          else if (timeTaken < stepDuration * 2) points = 600; // Step 2
-          else points = 200;                      // Step 3
-          
-          // Bonus: +100 if found within first 2s of the step
-          const currentStepStart = Math.floor(timeTaken / stepDuration) * stepDuration;
-          if (timeTaken - currentStepStart < 2000) {
-              points += 100;
-          }
-          
-          // Update DB
-          const myPlayer = players.find(p => p.id === playerId);
-          const currentScore = myPlayer?.score || 0;
-          
-          await supabase.from('logo_players').update({
-              has_found: true,
-              score: currentScore + points,
-              find_time_ms: timeTaken,
-              last_guess: guess
-          }).match({ room_id: roomId, player_id: playerId });
-          
-          // Also update main players table for global sync
-          await supabase.from('players').update({ score: currentScore + points }).eq('id', playerId);
-          
+      if (result.length > 0 && result[0].score && result[0].score < 0.2) {
+          handleCorrectAnswer(guess);
       }
+  };
+
+  const handleCorrectAnswer = async (guess: string) => {
+      setHasFound(true);
+      setInputDisabled(true);
+      toast.success("Correct !");
+      
+      const now = Date.now();
+      const start = new Date(timerStartAt).getTime();
+      const timeTaken = now - start;
+      const duration = timerSeconds * 1000;
+      const stepDuration = duration / 3;
+      
+      // Calculate Score
+      let points = 0;
+      if (timeTaken < stepDuration) points = 1000;      // Step 1
+      else if (timeTaken < stepDuration * 2) points = 600; // Step 2
+      else points = 200;                      // Step 3
+      
+      // Bonus: +100 if found within first 2s of the step
+      const currentStepStart = Math.floor(timeTaken / stepDuration) * stepDuration;
+      if (timeTaken - currentStepStart < 2000) {
+          points += 100;
+      }
+      
+      // Update DB
+      const myPlayer = players.find(p => p.id === playerId);
+      const currentScore = myPlayer?.score || 0;
+      
+      await supabase.from('logo_players').update({
+          has_found: true,
+          score: currentScore + points,
+          find_time_ms: timeTaken,
+          last_guess: guess
+      }).match({ room_id: roomId, player_id: playerId });
+      
+      // Also update main players table for global sync
+      await supabase.from('players').update({ score: currentScore + points }).eq('id', playerId);
   };
 
   // --- HOST LOGIC ---
@@ -364,8 +382,8 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                               alt="Logo mystère" 
                               className="w-full h-full object-contain transition-all duration-1000 ease-linear"
                               style={{ 
-                                  filter: `blur(${blurAmount}px)`,
-                                  opacity: blurAmount > 10 ? 0.8 : 1
+                                  filter: `blur(${blurAmount}px) brightness(0)`,
+                                  opacity: 1
                               }}
                           />
                       )}

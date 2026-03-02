@@ -14,7 +14,7 @@
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */let a=(0,s(9224).Z)("Check",[["path",{d:"M20 6 9 17l-5-5",key:"1gmf2c"}]])},5545:(e,t,s)=>{"use strict";s.d(t,{Z:()=>a});/**
+ */let a=(0,s(9224).Z)("Check",[["path",{d:"M20 6 9 17l-5-5",key:"1gmf2c"}]])},7189:(e,t,s)=>{"use strict";s.d(t,{Z:()=>a});/**
  * @license lucide-react v0.294.0 - ISC
  *
  * This source code is licensed under the ISC license.

@@ -31,11 +31,11 @@ export default function LeafletMap({ latitude, longitude, zoom = 12 }: LeafletMa
       <MapContainer 
         center={[latitude, longitude]} 
         zoom={zoom} 
-        scrollWheelZoom={false} 
-        zoomControl={false}
-        dragging={false}
-        doubleClickZoom={false}
-        touchZoom={false}
+        scrollWheelZoom={true} 
+        zoomControl={true}
+        dragging={true}
+        doubleClickZoom={true}
+        touchZoom={true}
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer

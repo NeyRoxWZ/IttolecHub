@@ -26,7 +26,7 @@ interface GameSetting {
   options?: { value: string; label: string }[];
 }
 
-const gamesList: { id: string; name: string; description: string; icon: any; color: string; settings: GameSetting[] }[] = [
+const gamesList: { id: string; name: string; description: string; icon: any; color: string; settings: GameSetting[]; comingSoon?: boolean }[] = [
   {
     id: 'wikiguessr',
     name: 'WikiGuessr',
@@ -202,35 +202,23 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
   {
     id: 'budgetguessr',
     name: 'BudgetGuessr',
-    description: 'Devine le budget de production.',
+    description: 'Estime le prix juste d\'objets.',
     icon: DollarSign,
-    color: 'from-green-600 to-emerald-700',
+    color: 'from-green-400 to-emerald-600',
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
       { 
-        id: 'decade', 
-        label: 'Décennie', 
+        id: 'category', 
+        label: 'Catégorie', 
         type: 'select', 
         default: 'all',
         options: [
-          { value: 'all', label: 'Toutes' },
-          { value: '2020s', label: '2020s' },
-          { value: '2010s', label: '2010s' },
-          { value: '2000s', label: '2000s' },
-          { value: '90s', label: '90s' },
-          { value: '80s', label: '80s' },
-        ]
-      },
-      { 
-        id: 'difficulty', 
-        label: 'Difficulté', 
-        type: 'select', 
-        default: 'normal',
-        options: [
-          { value: 'easy', label: 'Très connus (Facile)' },
-          { value: 'normal', label: 'Connus (Normal)' },
-          { value: 'hard', label: 'Tous (Difficile)' },
+          { value: 'all', label: 'Tout' },
+          { value: 'High-Tech', label: 'High-Tech' },
+          { value: 'Maison', label: 'Maison' },
+          { value: 'Luxe', label: 'Luxe' },
+          { value: 'Alimentation', label: 'Alimentation' },
         ]
       },
     ],
@@ -238,20 +226,9 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
   {
     id: 'rentguessr',
     name: 'RentGuessr',
-    description: 'Estimez le loyer de biens immobiliers.',
+    description: 'Estime le loyer mensuel.',
     icon: Home,
-    color: 'from-cyan-500 to-blue-500',
-    settings: [
-      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
-      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
-    ],
-  },
-  {
-    id: 'airbnbguessr',
-    name: 'AirbnbGuessr',
-    description: 'Devinez le prix par nuit.',
-    icon: Home,
-    color: 'from-rose-500 to-pink-600',
+    color: 'from-indigo-500 to-purple-600',
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
@@ -260,26 +237,12 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
   {
     id: 'logoguessr',
     name: 'LogoGuessr',
-    description: 'Reconnaissez les marques (logo flouté).',
-    icon: CheckCircle, // Using generic icon if ImageIcon not imported, but Image is imported as ImageIcon in game file. Here we need an icon. Let's use generic or import one.
-    // Wait, CheckCircle is imported. Let's use that or maybe Zap? 
-    // Ideally we should import Image from lucide-react.
-    color: 'from-yellow-400 to-orange-500',
+    description: 'Devine la marque derrière le logo flouté.',
+    icon: Gamepad2, // Placeholder, should be ImageIcon
+    color: 'from-orange-400 to-red-500',
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
-      { 
-        id: 'category', 
-        label: 'Catégorie', 
-        type: 'select', 
-        default: 'all',
-        options: [
-          { value: 'all', label: 'Tout' },
-          { value: 'Tech', label: 'Tech' },
-          { value: 'Food', label: 'Food' },
-          { value: 'Fashion', label: 'Fashion' },
-          { value: 'Auto', label: 'Auto' },
-        ]
-      },
+      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 15 },
       { 
         id: 'difficulty', 
         label: 'Difficulté', 
@@ -288,11 +251,22 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
         options: [
           { value: 'mix', label: 'Mix' },
           { value: 'easy', label: 'Facile' },
-          { value: 'medium', label: 'Moyen' },
           { value: 'hard', label: 'Difficile' },
         ]
       },
     ],
+  },
+  {
+    id: 'airbnbguessr',
+    name: 'AirbnbGuessr',
+    description: 'Estime le prix par nuit.',
+    icon: Home, // Placeholder, should be MapPin
+    color: 'from-rose-500 to-pink-600',
+    settings: [
+      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
+      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
+    ],
+    comingSoon: true
   },
 ];
 
@@ -637,6 +611,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const startGame = async () => {
     if (!selectedGameId || selectedGameId === '__placeholder__' || !roomId) return;
     
+    // Check if game is coming soon
+    const gameInfo = gamesList.find(g => g.id === selectedGameId);
+    if (gameInfo?.comingSoon) {
+        toast.info("Ce jeu arrive bientôt !");
+        return;
+    }
+
     // 1. Create/Update Session FIRST with initial state
     const sessionPayload = {
         room_id: roomId,
@@ -779,17 +760,31 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         {gamesList.map((game) => {
                             const isSelected = selectedGameId === game.id;
                             const Icon = game.icon;
+                            const isComingSoon = (game as any).comingSoon;
                             
                             return (
                                 <div 
                                     key={game.id}
-                                    onClick={() => setSelectedGameId(game.id)}
+                                    onClick={() => {
+                                        if (isComingSoon) {
+                                            toast.info("Ce jeu arrive bientôt !");
+                                            return;
+                                        }
+                                        setSelectedGameId(game.id);
+                                    }}
                                     className={`cursor-pointer relative overflow-hidden rounded-2xl border-2 transition-all duration-300 hover:scale-[1.02] ${
+                                        isComingSoon ? 'opacity-60 cursor-not-allowed' : ''
+                                    } ${
                                         isSelected 
                                         ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/20' 
                                         : 'border-white/5 bg-white/5 hover:border-white/20 hover:bg-white/10'
                                     }`}
                                 >
+                                    {isComingSoon && (
+                                        <div className="absolute top-2 right-2 bg-slate-900 text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full border border-slate-700 z-10">
+                                            BIENTÔT
+                                        </div>
+                                    )}
                                     <div className="p-4 flex items-center gap-4">
                                         <div className={`p-3 rounded-xl bg-gradient-to-br ${game.color} shadow-lg`}>
                                             <Icon className="h-6 w-6 text-white" />
