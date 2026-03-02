@@ -8,12 +8,7 @@
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */let a=(0,r(9224).Z)("Check",[["path",{d:"M20 6 9 17l-5-5",key:"1gmf2c"}]])},7189:(e,t,r)=>{"use strict";r.d(t,{Z:()=>a});/**
- * @license lucide-react v0.294.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */let a=(0,r(9224).Z)("Clock",[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["polyline",{points:"12 6 12 12 16 14",key:"68esgv"}]])},1750:(e,t,r)=>{"use strict";r.d(t,{Z:()=>a});/**
+ */let a=(0,r(9224).Z)("Check",[["path",{d:"M20 6 9 17l-5-5",key:"1gmf2c"}]])},1750:(e,t,r)=>{"use strict";r.d(t,{Z:()=>a});/**
  * @license lucide-react v0.294.0 - ISC
  *
  * This source code is licensed under the ISC license.
@@ -53,4 +48,4 @@
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */let a=(0,r(9224).Z)("User",[["path",{d:"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2",key:"975kel"}],["circle",{cx:"12",cy:"7",r:"4",key:"17ys0d"}]])},9907:(e,t,r)=>{"use strict";r.r(t),r.d(t,{$$typeof:()=>i,__esModule:()=>s,default:()=>o});let a=(0,r(6843).createProxy)(String.raw`C:\Users\masso\Desktop\IttolecHub\app\games\undercover\[code]\page.tsx`),{__esModule:s,$$typeof:i}=a,o=a.default}};var t=require("../../../../webpack-runtime.js");t.C(e);var r=e=>t(t.s=e),a=t.X(0,[638,560,612,616,904],()=>r(7669));module.exports=a})();
+ */let a=(0,r(9224).Z)("User",[["path",{d:"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2",key:"975kel"}],["circle",{cx:"12",cy:"7",r:"4",key:"17ys0d"}]])},9907:(e,t,r)=>{"use strict";r.r(t),r.d(t,{$$typeof:()=>i,__esModule:()=>s,default:()=>o});let a=(0,r(6843).createProxy)(String.raw`C:\Users\masso\Desktop\IttolecHub\app\games\undercover\[code]\page.tsx`),{__esModule:s,$$typeof:i}=a,o=a.default}};var t=require("../../../../webpack-runtime.js");t.C(e);var r=e=>t(t.s=e),a=t.X(0,[638,560,612,616,339],()=>r(7669));module.exports=a})();

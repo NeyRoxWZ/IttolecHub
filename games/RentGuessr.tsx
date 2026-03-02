@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { Euro, TrendingUp, TrendingDown, Clock, MapPin, Home, Bed, Layout, Building2, Trophy } from 'lucide-react';
+import { Euro, TrendingUp, TrendingDown, Clock, MapPin, Home, Bed, Layout, Building2, Trophy, ArrowLeft, ArrowRight, Layers } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 
@@ -65,8 +65,14 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
   const [userGuess, setUserGuess] = useState('');
   const [hasGuessed, setHasGuessed] = useState(false);
   const [guessTime, setGuessTime] = useState(0);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
   // --- EFFECTS ---
+
+  // Reset photo index on new round
+  useEffect(() => {
+      setCurrentPhotoIndex(0);
+  }, [currentProperty]);
 
   // Return to Lobby Broadcast
   useEffect(() => {
@@ -353,19 +359,48 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                   {/* Left: Property Details & Map */}
                   <div className="space-y-4">
                       {/* Photo */}
-                      <div className="relative aspect-video rounded-2xl overflow-hidden shadow-lg border-2 border-slate-200 dark:border-slate-700 group">
-                          {currentProperty?.photo_url ? (
-                              <img 
-                                  src={currentProperty.photo_url} 
-                                  alt="Bien immobilier" 
-                                  className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
-                              />
+                      <div className="relative aspect-video rounded-2xl overflow-hidden shadow-lg border-2 border-slate-200 dark:border-slate-700 group bg-slate-900">
+                          {currentProperty ? (
+                              <>
+                                  <img 
+                                      src={currentProperty.photos_url ? currentProperty.photos_url[currentPhotoIndex] : currentProperty.photo_url} 
+                                      alt={`Bien immobilier - Photo ${currentPhotoIndex + 1}`}
+                                      className="object-contain w-full h-full transition-transform duration-700 hover:scale-105"
+                                  />
+                                  
+                                  {/* Photo Navigation */}
+                                  {currentProperty.photos_url && currentProperty.photos_url.length > 1 && (
+                                      <>
+                                          <button 
+                                              onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setCurrentPhotoIndex(prev => prev === 0 ? currentProperty.photos_url.length - 1 : prev - 1);
+                                              }}
+                                              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors z-10"
+                                          >
+                                              <ArrowLeft className="w-5 h-5" />
+                                          </button>
+                                          <button 
+                                              onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setCurrentPhotoIndex(prev => prev === currentProperty.photos_url.length - 1 ? 0 : prev + 1);
+                                              }}
+                                              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors z-10"
+                                          >
+                                              <ArrowRight className="w-5 h-5" />
+                                          </button>
+                                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-2 py-1 rounded-full text-xs font-mono">
+                                              {currentPhotoIndex + 1} / {currentProperty.photos_url.length}
+                                          </div>
+                                      </>
+                                  )}
+                              </>
                           ) : (
                               <div className="w-full h-full bg-slate-200 flex items-center justify-center">
                                   <Home className="w-12 h-12 text-slate-400" />
                               </div>
                           )}
-                          <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2">
+                          <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 z-10">
                               <MapPin className="w-4 h-4 text-red-400" />
                               {currentProperty?.district ? `${currentProperty.district}, ` : ''}{currentProperty?.city} ({currentProperty?.postal_code})
                           </div>
@@ -396,9 +431,19 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                               <span className="font-bold text-slate-100">{currentProperty?.nb_bedrooms}</span>
                           </div>
                           <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center backdrop-blur-sm">
-                              <Home className="w-5 h-5 text-green-500 mb-1" />
-                              <span className="text-xs text-slate-400 uppercase font-bold">Type</span>
-                              <span className="font-bold text-slate-100 truncate w-full">{currentProperty?.property_type}</span>
+                              {currentProperty?.floor !== null && currentProperty?.floor !== undefined ? (
+                                  <>
+                                      <Layers className="w-5 h-5 text-yellow-500 mb-1" />
+                                      <span className="text-xs text-slate-400 uppercase font-bold">Étage</span>
+                                      <span className="font-bold text-slate-100">{currentProperty.floor === 0 ? 'RDC' : currentProperty.floor}</span>
+                                  </>
+                              ) : (
+                                  <>
+                                      <Home className="w-5 h-5 text-green-500 mb-1" />
+                                      <span className="text-xs text-slate-400 uppercase font-bold">Type</span>
+                                      <span className="font-bold text-slate-100 truncate w-full">{currentProperty?.property_type}</span>
+                                  </>
+                              )}
                           </div>
                       </div>
                   </div>

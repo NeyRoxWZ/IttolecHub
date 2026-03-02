@@ -141,30 +141,46 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
       }
   }, [gamePlayers, playerId, currentPhase]);
 
-  // Matching Logic
+  // Matching Logic (Strict Levenshtein)
   const checkAnswer = async (guess: string) => {
       if (!currentLogo || hasFound || !roomId || !playerId) return;
       
       const targetName = currentLogo.name.toLowerCase().trim();
       const userGuessNormalized = guess.toLowerCase().trim();
       
-      // Strict matching first
+      // 1. Strict Exact Match
       if (userGuessNormalized === targetName) {
           handleCorrectAnswer(guess);
           return;
       }
 
-      // Fuzzy matching with strict threshold
-      const fuse = new Fuse([targetName], {
-          includeScore: true,
-          threshold: 0.2, // Stricter tolerance (0.0 is perfect match, 1.0 is match anything)
-      });
+      // 2. Levenshtein Distance for typos
+      // Allow max 1 error for short words (<5 chars), 2 for longer
+      const maxDistance = targetName.length < 5 ? 1 : 2;
+      const distance = levenshteinDistance(userGuessNormalized, targetName);
       
-      const result = fuse.search(userGuessNormalized);
-      
-      if (result.length > 0 && result[0].score && result[0].score < 0.2) {
+      if (distance <= maxDistance) {
           handleCorrectAnswer(guess);
       }
+  };
+
+  // Helper: Levenshtein Distance
+  const levenshteinDistance = (a: string, b: string) => {
+      if (a.length === 0) return b.length;
+      if (b.length === 0) return a.length;
+      const matrix = [];
+      for (let i = 0; i <= b.length; i++) { matrix[i] = [i]; }
+      for (let j = 0; j <= a.length; j++) { matrix[0][j] = j; }
+      for (let i = 1; i <= b.length; i++) {
+          for (let j = 1; j <= a.length; j++) {
+              if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                  matrix[i][j] = matrix[i - 1][j - 1];
+              } else {
+                  matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1));
+              }
+          }
+      }
+      return matrix[b.length][a.length];
   };
 
   const handleCorrectAnswer = async (guess: string) => {
@@ -288,8 +304,8 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
       if (currentRound < totalRounds) {
           setTimeout(() => startRound(), 3000);
       } else {
-          setTimeout(() => {
-              supabase.from('logo_games').update({ phase: 'podium' }).eq('room_id', roomId);
+          setTimeout(async () => {
+              await supabase.from('logo_games').update({ phase: 'podium' }).eq('room_id', roomId);
           }, 3000);
       }
   };
@@ -382,7 +398,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                               alt="Logo mystère" 
                               className="w-full h-full object-contain transition-all duration-1000 ease-linear"
                               style={{ 
-                                  filter: `blur(${blurAmount}px) brightness(0)`,
+                                  filter: `blur(${blurAmount}px) brightness(0) grayscale(100%)`,
                                   opacity: 1
                               }}
                           />
