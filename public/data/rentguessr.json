@@ -1,0 +1,67 @@
+[
+    {
+      "id": "paris-studio",
+      "city": "Paris (11e)",
+      "postal_code": "75011",
+      "photo_url": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1000&auto=format&fit=crop",
+      "price_per_month": 950,
+      "surface_m2": 24,
+      "nb_rooms": 1,
+      "nb_bedrooms": 0,
+      "property_type": "Appartement",
+      "latitude": 48.8566,
+      "longitude": 2.3522
+    },
+    {
+      "id": "lyon-t2",
+      "city": "Lyon (6e)",
+      "postal_code": "69006",
+      "photo_url": "https://images.unsplash.com/photo-1493809842364-78817add7ffb?q=80&w=1000&auto=format&fit=crop",
+      "price_per_month": 1200,
+      "surface_m2": 55,
+      "nb_rooms": 2,
+      "nb_bedrooms": 1,
+      "property_type": "Appartement",
+      "latitude": 45.7640,
+      "longitude": 4.8357
+    },
+    {
+      "id": "bordeaux-maison",
+      "city": "Bordeaux",
+      "postal_code": "33000",
+      "photo_url": "https://images.unsplash.com/photo-1600596542815-2a4d9f6fac90?q=80&w=1000&auto=format&fit=crop",
+      "price_per_month": 1800,
+      "surface_m2": 110,
+      "nb_rooms": 5,
+      "nb_bedrooms": 3,
+      "property_type": "Maison",
+      "latitude": 44.8378,
+      "longitude": -0.5792
+    },
+    {
+      "id": "marseille-vue-mer",
+      "city": "Marseille (8e)",
+      "postal_code": "13008",
+      "photo_url": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=1000&auto=format&fit=crop",
+      "price_per_month": 1450,
+      "surface_m2": 70,
+      "nb_rooms": 3,
+      "nb_bedrooms": 2,
+      "property_type": "Appartement",
+      "latitude": 43.2965,
+      "longitude": 5.3698
+    },
+    {
+      "id": "lille-loft",
+      "city": "Lille",
+      "postal_code": "59000",
+      "photo_url": "https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=1000&auto=format&fit=crop",
+      "price_per_month": 1100,
+      "surface_m2": 85,
+      "nb_rooms": 3,
+      "nb_bedrooms": 1,
+      "property_type": "Loft",
+      "latitude": 50.6292,
+      "longitude": 3.0573
+    }
+  ]

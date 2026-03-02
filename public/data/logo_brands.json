@@ -1,0 +1,17 @@
+[
+    { "name": "Google", "slug": "google", "sector": "Tech", "difficulty": "easy" },
+    { "name": "Apple", "slug": "apple", "sector": "Tech", "difficulty": "easy" },
+    { "name": "McDonald's", "slug": "mcdonalds", "sector": "Food", "difficulty": "easy" },
+    { "name": "Nike", "slug": "nike", "sector": "Fashion", "difficulty": "easy" },
+    { "name": "Starbucks", "slug": "starbucks", "sector": "Food", "difficulty": "easy" },
+    { "name": "Twitter", "slug": "twitter", "sector": "Tech", "difficulty": "medium" },
+    { "name": "Netflix", "slug": "netflix", "sector": "Tech", "difficulty": "medium" },
+    { "name": "Spotify", "slug": "spotify", "sector": "Tech", "difficulty": "medium" },
+    { "name": "Coca-Cola", "slug": "cocacola", "sector": "Food", "difficulty": "medium" },
+    { "name": "Tesla", "slug": "tesla", "sector": "Auto", "difficulty": "medium" },
+    { "name": "GitHub", "slug": "github", "sector": "Tech", "difficulty": "hard" },
+    { "name": "Slack", "slug": "slack", "sector": "Tech", "difficulty": "hard" },
+    { "name": "Discord", "slug": "discord", "sector": "Tech", "difficulty": "hard" },
+    { "name": "Python", "slug": "python", "sector": "Tech", "difficulty": "hard" },
+    { "name": "React", "slug": "react", "sector": "Tech", "difficulty": "hard" }
+  ]

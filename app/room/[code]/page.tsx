@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap, Shield, EyeOff, Settings, Play, LogOut, CheckCircle } from 'lucide-react';
+import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap, Shield, EyeOff, Settings, Play, LogOut, CheckCircle, Home } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
@@ -231,6 +231,65 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
           { value: 'easy', label: 'Très connus (Facile)' },
           { value: 'normal', label: 'Connus (Normal)' },
           { value: 'hard', label: 'Tous (Difficile)' },
+        ]
+      },
+    ],
+  },
+  {
+    id: 'rentguessr',
+    name: 'RentGuessr',
+    description: 'Estimez le loyer de biens immobiliers.',
+    icon: Home,
+    color: 'from-cyan-500 to-blue-500',
+    settings: [
+      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
+      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
+    ],
+  },
+  {
+    id: 'airbnbguessr',
+    name: 'AirbnbGuessr',
+    description: 'Devinez le prix par nuit.',
+    icon: Home,
+    color: 'from-rose-500 to-pink-600',
+    settings: [
+      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
+      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
+    ],
+  },
+  {
+    id: 'logoguessr',
+    name: 'LogoGuessr',
+    description: 'Reconnaissez les marques (logo flouté).',
+    icon: CheckCircle, // Using generic icon if ImageIcon not imported, but Image is imported as ImageIcon in game file. Here we need an icon. Let's use generic or import one.
+    // Wait, CheckCircle is imported. Let's use that or maybe Zap? 
+    // Ideally we should import Image from lucide-react.
+    color: 'from-yellow-400 to-orange-500',
+    settings: [
+      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
+      { 
+        id: 'category', 
+        label: 'Catégorie', 
+        type: 'select', 
+        default: 'all',
+        options: [
+          { value: 'all', label: 'Tout' },
+          { value: 'Tech', label: 'Tech' },
+          { value: 'Food', label: 'Food' },
+          { value: 'Fashion', label: 'Fashion' },
+          { value: 'Auto', label: 'Auto' },
+        ]
+      },
+      { 
+        id: 'difficulty', 
+        label: 'Difficulté', 
+        type: 'select', 
+        default: 'mix',
+        options: [
+          { value: 'mix', label: 'Mix' },
+          { value: 'easy', label: 'Facile' },
+          { value: 'medium', label: 'Moyen' },
+          { value: 'hard', label: 'Difficile' },
         ]
       },
     ],

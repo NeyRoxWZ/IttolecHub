@@ -1,0 +1,62 @@
+[
+    {
+      "id": "paris-marais-loft",
+      "city": "Paris",
+      "neighbourhood": "Le Marais",
+      "photo_url": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1000&auto=format&fit=crop",
+      "price_per_night": 150,
+      "accommodates": 4,
+      "bedrooms": 1,
+      "room_type": "Logement entier",
+      "latitude": 48.857,
+      "longitude": 2.352
+    },
+    {
+      "id": "bali-villa-pool",
+      "city": "Bali",
+      "neighbourhood": "Ubud",
+      "photo_url": "https://images.unsplash.com/photo-1570211776045-af3a51026f4a?q=80&w=1000&auto=format&fit=crop",
+      "price_per_night": 85,
+      "accommodates": 6,
+      "bedrooms": 3,
+      "room_type": "Logement entier",
+      "latitude": -8.506,
+      "longitude": 115.262
+    },
+    {
+      "id": "ny-brooklyn-apt",
+      "city": "New York",
+      "neighbourhood": "Brooklyn",
+      "photo_url": "https://images.unsplash.com/photo-1493809842364-78817add7ffb?q=80&w=1000&auto=format&fit=crop",
+      "price_per_night": 220,
+      "accommodates": 2,
+      "bedrooms": 1,
+      "room_type": "Logement entier",
+      "latitude": 40.678,
+      "longitude": -73.944
+    },
+    {
+      "id": "london-soho-studio",
+      "city": "Londres",
+      "neighbourhood": "Soho",
+      "photo_url": "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1000&auto=format&fit=crop",
+      "price_per_night": 180,
+      "accommodates": 2,
+      "bedrooms": 0,
+      "room_type": "Logement entier",
+      "latitude": 51.513,
+      "longitude": -0.137
+    },
+    {
+      "id": "tokyo-shinjuku-room",
+      "city": "Tokyo",
+      "neighbourhood": "Shinjuku",
+      "photo_url": "https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=1000&auto=format&fit=crop",
+      "price_per_night": 95,
+      "accommodates": 2,
+      "bedrooms": 1,
+      "room_type": "Chambre privée",
+      "latitude": 35.693,
+      "longitude": 139.703
+    }
+  ]

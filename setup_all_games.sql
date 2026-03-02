@@ -259,3 +259,93 @@ create table if not exists poke_players (
 
 alter publication supabase_realtime add table poke_games;
 alter publication supabase_realtime add table poke_players;
+
+-- RentGuessr Tables
+
+create table if not exists rent_games (
+  room_id uuid references rooms(id) on delete cascade primary key,
+  phase text default 'setup', -- setup, playing, round_results, podium
+  current_round int default 1,
+  total_rounds int default 5,
+  timer_seconds int default 30,
+  timer_start_at timestamptz,
+  current_property jsonb, -- { id, city, postal_code, photo_url, price_per_month, surface_m2, nb_rooms, nb_bedrooms, property_type, latitude, longitude }
+  queue jsonb, -- Queue of upcoming properties
+  scores jsonb default '{}'::jsonb,
+  created_at timestamptz default now()
+);
+
+create table if not exists rent_players (
+  room_id uuid references rooms(id) on delete cascade,
+  player_id uuid references players(id) on delete cascade,
+  score int default 0,
+  last_guess int, -- The rent guessed
+  guess_diff_percent float,
+  guess_time_ms int,
+  has_guessed boolean default false,
+  primary key (room_id, player_id)
+);
+
+alter publication supabase_realtime add table rent_games;
+alter publication supabase_realtime add table rent_players;
+
+-- AirbnbGuessr Tables
+
+create table if not exists airbnb_games (
+  room_id uuid references rooms(id) on delete cascade primary key,
+  phase text default 'setup', -- setup, playing, round_results, podium
+  current_round int default 1,
+  total_rounds int default 5,
+  timer_seconds int default 30,
+  timer_start_at timestamptz,
+  current_listing jsonb, -- { id, city, neighbourhood, photo_url, price_per_night, accommodates, bedrooms, room_type }
+  queue jsonb, -- Queue of upcoming listings
+  scores jsonb default '{}'::jsonb,
+  created_at timestamptz default now()
+);
+
+create table if not exists airbnb_players (
+  room_id uuid references rooms(id) on delete cascade,
+  player_id uuid references players(id) on delete cascade,
+  score int default 0,
+  last_guess int, -- The price guessed
+  guess_diff_percent float,
+  guess_time_ms int,
+  has_guessed boolean default false,
+  primary key (room_id, player_id)
+);
+
+alter publication supabase_realtime add table airbnb_games;
+alter publication supabase_realtime add table airbnb_players;
+
+-- LogoGuessr Tables
+
+create table if not exists logo_games (
+  room_id uuid references rooms(id) on delete cascade primary key,
+  phase text default 'setup', -- setup, playing, round_results, podium
+  current_round int default 1,
+  total_rounds int default 5,
+  category text default 'all',
+  difficulty text default 'mix',
+  timer_seconds int default 15, -- 5s * 3 steps
+  timer_start_at timestamptz,
+  current_logo jsonb, -- { name, slug, sector, difficulty }
+  queue jsonb, -- Queue of upcoming logos
+  scores jsonb default '{}'::jsonb,
+  found_count int default 0,
+  created_at timestamptz default now()
+);
+
+create table if not exists logo_players (
+  room_id uuid references rooms(id) on delete cascade,
+  player_id uuid references players(id) on delete cascade,
+  score int default 0,
+  has_found boolean default false,
+  find_rank int default 0,
+  find_time_ms int default 0,
+  last_guess text,
+  primary key (room_id, player_id)
+);
+
+alter publication supabase_realtime add table logo_games;
+alter publication supabase_realtime add table logo_players;
