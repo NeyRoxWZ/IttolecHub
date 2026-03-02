@@ -38,10 +38,15 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   const currentPhase = game.phase || 'setup';
   const currentLogo = game.current_logo;
   const currentRound = game.current_round || 1;
-  const totalRounds = game.total_rounds || 5;
   const timerStartAt = game.timer_start_at;
-  const timerSeconds = game.timer_seconds || 15;
   
+  // Settings
+  const settings = gameState?.settings || {};
+  const totalRounds = Number(settings.rounds || 5);
+  const timerSeconds = Number(settings.time || 15);
+  const category = settings.category || 'all';
+  const difficulty = settings.difficulty || 'mix';
+
   // Players Map for GameLayout
   const playersMap = useMemo(() => {
     return players.reduce((acc, p) => {
@@ -79,25 +84,24 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
     const start = new Date(timerStartAt).getTime();
     const duration = timerSeconds * 1000;
     
+    // Calculate steps based on duration
+    const stepDuration = duration / 3;
+
     const interval = setInterval(() => {
         const now = Date.now();
-        const elapsed = (now - start) / 1000;
+        const elapsed = (now - start);
         const remaining = Math.max(0, Math.ceil((start + duration - now) / 1000));
         
         setTimeLeft(remaining);
         
-        // Progressive Blur Logic (3 steps of 5s each for default 15s)
-        // Step 1 (0-5s): 20px
-        // Step 2 (5-10s): 8px
-        // Step 3 (10-15s): 0px (but still playing)
-        // Wait, instructions say:
-        // Step 1: very blur (20px) for 5s
-        // Step 2: light blur (8px) for 5s
-        // Step 3: clear (0px) for 5s
+        // Progressive Blur Logic
+        // Step 1: 20px
+        // Step 2: 8px
+        // Step 3: 0px
         
-        if (elapsed < 5) {
+        if (elapsed < stepDuration) {
             setBlurAmount(20);
-        } else if (elapsed < 10) {
+        } else if (elapsed < stepDuration * 2) {
             setBlurAmount(8);
         } else {
             setBlurAmount(0);
@@ -120,15 +124,10 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
               setInputDisabled(myPlayer.has_found);
               
               if (currentPhase === 'playing' && !myPlayer.has_found) {
-                  // Reset for new round if not found
-                  // But keep disabled if already found in this round? No, has_found is reset by host.
-                  // We just need to ensure input is enabled at start of round.
-                  // Wait, has_found is from server state.
-              }
-              
-              // Reset local guess on new round
-              if (currentPhase === 'playing' && !myPlayer.has_found && userGuess !== '') {
-                  setUserGuess('');
+                  // Reset local guess on new round
+                  if (userGuess !== '') {
+                      setUserGuess('');
+                  }
               }
           }
       }
@@ -156,35 +155,28 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           const now = Date.now();
           const start = new Date(timerStartAt).getTime();
           const timeTaken = now - start;
-          const elapsedSec = timeTaken / 1000;
+          const duration = timerSeconds * 1000;
+          const stepDuration = duration / 3;
           
           // Calculate Score
           let points = 0;
-          if (elapsedSec < 5) points = 1000;      // Step 1
-          else if (elapsedSec < 10) points = 600; // Step 2
+          if (timeTaken < stepDuration) points = 1000;      // Step 1
+          else if (timeTaken < stepDuration * 2) points = 600; // Step 2
           else points = 200;                      // Step 3
           
           // Bonus: +100 if found within first 2s of the step
-          const stepStart = elapsedSec < 5 ? 0 : (elapsedSec < 10 ? 5 : 10);
-          if (elapsedSec - stepStart < 2) {
+          const currentStepStart = Math.floor(timeTaken / stepDuration) * stepDuration;
+          if (timeTaken - currentStepStart < 2000) {
               points += 100;
           }
           
           // Update DB
-          // First get current score
           const myPlayer = players.find(p => p.id === playerId);
           const currentScore = myPlayer?.score || 0;
           
           await supabase.from('logo_players').update({
               has_found: true,
-              score: currentScore + points, // This is wrong, we should store round score or add to total in a secure way.
-              // For simplicity in this architecture, we usually update total score directly on players table too.
-              // But here we are updating logo_players.
-              // Let's rely on `logo_players` score column as accumulating game score.
-              // Wait, `gamePlayers` has the score from `logo_players`.
-              // We need to fetch the latest `logo_players` row to be safe or just increment.
-              // Supabase doesn't support atomic increment easily via simple client update without RPC.
-              // We'll trust the client state for now or fetch first.
+              score: currentScore + points,
               find_time_ms: timeTaken,
               last_guess: guess
           }).match({ room_id: roomId, player_id: playerId });
@@ -202,12 +194,11 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
       if (!isHost || !roomId) return;
       
       try {
-          // Fetch settings
-          // We can pass params to API
-          const category = game.category || 'all';
-          const difficulty = game.difficulty || 'mix';
+          // Fetch settings for API
+          const categoryParam = settings.category || 'all';
+          const difficultyParam = settings.difficulty || 'mix';
           
-          const data = await fetch(`/api/games/logo?count=1&category=${category}&difficulty=${difficulty}`);
+          const data = await fetch(`/api/games/logo?count=1&category=${categoryParam}&difficulty=${difficultyParam}`);
           const logos = await data.json();
           
           if (!logos || logos.length === 0) {
@@ -217,20 +208,50 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           
           const nextLogo = logos[0];
           
-          // 2. Reset players
-          await supabase.from('logo_players').update({
-              has_found: false,
-              find_time_ms: 0,
-              last_guess: null
-          }).eq('room_id', roomId);
-          
-          // 3. Update Game
-          await supabase.from('logo_games').update({
-              phase: 'playing',
-              current_logo: nextLogo,
-              timer_start_at: new Date().toISOString(),
-              current_round: currentPhase === 'setup' ? 1 : currentRound + 1
-          }).eq('room_id', roomId);
+          // 1. Initial Setup if needed
+          if (currentPhase === 'setup') {
+               // Initialize players
+               const playerInserts = players.map(p => ({
+                  room_id: roomId,
+                  player_id: p.id,
+                  score: 0,
+                  has_found: false,
+                  find_time_ms: 0
+              }));
+              
+              await supabase.from('logo_players').delete().eq('room_id', roomId);
+              await supabase.from('logo_players').insert(playerInserts);
+
+              // Create Game Entry
+              await supabase.from('logo_games').upsert({
+                  room_id: roomId,
+                  phase: 'playing',
+                  current_round: 1,
+                  total_rounds: totalRounds,
+                  timer_seconds: timerSeconds,
+                  category: categoryParam,
+                  difficulty: difficultyParam,
+                  current_logo: nextLogo,
+                  timer_start_at: new Date().toISOString(),
+                  created_at: new Date().toISOString()
+              }, { onConflict: 'room_id' });
+              
+              await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
+          } else {
+              // Next Round
+              await supabase.from('logo_players').update({
+                  has_found: false,
+                  find_time_ms: 0,
+                  last_guess: null
+              }).eq('room_id', roomId);
+              
+              await supabase.from('logo_games').update({
+                  phase: 'playing',
+                  current_logo: nextLogo,
+                  timer_start_at: new Date().toISOString(),
+                  current_round: currentRound + 1
+              }).eq('room_id', roomId);
+          }
 
       } catch (error) {
           console.error("Start Round Error:", error);

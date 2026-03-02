@@ -37,9 +37,12 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
   const currentPhase = game.phase || 'setup';
   const currentListing = game.current_listing;
   const currentRound = game.current_round || 1;
-  const totalRounds = game.total_rounds || 5;
   const timerStartAt = game.timer_start_at;
-  const timerSeconds = game.timer_seconds || 30;
+  
+  // Settings
+  const settings = gameState?.settings || {};
+  const totalRounds = Number(settings.rounds || 5);
+  const timerSeconds = Number(settings.time || 30);
   
   // Players Map for GameLayout
   const playersMap = useMemo(() => {
@@ -119,21 +122,49 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
           
           const nextListing = listings[0];
           
-          // 2. Reset players
-          await supabase.from('airbnb_players').update({
-              has_guessed: false,
-              last_guess: null,
-              guess_diff_percent: null,
-              guess_time_ms: 0
-          }).eq('room_id', roomId);
-          
-          // 3. Update Game
-          await supabase.from('airbnb_games').update({
-              phase: 'playing',
-              current_listing: nextListing,
-              timer_start_at: new Date().toISOString(),
-              current_round: currentPhase === 'setup' ? 1 : currentRound + 1
-          }).eq('room_id', roomId);
+          // 1. Initial Setup if needed (First Round)
+          if (currentPhase === 'setup') {
+              // Initialize players
+              const playerInserts = players.map(p => ({
+                  room_id: roomId,
+                  player_id: p.id,
+                  score: 0,
+                  has_guessed: false,
+                  guess_time_ms: 0
+              }));
+              
+              await supabase.from('airbnb_players').delete().eq('room_id', roomId);
+              await supabase.from('airbnb_players').insert(playerInserts);
+
+              // Create Game Entry
+              await supabase.from('airbnb_games').upsert({
+                  room_id: roomId,
+                  phase: 'playing',
+                  current_round: 1,
+                  total_rounds: totalRounds,
+                  timer_seconds: timerSeconds,
+                  current_listing: nextListing,
+                  timer_start_at: new Date().toISOString(),
+                  created_at: new Date().toISOString()
+              }, { onConflict: 'room_id' });
+              
+              await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
+          } else {
+              // Next Round
+              await supabase.from('airbnb_players').update({
+                  has_guessed: false,
+                  last_guess: null,
+                  guess_diff_percent: null,
+                  guess_time_ms: 0
+              }).eq('room_id', roomId);
+              
+              await supabase.from('airbnb_games').update({
+                  phase: 'playing',
+                  current_listing: nextListing,
+                  timer_start_at: new Date().toISOString(),
+                  current_round: currentRound + 1
+              }).eq('room_id', roomId);
+          }
 
       } catch (error) {
           console.error("Start Round Error:", error);
