@@ -284,7 +284,10 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [copied, setCopied] = useState(false);
   const [isRoomDeleted, setIsRoomDeleted] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
-  const [streamerMode, setStreamerMode] = useState(false);
+  const [streamerMode, setStreamerMode] = useState(false); // Mode confidentialité persistant
+  const [showJoinOverlay, setShowJoinOverlay] = useState(false); // Overlay QR Code
+  const [showPseudoModal, setShowPseudoModal] = useState(false);
+  const [pseudoInput, setPseudoInput] = useState('');
   
   // Refs for interval access
   const playersRef = useRef(players);
@@ -297,13 +300,46 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   const selectedGame = useMemo(() => selectedGameId && selectedGameId !== '__placeholder__' ? gamesList.find(g => g.id === selectedGameId) : undefined, [selectedGameId]);
 
+  // Load Streamer Privacy Mode from LocalStorage
+  useEffect(() => {
+      const stored = localStorage.getItem('ittolechub_streamer_mode');
+      if (stored === 'true') {
+          setStreamerMode(true);
+          setIsCodeVisible(false); // Hide code by default if streamer mode is on
+      }
+  }, []);
+
+  const toggleStreamerMode = () => {
+      const newState = !streamerMode;
+      setStreamerMode(newState);
+      localStorage.setItem('ittolechub_streamer_mode', String(newState));
+      
+      if (newState) {
+          setIsCodeVisible(false);
+          toast.success("Mode Streamer (Confidentialité) activé");
+      } else {
+          toast.success("Mode Streamer désactivé");
+      }
+  };
+
   // Initialisation et gestion de la room/joueur via Supabase
   useEffect(() => {
+    // Check for QR Code join or stored session
     const storedName = sessionStorage.getItem('playerName');
+    const searchParams = new URLSearchParams(window.location.search);
+    const isQrJoin = searchParams.get('source') === 'qrcode';
+    
     if (!storedName) {
-      router.push('/');
-      return;
+        if (isQrJoin) {
+            setShowPseudoModal(true);
+            return;
+        } else {
+            // Normal redirect if no session and not QR
+            router.push('/');
+            return;
+        }
     }
+    
     setPlayerName(storedName);
 
     const initRoom = async () => {
@@ -700,6 +736,54 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     return host ? host.name : 'l\'hôte';
   };
 
+  const handlePseudoSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!pseudoInput.trim()) return;
+
+    const finalPseudo = pseudoInput.trim();
+    sessionStorage.setItem('playerName', finalPseudo);
+    setPlayerName(finalPseudo);
+    setShowPseudoModal(false);
+    // Trigger re-run of room logic
+    window.location.reload(); 
+  };
+
+  if (showPseudoModal) {
+      return (
+          <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+              <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl animate-in zoom-in duration-300">
+                  <div className="flex justify-center mb-6">
+                      <div className="bg-indigo-500/10 p-4 rounded-full">
+                          <Users className="w-12 h-12 text-indigo-500" />
+                      </div>
+                  </div>
+                  <h1 className="text-2xl font-bold text-center text-white mb-2">Rejoindre la partie</h1>
+                  <p className="text-center text-slate-400 mb-8">Entrez un pseudo pour rejoindre la salle <span className="font-mono text-white bg-slate-800 px-2 py-0.5 rounded">{params.code}</span></p>
+                  
+                  <form onSubmit={handlePseudoSubmit} className="space-y-4">
+                      <div>
+                          <label className="block text-sm font-medium text-slate-300 mb-2">Votre Pseudo</label>
+                          <Input 
+                              value={pseudoInput}
+                              onChange={(e) => setPseudoInput(e.target.value)}
+                              placeholder="Ex: PikaPika"
+                              className="bg-slate-800 border-slate-700 text-white h-12 text-lg focus:ring-indigo-500"
+                              autoFocus
+                          />
+                      </div>
+                      <Button 
+                          type="submit" 
+                          disabled={!pseudoInput.trim()}
+                          className="w-full h-12 text-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold"
+                      >
+                          Rejoindre
+                      </Button>
+                  </form>
+              </div>
+          </div>
+      );
+  }
+
   if (isRoomDeleted) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-center space-y-6">
@@ -715,45 +799,43 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     );
   }
 
-  if (streamerMode) {
+  if (showJoinOverlay) {
     return (
       <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
-        <div className="text-center space-y-8 animate-in fade-in zoom-in duration-500">
-          <div className="relative inline-block">
-            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full blur opacity-50 animate-pulse"></div>
-            <div className="relative bg-black p-4 rounded-3xl border-2 border-slate-800">
-              <QRCode
-                value={`${window.location.origin}/room/${params.code}`}
-                size={256}
-                fgColor="#FFFFFF"
-                bgColor="transparent"
-              />
-            </div>
-          </div>
+          {/* Close Button */}
+          <button 
+              onClick={() => setShowJoinOverlay(false)}
+              className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors"
+          >
+              <LogOut className="w-8 h-8 rotate-180" />
+          </button>
 
-          <div className="space-y-4">
-            <h1 className="text-6xl font-black text-white uppercase tracking-tighter">
-              Rejoignez la partie !
-            </h1>
-            <div className="flex items-center justify-center gap-4 text-2xl text-slate-400 font-mono">
-              <span>Code :</span>
-              <span className="bg-slate-800 px-4 py-2 rounded-lg text-white border border-slate-700">
-                {params.code}
-              </span>
-            </div>
-          </div>
+          <div className="text-center space-y-12 animate-in fade-in zoom-in duration-500">
+              <h1 className="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 to-purple-600 tracking-tighter mb-8">
+                  IttolecHub
+              </h1>
 
-          <div className="flex justify-center gap-4">
-            <Button
-              onClick={() => setStreamerMode(false)}
-              variant="outline"
-              className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-2"
-            >
-              <Monitor className="w-4 h-4" />
-              Retour Interface
-            </Button>
+              <div className="relative inline-block bg-white p-6 rounded-[2.5rem] shadow-2xl">
+                  <QRCode 
+                      value={`${window.location.origin}/room/${params.code}?source=qrcode`}
+                      size={300}
+                      fgColor="#000000"
+                      bgColor="transparent"
+                  />
+              </div>
+
+              <div className="space-y-4">
+                  <h2 className="text-4xl font-bold text-white uppercase tracking-widest">
+                      Rejoignez la partie !
+                  </h2>
+                  <div className="flex items-center justify-center gap-4 text-3xl text-slate-400 font-mono">
+                      <span>Code :</span>
+                      <span className="bg-slate-800 px-6 py-3 rounded-xl text-white border border-slate-700 font-black tracking-widest">
+                          {params.code}
+                      </span>
+                  </div>
+              </div>
           </div>
-        </div>
       </div>
     );
   }
@@ -793,15 +875,26 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             <div className="flex items-center gap-3">
                 {isHost && (
                     <Button 
-                        onClick={() => setStreamerMode(true)}
+                        onClick={() => setShowJoinOverlay(true)}
                         variant="ghost"
                         size="sm"
                         className="hidden sm:flex gap-2 text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
                     >
-                        <Monitor className="w-4 h-4" />
-                        <span className="hidden md:inline">Streamer</span>
+                        <Users className="w-4 h-4" />
+                        <span className="hidden md:inline">Rejoindre</span>
                     </Button>
                 )}
+
+                {/* Privacy Mode Toggle */}
+                <Button 
+                    onClick={toggleStreamerMode}
+                    variant="ghost"
+                    size="sm"
+                    className={`gap-2 ${streamerMode ? 'text-indigo-400 bg-indigo-900/20' : 'text-slate-400 hover:text-white'}`}
+                    title={streamerMode ? "Désactiver le mode confidentialité" : "Activer le mode confidentialité (masque les codes)"}
+                >
+                    {streamerMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
 
                 <Dialog>
                     <DialogTrigger asChild>
@@ -809,18 +902,18 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                             <QrCode className="w-5 h-5" />
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-slate-900 border-white/10">
-                        <h2 className="text-2xl font-bold mb-6 text-white">Scanner pour rejoindre</h2>
-                        <div className="p-4 bg-white rounded-xl shadow-lg">
-                            <QRCode 
-                                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}`}
-                                size={200}
-                            />
-                        </div>
-                        <p className="mt-6 text-slate-400 font-mono text-xl tracking-widest">
-                            {params.code}
-                        </p>
-                    </DialogContent>
+                    <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 border-none aspect-square">
+                    <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">Scanner pour rejoindre</h2>
+                    <div className="p-4 bg-white rounded-xl shadow-lg aspect-square flex items-center justify-center">
+                        <QRCode 
+                            value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
+                            size={200}
+                        />
+                    </div>
+                    <p className="mt-6 text-slate-500 dark:text-slate-400 font-mono text-xl tracking-widest">
+                        {params.code}
+                    </p>
+                </DialogContent>
                 </Dialog>
 
                 <div 
@@ -842,7 +935,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           <div className="lg:col-span-8 space-y-6">
             
             {/* Game Selection Card */}
-            <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
+            <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 lg:p-8">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-3 rounded-xl bg-indigo-500/20 text-indigo-400">
                         <Gamepad2 className="h-6 w-6" />
@@ -871,7 +964,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                         isComingSoon ? 'opacity-60 cursor-not-allowed' : ''
                                     } ${
                                         isSelected 
-                                        ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/20' 
+                                        ? 'border-indigo-500 bg-indigo-500/10' 
                                         : 'border-white/5 bg-white/5 hover:border-white/20 hover:bg-white/10'
                                     }`}
                                 >
@@ -881,18 +974,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                         </div>
                                     )}
                                     <div className="p-4 flex items-center gap-4">
-                                        <div className={`p-3 rounded-xl bg-gradient-to-br ${game.color} shadow-lg`}>
+                                        <div className={`p-3 rounded-xl bg-gradient-to-br ${game.color}`}>
                                             <Icon className="h-6 w-6 text-white" />
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-white">{game.name}</h3>
                                             <p className="text-xs text-slate-400 line-clamp-1">{game.description}</p>
                                         </div>
-                                        {isSelected && (
-                                            <div className="absolute top-2 right-2">
-                                                <div className="w-3 h-3 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             );
@@ -902,7 +990,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     <div className="bg-white/5 rounded-2xl p-8 text-center border border-white/10">
                         {selectedGame ? (
                             <div className="flex flex-col items-center gap-4 animate-in zoom-in duration-300">
-                                <div className={`p-6 rounded-3xl bg-gradient-to-br ${selectedGame.color} shadow-2xl`}>
+                                <div className={`p-6 rounded-3xl bg-gradient-to-br ${selectedGame.color}`}>
                                     <selectedGame.icon className="h-12 w-12 text-white" />
                                 </div>
                                 <div>
@@ -924,7 +1012,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
             {/* Settings Card */}
             {selectedGame && (
-                <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 lg:p-8 animate-in slide-in-from-bottom-4 duration-500">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                             <div className="p-3 rounded-xl bg-pink-500/20 text-pink-400">
