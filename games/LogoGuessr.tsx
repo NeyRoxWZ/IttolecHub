@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Timer, CheckCircle, XCircle, Trophy, Eye, Image as ImageIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Fuse from 'fuse.js';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 interface LogoGuessrProps {
   roomCode: string;
@@ -186,6 +187,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   const handleCorrectAnswer = async (guess: string) => {
       setHasFound(true);
       setInputDisabled(true);
+      vibrate(HAPTIC.SUCCESS);
       toast.success("Correct !");
       
       const now = Date.now();
@@ -391,13 +393,16 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           {currentPhase === 'playing' && (
               <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto space-y-8">
                   {/* Logo Display */}
-                  <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-8 border-4 border-slate-100 dark:border-slate-800 overflow-hidden">
+                  <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-8 border-4 border-slate-100 dark:border-slate-800 overflow-hidden min-h-[16rem]">
                       {currentLogo && (
                           <img 
                               key={currentLogo.slug || currentRound}
                               src={`https://cdn.simpleicons.org/${currentLogo.slug}`} 
                               alt="Logo mystère" 
                               draggable={false}
+                              loading="eager"
+                              width={320}
+                              height={320}
                               onContextMenu={(e) => e.preventDefault()}
                               className={`w-full h-full object-contain select-none ${blurAmount >= 20 ? '' : 'transition-all duration-1000 ease-linear'}`}
                               style={{ 
@@ -501,20 +506,35 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                   <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
                   <h2 className="text-4xl font-black text-white mb-8">Classement Final</h2>
                   
-                  <div className="w-full space-y-2 mb-8">
+                  <div className="w-full space-y-4 mb-8">
                       {players.sort((a, b) => b.score - a.score).map((p, i) => (
-                          <div key={p.id} className={`flex items-center justify-between p-4 rounded-xl ${
-                              i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-transparent border border-yellow-500/50' : 
-                              i === 1 ? 'bg-white/10' : 
-                              i === 2 ? 'bg-white/5' : 'opacity-50'
+                          <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
+                              i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
+                              i === 1 ? 'bg-slate-800/50 border-slate-600' : 
+                              i === 2 ? 'bg-slate-800/30 border-slate-700' : 'opacity-60 border-transparent'
                           }`}>
+                              {/* Badges */}
+                              {i === 0 && (
+                                  <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform rotate-12">
+                                      Expert Marketing
+                                  </div>
+                              )}
+                              
                               <div className="flex items-center gap-4">
-                                  <span className={`w-8 h-8 flex items-center justify-center rounded-full font-black ${
-                                      i === 0 ? 'bg-yellow-500 text-black' : 'bg-slate-700 text-white'
+                                  <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
+                                      i === 0 ? 'bg-yellow-500 text-black' : 
+                                      i === 1 ? 'bg-slate-400 text-slate-900' :
+                                      i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-slate-800 text-slate-500'
                                   }`}>{i + 1}</span>
-                                  <span className="text-xl font-bold text-white">{p.name}</span>
+                                  
+                                  <div className="flex flex-col">
+                                      <span className="text-xl font-bold text-white">{p.name}</span>
+                                      <span className="text-xs text-slate-400 font-medium">
+                                          {i === 0 ? '🦅 Œil de Lynx' : '📺 Consommateur'}
+                                      </span>
+                                  </div>
                               </div>
-                              <span className="text-2xl font-mono font-black text-orange-400">{p.score} pts</span>
+                              <span className="text-3xl font-mono font-black text-orange-400">{p.score}</span>
                           </div>
                       ))}
                   </div>

@@ -29,6 +29,13 @@ import { Input } from '@/components/ui/Input';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/Card';
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
+
 const games = [
   {
     id: 'wikiguessr',

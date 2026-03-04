@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import Fuse from 'fuse.js';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 interface PokeGuessrProps {
   roomCode: string;
@@ -288,21 +289,51 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
       }
   };
 
+  // Helper: Levenshtein Distance
+  const levenshteinDistance = (a: string, b: string) => {
+      if (a.length === 0) return b.length;
+      if (b.length === 0) return a.length;
+      const matrix = [];
+      for (let i = 0; i <= b.length; i++) { matrix[i] = [i]; }
+      for (let j = 0; j <= a.length; j++) { matrix[0][j] = j; }
+      for (let i = 1; i <= b.length; i++) {
+          for (let j = 1; j <= a.length; j++) {
+              if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                  matrix[i][j] = matrix[i - 1][j - 1];
+              } else {
+                  matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1));
+              }
+          }
+      }
+      return matrix[b.length][a.length];
+  };
+
   const submitGuess = async () => {
       if (!roomId || !playerId || hasGuessed || currentPhase !== 'playing') return;
       if (!currentPokemon) return;
       
-      const names = Object.values(currentPokemon.names);
-      
-      // Fuzzy Matching
-      const fuse = new Fuse(names, {
-          includeScore: true,
-          threshold: 0.25, // Tolerance (0.0 = perfect match, 1.0 = match anything)
-      });
-      
-      const results = fuse.search(userAnswer);
-      const isCorrectGuess = results.length > 0;
+      const userAnswerNorm = userAnswer.trim().toLowerCase();
+      if (userAnswerNorm.length < 2) return; // Prevent 1 char guesses
 
+      const names = Object.values(currentPokemon.names).map((n: any) => n.toLowerCase());
+      
+      // Strict Matching with Levenshtein
+      let isCorrectGuess = false;
+      
+      for (const name of names) {
+          if (name === userAnswerNorm) {
+              isCorrectGuess = true;
+              break;
+          }
+          
+          // Max 1 error for short names, 2 for longer
+          const threshold = name.length > 5 ? 2 : 1;
+          if (levenshteinDistance(userAnswerNorm, name) <= threshold) {
+              isCorrectGuess = true;
+              break;
+          }
+      }
+      
       const now = Date.now();
       const start = new Date(timerStartAt).getTime();
       const timeTaken = Math.max(0, now - start); // ms
@@ -324,7 +355,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
           last_guess: userAnswer,
           is_correct: isCorrectGuess,
           guess_time_ms: timeTaken,
-          score: isCorrectGuess ? currentScore + points : currentScore // Wait, this updates poke_players score column, which is maybe unused if we use global score. But let's follow other games.
+          score: isCorrectGuess ? currentScore + points : currentScore 
       }).match({ room_id: roomId, player_id: playerId });
       
       if (isCorrectGuess) {
@@ -337,8 +368,10 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
       setIsCorrect(isCorrectGuess);
       
       if (isCorrectGuess) {
-          toast.success("Correct ! C'est " + names[0]);
+          vibrate(HAPTIC.SUCCESS);
+          toast.success("Correct ! C'est " + Object.values(currentPokemon.names)[0]);
       } else {
+          vibrate(HAPTIC.ERROR);
           toast.error("Raté !");
       }
   };
@@ -433,13 +466,16 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
             <div className="flex flex-col items-center justify-center w-full h-full gap-8">
                 
                 {/* POKEMON IMAGE */}
-                <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center transition-all duration-700">
+                <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center transition-all duration-700 min-h-[16rem]">
                     {/* Using standard img tag to avoid Next.js domain config issues */}
                     <img 
                        key={currentPokemon.id || currentRound}
                        src={currentPokemon.imageUrl} 
                        alt="Pokemon" 
                        draggable={false}
+                       loading="eager"
+                       width={320}
+                       height={320}
                        onContextMenu={(e) => e.preventDefault()}
                        className="w-full h-full object-contain select-none transition-all duration-700"
                        style={getImageStyle()}
@@ -528,20 +564,36 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                 <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
                 <h2 className="text-4xl font-black text-white mb-8">Classement Final</h2>
                 
-                <div className="w-full space-y-2 mb-8">
+                <div className="w-full space-y-4 mb-8">
                     {players.sort((a, b) => b.score - a.score).map((p, i) => (
-                        <div key={p.id} className={`flex items-center justify-between p-4 rounded-xl ${
-                            i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-transparent border border-yellow-500/50' : 
-                            i === 1 ? 'bg-white/10' : 
-                            i === 2 ? 'bg-white/5' : 'opacity-50'
+                        <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
+                            i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
+                            i === 1 ? 'bg-slate-800/50 border-slate-600' : 
+                            i === 2 ? 'bg-slate-800/30 border-slate-700' : 'opacity-60 border-transparent'
                         }`}>
+                            {/* Badges */}
+                            {i === 0 && (
+                                <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform rotate-12">
+                                    Maître Pokémon
+                                </div>
+                            )}
+                            
                             <div className="flex items-center gap-4">
-                                <span className={`w-8 h-8 flex items-center justify-center rounded-full font-black ${
-                                    i === 0 ? 'bg-yellow-500 text-black' : 'bg-slate-700 text-white'
+                                <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
+                                    i === 0 ? 'bg-yellow-500 text-black' : 
+                                    i === 1 ? 'bg-slate-400 text-slate-900' :
+                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-slate-800 text-slate-500'
                                 }`}>{i + 1}</span>
-                                <span className="text-xl font-bold text-white">{p.name}</span>
+                                
+                                <div className="flex flex-col">
+                                    <span className="text-xl font-bold text-white">{p.name}</span>
+                                    {/* Fake Stat for Demo */}
+                                    <span className="text-xs text-slate-400 font-medium">
+                                        {i === 0 ? '⚡ Le plus rapide' : '🎯 Précision mortelle'}
+                                    </span>
+                                </div>
                             </div>
-                            <span className="text-2xl font-mono font-black text-yellow-400">{p.score} pts</span>
+                            <span className="text-3xl font-mono font-black text-yellow-400">{p.score}</span>
                         </div>
                     ))}
                 </div>

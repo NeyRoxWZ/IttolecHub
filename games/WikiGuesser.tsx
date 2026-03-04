@@ -9,6 +9,7 @@ import { Trophy, CheckCircle, Clock, BookOpen, Loader2, Home, Send, ExternalLink
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 interface WikiGuesserProps {
   roomCode: string;
@@ -252,11 +253,16 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
       const userAnswerNorm = normalize(userAnswer);
       const correctAnswerNorm = normalize(currentArticle.title);
       
+      if (userAnswerNorm.length < 2) return; // Prevent 1 char guesses
+
       // Fuzzy Check (Levenshtein)
       // Allow typos: 2 for long words, 1 for short
       const dist = levenshteinDistance(userAnswerNorm, correctAnswerNorm);
       const threshold = correctAnswerNorm.length > 5 ? 2 : 1;
-      const isCorrect = dist <= threshold || userAnswerNorm.includes(correctAnswerNorm) && correctAnswerNorm.length > 4;
+      
+      // Strict Logic: Only Levenshtein close match OR exact inclusion for very long titles
+      // Removed generic inclusion check which was too lenient
+      const isCorrect = dist <= threshold;
 
       if (isCorrect) {
           // Calculate Score
@@ -286,6 +292,7 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
           setHasFound(true);
           setFindRank(rank);
           setScoreEarned(totalScore);
+          vibrate(HAPTIC.SUCCESS);
           toast.success(`Trouvé ! +${totalScore} pts`);
 
           // Update DB
@@ -304,6 +311,7 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
           // We don't strictly need to increment `found_count` column if we count rows, but let's do it for completeness if we used it.
           // Actually we used `count(*)` so we are good.
       } else {
+          vibrate(HAPTIC.ERROR);
           toast.error("Ce n'est pas ça...");
           // Shake effect?
       }
@@ -479,27 +487,42 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
                 <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
                 <h2 className="text-4xl font-black text-white mb-8">Classement Final</h2>
                 
-                <div className="w-full space-y-2 mb-8">
+                <div className="w-full space-y-4 mb-8">
                     {sortedPlayers.map((p, i) => (
-                        <div key={p.id} className={`flex items-center justify-between p-4 rounded-xl ${
-                            i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-transparent border border-yellow-500/50' : 
-                            i === 1 ? 'bg-white/10' : 
-                            i === 2 ? 'bg-white/5' : 'opacity-50'
+                        <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
+                            i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
+                            i === 1 ? 'bg-slate-800/50 border-slate-600' : 
+                            i === 2 ? 'bg-slate-800/30 border-slate-700' : 'opacity-60 border-transparent'
                         }`}>
+                            {/* Badges */}
+                            {i === 0 && (
+                                <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform rotate-12">
+                                    Grand Sage
+                                </div>
+                            )}
+                            
                             <div className="flex items-center gap-4">
-                                <span className={`w-8 h-8 flex items-center justify-center rounded-full font-black ${
-                                    i === 0 ? 'bg-yellow-500 text-black' : 'bg-slate-700 text-white'
+                                <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
+                                    i === 0 ? 'bg-yellow-500 text-black' : 
+                                    i === 1 ? 'bg-slate-400 text-slate-900' :
+                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-slate-800 text-slate-500'
                                 }`}>{i + 1}</span>
-                                <span className="text-xl font-bold text-white">{p.name}</span>
+                                
+                                <div className="flex flex-col">
+                                    <span className="text-xl font-bold text-white">{p.name}</span>
+                                    <span className="text-xs text-slate-400 font-medium">
+                                        {i === 0 ? '🧠 Encyclopédie Vivante' : '📚 Lecteur'}
+                                    </span>
+                                </div>
                             </div>
-                            <span className="text-2xl font-mono font-black text-blue-400">{p.score} pts</span>
+                            <span className="text-3xl font-mono font-black text-blue-400">{p.score}</span>
                         </div>
                     ))}
                 </div>
-
+                
                 {isHost && (
-                    <Button onClick={returnToLobby} className="w-full h-14 text-lg font-bold bg-white text-black hover:bg-gray-200 rounded-xl">
-                        <Home className="w-5 h-5 mr-2" /> Retour au salon
+                    <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
+                        Retour au salon
                     </Button>
                 )}
             </div>

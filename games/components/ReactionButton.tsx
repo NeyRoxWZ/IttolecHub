@@ -1,73 +1,116 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRealtime } from '@/hooks/useRealtime';
-import { Smile } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
+import { Smile, Heart, ThumbsUp, PartyPopper, Flame, Frown } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/Popover';
 
-const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉', '🤔', '😎', '🙌', '💯', '⭐', '🚀', '😱', '🤣'];
+const REACTIONS = [
+  { emoji: '❤️', label: 'Love' },
+  { emoji: '😂', label: 'Haha' },
+  { emoji: '🔥', label: 'Fire' },
+  { emoji: '😮', label: 'Wow' },
+  { emoji: '😭', label: 'Cry' },
+  { emoji: '😡', label: 'Angry' },
+  { emoji: '👏', label: 'Clap' },
+  { emoji: '💩', label: 'Poop' },
+];
 
-interface ReactionButtonProps {
-  roomCode: string;
-  gameType: string;
-  className?: string;
+interface Reaction {
+  id: string;
+  emoji: string;
+  x: number;
+  y: number;
 }
 
-export default function ReactionButton({ roomCode, gameType, className = '' }: ReactionButtonProps) {
-  const [open, setOpen] = useState(false);
-  const { broadcast, messages } = useRealtime(roomCode, gameType);
-  const playerName = typeof window !== 'undefined' ? sessionStorage.getItem('playerName') || 'Anonyme' : 'Anonyme';
+export default function ReactionButton({ roomId }: { roomId: string }) {
+  const [floatingReactions, setFloatingReactions] = useState<Reaction[]>([]);
 
-  const reactions = useMemo(() => {
-    return messages
-      .filter((m: { type: string }) => m.type === 'reaction')
-      .slice(-8)
-      .map((m: { data?: { player?: string; emoji?: string } }) => ({ player: m.data?.player, emoji: m.data?.emoji }));
-  }, [messages]);
+  useEffect(() => {
+    if (!roomId) return;
 
-  const sendReaction = (emoji: string) => {
-    broadcast({ type: 'reaction', data: { player: playerName, emoji } });
-    setOpen(false);
+    const channel = supabase.channel(`room_${roomId}_reactions`)
+      .on('broadcast', { event: 'reaction' }, (payload) => {
+        addFloatingReaction(payload.payload.emoji);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [roomId]);
+
+  const addFloatingReaction = (emoji: string) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    // Random position horizontally (10% to 90%)
+    const x = 10 + Math.random() * 80;
+    
+    setFloatingReactions(prev => [...prev, { id, emoji, x, y: 100 }]);
+
+    // Remove after animation
+    setTimeout(() => {
+      setFloatingReactions(prev => prev.filter(r => r.id !== id));
+    }, 2000);
+  };
+
+  const sendReaction = async (emoji: string) => {
+    // Optimistic local show
+    addFloatingReaction(emoji);
+    
+    // Broadcast to others
+    await supabase.channel(`room_${roomId}_reactions`).send({
+      type: 'broadcast',
+      event: 'reaction',
+      payload: { emoji }
+    });
   };
 
   return (
-    <div className={`relative ${className}`}>
-      {reactions.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-2 justify-center">
-          {reactions.map((r, i) => (
-            <span key={i} className="text-xs bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full text-slate-800 dark:text-slate-100">
-              {r.emoji} {r.player}
-            </span>
-          ))}
-        </div>
-      )}
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-          aria-label="Réagir"
-        >
-          <Smile className="h-4 w-4" />
-          Réagir
-        </button>
-        {open && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
-            <div className="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-lg z-50 grid grid-cols-4 gap-1">
-              {EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => sendReaction(emoji)}
-                  className="text-2xl p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+    <>
+      {/* Floating Container (Fixed Overlay) */}
+      <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+        {floatingReactions.map(r => (
+          <div
+            key={r.id}
+            className="absolute text-4xl animate-float-up opacity-0"
+            style={{ 
+              left: `${r.x}%`, 
+              bottom: '10%',
+              animationDuration: '2s',
+              animationTimingFunction: 'ease-out'
+            }}
+          >
+            {r.emoji}
+          </div>
+        ))}
       </div>
-    </div>
+
+      {/* Trigger Button */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="rounded-full w-12 h-12 bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20 shadow-lg"
+          >
+            <Smile className="w-6 h-6" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-2 bg-slate-900/90 backdrop-blur-xl border-slate-700 rounded-2xl" side="top" align="center">
+          <div className="grid grid-cols-4 gap-2">
+            {REACTIONS.map((r) => (
+              <button
+                key={r.label}
+                onClick={() => sendReaction(r.emoji)}
+                className="text-2xl p-2 hover:bg-white/10 rounded-xl transition-transform active:scale-90"
+              >
+                {r.emoji}
+              </button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </>
   );
 }

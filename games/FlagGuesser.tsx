@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 interface FlagGuesserProps {
   roomCode: string;
@@ -246,14 +247,16 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
           isCorrect = userAnswerNorm === correctAnswerNorm;
       } else {
           // Fuzzy check
-          // 1. Exact match
+          // 1. Strict Match
           if (userAnswerNorm === correctAnswerNorm) isCorrect = true;
-          // 2. Contains (if long enough)
-          else if (correctAnswerNorm.length > 4 && userAnswerNorm.includes(correctAnswerNorm)) isCorrect = true;
-          // 3. Levenshtein (Simple version)
+          // 2. Contains (Removed for strictness, unless very long)
+          else if (correctAnswerNorm.length > 8 && userAnswerNorm.includes(correctAnswerNorm)) isCorrect = true;
+          // 3. Levenshtein (Strict)
           else {
               const dist = levenshteinDistance(userAnswerNorm, correctAnswerNorm);
-              if (dist <= 2 && correctAnswerNorm.length > 3) isCorrect = true;
+              // Max 1 error for short, 2 for long
+              const threshold = correctAnswerNorm.length > 5 ? 2 : 1;
+              if (dist <= threshold) isCorrect = true;
           }
       }
 
@@ -280,8 +283,13 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
       setUserAnswer(answer);
       setIsCorrectLocal(isCorrect);
       setScoreEarned(score);
-      if (isCorrect) toast.success(`+${score} pts !`);
-      else toast.error("Raté !");
+      if (isCorrect) {
+          vibrate(HAPTIC.SUCCESS);
+          toast.success(`+${score} pts !`);
+      } else {
+          vibrate(HAPTIC.ERROR);
+          toast.error("Raté !");
+      }
 
       // DB Update
       // Get current score first? No, simple increment is better but SQL `score = score + X` is hard via JS client without RPC.
@@ -506,27 +514,42 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                 <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
                 <h2 className="text-4xl font-black text-white mb-8">Classement Final</h2>
                 
-                <div className="w-full space-y-2 mb-8">
+                <div className="w-full space-y-4 mb-8">
                     {sortedPlayers.map((p, i) => (
-                        <div key={p.id} className={`flex items-center justify-between p-4 rounded-xl ${
-                            i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-transparent border border-yellow-500/50' : 
-                            i === 1 ? 'bg-white/10' : 
-                            i === 2 ? 'bg-white/5' : 'opacity-50'
+                        <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
+                            i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
+                            i === 1 ? 'bg-slate-800/50 border-slate-600' : 
+                            i === 2 ? 'bg-slate-800/30 border-slate-700' : 'opacity-60 border-transparent'
                         }`}>
+                            {/* Badges */}
+                            {i === 0 && (
+                                <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform rotate-12">
+                                    Globe Trotter
+                                </div>
+                            )}
+                            
                             <div className="flex items-center gap-4">
-                                <span className={`w-8 h-8 flex items-center justify-center rounded-full font-black ${
-                                    i === 0 ? 'bg-yellow-500 text-black' : 'bg-slate-700 text-white'
+                                <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
+                                    i === 0 ? 'bg-yellow-500 text-black' : 
+                                    i === 1 ? 'bg-slate-400 text-slate-900' :
+                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-slate-800 text-slate-500'
                                 }`}>{i + 1}</span>
-                                <span className="text-xl font-bold text-white">{p.name}</span>
+                                
+                                <div className="flex flex-col">
+                                    <span className="text-xl font-bold text-white">{p.name}</span>
+                                    <span className="text-xs text-slate-400 font-medium">
+                                        {i === 0 ? '🌍 Cartographe' : '🧭 Explorateur'}
+                                    </span>
+                                </div>
                             </div>
-                            <span className="text-2xl font-mono font-black text-blue-400">{p.score} pts</span>
+                            <span className="text-3xl font-mono font-black text-blue-400">{p.score}</span>
                         </div>
                     ))}
                 </div>
 
                 {isHost && (
-                    <Button onClick={returnToLobby} className="w-full h-14 text-lg font-bold bg-white text-black hover:bg-gray-200 rounded-xl">
-                        <Home className="w-5 h-5 mr-2" /> Retour au salon
+                    <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
+                        Retour au salon
                     </Button>
                 )}
             </div>

@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { Clock, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ReactionButton from './ReactionButton';
 
 interface GameLayoutProps {
   children: ReactNode;
@@ -33,17 +34,20 @@ export default function GameLayout({
   showScores = true // Default true
 }: GameLayoutProps) {
   
-  // Timer progress bar calculation
-  // Assuming standard round time is max of what we've seen or 100% if unknown
-  // Ideally we should pass maxTime but for now we visualy represent it
-  // Let's use a visual trick: if timeLeft is provided, we can animate it
-  
+  // Extract roomId from URL (simple hack since we don't pass it down yet)
+  const roomId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop()?.split('?')[0] : '';
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30 overflow-hidden flex flex-col">
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px] animate-pulse-slow" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
+      </div>
+
+      {/* REACTION BUTTON (Fixed Bottom Right) */}
+      <div className="fixed bottom-6 right-6 z-[90]">
+          <ReactionButton roomId={roomId || ''} />
       </div>
 
       {/* HEADER FIXE */}

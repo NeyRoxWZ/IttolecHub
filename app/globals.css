@@ -6,6 +6,22 @@
 @layer base {
   body {
     @apply bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100;
+    /* Amélioration de la réactivité mobile */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+
+  /* Rendre tous les éléments interactifs plus réactifs */
+  button, a, input, select, textarea {
+    @apply transition-transform duration-75 active:scale-[0.98];
+    touch-action: manipulation;
+  }
+
+  /* Désactiver la sélection de texte sur les éléments d'interface pour éviter les conflits tactiles */
+  button, .select-none {
+    user-select: none;
+    -webkit-user-select: none;
   }
 }
 
@@ -13,7 +29,7 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(5px);
   }
   to {
     opacity: 1;
@@ -22,7 +38,13 @@
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Transitions globales plus rapides */
+.transition-all, .transition-colors, .transition-opacity, .transition-transform {
+  transition-duration: 150ms !important;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 /* Inputs : toujours lisibles (éviter texte blanc sur fond blanc) */

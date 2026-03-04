@@ -6,9 +6,11 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap, Shield, EyeOff, Settings, Play, LogOut, CheckCircle, Home } from 'lucide-react';
+import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap, Shield, EyeOff, Settings, Play, LogOut, CheckCircle, Home, QrCode, Eye, Monitor } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import QRCode from 'react-qr-code';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/Dialog';
 
 interface Player {
   id: string;
@@ -282,6 +284,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [copied, setCopied] = useState(false);
   const [isRoomDeleted, setIsRoomDeleted] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
+  const [streamerMode, setStreamerMode] = useState(false);
   
   // Refs for interval access
   const playersRef = useRef(players);
@@ -697,6 +700,64 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     return host ? host.name : 'l\'hôte';
   };
 
+  if (isRoomDeleted) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-center space-y-6">
+        <LogOut className="w-24 h-24 text-red-500 animate-bounce" />
+        <h1 className="text-4xl font-black text-white">Cette salle n'existe plus</h1>
+        <p className="text-slate-400 text-lg max-w-md">
+          L'hôte a quitté ou la salle a été supprimée.
+        </p>
+        <Button onClick={() => router.push('/')} size="lg" className="bg-slate-800 hover:bg-slate-700">
+          Retour à l'accueil
+        </Button>
+      </div>
+    );
+  }
+
+  if (streamerMode) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
+        <div className="text-center space-y-8 animate-in fade-in zoom-in duration-500">
+          <div className="relative inline-block">
+            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full blur opacity-50 animate-pulse"></div>
+            <div className="relative bg-black p-4 rounded-3xl border-2 border-slate-800">
+              <QRCode
+                value={`${window.location.origin}/room/${params.code}`}
+                size={256}
+                fgColor="#FFFFFF"
+                bgColor="transparent"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h1 className="text-6xl font-black text-white uppercase tracking-tighter">
+              Rejoignez la partie !
+            </h1>
+            <div className="flex items-center justify-center gap-4 text-2xl text-slate-400 font-mono">
+              <span>Code :</span>
+              <span className="bg-slate-800 px-4 py-2 rounded-lg text-white border border-slate-700">
+                {params.code}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex justify-center gap-4">
+            <Button
+              onClick={() => setStreamerMode(false)}
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-2"
+            >
+              <Monitor className="w-4 h-4" />
+              Retour Interface
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 font-sans selection:bg-indigo-500/30">
       
@@ -729,15 +790,49 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 </div>
             </div>
 
-            <div 
-                className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full cursor-pointer hover:bg-white/10 transition-colors group"
-                onClick={copyRoomCode}
-            >
-                <span className="text-xs text-slate-400 uppercase tracking-widest font-bold">Code</span>
-                <span className="font-mono text-lg font-bold tracking-widest text-white group-hover:text-indigo-300 transition-colors">
-                    {params.code}
-                </span>
-                {copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-slate-500 group-hover:text-white" />}
+            <div className="flex items-center gap-3">
+                {isHost && (
+                    <Button 
+                        onClick={() => setStreamerMode(true)}
+                        variant="ghost"
+                        size="sm"
+                        className="hidden sm:flex gap-2 text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
+                    >
+                        <Monitor className="w-4 h-4" />
+                        <span className="hidden md:inline">Streamer</span>
+                    </Button>
+                )}
+
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="ghost" className="p-2 h-auto text-slate-400 hover:text-white hover:bg-white/10">
+                            <QrCode className="w-5 h-5" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-slate-900 border-white/10">
+                        <h2 className="text-2xl font-bold mb-6 text-white">Scanner pour rejoindre</h2>
+                        <div className="p-4 bg-white rounded-xl shadow-lg">
+                            <QRCode 
+                                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}`}
+                                size={200}
+                            />
+                        </div>
+                        <p className="mt-6 text-slate-400 font-mono text-xl tracking-widest">
+                            {params.code}
+                        </p>
+                    </DialogContent>
+                </Dialog>
+
+                <div 
+                    className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full cursor-pointer hover:bg-white/10 transition-colors group"
+                    onClick={copyRoomCode}
+                >
+                    <span className="text-xs text-slate-400 uppercase tracking-widest font-bold">Code</span>
+                    <span className="font-mono text-lg font-bold tracking-widest text-white group-hover:text-indigo-300 transition-colors">
+                        {params.code}
+                    </span>
+                    {copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-slate-500 group-hover:text-white" />}
+                </div>
             </div>
         </header>
 
