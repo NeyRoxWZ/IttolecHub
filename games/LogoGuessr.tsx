@@ -394,9 +394,12 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                   <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-8 border-4 border-slate-100 dark:border-slate-800 overflow-hidden">
                       {currentLogo && (
                           <img 
+                              key={currentLogo.slug || currentRound}
                               src={`https://cdn.simpleicons.org/${currentLogo.slug}`} 
                               alt="Logo mystère" 
-                              className="w-full h-full object-contain transition-all duration-1000 ease-linear"
+                              draggable={false}
+                              onContextMenu={(e) => e.preventDefault()}
+                              className={`w-full h-full object-contain select-none ${blurAmount >= 20 ? '' : 'transition-all duration-1000 ease-linear'}`}
                               style={{ 
                                   filter: `blur(${blurAmount}px) brightness(0) grayscale(100%)`,
                                   opacity: 1

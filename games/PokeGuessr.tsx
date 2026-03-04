@@ -436,9 +436,12 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                 <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center transition-all duration-700">
                     {/* Using standard img tag to avoid Next.js domain config issues */}
                     <img 
+                       key={currentPokemon.id || currentRound}
                        src={currentPokemon.imageUrl} 
                        alt="Pokemon" 
-                       className="w-full h-full object-contain transition-all duration-700"
+                       draggable={false}
+                       onContextMenu={(e) => e.preventDefault()}
+                       className="w-full h-full object-contain select-none transition-all duration-700"
                        style={getImageStyle()}
                     />
                 </div>
