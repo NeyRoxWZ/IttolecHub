@@ -26,6 +26,8 @@ interface Reaction {
 
 export default function ReactionButton({ roomId }: { roomId: string }) {
   const [floatingReactions, setFloatingReactions] = useState<Reaction[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
     if (!roomId) return;
@@ -41,6 +43,14 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
     };
   }, [roomId]);
 
+  // Cooldown timer effect
+  useEffect(() => {
+    if (cooldown > 0) {
+        const timer = setTimeout(() => setCooldown(c => Math.max(0, c - 0.5)), 500);
+        return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
+
   const addFloatingReaction = (emoji: string) => {
     const id = Math.random().toString(36).substr(2, 9);
     // Random position horizontally (10% to 90%)
@@ -55,6 +65,11 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
   };
 
   const sendReaction = async (emoji: string) => {
+    if (cooldown > 0) return;
+    
+    setIsOpen(false); // Close popover immediately
+    setCooldown(3); // 3 seconds cooldown
+
     // Optimistic local show
     addFloatingReaction(emoji);
     
@@ -87,14 +102,23 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
       </div>
 
       {/* Trigger Button */}
-      <Popover>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button 
             variant="outline" 
             size="icon" 
-            className="rounded-full w-12 h-12 bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20 shadow-lg"
+            disabled={cooldown > 0}
+            className={`rounded-full w-12 h-12 backdrop-blur-md shadow-lg transition-all ${
+                cooldown > 0 
+                ? 'bg-slate-800/50 border-slate-700 text-slate-500 cursor-not-allowed' 
+                : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+            }`}
           >
-            <Smile className="w-6 h-6" />
+            {cooldown > 0 ? (
+                <span className="text-xs font-bold">{Math.ceil(cooldown)}s</span>
+            ) : (
+                <Smile className="w-6 h-6" />
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-2 bg-slate-900/90 backdrop-blur-xl border-slate-700 rounded-2xl" side="top" align="center">

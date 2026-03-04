@@ -924,13 +924,14 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
                 <div 
                     className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full cursor-pointer hover:bg-white/10 transition-colors group"
-                    onClick={streamerMode ? undefined : copyRoomCode}
+                    onClick={copyRoomCode}
+                    title={streamerMode ? "Code masqué (cliquez pour copier)" : "Copier le code"}
                 >
                     <span className="text-xs text-slate-400 uppercase tracking-widest font-bold">Code</span>
                     <span className="font-mono text-lg font-bold tracking-widest text-white group-hover:text-indigo-300 transition-colors">
                         {streamerMode ? '••••••' : params.code}
                     </span>
-                    {!streamerMode && (copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-slate-500 group-hover:text-white" />)}
+                    {copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-slate-500 group-hover:text-white" />}
                 </div>
             </div>
         </header>
