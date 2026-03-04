@@ -185,21 +185,55 @@ export default function Home() {
                 </h2>
 
                 <div className="flex-1 flex flex-col items-center justify-center text-center relative">
-                    <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-                        <Gamepad2 className="w-64 h-64 text-white animate-spin-slow" />
-                    </div>
-
+                    {/* Animated Scene */}
                     <div className="z-10 w-full max-w-sm">
-                        <div className="mb-8 h-40 flex items-center justify-center">
-                            {/* Placeholder simple */}
-                            <div className="w-full h-full bg-slate-800/50 border-2 border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-500 key={currentStep}">
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
-                                <div className="text-slate-600 font-black text-6xl opacity-20 uppercase tracking-widest rotate-12 select-none">
-                                    IMAGE
-                                </div>
-                                <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/30 rounded text-[10px] text-slate-500 font-mono">
-                                    PLACEHOLDER
-                                </div>
+                        <div className="mb-8 h-48 w-full flex items-center justify-center">
+                            <div className="w-full h-full bg-slate-800/50 border-4 border-slate-700/50 rounded-3xl flex items-center justify-center relative overflow-hidden transition-all duration-500 key={currentStep}">
+                                
+                                {/* Step 1: Create/Join - Users Animation */}
+                                {currentStep === 0 && (
+                                    <div className="relative w-full h-full flex items-center justify-center gap-4">
+                                        <div className="absolute inset-0 bg-indigo-500/10 animate-pulse-slow"></div>
+                                        <div className="w-16 h-16 bg-indigo-500 rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-lg" style={{ animationDelay: '0s' }}>
+                                            <Users className="w-8 h-8 text-white" />
+                                        </div>
+                                        <div className="w-16 h-16 bg-purple-500 rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-lg" style={{ animationDelay: '0.2s' }}>
+                                            <Users className="w-8 h-8 text-white" />
+                                        </div>
+                                        <div className="w-16 h-16 bg-green-500 rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-lg" style={{ animationDelay: '0.4s' }}>
+                                            <Users className="w-8 h-8 text-white" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Step 2: Choose Game - Card Selection Animation */}
+                                {currentStep === 1 && (
+                                    <div className="relative w-full h-full flex items-center justify-center">
+                                        <div className="absolute inset-0 bg-purple-500/10 animate-pulse-slow"></div>
+                                        <div className="w-24 h-32 bg-white rounded-xl border-4 border-slate-200 shadow-xl transform -rotate-12 absolute left-1/4 top-8 animate-float-up" style={{ animationDuration: '3s' }}></div>
+                                        <div className="w-24 h-32 bg-indigo-500 rounded-xl border-4 border-indigo-300 shadow-2xl transform rotate-6 z-10 flex items-center justify-center animate-pulse">
+                                            <Gamepad2 className="w-12 h-12 text-white" />
+                                        </div>
+                                        <div className="w-24 h-32 bg-slate-700 rounded-xl border-4 border-slate-600 shadow-xl transform rotate-12 absolute right-1/4 top-8 animate-float-up" style={{ animationDuration: '4s' }}></div>
+                                    </div>
+                                )}
+
+                                {/* Step 3: Play - Action/Reaction Animation */}
+                                {currentStep === 2 && (
+                                    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+                                        <div className="absolute inset-0 bg-green-500/10 animate-pulse-slow"></div>
+                                        {/* Floating Emojis */}
+                                        <div className="absolute text-4xl animate-float-up left-10 bottom-0">❤️</div>
+                                        <div className="absolute text-4xl animate-float-up left-1/2 bottom-0" style={{ animationDelay: '0.5s' }}>😂</div>
+                                        <div className="absolute text-4xl animate-float-up right-10 bottom-0" style={{ animationDelay: '1s' }}>🔥</div>
+                                        
+                                        {/* Trophy */}
+                                        <div className="w-20 h-20 bg-yellow-400 rounded-full border-4 border-yellow-200 shadow-[0_0_30px_rgba(250,204,21,0.6)] flex items-center justify-center z-10 animate-bounce">
+                                            <Play className="w-10 h-10 text-yellow-800 ml-1" />
+                                        </div>
+                                    </div>
+                                )}
+
                             </div>
                         </div>
                         
