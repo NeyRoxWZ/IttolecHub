@@ -32,7 +32,7 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
   {
     id: 'wikiguessr',
     name: 'WikiGuessr',
-    description: 'Devine l\'article Wikipédia caché.',
+    description: 'Explorez Wikipédia à l\'aveugle.',
     icon: Globe,
     color: 'from-gray-500 to-slate-600',
     settings: [
@@ -40,15 +40,15 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 60 },
       { 
         id: 'category', 
-        label: 'Catégorie', 
+        label: 'Thème', 
         type: 'select', 
         default: 'all',
         options: [
-          { value: 'all', label: 'Tout' },
-          { value: 'Personnages', label: 'Personnages' },
-          { value: 'Géographie', label: 'Géographie' },
+          { value: 'all', label: 'Aléatoire' },
+          { value: 'Personnages', label: 'Célébrités' },
+          { value: 'Géographie', label: 'Lieux & Pays' },
           { value: 'Sciences', label: 'Sciences' },
-          { value: 'Culture', label: 'Culture' },
+          { value: 'Culture', label: 'Art & Culture' },
         ]
       },
     ],
@@ -56,7 +56,7 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
   {
     id: 'pokeguessr',
     name: 'PokéGuessr',
-    description: 'Devinez le Pokémon à partir de son ombre.',
+    description: 'Quel est ce Pokémon ?',
     icon: Zap,
     color: 'from-red-500 to-orange-500',
     settings: [
@@ -64,13 +64,13 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
       { 
         id: 'difficulty', 
-        label: 'Difficulté', 
+        label: 'Mode de Jeu', 
         type: 'select', 
         default: 'normal',
         options: [
-          { value: 'easy', label: 'Facile (Flou)' },
-          { value: 'normal', label: 'Normal (Silhouette)' },
-          { value: 'hard', label: 'Difficile (Renversé)' },
+          { value: 'easy', label: 'Facile (Image Floue)' },
+          { value: 'normal', label: 'Classique (Ombre)' },
+          { value: 'hard', label: 'Expert (Inversé)' },
         ]
       },
       {
@@ -79,15 +79,15 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
         type: 'multiselect',
         default: [1],
         options: [
-          { value: '1', label: 'Gen 1' },
-          { value: '2', label: 'Gen 2' },
-          { value: '3', label: 'Gen 3' },
-          { value: '4', label: 'Gen 4' },
-          { value: '5', label: 'Gen 5' },
-          { value: '6', label: 'Gen 6' },
-          { value: '7', label: 'Gen 7' },
-          { value: '8', label: 'Gen 8' },
-          { value: '9', label: 'Gen 9' },
+          { value: '1', label: 'Gen 1 (Kanto)' },
+          { value: '2', label: 'Gen 2 (Johto)' },
+          { value: '3', label: 'Gen 3 (Hoenn)' },
+          { value: '4', label: 'Gen 4 (Sinnoh)' },
+          { value: '5', label: 'Gen 5 (Unys)' },
+          { value: '6', label: 'Gen 6 (Kalos)' },
+          { value: '7', label: 'Gen 7 (Alola)' },
+          { value: '8', label: 'Gen 8 (Galar)' },
+          { value: '9', label: 'Gen 9 (Paldea)' },
         ]
       }
     ],
@@ -95,21 +95,21 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
   {
     id: 'flagguessr',
     name: 'FlagGuessr',
-    description: 'Identifiez le pays au drapeau.',
-    icon: Gamepad2, // Flag icon imported but using generic fallback if needed, ideally Flag
+    description: 'Voyagez à travers les drapeaux.',
+    icon: Gamepad2, 
     color: 'from-green-500 to-emerald-500',
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 10 },
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 15 },
       { 
         id: 'region', 
-        label: 'Région', 
+        label: 'Continent', 
         type: 'select', 
         default: 'all',
         options: [
-          { value: 'all', label: 'Monde entier' },
+          { value: 'all', label: 'Monde Entier' },
           { value: 'Europe', label: 'Europe' },
-          { value: 'Americas', label: 'Amérique' },
+          { value: 'Americas', label: 'Amériques' },
           { value: 'Africa', label: 'Afrique' },
           { value: 'Asia', label: 'Asie' },
           { value: 'Oceania', label: 'Océanie' },
@@ -120,27 +120,25 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
   {
     id: 'infiltre',
     name: "L'Infiltré",
-    description: "Déduction sociale avec Maître du jeu.",
+    description: "Démasquez l'intrus parmi vous.",
     icon: Shield,
     color: 'from-slate-500 to-slate-700',
     settings: [
       { id: 'rounds', label: 'Manches', type: 'number', default: 3 },
-      { id: 'guessTime', label: 'Temps pour deviner (minutes)', type: 'number', default: 5 },
-      { id: 'voteTime', label: 'Temps de vote (secondes)', type: 'number', default: 30 },
+      { id: 'guessTime', label: 'Débat (minutes)', type: 'number', default: 5 },
+      { id: 'voteTime', label: 'Vote (secondes)', type: 'number', default: 30 },
       { 
         id: 'category', 
-        label: 'Catégorie', 
+        label: 'Univers', 
         type: 'select', 
         default: 'all',
         options: [
-            { value: 'all', label: 'Tout' },
-            { value: 'Lieu/Bâtiment', label: 'Lieu/Bâtiment' },
-            { value: 'Objet', label: 'Objet' },
-            { value: 'Animal', label: 'Animal' },
-            { value: 'Métier', label: 'Métier' },
-            { value: 'Concept', label: 'Concept' },
-            { value: 'Concept/Nature', label: 'Concept/Nature' },
-            { value: 'Objet/Nature', label: 'Objet/Nature' }
+            { value: 'all', label: 'Tout Mélangé' },
+            { value: 'Lieu/Bâtiment', label: 'Lieux' },
+            { value: 'Objet', label: 'Objets' },
+            { value: 'Animal', label: 'Animaux' },
+            { value: 'Métier', label: 'Métiers' },
+            { value: 'Concept', label: 'Abstrait' },
         ]
       },
     ],
@@ -148,40 +146,39 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
   {
     id: 'undercover',
     name: 'Undercover',
-    description: 'Trouvez l\'intrus parmi les civils.',
+    description: 'Bluffez pour survivre.',
     icon: EyeOff,
     color: 'from-indigo-500 to-blue-600',
     settings: [
         { id: 'rounds', label: 'Manches', type: 'number', default: 1 },
-        { id: 'undercoverCount', label: "Nombre d'Undercovers", type: 'number', default: 1 },
+        { id: 'undercoverCount', label: "Nb. Imposteurs", type: 'number', default: 1 },
         { 
             id: 'mrWhiteEnabled', 
-            label: 'Activer Mr. White', 
+            label: 'Mr. White', 
             type: 'select', 
             default: 'true',
             options: [
-                { value: 'true', label: 'Oui' },
-                { value: 'false', label: 'Non' }
+                { value: 'true', label: 'Activé' },
+                { value: 'false', label: 'Désactivé' }
             ]
         },
         { 
             id: 'playersKnowRole', 
-            label: 'Rôles Visibles', 
+            label: 'Rôles Secrets', 
             type: 'select', 
             default: 'true',
             options: [
-                { value: 'true', label: 'Oui (Civil/Undercover)' },
-                { value: 'false', label: 'Non (Juste le mot)' }
+                { value: 'true', label: 'Oui (Rôle affiché)' },
+                { value: 'false', label: 'Non (Mot seul)' }
             ]
         },
-        { id: 'clueRounds', label: 'Tours de parole avant vote', type: 'number', default: 3 },
-        { id: 'voteTime', label: 'Temps de vote (s)', type: 'number', default: 30 },
+        { id: 'clueRounds', label: 'Tours de table', type: 'number', default: 3 },
     ],
   },
   {
     id: 'drawguessr',
     name: 'DrawGuessr',
-    description: 'Dessine et devine en temps réel.',
+    description: 'Dessinez, c\'est gagné !',
     icon: PenTool,
     color: 'from-pink-500 to-rose-600',
     settings: [
@@ -189,22 +186,22 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 90 },
       { 
         id: 'difficulty', 
-        label: 'Difficulté', 
+        label: 'Niveau', 
         type: 'select', 
         default: 'mix',
         options: [
-          { value: 'mix', label: 'Mix' },
-          { value: 'easy', label: 'Facile' },
-          { value: 'medium', label: 'Moyen' },
-          { value: 'hard', label: 'Difficile' },
+          { value: 'mix', label: 'Équilibré' },
+          { value: 'easy', label: 'Débutant' },
+          { value: 'medium', label: 'Intermédiaire' },
+          { value: 'hard', label: 'Expert' },
         ]
-      },
-    ],
+      }
+    ]
   },
   {
     id: 'budgetguessr',
     name: 'BudgetGuessr',
-    description: 'Estime le prix juste d\'objets.',
+    description: 'Estimez le juste prix.',
     icon: DollarSign,
     color: 'from-green-400 to-emerald-600',
     settings: [
@@ -212,15 +209,15 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
       { 
         id: 'category', 
-        label: 'Catégorie', 
+        label: 'Rayon', 
         type: 'select', 
         default: 'all',
         options: [
-          { value: 'all', label: 'Tout' },
+          { value: 'all', label: 'Tout le magasin' },
           { value: 'High-Tech', label: 'High-Tech' },
-          { value: 'Maison', label: 'Maison' },
-          { value: 'Luxe', label: 'Luxe' },
-          { value: 'Alimentation', label: 'Alimentation' },
+          { value: 'Maison', label: 'Maison & Déco' },
+          { value: 'Luxe', label: 'Luxe & Mode' },
+          { value: 'Alimentation', label: 'Supermarché' },
         ]
       },
     ],
@@ -228,7 +225,7 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
   {
     id: 'rentguessr',
     name: 'RentGuessr',
-    description: 'Estime le loyer mensuel.',
+    description: 'Devinez le loyer mensuel.',
     icon: Home,
     color: 'from-indigo-500 to-purple-600',
     settings: [
@@ -239,7 +236,7 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
   {
     id: 'logoguessr',
     name: 'LogoGuessr',
-    description: 'Devine la marque derrière le logo flouté.',
+    description: 'Reconnaissez la marque.',
     icon: Gamepad2, // Placeholder, should be ImageIcon
     color: 'from-orange-400 to-red-500',
     settings: [
@@ -261,7 +258,7 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
   {
     id: 'airbnbguessr',
     name: 'AirbnbGuessr',
-    description: 'Estime le prix par nuit.',
+    description: 'Le prix d\'une nuit de rêve.',
     icon: Home, // Placeholder, should be MapPin
     color: 'from-rose-500 to-pink-600',
     settings: [
@@ -878,11 +875,10 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     <Button 
                         onClick={() => setShowJoinOverlay(true)}
                         variant="ghost"
-                        size="sm"
-                        className="hidden sm:flex gap-2 text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
+                        className="hidden sm:flex items-center gap-2 h-12 px-4 rounded-xl text-purple-400 hover:text-purple-300 hover:bg-purple-900/20 transition-all border border-transparent hover:border-purple-500/20"
                     >
-                        <Users className="w-4 h-4" />
-                        <span className="hidden md:inline">Rejoindre</span>
+                        <Users className="w-5 h-5" />
+                        <span className="hidden md:inline font-bold">Rejoindre</span>
                     </Button>
                 )}
 
@@ -890,18 +886,22 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 <Button 
                     onClick={toggleStreamerMode}
                     variant="ghost"
-                    size="sm"
-                    className={`gap-2 ${streamerMode ? 'text-indigo-400 bg-indigo-900/20' : 'text-slate-400 hover:text-white'}`}
+                    className={`flex items-center gap-2 h-12 px-4 rounded-xl transition-all border ${
+                        streamerMode 
+                        ? 'text-indigo-400 bg-indigo-900/20 border-indigo-500/30 hover:bg-indigo-900/30' 
+                        : 'text-slate-400 hover:text-white bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'
+                    }`}
                     title={streamerMode ? "Désactiver le mode confidentialité" : "Activer le mode confidentialité (masque les codes)"}
                 >
-                    {streamerMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {streamerMode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    <span className="hidden lg:inline font-medium">{streamerMode ? 'Privé' : 'Public'}</span>
                 </Button>
 
                 {/* QR Code Dialog (Hidden in Privacy Mode) */}
                 {!streamerMode && (
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button variant="ghost" className="p-2 h-auto text-slate-400 hover:text-white hover:bg-white/10">
+                            <Button variant="ghost" className="h-12 w-12 p-0 rounded-xl text-slate-400 hover:text-white bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all">
                                 <QrCode className="w-5 h-5" />
                             </Button>
                         </DialogTrigger>
@@ -923,7 +923,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 )}
 
                 <div 
-                    className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full cursor-pointer hover:bg-white/10 transition-colors group"
+                    className="h-12 flex items-center gap-3 bg-white/5 border border-white/10 px-5 rounded-xl cursor-pointer hover:bg-white/10 hover:border-white/20 transition-all group"
                     onClick={copyRoomCode}
                     title={streamerMode ? "Code masqué (cliquez pour copier)" : "Copier le code"}
                 >

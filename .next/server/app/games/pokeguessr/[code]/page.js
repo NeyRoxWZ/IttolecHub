@@ -28,4 +28,4 @@
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */let r=(0,s(9224).Z)("Zap",[["polygon",{points:"13 2 3 14 12 14 11 22 21 10 12 10 13 2",key:"45s27k"}]])},6667:(e,t,s)=>{"use strict";s.r(t),s.d(t,{default:()=>i});var r=s(5036);let a=(0,s(6843).createProxy)(String.raw`C:\Users\masso\Desktop\IttolecHub\games\PokeGuessr.tsx`),{__esModule:l,$$typeof:o}=a,n=a.default;function i({params:e}){return r.jsx(n,{roomCode:e.code})}}};var t=require("../../../../webpack-runtime.js");t.C(e);var s=e=>t(t.s=e),r=t.X(0,[638,560,612,282,771],()=>s(1167));module.exports=r})();
+ */let r=(0,s(9224).Z)("Zap",[["polygon",{points:"13 2 3 14 12 14 11 22 21 10 12 10 13 2",key:"45s27k"}]])},6667:(e,t,s)=>{"use strict";s.r(t),s.d(t,{default:()=>i});var r=s(5036);let a=(0,s(6843).createProxy)(String.raw`C:\Users\masso\Desktop\IttolecHub\games\PokeGuessr.tsx`),{__esModule:l,$$typeof:o}=a,n=a.default;function i({params:e}){return r.jsx(n,{roomCode:e.code})}}};var t=require("../../../../webpack-runtime.js");t.C(e);var s=e=>t(t.s=e),r=t.X(0,[638,560,297,797,771],()=>s(1167));module.exports=r})();
