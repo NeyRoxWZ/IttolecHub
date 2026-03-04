@@ -83,11 +83,19 @@ export default function Home() {
 
       <main className="relative z-10 w-full max-w-6xl flex flex-col items-center gap-8 animate-in fade-in zoom-in duration-500">
         
-        {/* LOGO */}
-        <div className="text-center mb-4 transform hover:scale-105 transition-transform duration-300">
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]"
+        {/* LOGO ANIMÉ */}
+        <div className="text-center mb-4">
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] flex justify-center gap-1"
               style={{ WebkitTextStroke: '2px #4f46e5' }}>
-            IttolecHub
+            {"IttolecHub".split('').map((char, i) => (
+                <span 
+                    key={i} 
+                    className="inline-block animate-bounce" 
+                    style={{ animationDelay: `${i * 0.1}s`, animationDuration: '2s' }}
+                >
+                    {char}
+                </span>
+            ))}
           </h1>
           <div className="h-2 w-32 bg-indigo-500 mx-auto mt-2 rounded-full shadow-[0_0_15px_rgba(79,70,229,0.8)]"></div>
         </div>
@@ -101,20 +109,20 @@ export default function Home() {
                 <div className="flex bg-slate-950/50 p-1.5 rounded-2xl mb-8 border border-white/5">
                     <button 
                         onClick={() => setActiveTab('create')}
-                        className={`flex-1 py-3 text-lg font-black uppercase tracking-wider rounded-xl transition-all duration-200 ${
+                        className={`flex-1 py-3 text-lg font-black uppercase tracking-wider rounded-xl transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 ${
                             activeTab === 'create' 
-                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' 
-                            : 'text-slate-500 hover:text-slate-300'
+                            ? 'bg-indigo-600 text-white border-indigo-800' 
+                            : 'bg-transparent text-slate-500 hover:text-slate-300 border-transparent'
                         }`}
                     >
                         Créer
                     </button>
                     <button 
                         onClick={() => setActiveTab('join')}
-                        className={`flex-1 py-3 text-lg font-black uppercase tracking-wider rounded-xl transition-all duration-200 ${
+                        className={`flex-1 py-3 text-lg font-black uppercase tracking-wider rounded-xl transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 ${
                             activeTab === 'join' 
-                            ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30' 
-                            : 'text-slate-500 hover:text-slate-300'
+                            ? 'bg-purple-600 text-white border-purple-800' 
+                            : 'bg-transparent text-slate-500 hover:text-slate-300 border-transparent'
                         }`}
                     >
                         Rejoindre
@@ -182,15 +190,17 @@ export default function Home() {
                     </div>
 
                     <div className="z-10 w-full max-w-sm">
-                        <div className="mb-8 h-32 flex items-center justify-center">
-                            {(() => {
-                                const Icon = STEPS[currentStep].icon;
-                                return (
-                                    <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-[0_10px_20px_rgba(79,70,229,0.4)] transform rotate-3 transition-all duration-500 key={currentStep}">
-                                        <Icon className="w-12 h-12 text-white" />
-                                    </div>
-                                );
-                            })()}
+                        <div className="mb-8 h-40 flex items-center justify-center">
+                            {/* Placeholder simple */}
+                            <div className="w-full h-full bg-slate-800/50 border-2 border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-500 key={currentStep}">
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
+                                <div className="text-slate-600 font-black text-6xl opacity-20 uppercase tracking-widest rotate-12 select-none">
+                                    IMAGE
+                                </div>
+                                <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/30 rounded text-[10px] text-slate-500 font-mono">
+                                    PLACEHOLDER
+                                </div>
+                            </div>
                         </div>
                         
                         <h3 className="text-3xl font-black text-white mb-4 uppercase tracking-wide min-h-[40px]">

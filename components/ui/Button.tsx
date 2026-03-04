@@ -9,20 +9,21 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ children, className, variant = 'primary', size = 'md', ...props }, ref) => {
-    const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+    // Gamey Style Base Classes
+    const baseClasses = 'inline-flex items-center justify-center font-black uppercase tracking-wider rounded-xl transition-all focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed transform active:translate-y-1 active:border-b-0 border-b-4';
     
     const variants = {
-      primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700',
-      secondary: 'bg-slate-200 text-slate-900 hover:bg-slate-300 focus:ring-slate-500 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600',
-      outline: 'border border-slate-300 text-slate-700 hover:bg-slate-50 focus:ring-slate-500 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800 dark:bg-transparent',
-      ghost: 'bg-transparent text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+      primary: 'bg-indigo-500 border-indigo-700 text-white hover:bg-indigo-400 hover:border-indigo-600',
+      secondary: 'bg-slate-700 border-slate-900 text-white hover:bg-slate-600 hover:border-slate-800',
+      outline: 'bg-transparent border-2 border-slate-500 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-400 active:translate-y-0 active:border-2', // Less gamey for outline
+      ghost: 'bg-transparent border-transparent text-slate-400 hover:text-white hover:bg-white/5 active:translate-y-0 active:border-transparent', // No 3D for ghost
     };
     
     const sizes = {
-      sm: 'px-3 py-1.5 text-sm',
-      md: 'px-4 py-2 text-sm',
-      lg: 'px-6 py-3 text-base',
-      icon: 'h-10 w-10',
+      sm: 'px-3 py-1 text-xs h-8',
+      md: 'px-5 py-2 text-sm h-12',
+      lg: 'px-8 py-4 text-lg h-16',
+      icon: 'h-12 w-12 p-0 flex items-center justify-center',
     };
 
     return (

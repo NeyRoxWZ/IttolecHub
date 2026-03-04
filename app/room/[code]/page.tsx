@@ -341,17 +341,59 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
     const initRoom = async () => {
       try {
-        // 1. Récupérer la room
-        const { data: room, error: roomError } = await supabase
-          .from('rooms')
-          .select('*')
-          .eq('code', params.code)
-          .maybeSingle();
-
-        if (roomError || !room) {
-          setIsRoomDeleted(true);
-          return;
+        let roomData = null;
+        let attempts = 0;
+        
+        // Retry logic for room fetching (wait for creation propagation)
+        while (attempts < 5 && !roomData) {
+            const { data, error } = await supabase
+              .from('rooms')
+              .select('*')
+              .eq('code', params.code)
+              .maybeSingle();
+            
+            if (data) {
+                roomData = data;
+                break;
+            }
+            
+            // Wait 500ms before retry
+            await new Promise(r => setTimeout(r, 500));
+            attempts++;
         }
+
+        if (!roomData) {
+          // Check if user just created this room (isHost param)
+          const searchParams = new URLSearchParams(window.location.search);
+          const isHostParam = searchParams.get('host') === 'true';
+          
+          if (isHostParam) {
+              // Create room if it doesn't exist and we are host
+              const { data: newRoom, error: createError } = await supabase
+                  .from('rooms')
+                  .insert({
+                      code: params.code,
+                      host_id: storedName, // Temporary host name, will update with ID later
+                      status: 'waiting',
+                      game_type: '__placeholder__'
+                  })
+                  .select()
+                  .single();
+                  
+              if (newRoom) {
+                  roomData = newRoom;
+              } else {
+                  console.error("Failed to create room:", createError);
+                  setIsRoomDeleted(true);
+                  return;
+              }
+          } else {
+              setIsRoomDeleted(true);
+              return;
+          }
+        }
+
+        const room = roomData;
 
         // Redirection immédiate si la partie est déjà en cours
         if (room.status === 'in_game' || room.status === 'started') {
