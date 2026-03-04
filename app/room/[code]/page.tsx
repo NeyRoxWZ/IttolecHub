@@ -873,7 +873,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             </div>
 
             <div className="flex items-center gap-3">
-                {isHost && (
+                {/* Join Overlay Button (Hidden in Privacy Mode) */}
+                {isHost && !streamerMode && (
                     <Button 
                         onClick={() => setShowJoinOverlay(true)}
                         variant="ghost"
@@ -896,35 +897,40 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     {streamerMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </Button>
 
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button variant="ghost" className="p-2 h-auto text-slate-400 hover:text-white hover:bg-white/10">
-                            <QrCode className="w-5 h-5" />
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 border-none aspect-square">
-                    <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">Scanner pour rejoindre</h2>
-                    <div className="p-4 bg-white rounded-xl shadow-lg aspect-square flex items-center justify-center">
-                        <QRCode 
-                            value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
-                            size={200}
-                        />
-                    </div>
-                    <p className="mt-6 text-slate-500 dark:text-slate-400 font-mono text-xl tracking-widest">
-                        {params.code}
-                    </p>
-                </DialogContent>
-                </Dialog>
+                {/* QR Code Dialog (Hidden in Privacy Mode) */}
+                {!streamerMode && (
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" className="p-2 h-auto text-slate-400 hover:text-white hover:bg-white/10">
+                                <QrCode className="w-5 h-5" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 border-none aspect-square">
+                        <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">Scanner pour rejoindre</h2>
+                        <div className="p-4 bg-white rounded-xl shadow-lg aspect-square flex items-center justify-center w-full">
+                            <QRCode 
+                                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
+                                size={256}
+                                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                viewBox={`0 0 256 256`}
+                            />
+                        </div>
+                        <p className="mt-6 text-slate-500 dark:text-slate-400 font-mono text-xl tracking-widest">
+                            {params.code}
+                        </p>
+                    </DialogContent>
+                    </Dialog>
+                )}
 
                 <div 
                     className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full cursor-pointer hover:bg-white/10 transition-colors group"
-                    onClick={copyRoomCode}
+                    onClick={streamerMode ? undefined : copyRoomCode}
                 >
                     <span className="text-xs text-slate-400 uppercase tracking-widest font-bold">Code</span>
                     <span className="font-mono text-lg font-bold tracking-widest text-white group-hover:text-indigo-300 transition-colors">
-                        {params.code}
+                        {streamerMode ? '••••••' : params.code}
                     </span>
-                    {copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-slate-500 group-hover:text-white" />}
+                    {!streamerMode && (copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-slate-500 group-hover:text-white" />)}
                 </div>
             </div>
         </header>
