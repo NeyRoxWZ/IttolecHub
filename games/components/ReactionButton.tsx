@@ -84,16 +84,15 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
   return (
     <>
       {/* Floating Container (Fixed Overlay) */}
-      <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
         {floatingReactions.map(r => (
           <div
             key={r.id}
-            className="absolute text-4xl animate-float-up opacity-0"
+            className="absolute text-5xl select-none animate-float-up opacity-0 drop-shadow-lg"
             style={{ 
               left: `${r.x}%`, 
-              bottom: '10%',
-              animationDuration: '2s',
-              animationTimingFunction: 'ease-out'
+              bottom: '100px',
+              willChange: 'transform, opacity'
             }}
           >
             {r.emoji}
