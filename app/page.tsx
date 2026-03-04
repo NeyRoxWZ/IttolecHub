@@ -86,7 +86,7 @@ export default function Home() {
         {/* LOGO IMAGE */}
         <div className="text-center mb-4">
           <img 
-            src="/logo.png" 
+            src="https://cdn.discordapp.com/attachments/1360997269364670650/1478894408655966339/Gemini_Generated_Image_8zjaq58zjaq58zja-removebg-preview.png?ex=69aa0f3f&is=69a8bdbf&hm=5e455bc6372f30b06b2331eb15ad94d222ffd077df1ad42b299206953c509850&" 
             alt="IttolecHub" 
             className="h-24 md:h-32 w-auto mx-auto drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]"
           />
