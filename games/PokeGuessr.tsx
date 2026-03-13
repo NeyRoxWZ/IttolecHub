@@ -439,10 +439,10 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                 </div>
                 
                 <div className="text-center space-y-4 max-w-lg">
-                    <h2 className="text-4xl font-black text-white uppercase tracking-wider drop-shadow-lg">
+                    <h2 className="text-4xl font-black text-[#F8FAFC] uppercase tracking-wider drop-shadow-lg">
                         Quel est ce <span className="text-yellow-400">Pokémon</span> ?
                     </h2>
-                    <p className="text-slate-400 text-lg">
+                    <p className="text-[#94A3B8] text-lg">
                         Devinez le nom du Pokémon à partir de sa silhouette ou de son image !
                     </p>
                 </div>
@@ -456,9 +456,9 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                         Lancer la partie
                     </Button>
                 ) : (
-                   <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                   <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full border border-[#475569]">
                        <Loader2 className="w-5 h-5 animate-spin text-yellow-400" />
-                       <span className="text-slate-300 font-medium">En attente du dresseur...</span>
+                       <span className="text-[#F8FAFC] font-medium">En attente du dresseur...</span>
                    </div>
                 )}
             </div>
@@ -491,7 +491,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                         <h2 className="text-4xl sm:text-5xl font-black text-yellow-500 uppercase tracking-wider mb-2 drop-shadow-md">
                             {currentPokemon.names['fr'] || currentPokemon.names['en']}
                         </h2>
-                        <span className="text-slate-400 text-lg font-mono">{currentPokemon.names['en']}</span>
+                        <span className="text-[#94A3B8] text-lg font-mono">{currentPokemon.names['en']}</span>
                     </div>
                 )}
 
@@ -510,7 +510,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                                     value={userAnswer}
                                     onChange={e => setUserAnswer(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && submitGuess()}
-                                    className="h-16 text-xl bg-slate-900 border-yellow-500/30 focus:border-yellow-500 text-white placeholder:text-slate-500 text-center rounded-xl shadow-inner"
+                                    className="h-16 text-xl bg-[#334155] border-[#3B82F6]/30 focus:border-[#3B82F6] text-[#F8FAFC] placeholder:text-[#94A3B8] text-center rounded-xl shadow-[0_4px_0_0px_#020617]"
                                     autoFocus
                                 />
                                 <Button 
@@ -546,8 +546,8 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                                             {playerInfo?.name.charAt(0)}
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-slate-100">{playerInfo?.name}</span>
-                                            <span className="text-xs text-slate-400">{p.last_guess || '-'}</span>
+                                            <span className="font-bold text-[#F8FAFC]">{playerInfo?.name}</span>
+                                            <span className="text-xs text-[#94A3B8]">{p.last_guess || '-'}</span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -565,14 +565,14 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
                 <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                <h2 className="text-4xl font-black text-white mb-8">Classement Final</h2>
+                <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
                 
                 <div className="w-full space-y-4 mb-8">
                     {players.sort((a, b) => b.score - a.score).map((p, i) => (
                         <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
                             i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                            i === 1 ? 'bg-slate-800/50 border-slate-600' : 
-                            i === 2 ? 'bg-slate-800/30 border-slate-700' : 'opacity-60 border-transparent'
+                            i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
+                            i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
                         }`}>
                             {/* Badges */}
                             {i === 0 && (
@@ -584,14 +584,14 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                             <div className="flex items-center gap-4">
                                 <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
                                     i === 0 ? 'bg-yellow-500 text-black' : 
-                                    i === 1 ? 'bg-slate-400 text-slate-900' :
-                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-slate-800 text-slate-500'
+                                    i === 1 ? 'bg-[#475569] text-[#F8FAFC]' :
+                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
                                 }`}>{i + 1}</span>
                                 
                                 <div className="flex flex-col">
-                                    <span className="text-xl font-bold text-white">{p.name}</span>
+                                    <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
                                     {/* Fake Stat for Demo */}
-                                    <span className="text-xs text-slate-400 font-medium">
+                                    <span className="text-xs text-[#94A3B8] font-medium">
                                         {i === 0 ? '⚡ Le plus rapide' : '🎯 Précision mortelle'}
                                     </span>
                                 </div>
@@ -602,7 +602,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                 </div>
                 
                 {isHost && (
-                    <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
+                    <Button onClick={returnToLobby} size="lg" variant="secondary" className="font-bold">
                         Retour au salon
                     </Button>
                 )}

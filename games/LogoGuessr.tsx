@@ -366,10 +366,10 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                   </div>
                   
                   <div className="text-center space-y-4 max-w-lg">
-                      <h2 className="text-4xl font-black text-white uppercase tracking-wider drop-shadow-lg">
+                      <h2 className="text-4xl font-black text-[#F8FAFC] uppercase tracking-wider drop-shadow-lg">
                           Logo <span className="text-orange-400">Guessr</span>
                       </h2>
-                      <p className="text-slate-400 text-lg">
+                      <p className="text-[#94A3B8] text-lg">
                           Les logos apparaîtront floutés puis deviendront nets. Soyez le plus rapide à deviner la marque !
                       </p>
                   </div>
@@ -378,14 +378,14 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                       <Button 
                           onClick={startRound} 
                           size="lg" 
-                          className="w-full max-w-xs h-16 text-xl bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(249,115,22,0.3)] transition-all hover:scale-105"
+                          className="w-full max-w-xs h-16 text-xl bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-wider rounded-xl shadow-[0_4px_0_0px_#020617] transition-all hover:scale-105"
                       >
                           Commencer la partie
                       </Button>
                   ) : (
-                      <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                      <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full border border-[#475569]">
                           <Timer className="w-5 h-5 animate-spin text-orange-400" />
-                          <span className="text-slate-300 font-medium">En attente de l'hôte...</span>
+                          <span className="text-[#F8FAFC] font-medium">En attente de l'hôte...</span>
                       </div>
                   )}
               </div>
@@ -395,7 +395,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           {currentPhase === 'playing' && (
               <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto space-y-8">
                   {/* Logo Display */}
-                  <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-8 border-4 border-slate-100 dark:border-slate-800 overflow-hidden min-h-[16rem]">
+                  <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-[#1E293B] rounded-3xl shadow-2xl flex items-center justify-center p-8 border-4 border-[#334155] overflow-hidden min-h-[16rem]">
                       {currentLogo && (
                           <img 
                               key={currentLogo.slug || currentRound}
@@ -506,14 +506,14 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           {currentPhase === 'podium' && (
               <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
                   <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                  <h2 className="text-4xl font-black text-white mb-8">Classement Final</h2>
+                  <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
                   
                   <div className="w-full space-y-4 mb-8">
                       {players.sort((a, b) => b.score - a.score).map((p, i) => (
                           <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
                               i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                              i === 1 ? 'bg-slate-800/50 border-slate-600' : 
-                              i === 2 ? 'bg-slate-800/30 border-slate-700' : 'opacity-60 border-transparent'
+                              i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
+                              i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
                           }`}>
                               {/* Badges */}
                               {i === 0 && (
@@ -525,12 +525,12 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                               <div className="flex items-center gap-4">
                                   <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
                                       i === 0 ? 'bg-yellow-500 text-black' : 
-                                      i === 1 ? 'bg-slate-400 text-slate-900' :
-                                      i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-slate-800 text-slate-500'
+                                      i === 1 ? 'bg-[#475569] text-[#F8FAFC]' :
+                                      i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
                                   }`}>{i + 1}</span>
                                   
                                   <div className="flex flex-col">
-                                      <span className="text-xl font-bold text-white">{p.name}</span>
+                                      <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
                                       <span className="text-xs text-slate-400 font-medium">
                                           {i === 0 ? '🦅 Œil de Lynx' : '📺 Consommateur'}
                                       </span>
@@ -542,7 +542,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                   </div>
                   
                   {isHost && (
-                      <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
+                      <Button onClick={returnToLobby} size="lg" variant="secondary" className="font-bold">
                           Retour au salon
                       </Button>
                   )}

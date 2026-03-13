@@ -308,10 +308,10 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
                   </div>
                   
                   <div className="text-center space-y-4 max-w-lg">
-                      <h2 className="text-4xl font-black text-white uppercase tracking-wider drop-shadow-lg">
+                      <h2 className="text-4xl font-black text-[#F8FAFC] uppercase tracking-wider drop-shadow-lg">
                           Airbnb <span className="text-rose-400">Guessr</span>
                       </h2>
-                      <p className="text-slate-400 text-lg">
+                      <p className="text-[#94A3B8] text-lg">
                           Devinez le prix par nuit de logements Airbnb incroyables. Plus vous êtes proche, plus vous gagnez de points !
                       </p>
                   </div>
@@ -320,14 +320,14 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
                       <Button 
                           onClick={startRound} 
                           size="lg" 
-                          className="w-full max-w-xs h-16 text-xl bg-rose-600 hover:bg-rose-500 text-white font-black uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(225,29,72,0.3)] transition-all hover:scale-105"
+                          className="w-full max-w-xs h-16 text-xl bg-rose-600 hover:bg-rose-500 text-white font-black uppercase tracking-wider rounded-xl shadow-[0_4px_0_0px_#020617] transition-all hover:scale-105"
                       >
                           Commencer la partie
                       </Button>
                   ) : (
-                      <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                      <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full border border-[#475569]">
                           <Clock className="w-5 h-5 animate-spin text-rose-400" />
-                          <span className="text-slate-300 font-medium">En attente de l'hôte...</span>
+                          <span className="text-[#F8FAFC] font-medium">En attente de l'hôte...</span>
                       </div>
                   )}
               </div>
@@ -505,7 +505,7 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
           {currentPhase === 'podium' && (
               <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
                   <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                  <h2 className="text-4xl font-black text-white mb-8">Classement Final</h2>
+                  <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
                   
                   <div className="w-full space-y-2 mb-8">
                       {players.sort((a, b) => b.score - a.score).map((p, i) => (
@@ -526,7 +526,7 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
                   </div>
                   
                   {isHost && (
-                      <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
+                      <Button onClick={returnToLobby} size="lg" variant="secondary" className="font-bold">
                           Retour au salon
                       </Button>
                   )}

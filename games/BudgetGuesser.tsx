@@ -348,7 +348,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                </div>
                
                <div className="text-center space-y-2">
-                   <h2 className="text-3xl font-bold text-white">Hollywood est prêt ?</h2>
+                    <h2 className="text-3xl font-bold text-[#F8FAFC]">Hollywood est prêt ?</h2>
                    <p className="text-gray-400">
                        Rounds : <span className="text-blue-400 font-bold">{totalRounds}</span> • 
                        Temps : <span className="text-purple-400 font-bold">{settings.time || 30}s</span>
@@ -359,14 +359,14 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                    <Button 
                        size="lg" 
                        onClick={startNewGame}
-                       className="h-16 px-12 text-xl font-bold bg-gradient-to-r from-green-600 to-green-800 hover:from-green-500 hover:to-green-700 shadow-lg border border-white/10 rounded-xl"
+                        className="h-16 px-12 text-xl font-bold bg-[#6366F1] hover:bg-[#4F46E5] shadow-[0_4px_0_0px_#020617] border border-[#6366F1] rounded-xl"
                    >
                        Lancer la partie
                    </Button>
                ) : (
-                   <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-full">
-                       <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-                       <span className="text-gray-300">En attente du producteur...</span>
+                    <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full">
+                        <Loader2 className="w-5 h-5 animate-spin text-[#94A3B8]" />
+                        <span className="text-[#F8FAFC]">En attente du producteur...</span>
                    </div>
                )}
             </div>
@@ -377,22 +377,22 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
             <div className="flex flex-col items-center w-full max-w-4xl gap-6 pt-4 px-4">
                 
                 {/* MOVIE CARD */}
-                <div className="flex flex-col md:flex-row bg-slate-800 rounded-2xl overflow-hidden shadow-2xl w-full">
+                <div className="flex flex-col md:flex-row bg-[#1E293B] rounded-2xl overflow-hidden shadow-2xl w-full">
                     {/* Poster */}
                     <div className="w-full md:w-1/3 aspect-[2/3] relative bg-black">
                         {currentMovie.poster_path ? (
                             <img src={currentMovie.poster_path} alt={currentMovie.title} className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-500">Pas d'affiche</div>
+                            <div className="w-full h-full flex items-center justify-center text-[#94A3B8]">Pas d'affiche</div>
                         )}
                     </div>
                     
                     {/* Info */}
                     <div className="w-full md:w-2/3 p-6 flex flex-col justify-between">
                         <div>
-                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">{currentMovie.title}</h2>
+                            <h2 className="text-3xl md:text-4xl font-bold text-[#F8FAFC] mb-2">{currentMovie.title}</h2>
                             <div className="flex flex-wrap gap-2 mb-4">
-                                <span className="bg-white/10 px-3 py-1 rounded-full text-sm font-bold text-white">{currentMovie.release_date}</span>
+                                <span className="bg-[#334155] px-3 py-1 rounded-full text-sm font-bold text-[#F8FAFC]">{currentMovie.release_date}</span>
                                 {currentMovie.genres && currentMovie.genres.map((g: string) => (
                                     <span key={g} className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-sm">{g}</span>
                                 ))}
@@ -407,7 +407,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                                     {formatCurrency(currentMovie.budget)}
                                 </div>
                             ) : (
-                                <div className="text-4xl md:text-5xl font-black text-slate-700 bg-slate-700 select-none blur-md rounded-lg w-3/4">
+                                <div className="text-4xl md:text-5xl font-black text-[#334155] bg-[#334155] select-none blur-md rounded-lg w-3/4">
                                     $999,999,999
                                 </div>
                             )}
@@ -433,7 +433,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                                         value={userGuess}
                                         onChange={e => setUserGuess(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && submitGuess()}
-                                        className="h-16 pl-10 text-2xl font-bold bg-slate-900 border-white/20 text-white placeholder:text-gray-600 tracking-widest"
+                                        className="h-16 pl-10 text-2xl font-bold bg-[#334155] border-[#3B82F6] text-[#F8FAFC] placeholder:text-[#94A3B8] tracking-widest"
                                         autoFocus
                                     />
                                 </div>
@@ -459,14 +459,14 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                             
                             return (
                                 <div key={p.id} className={`p-4 rounded-xl border flex items-center justify-between ${
-                                    isWinner ? 'bg-green-500/10 border-green-500/50' : 'bg-slate-800 border-slate-700'
+                                    isWinner ? 'bg-green-500/10 border-green-500/50' : 'bg-[#1E293B] border-[#334155]'
                                 }`}>
                                     <div className="flex flex-col">
-                                        <span className="font-bold text-white">{p.name}</span>
+                                        <span className="font-bold text-[#F8FAFC]">{p.name}</span>
                                         <span className="text-sm text-gray-400">Écart: {diff.toFixed(1)}%</span>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-mono font-bold text-xl text-white">{formatCurrency(p.last_guess)}</div>
+                                        <div className="font-mono font-bold text-xl text-[#F8FAFC]">{formatCurrency(p.last_guess)}</div>
                                         {/* Show points earned logic needed? Or just total score? */}
                                         {/* Ideally show +Points. We can infer it or store it. */}
                                     </div>
@@ -482,14 +482,14 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
                 <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                <h2 className="text-4xl font-black text-white mb-8">Classement Final</h2>
+                <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
                 
                 <div className="w-full space-y-4 mb-8">
                     {sortedPlayers.map((p, i) => (
                         <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
                             i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                            i === 1 ? 'bg-slate-800/50 border-slate-600' : 
-                            i === 2 ? 'bg-slate-800/30 border-slate-700' : 'opacity-60 border-transparent'
+                            i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
+                            i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
                         }`}>
                             {/* Badges */}
                             {i === 0 && (
@@ -501,13 +501,13 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                             <div className="flex items-center gap-4">
                                 <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
                                     i === 0 ? 'bg-yellow-500 text-black' : 
-                                    i === 1 ? 'bg-slate-400 text-slate-900' :
-                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-slate-800 text-slate-500'
+                                    i === 1 ? 'bg-[#475569] text-[#F8FAFC]' :
+                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
                                 }`}>{i + 1}</span>
                                 
                                 <div className="flex flex-col">
-                                    <span className="text-xl font-bold text-white">{p.name}</span>
-                                    <span className="text-xs text-slate-400 font-medium">
+                                    <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
+                                    <span className="text-xs text-[#94A3B8] font-medium">
                                         {i === 0 ? '💰 Banquier' : '📉 Économe'}
                                     </span>
                                 </div>
@@ -518,7 +518,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                 </div>
 
                 {isHost && (
-                    <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
+                    <Button onClick={returnToLobby} size="lg" variant="secondary" className="font-bold">
                         Retour au salon
                     </Button>
                 )}

@@ -334,10 +334,10 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                   </div>
                   
                   <div className="text-center space-y-4 max-w-lg">
-                      <h2 className="text-4xl font-black text-white uppercase tracking-wider drop-shadow-lg">
+                      <h2 className="text-4xl font-black text-[#F8FAFC] uppercase tracking-wider drop-shadow-lg">
                           Rent <span className="text-indigo-400">Guessr</span>
                       </h2>
-                      <p className="text-slate-400 text-lg">
+                      <p className="text-[#94A3B8] text-lg">
                           Devinez le loyer mensuel de biens immobiliers à travers la France. Plus vous êtes proche, plus vous gagnez de points !
                       </p>
                   </div>
@@ -346,12 +346,12 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                       <Button 
                           onClick={startRound} 
                           size="lg" 
-                          className="w-full max-w-xs h-16 text-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all hover:scale-105"
+                          className="w-full max-w-xs h-16 text-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-black uppercase tracking-wider rounded-xl shadow-[0_4px_0_0px_#020617] transition-all hover:scale-105"
                       >
                           Commencer la partie
                       </Button>
                   ) : (
-                      <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                       <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full border border-[#475569]">
                           <Clock className="w-5 h-5 animate-spin text-indigo-400" />
                           <span className="text-slate-300 font-medium">En attente de l'hôte...</span>
                       </div>
@@ -421,22 +421,22 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
 
                       {/* Details Grid */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center backdrop-blur-sm">
+                          <div className="bg-[#1E293B] p-3 rounded-xl border border-[#334155] flex flex-col items-center justify-center text-center backdrop-blur-sm">
                               <Layout className="w-5 h-5 text-indigo-500 mb-1" />
                               <span className="text-xs text-slate-400 uppercase font-bold">Surface</span>
                               <span className="font-bold text-slate-100">{currentProperty?.surface_m2} m²</span>
                           </div>
-                          <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center backdrop-blur-sm">
+                          <div className="bg-[#1E293B] p-3 rounded-xl border border-[#334155] flex flex-col items-center justify-center text-center backdrop-blur-sm">
                               <Building2 className="w-5 h-5 text-purple-500 mb-1" />
                               <span className="text-xs text-slate-400 uppercase font-bold">Pièces</span>
                               <span className="font-bold text-slate-100">{currentProperty?.nb_rooms}</span>
                           </div>
-                          <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center backdrop-blur-sm">
+                          <div className="bg-[#1E293B] p-3 rounded-xl border border-[#334155] flex flex-col items-center justify-center text-center backdrop-blur-sm">
                               <Bed className="w-5 h-5 text-pink-500 mb-1" />
                               <span className="text-xs text-slate-400 uppercase font-bold">Chambres</span>
                               <span className="font-bold text-slate-100">{currentProperty?.nb_bedrooms}</span>
                           </div>
-                          <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center backdrop-blur-sm">
+                          <div className="bg-[#1E293B] p-3 rounded-xl border border-[#334155] flex flex-col items-center justify-center text-center backdrop-blur-sm">
                               {currentProperty?.floor !== null && currentProperty?.floor !== undefined ? (
                                   <>
                                       <Layers className="w-5 h-5 text-yellow-500 mb-1" />
@@ -468,7 +468,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                       </div>
 
                       {/* Input Area */}
-                      <Card className="p-6 bg-slate-900 text-white border-slate-800">
+                      <Card className="p-6 bg-[#0F172A] text-[#F8FAFC] border-[#334155]">
                           <label className="block text-sm font-medium text-slate-400 mb-2 uppercase tracking-wider">
                               Votre estimation (Loyer Mensuel)
                           </label>
@@ -483,7 +483,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                                       onChange={(e) => setUserGuess(e.target.value)}
                                       disabled={hasGuessed}
                                       placeholder="Ex: 1200"
-                                      className="w-full pl-10 h-14 text-xl font-bold bg-slate-800 border border-slate-700 rounded-xl text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+                                      className="w-full pl-10 h-14 text-xl font-bold bg-[#334155] border border-[#475569] rounded-xl text-[#F8FAFC] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] transition-all appearance-none"
                                       onKeyDown={(e) => e.key === 'Enter' && handleGuess()}
                                   />
                               </div>
@@ -493,7 +493,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                                   className={`h-14 px-6 text-lg font-bold rounded-xl transition-all flex items-center justify-center min-w-[100px] active:scale-95 ${
                                       hasGuessed 
                                       ? 'bg-green-600 cursor-default opacity-100' 
-                                      : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                                      : 'bg-[#6366F1] hover:bg-[#4F46E5] text-white shadow-[0_4px_0_0px_#020617]'
                                   }`}
                               >
                                   {hasGuessed ? 'Envoyé' : 'Valider'}
@@ -513,7 +513,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
           {currentPhase === 'round_results' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full w-full">
                   {/* Result Card */}
-                  <div className="flex flex-col items-center justify-center space-y-6 bg-slate-900 text-white p-8 rounded-3xl shadow-2xl border border-slate-800">
+                  <div className="flex flex-col items-center justify-center space-y-6 bg-[#0F172A] text-[#F8FAFC] p-8 rounded-3xl shadow-2xl border border-[#334155]">
                       <div className="text-center space-y-2">
                           <h3 className="text-xl text-slate-400 font-medium">Le loyer réel était de</h3>
                           <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 animate-in zoom-in duration-500">
@@ -566,7 +566,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                               const isPositive = diff > 0;
                               
                               return (
-                                  <div key={p.player_id} className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex items-center justify-between shadow-sm backdrop-blur-sm">
+                                  <div key={p.player_id} className="bg-[#1E293B] p-4 rounded-xl border border-[#334155] flex items-center justify-between shadow-sm backdrop-blur-sm">
                                       <div className="flex items-center gap-3">
                                           <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center font-bold text-indigo-400">
                                               {playerInfo?.name.charAt(0)}
@@ -597,14 +597,14 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
           {currentPhase === 'podium' && (
               <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
                   <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                  <h2 className="text-4xl font-black text-white mb-8">Classement Final</h2>
+                  <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
                   
                   <div className="w-full space-y-4 mb-8">
                       {players.sort((a, b) => b.score - a.score).map((p, i) => (
                           <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
                               i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                              i === 1 ? 'bg-slate-800/50 border-slate-600' : 
-                              i === 2 ? 'bg-slate-800/30 border-slate-700' : 'opacity-60 border-transparent'
+                              i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
+                              i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
                           }`}>
                               {/* Badges */}
                               {i === 0 && (
@@ -617,11 +617,11 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                                   <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
                                       i === 0 ? 'bg-yellow-500 text-black' : 
                                       i === 1 ? 'bg-slate-400 text-slate-900' :
-                                      i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-slate-800 text-slate-500'
+                                      i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
                                   }`}>{i + 1}</span>
                                   
                                   <div className="flex flex-col">
-                                      <span className="text-xl font-bold text-white">{p.name}</span>
+                                      <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
                                       {/* Fake Stat for Demo */}
                                       <span className="text-xs text-slate-400 font-medium">
                                           {i === 0 ? '🤑 Le Juste Prix' : '📉 Négociateur'}

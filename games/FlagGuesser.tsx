@@ -377,7 +377,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                </div>
                
                <div className="text-center space-y-2">
-                   <h2 className="text-3xl font-bold text-white">Prêt à voyager ?</h2>
+                   <h2 className="text-3xl font-bold text-[#F8FAFC]">Prêt à voyager ?</h2>
                    <p className="text-gray-400">
                        Région : <span className="text-blue-400 font-bold uppercase">{region}</span> • 
                        Mode : <span className="text-purple-400 font-bold uppercase">{mode === 'mcq' ? 'QCM' : 'Texte'}</span>
@@ -393,7 +393,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                        <Play className="w-6 h-6 mr-2" /> Lancer la partie
                    </Button>
                ) : (
-                   <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-full">
+                   <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full">
                        <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
                        <span className="text-gray-300">En attente de l'hôte...</span>
                    </div>
@@ -406,7 +406,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
             <div className="flex flex-col items-center w-full max-w-2xl gap-6 pt-4">
                 
                 {/* FLAG IMAGE */}
-                <div className="relative w-full aspect-[16/9] md:aspect-[2/1] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+                <div className="relative w-full aspect-[16/9] md:aspect-[2/1] bg-[#0F172A] rounded-2xl overflow-hidden shadow-2xl border border-[#334155]">
                     <Image 
                         src={currentFlag.flagUrl} 
                         alt="Flag" 
@@ -418,7 +418,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                     {/* OVERLAY RESULT */}
                     {currentPhase === 'round_results' && (
                         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in z-10">
-                            <h3 className="text-3xl font-black text-white mb-2 text-center drop-shadow-lg">{currentFlag.name}</h3>
+                            <h3 className="text-3xl font-black text-[#F8FAFC] mb-2 text-center drop-shadow-lg">{currentFlag.name}</h3>
                             <p className="text-blue-300 font-bold uppercase tracking-widest">{currentFlag.code}</p>
                         </div>
                     )}
@@ -437,9 +437,9 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                                         className={`h-16 text-lg font-bold rounded-xl transition-all ${
                                             hasAnswered 
                                                 ? userAnswer === option 
-                                                    ? 'bg-slate-600 opacity-50' 
-                                                    : 'bg-slate-800 opacity-30'
-                                                : 'bg-slate-800 hover:bg-slate-700 hover:scale-[1.02]'
+                                                    ? 'bg-[#475569] opacity-50' 
+                                                    : 'bg-[#334155] opacity-30'
+                                                : 'bg-[#334155] hover:bg-[#475569] hover:scale-[1.02]'
                                         }`}
                                     >
                                         {option}
@@ -454,7 +454,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                                     onChange={e => setUserAnswer(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && submitGuess(userAnswer)}
                                     disabled={hasAnswered}
-                                    className="h-14 text-lg bg-slate-800 border-white/10"
+                                    className="h-14 text-lg bg-[#334155] border-[#334155]"
                                     autoFocus
                                 />
                                 <Button 
@@ -477,7 +477,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
 
                 {/* RESULTS LIST */}
                 {currentPhase === 'round_results' && (
-                    <div className="w-full bg-slate-900/50 rounded-xl border border-white/10 overflow-hidden max-h-[300px] overflow-y-auto custom-scrollbar">
+                    <div className="w-full bg-[#0F172A]/50 rounded-xl border border-[#334155] overflow-hidden max-h-[300px] overflow-y-auto custom-scrollbar">
                         {sortedPlayers.map((p, idx) => {
                             const gp = gamePlayers.find((gp: any) => gp.player_id === p.id);
                             const answered = gp?.has_answered;
@@ -491,9 +491,9 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                             );
 
                             return (
-                                <div key={p.id} className="flex items-center justify-between p-3 border-b border-white/5 last:border-0">
+                                <div key={p.id} className="flex items-center justify-between p-3 border-b border-[#334155] last:border-0">
                                     <div className="flex items-center gap-3">
-                                        <div className="font-bold text-white">{p.name}</div>
+                                        <div className="font-bold text-[#F8FAFC]">{p.name}</div>
                                         {answered && (
                                             isCorrect 
                                             ? <CheckCircle className="w-4 h-4 text-green-500" />
@@ -516,14 +516,14 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
                 <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                <h2 className="text-4xl font-black text-white mb-8">Classement Final</h2>
+                <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
                 
                 <div className="w-full space-y-4 mb-8">
                     {sortedPlayers.map((p, i) => (
                         <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
                             i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                            i === 1 ? 'bg-slate-800/50 border-slate-600' : 
-                            i === 2 ? 'bg-slate-800/30 border-slate-700' : 'opacity-60 border-transparent'
+                            i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
+                            i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
                         }`}>
                             {/* Badges */}
                             {i === 0 && (
@@ -535,13 +535,13 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                             <div className="flex items-center gap-4">
                                 <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
                                     i === 0 ? 'bg-yellow-500 text-black' : 
-                                    i === 1 ? 'bg-slate-400 text-slate-900' :
-                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-slate-800 text-slate-500'
+                                    i === 1 ? 'bg-[#475569] text-[#F8FAFC]' :
+                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
                                 }`}>{i + 1}</span>
                                 
                                 <div className="flex flex-col">
-                                    <span className="text-xl font-bold text-white">{p.name}</span>
-                                    <span className="text-xs text-slate-400 font-medium">
+                                    <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
+                                    <span className="text-xs text-[#94A3B8] font-medium">
                                         {i === 0 ? '🌍 Cartographe' : '🧭 Explorateur'}
                                     </span>
                                 </div>
@@ -552,7 +552,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                 </div>
 
                 {isHost && (
-                    <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
+                    <Button onClick={returnToLobby} size="lg" variant="secondary" className="font-bold">
                         Retour au salon
                     </Button>
                 )}

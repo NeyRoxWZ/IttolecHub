@@ -683,11 +683,11 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {/* PHASE: ROLES */}
         {currentPhase === 'roles' && myRole && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
-                <div className="bg-slate-900/80 p-8 rounded-3xl border border-white/10 text-center w-full shadow-2xl relative overflow-hidden">
+                <div className="bg-[#0F172A]/80 p-8 rounded-3xl border border-[#334155] text-center w-full shadow-2xl relative overflow-hidden">
                     {amIReady && (
                         <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in">
                             <Check className="w-20 h-20 text-green-500 mb-4" />
-                            <h3 className="text-3xl font-bold text-white">Vous êtes prêt !</h3>
+                            <h3 className="text-3xl font-bold text-[#F8FAFC]">Vous êtes prêt !</h3>
                             <p className="text-gray-400 mt-2">En attente des autres...</p>
                         </div>
                     )}
@@ -698,13 +698,13 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                         {showRole ? (
                             <div className="animate-in zoom-in duration-200 flex flex-col items-center">
                                 {playersKnowRole && (
-                                    <div className={`text-4xl font-black mb-4 ${myRole === 'CIVIL' ? 'text-blue-400' : myRole === 'UNDERCOVER' ? 'text-red-500' : 'text-white'}`}>
+                                    <div className={`text-4xl font-black mb-4 ${myRole === 'CIVIL' ? 'text-blue-400' : myRole === 'UNDERCOVER' ? 'text-red-500' : 'text-[#F8FAFC]}'}`}>
                                         {myRole}
                                     </div>
                                 )}
-                                <div className="bg-white/10 px-8 py-4 rounded-xl border border-white/20">
-                                    <span className="block text-sm text-gray-400 uppercase tracking-widest mb-1">Mot Secret</span>
-                                    <span className="text-3xl font-bold text-white">
+                                <div className="bg-[#334155] px-8 py-4 rounded-xl border border-[#475569]">
+                                    <span className="block text-sm text-[#94A3B8] uppercase tracking-widest mb-1">Mot Secret</span>
+                                    <span className="text-3xl font-bold text-[#F8FAFC]">
                                         {myRole === 'MR_WHITE' ? '???' : myRole === 'UNDERCOVER' ? undercoverWord : civilWord}
                                     </span>
                                 </div>
@@ -718,7 +718,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                     </div>
 
                     <button
-                        className="w-full bg-white/5 hover:bg-white/10 active:bg-white/20 border border-white/20 rounded-xl p-4 mb-4 transition-colors select-none touch-none"
+                        className="w-full bg-[#334155] hover:bg-[#475569] active:bg-[#475569] border border-[#475569] rounded-xl p-4 mb-4 transition-colors select-none touch-none"
                         onMouseDown={() => setShowRole(true)}
                         onMouseUp={() => setShowRole(false)}
                         onMouseLeave={() => setShowRole(false)}
@@ -883,7 +883,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                 value={userClue}
                                 onChange={e => setUserClue(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && sendClue()}
-                                className="h-14 bg-slate-900 border-white/20 text-lg md:h-12"
+                                className="w-full bg-[#334155] border border-[#334155] text-lg md:h-12"
                                 autoFocus
                             />
                             <Button 
@@ -961,11 +961,11 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                     </div>
 
                     {isHost && (
-                        <Button onClick={nextGameRound} className="mt-8 w-full h-14 text-lg font-bold bg-white text-black hover:bg-gray-200 rounded-xl">
+                        <Button onClick={nextGameRound} variant="primary" className="mt-8 w-full h-14 text-lg font-bold rounded-xl">
                             {currentRoundNumber >= rounds ? "Revenir au salon" : "Manche Suivante"}
                         </Button>
                     )}
-                    <Button variant="ghost" onClick={() => router.push('/')} className="mt-4 text-gray-500 hover:text-white">
+                    <Button variant="ghost" onClick={() => router.push('/')} className="mt-4 text-[#94A3B8] hover:text-[#F8FAFC]">
                         <Home className="w-4 h-4 mr-2" /> Retour au menu
                     </Button>
                 </div>

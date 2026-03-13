@@ -390,11 +390,11 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-8 animate-in fade-in">
                <div className="relative">
-                   <BookOpen className="w-24 h-24 text-slate-400 animate-pulse" />
+                   <BookOpen className="w-24 h-24 text-[#94A3B8] animate-pulse" />
                </div>
                
                <div className="text-center space-y-2">
-                   <h2 className="text-3xl font-bold text-white">Encyclopédie prête ?</h2>
+                   <h2 className="text-3xl font-bold text-[#F8FAFC]">Encyclopédie prête ?</h2>
                    <p className="text-gray-400">
                        Rounds : <span className="text-blue-400 font-bold">{totalRounds}</span> • 
                        Temps : <span className="text-purple-400 font-bold">{timePerRound}s</span>
@@ -405,13 +405,13 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
                    <Button 
                        size="lg" 
                        onClick={startNewGame}
-                       className="h-16 px-12 text-xl font-bold bg-gradient-to-r from-slate-600 to-slate-800 hover:from-slate-500 hover:to-slate-700 shadow-lg border border-white/10 rounded-xl"
+                        className="h-16 px-12 text-xl font-bold bg-[#334155] hover:bg-[#475569] shadow-[0_4px_0_0px_#020617] border border-[#334155] rounded-xl"
                    >
                        Lancer la partie
                    </Button>
                ) : (
-                   <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-full">
-                       <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                   <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full">
+                       <Loader2 className="w-5 h-5 animate-spin text-[#94A3B8]" />
                        <span className="text-gray-300">En attente de l'hôte...</span>
                    </div>
                )}
@@ -423,8 +423,8 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
             <div className="flex flex-col items-center w-full max-w-3xl gap-6 pt-4 px-4">
                 
                 {/* ARTICLE CARD */}
-                <div className="w-full bg-slate-100 text-slate-900 rounded-sm shadow-2xl overflow-hidden relative font-serif">
-                    <div className="h-4 bg-slate-300 w-full border-b border-slate-400" />
+                <div className="w-full bg-[#1E293B] text-[#F8FAFC] rounded-sm shadow-2xl overflow-hidden relative font-serif">
+                    <div className="h-4 bg-[#334155] w-full border-b border-[#475569]" />
                     <div className="p-8">
                         {currentPhase === 'round_results' ? (
                             <h2 className="text-3xl font-bold mb-4 border-b pb-2 border-slate-300 flex items-center gap-3 animate-in fade-in">
@@ -434,7 +434,7 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
                                 </a>
                             </h2>
                         ) : (
-                            <h2 className="text-3xl font-bold mb-4 border-b pb-2 border-slate-300 text-slate-300 bg-slate-300 select-none blur-sm">
+                            <h2 className="text-3xl font-bold mb-4 border-b pb-2 border-[#334155] text-[#334155] bg-[#334155] select-none blur-sm">
                                 {currentArticle.title}
                             </h2>
                         )}
@@ -460,7 +460,7 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
                                     value={userAnswer}
                                     onChange={e => setUserAnswer(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && submitGuess()}
-                                    className="h-14 text-lg bg-slate-900 border-white/20 text-white placeholder:text-gray-500"
+                                    className="h-14 text-lg bg-[#334155] border-[#3B82F6] text-[#F8FAFC] placeholder:text-[#94A3B8]"
                                     autoFocus
                                 />
                                 <Button 
@@ -490,14 +490,14 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
                 <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                <h2 className="text-4xl font-black text-white mb-8">Classement Final</h2>
+                <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
                 
                 <div className="w-full space-y-4 mb-8">
                     {sortedPlayers.map((p, i) => (
                         <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
                             i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                            i === 1 ? 'bg-slate-800/50 border-slate-600' : 
-                            i === 2 ? 'bg-slate-800/30 border-slate-700' : 'opacity-60 border-transparent'
+                            i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
+                            i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
                         }`}>
                             {/* Badges */}
                             {i === 0 && (
@@ -509,13 +509,13 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
                             <div className="flex items-center gap-4">
                                 <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
                                     i === 0 ? 'bg-yellow-500 text-black' : 
-                                    i === 1 ? 'bg-slate-400 text-slate-900' :
-                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-slate-800 text-slate-500'
+                                    i === 1 ? 'bg-[#475569] text-[#F8FAFC]' :
+                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
                                 }`}>{i + 1}</span>
                                 
                                 <div className="flex flex-col">
-                                    <span className="text-xl font-bold text-white">{p.name}</span>
-                                    <span className="text-xs text-slate-400 font-medium">
+                                    <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
+                                    <span className="text-xs text-[#94A3B8] font-medium">
                                         {i === 0 ? '🧠 Encyclopédie Vivante' : '📚 Lecteur'}
                                     </span>
                                 </div>
@@ -526,7 +526,7 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
                 </div>
                 
                 {isHost && (
-                    <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
+                    <Button onClick={returnToLobby} size="lg" variant="secondary" className="font-bold">
                         Retour au salon
                     </Button>
                 )}
