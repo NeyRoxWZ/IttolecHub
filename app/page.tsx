@@ -207,39 +207,39 @@ export default function Home() {
 
                                 {/* Step 3: Play - Leaderboard Animé */}
                                 {currentStep === 2 && (
-                                    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+                                    <div className="relative w-full h-full flex items-center justify-center overflow-hidden p-2">
                                         <div className="absolute inset-0 bg-[#6366F1]/10 animate-pulse-slow"></div>
                                         
-                                        {/* Leaderboard Suggeré - Style identique aux autres cartes */}
-                                        <div className="w-56 bg-[#1E293B] border-2 border-[#334155] rounded-2xl p-4 shadow-[0_4px_0_0px_#020617] animate-pulse">
-                                            {/* Podium */}
-                                            <div className="flex items-end justify-center gap-2 mb-3">
+                                        {/* Leaderboard compact */}
+                                        <div className="w-40 bg-[#1E293B] border-2 border-[#334155] rounded-xl p-2 shadow-[0_4px_0_0px_#020617]">
+                                            {/* Podium compact */}
+                                            <div className="flex items-end justify-center gap-1 mb-2">
                                                 <div className="flex flex-col items-center">
-                                                    <div className="w-10 h-10 bg-[#475569] rounded-full flex items-center justify-center text-[#F8FAFC] font-bold text-sm border-2 border-[#6366F1]">2</div>
-                                                    <div className="w-12 h-8 bg-[#475569] rounded-t-lg mt-1"></div>
+                                                    <div className="w-6 h-6 bg-[#475569] rounded-full flex items-center justify-center text-[#F8FAFC] font-bold text-xs">2</div>
+                                                    <div className="w-8 h-5 bg-[#475569] rounded-t-lg mt-0.5"></div>
                                                 </div>
                                                 <div className="flex flex-col items-center">
-                                                    <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-black font-bold border-2 border-yellow-300 animate-bounce">1</div>
-                                                    <div className="w-14 h-12 bg-yellow-500 rounded-t-lg mt-1"></div>
+                                                    <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-black font-bold text-xs animate-bounce">1</div>
+                                                    <div className="w-10 h-7 bg-yellow-500 rounded-t-lg mt-0.5"></div>
                                                 </div>
                                                 <div className="flex flex-col items-center">
-                                                    <div className="w-10 h-10 bg-amber-600 rounded-full flex items-center justify-center text-[#F8FAFC] font-bold text-sm border-2 border-amber-400">3</div>
-                                                    <div className="w-12 h-6 bg-amber-600 rounded-t-lg mt-1"></div>
+                                                    <div className="w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-[#F8FAFC] font-bold text-xs">3</div>
+                                                    <div className="w-8 h-4 bg-amber-600 rounded-t-lg mt-0.5"></div>
                                                 </div>
                                             </div>
-                                            {/* Classement */}
-                                            <div className="space-y-2">
-                                                <div className="flex items-center justify-between bg-[#3B82F6]/20 px-3 py-2 rounded-lg">
-                                                    <span className="text-[#F8FAFC] font-bold text-sm">Player1</span>
-                                                    <span className="text-yellow-400 font-bold">2500pts</span>
+                                            {/* Classement compact */}
+                                            <div className="space-y-1">
+                                                <div className="flex items-center justify-between bg-[#3B82F6]/20 px-2 py-1 rounded text-xs">
+                                                    <span className="text-[#F8FAFC] font-bold">P1</span>
+                                                    <span className="text-yellow-400 font-bold">2500</span>
                                                 </div>
-                                                <div className="flex items-center justify-between bg-[#6366F1]/20 px-3 py-2 rounded-lg">
-                                                    <span className="text-[#F8FAFC] font-bold text-sm">Player2</span>
-                                                    <span className="text-[#94A3B8] font-bold">1800pts</span>
+                                                <div className="flex items-center justify-between bg-[#6366F1]/20 px-2 py-1 rounded text-xs">
+                                                    <span className="text-[#F8FAFC] font-bold">P2</span>
+                                                    <span className="text-[#94A3B8] font-bold">1800</span>
                                                 </div>
-                                                <div className="flex items-center justify-between bg-[#334155]/50 px-3 py-2 rounded-lg">
-                                                    <span className="text-[#94A3B8] font-bold text-sm">Player3</span>
-                                                    <span className="text-amber-600 font-bold">1200pts</span>
+                                                <div className="flex items-center justify-between bg-[#334155]/50 px-2 py-1 rounded text-xs">
+                                                    <span className="text-[#94A3B8] font-bold">P3</span>
+                                                    <span className="text-amber-600 font-bold">1200</span>
                                                 </div>
                                             </div>
                                         </div>
