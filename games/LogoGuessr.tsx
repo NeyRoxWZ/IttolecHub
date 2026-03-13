@@ -131,16 +131,18 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           if (myPlayer) {
               setHasFound(myPlayer.has_found);
               setInputDisabled(myPlayer.has_found);
-              
-              if (currentPhase === 'playing' && !myPlayer.has_found) {
-                  // Reset local guess on new round
-                  if (userGuess !== '') {
-                      setUserGuess('');
-                  }
-              }
           }
       }
-  }, [gamePlayers, playerId, currentPhase]);
+  }, [gamePlayers, playerId]);
+
+  // Reset local state on new round
+  useEffect(() => {
+      if (currentPhase === 'playing') {
+          setUserGuess('');
+          setHasFound(false);
+          setInputDisabled(false);
+      }
+  }, [currentLogo?.id, currentPhase]);
 
   // Matching Logic (Strict Levenshtein)
   const checkAnswer = async (guess: string) => {

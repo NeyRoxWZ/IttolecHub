@@ -109,8 +109,8 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
             disabled={cooldown > 0}
             className={`rounded-full w-12 h-12 backdrop-blur-md shadow-lg transition-all ${
                 cooldown > 0 
-                ? 'bg-slate-800/50 border-slate-700 text-slate-500 cursor-not-allowed' 
-                : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                ? 'bg-[#334155]/50 border-[#475569] text-[#94A3B8] cursor-not-allowed' 
+                : 'bg-[#1E293B]/80 border-[#334155] text-[#F8FAFC] hover:bg-[#334155]'
             }`}
           >
             {cooldown > 0 ? (
@@ -120,13 +120,13 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-2 bg-slate-900/90 backdrop-blur-xl border-slate-700 rounded-2xl" side="top" align="center">
+        <PopoverContent className="w-auto p-2 bg-[#1E293B] border-[#334155] rounded-2xl" side="top" align="center">
           <div className="grid grid-cols-4 gap-2">
             {REACTIONS.map((r) => (
               <button
                 key={r.label}
                 onClick={() => sendReaction(r.emoji)}
-                className="text-2xl p-2 hover:bg-white/10 rounded-xl transition-transform active:scale-90"
+                className="text-2xl p-2 hover:bg-[#334155] rounded-xl transition-transform active:scale-90"
               >
                 {r.emoji}
               </button>

@@ -12,11 +12,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const baseClasses = 'inline-flex items-center justify-center font-bold uppercase tracking-wider rounded-xl transition-all duration-100 focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed';
     
     const variants = {
-      primary: 'bg-[#3B82F6] text-white hover:bg-[#2563EB] shadow-[4px_4px_0px_0px_#020617] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
-      secondary: 'bg-[#334155] text-white hover:bg-[#475569] shadow-[4px_4px_0px_0px_#020617] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
-      outline: 'bg-transparent border-2 border-[#334155] text-[#94A3B8] hover:bg-[#1E293B] hover:text-white hover:border-[#475569] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
-      ghost: 'bg-transparent border-transparent text-[#94A3B8] hover:text-white hover:bg-[#1E293B] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
-      purple: 'bg-[#6366F1] text-white hover:bg-[#4F46E5] shadow-[4px_4px_0px_0px_#020617] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+      primary: 'bg-[#3B82F6] text-white hover:bg-[#2563EB] shadow-[0_4px_0_0px_#020617] active:translate-y-[4px] active:shadow-none',
+      secondary: 'bg-[#334155] text-white hover:bg-[#475569] shadow-[0_4px_0_0px_#020617] active:translate-y-[4px] active:shadow-none',
+      outline: 'bg-transparent border-2 border-[#334155] text-[#94A3B8] hover:bg-[#1E293B] hover:text-white hover:border-[#475569] active:translate-y-[4px] active:shadow-none',
+      ghost: 'bg-transparent border-transparent text-[#94A3B8] hover:text-white hover:bg-[#1E293B] active:translate-y-[4px] active:shadow-none',
+      purple: 'bg-[#6366F1] text-white hover:bg-[#4F46E5] shadow-[0_4px_0_0px_#020617] active:translate-y-[4px] active:shadow-none',
     };
     
     const sizes = {

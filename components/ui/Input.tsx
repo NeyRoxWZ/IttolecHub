@@ -13,7 +13,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           'placeholder:text-[#94A3B8] placeholder:font-medium',
           'focus:outline-none focus:ring-0 focus:border-2 focus:border-[#3B82F6] focus:bg-[#334155] transition-all duration-100',
           'disabled:cursor-not-allowed disabled:opacity-50',
-          'shadow-[4px_4px_0px_0px_#020617]',
+          'shadow-[0_4px_0_0px_#020617]',
           className
         )}
         {...props}

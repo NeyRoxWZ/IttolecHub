@@ -48,37 +48,37 @@ export default function ScoreBoard({ players, roomCode, onReplay }: ScoreBoardPr
       case 3:
         return <Trophy className="h-5 w-5 text-orange-600" />;
       default:
-        return <span className="text-lg font-bold text-slate-500">{rank}</span>;
+        return <span className="text-lg font-bold text-[#94A3B8]">{rank}</span>;
     }
   };
 
   const getRankColor = (rank: number) => {
     switch (rank) {
       case 1:
-        return 'bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-700 text-slate-800 dark:text-slate-100';
+        return 'bg-[#1E293B] border-yellow-500/50 text-[#F8FAFC]';
       case 2:
-        return 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100';
+        return 'bg-[#1E293B] border-gray-500/50 text-[#F8FAFC]';
       case 3:
-        return 'bg-orange-100 dark:bg-orange-900/40 border-orange-300 dark:border-orange-700 text-slate-800 dark:text-slate-100';
+        return 'bg-[#1E293B] border-orange-500/50 text-[#F8FAFC]';
       default:
-        return 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100';
+        return 'bg-[#1E293B] border-[#334155] text-[#F8FAFC]';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:to-purple-950 p-4 sm:p-6 game-layout text-slate-800 dark:text-slate-100">
+    <div className="min-h-screen bg-[#0F172A] p-4 sm:p-6 game-layout text-[#F8FAFC]">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+          <h1 className="text-2xl sm:text-4xl font-bold text-[#3B82F6] mb-2">
             Partie terminée !
           </h1>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-[#94A3B8]">
             Room : {roomCode}
           </p>
         </div>
 
         <Card className="p-4 sm:p-6 mb-6">
-          <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-center text-slate-800 dark:text-slate-100">
+          <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-center text-[#F8FAFC]">
             Classement final
           </h2>
           
@@ -95,18 +95,18 @@ export default function ScoreBoard({ players, roomCode, onReplay }: ScoreBoardPr
                       {getRankIcon(rank)}
                     </div>
                     <div className="flex items-center gap-2 min-w-0">
-                      <User className="h-5 w-5 text-slate-500 dark:text-slate-400 shrink-0" />
-                      <span className="font-semibold text-slate-800 dark:text-slate-100 truncate">
+                      <User className="h-5 w-5 text-[#94A3B8] shrink-0" />
+                      <span className="font-semibold text-[#F8FAFC] truncate">
                         {player.name}
                       </span>
                     </div>
                   </div>
                   
                   <div className="text-right shrink-0">
-                    <span className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    <span className="text-xl sm:text-2xl font-bold text-[#3B82F6]">
                       {player.score}
                     </span>
-                    <span className="text-sm text-slate-500 dark:text-slate-400 ml-1">
+                    <span className="text-sm text-[#94A3B8] ml-1">
                       pts
                     </span>
                   </div>
@@ -128,7 +128,8 @@ export default function ScoreBoard({ players, roomCode, onReplay }: ScoreBoardPr
           
           <Button
             onClick={handleReplay}
-            className="flex-1 rounded-xl py-3 bg-green-600 hover:bg-green-700 text-white"
+            variant="primary"
+            className="flex-1 rounded-xl py-3"
           >
             <RotateCcw className="h-5 w-5 mr-2" />
             Rejouer

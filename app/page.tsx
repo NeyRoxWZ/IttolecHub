@@ -209,12 +209,19 @@ export default function Home() {
                                 {currentStep === 2 && (
                                     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
                                         <div className="absolute inset-0 bg-green-500/10 animate-pulse-slow"></div>
-                                        <div className="absolute text-4xl animate-float-up left-10 bottom-0">❤️</div>
-                                        <div className="absolute text-4xl animate-float-up left-1/2 bottom-0" style={{ animationDelay: '0.5s' }}>😂</div>
-                                        <div className="absolute text-4xl animate-float-up right-10 bottom-0" style={{ animationDelay: '1s' }}>🔥</div>
                                         
-                                        <div className="w-20 h-20 bg-yellow-400 rounded-full border-4 border-yellow-200 shadow-[4px_4px_0px_0px_#020617] flex items-center justify-center z-10 animate-bounce">
-                                            <Play className="w-10 h-10 text-yellow-800 ml-1" />
+                                        {/* Leaderboard Suggeré */}
+                                        <div className="w-32 bg-[#1E293B] border-2 border-[#334155] rounded-xl p-2 shadow-[0_4px_0_0px_#020617]">
+                                            <div className="flex items-center justify-center gap-1 mb-1">
+                                                <div className="w-4 h-4 bg-yellow-400 rounded-sm"></div>
+                                                <div className="w-4 h-4 bg-gray-400 rounded-sm"></div>
+                                                <div className="w-4 h-4 bg-amber-600 rounded-sm"></div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="h-2 bg-[#3B82F6] rounded w-3/4 mx-auto"></div>
+                                                <div className="h-2 bg-[#6366F1] rounded w-1/2 mx-auto"></div>
+                                                <div className="h-2 bg-[#334155] rounded w-2/3 mx-auto"></div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}

@@ -93,14 +93,19 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
           if (myPlayer) {
               setHasFound(myPlayer.has_found);
               setFindRank(myPlayer.find_rank);
-              if (currentPhase === 'playing' && !myPlayer.has_found) {
-                  // Reset local state for new round
-                  setUserAnswer('');
-                  setScoreEarned(0);
-              }
           }
       }
-  }, [gamePlayers, playerId, currentPhase]);
+  }, [gamePlayers, playerId]);
+
+  // Reset local state on new round (when article changes)
+  useEffect(() => {
+      if (currentPhase === 'playing') {
+          setUserAnswer('');
+          setScoreEarned(0);
+          setHasFound(false);
+          setFindRank(0);
+      }
+  }, [currentArticle?.title, currentPhase]);
 
   // --- HOST LOGIC ---
   useEffect(() => {

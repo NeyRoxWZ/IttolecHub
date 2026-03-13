@@ -95,15 +95,19 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
           const myPlayer = gamePlayers.find((p: any) => p.player_id === playerId);
           if (myPlayer) {
               setHasAnswered(myPlayer.has_answered);
-              if (currentPhase === 'playing' && !myPlayer.has_answered) {
-                  // Reset local state for new round
-                  setUserAnswer('');
-                  setIsCorrectLocal(null);
-                  setScoreEarned(0);
-              }
           }
       }
-  }, [gamePlayers, playerId, currentPhase]);
+  }, [gamePlayers, playerId]);
+
+  // Reset local state for new round
+  useEffect(() => {
+      if (currentPhase === 'playing') {
+          setUserAnswer('');
+          setIsCorrectLocal(null);
+          setScoreEarned(0);
+          setHasAnswered(false);
+      }
+  }, [currentFlag?.code, currentPhase]);
 
   // --- HOST LOGIC ---
   useEffect(() => {

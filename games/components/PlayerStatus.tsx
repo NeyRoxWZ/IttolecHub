@@ -12,7 +12,7 @@ export default function PlayerStatus({ answeredPlayers }: PlayerStatusProps) {
       {answeredPlayers.map((player) => (
         <div
           key={player}
-          className="flex items-center gap-1 px-3 py-1 bg-slate-200 dark:bg-slate-700 rounded-full text-sm text-slate-800 dark:text-slate-100"
+          className="flex items-center gap-1 px-3 py-1 bg-[#334155] rounded-full text-sm text-[#F8FAFC]"
         >
           <User className="h-4 w-4" />
           <span>{player} a répondu ✅</span>

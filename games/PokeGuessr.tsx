@@ -102,16 +102,19 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
           if (myPlayer) {
               setHasGuessed(myPlayer.has_guessed);
               setIsCorrect(myPlayer.is_correct);
-              
-              if (currentPhase === 'playing' && !myPlayer.has_guessed) {
-                  // Reset local state for new round
-                  if (userAnswer) setUserAnswer('');
-                  setScoreEarned(0);
-                  setIsCorrect(false);
-              }
           }
       }
-  }, [gamePlayers, playerId, currentPhase]);
+  }, [gamePlayers, playerId]);
+
+  // Reset local state on new round
+  useEffect(() => {
+      if (currentPhase === 'playing') {
+          setUserAnswer('');
+          setScoreEarned(0);
+          setHasGuessed(false);
+          setIsCorrect(false);
+      }
+  }, [currentPokemon?.id, currentPhase]);
 
   // --- HOST LOGIC ---
   useEffect(() => {

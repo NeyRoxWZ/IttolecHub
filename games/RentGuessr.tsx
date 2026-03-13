@@ -111,14 +111,18 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
           const myPlayer = gamePlayers.find((p: any) => p.player_id === playerId);
           if (myPlayer) {
               setHasGuessed(myPlayer.has_guessed);
-              if (currentPhase === 'playing' && !myPlayer.has_guessed) {
-                  // Reset local state for new round
-                  if (userGuess !== '') setUserGuess('');
-                  setGuessTime(0);
-              }
           }
       }
-  }, [gamePlayers, playerId, currentPhase]);
+  }, [gamePlayers, playerId]);
+
+  // Reset local state for new round
+  useEffect(() => {
+      if (currentPhase === 'playing') {
+          setUserGuess('');
+          setGuessTime(0);
+          setHasGuessed(false);
+      }
+  }, [currentProperty?.id, currentPhase]);
 
   // --- HOST LOGIC ---
 
