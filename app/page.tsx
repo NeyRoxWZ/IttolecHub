@@ -205,22 +205,42 @@ export default function Home() {
                                     </div>
                                 )}
 
-                                {/* Step 3: Play */}
+                                {/* Step 3: Play - Leaderboard Animé */}
                                 {currentStep === 2 && (
                                     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-                                        <div className="absolute inset-0 bg-green-500/10 animate-pulse-slow"></div>
+                                        <div className="absolute inset-0 bg-[#6366F1]/10 animate-pulse-slow"></div>
                                         
-                                        {/* Leaderboard Suggeré */}
-                                        <div className="w-32 bg-[#1E293B] border-2 border-[#334155] rounded-xl p-2 shadow-[0_4px_0_0px_#020617]">
-                                            <div className="flex items-center justify-center gap-1 mb-1">
-                                                <div className="w-4 h-4 bg-yellow-400 rounded-sm"></div>
-                                                <div className="w-4 h-4 bg-gray-400 rounded-sm"></div>
-                                                <div className="w-4 h-4 bg-amber-600 rounded-sm"></div>
+                                        {/* Leaderboard Suggeré - Style identique aux autres cartes */}
+                                        <div className="w-56 bg-[#1E293B] border-2 border-[#334155] rounded-2xl p-4 shadow-[0_4px_0_0px_#020617] animate-pulse">
+                                            {/* Podium */}
+                                            <div className="flex items-end justify-center gap-2 mb-3">
+                                                <div className="flex flex-col items-center">
+                                                    <div className="w-10 h-10 bg-[#475569] rounded-full flex items-center justify-center text-[#F8FAFC] font-bold text-sm border-2 border-[#6366F1]">2</div>
+                                                    <div className="w-12 h-8 bg-[#475569] rounded-t-lg mt-1"></div>
+                                                </div>
+                                                <div className="flex flex-col items-center">
+                                                    <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-black font-bold border-2 border-yellow-300 animate-bounce">1</div>
+                                                    <div className="w-14 h-12 bg-yellow-500 rounded-t-lg mt-1"></div>
+                                                </div>
+                                                <div className="flex flex-col items-center">
+                                                    <div className="w-10 h-10 bg-amber-600 rounded-full flex items-center justify-center text-[#F8FAFC] font-bold text-sm border-2 border-amber-400">3</div>
+                                                    <div className="w-12 h-6 bg-amber-600 rounded-t-lg mt-1"></div>
+                                                </div>
                                             </div>
-                                            <div className="space-y-1">
-                                                <div className="h-2 bg-[#3B82F6] rounded w-3/4 mx-auto"></div>
-                                                <div className="h-2 bg-[#6366F1] rounded w-1/2 mx-auto"></div>
-                                                <div className="h-2 bg-[#334155] rounded w-2/3 mx-auto"></div>
+                                            {/* Classement */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between bg-[#3B82F6]/20 px-3 py-2 rounded-lg">
+                                                    <span className="text-[#F8FAFC] font-bold text-sm">Player1</span>
+                                                    <span className="text-yellow-400 font-bold">2500pts</span>
+                                                </div>
+                                                <div className="flex items-center justify-between bg-[#6366F1]/20 px-3 py-2 rounded-lg">
+                                                    <span className="text-[#F8FAFC] font-bold text-sm">Player2</span>
+                                                    <span className="text-[#94A3B8] font-bold">1800pts</span>
+                                                </div>
+                                                <div className="flex items-center justify-between bg-[#334155]/50 px-3 py-2 rounded-lg">
+                                                    <span className="text-[#94A3B8] font-bold text-sm">Player3</span>
+                                                    <span className="text-amber-600 font-bold">1200pts</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
