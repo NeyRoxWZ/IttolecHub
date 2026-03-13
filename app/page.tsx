@@ -39,7 +39,6 @@ export default function Home() {
   const [currentStep, setCurrentStep] = useState(0);
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
 
-  // Auto-play carousel
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentStep((prev) => (prev + 1) % STEPS.length);
@@ -69,9 +68,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-indigo-500/30 overflow-hidden flex flex-col items-center justify-center relative p-4">
+    <div className="min-h-screen bg-[#0F172A] text-[#F8FAFC] font-sans selection:bg-indigo-500/30 overflow-hidden flex flex-col items-center justify-center relative p-4">
       
-      {/* Background Pattern (Gartic Style) */}
+      {/* Background Pattern */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 z-0"></div>
       <div className="fixed inset-0 bg-gradient-to-br from-indigo-900/40 to-purple-900/40 z-0"></div>
       
@@ -95,27 +94,27 @@ export default function Home() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
             
-            {/* LEFT PANEL: PLAYER CARD */}
-            <div className="bg-slate-900/60 backdrop-blur-xl border-2 border-indigo-500/30 rounded-[2.5rem] p-8 shadow-2xl flex flex-col h-full min-h-[450px]">
+            {/* LEFT PANEL: PLAYER CARD - Fond #1E293B */}
+            <div className="bg-[#1E293B] border border-[#334155] rounded-[2.5rem] p-8 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[450px]">
                 
                 {/* TABS */}
-                <div className="flex bg-slate-950/50 p-1.5 rounded-2xl mb-8 border border-white/5">
+                <div className="flex bg-[#0F172A] p-1.5 rounded-2xl mb-8 border border-[#334155]">
                     <button 
                         onClick={() => setActiveTab('create')}
-                        className={`flex-1 py-3 text-lg font-black uppercase tracking-wider rounded-xl transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 ${
+                        className={`flex-1 py-3 text-lg font-bold uppercase tracking-wider rounded-xl transition-all duration-100 ${
                             activeTab === 'create' 
-                            ? 'bg-indigo-600 text-white border-indigo-800' 
-                            : 'bg-transparent text-slate-500 hover:text-slate-300 border-transparent'
+                            ? 'bg-[#3B82F6] text-white shadow-[4px_4px_0px_0px_#020617] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none' 
+                            : 'bg-transparent text-[#94A3B8] hover:text-white'
                         }`}
                     >
                         Créer
                     </button>
                     <button 
                         onClick={() => setActiveTab('join')}
-                        className={`flex-1 py-3 text-lg font-black uppercase tracking-wider rounded-xl transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 ${
+                        className={`flex-1 py-3 text-lg font-bold uppercase tracking-wider rounded-xl transition-all duration-100 ${
                             activeTab === 'join' 
-                            ? 'bg-purple-600 text-white border-purple-800' 
-                            : 'bg-transparent text-slate-500 hover:text-slate-300 border-transparent'
+                            ? 'bg-[#6366F1] text-white shadow-[4px_4px_0px_0px_#020617] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none' 
+                            : 'bg-transparent text-[#94A3B8] hover:text-white'
                         }`}
                     >
                         Rejoindre
@@ -124,56 +123,51 @@ export default function Home() {
 
                 {/* AVATAR + INPUTS */}
                 <div className="flex-1 flex flex-col items-center justify-center gap-6">
-                    {/* Avatar Placeholder */}
-                    <div className="w-28 h-28 rounded-full bg-slate-800 border-4 border-white/10 flex items-center justify-center shadow-inner mb-2 relative group cursor-pointer overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 opacity-0 group-hover:opacity-20 transition-opacity"></div>
-                        <Users className="w-12 h-12 text-slate-400 group-hover:scale-110 transition-transform duration-300" />
-                        <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-2 border-slate-900 shadow-lg"></div>
+                    {/* Avatar Placeholder - Icône #94A3B8, bordure #334155, pas de hover, pas de point vert */}
+                    <div className="w-28 h-28 rounded-full bg-[#0F172A] border-4 border-[#334155] flex items-center justify-center mb-2">
+                        <Users className="w-12 h-12 text-[#94A3B8]" />
                     </div>
 
                     <div className="w-full space-y-4">
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-4">Ton Pseudo</label>
+                            <label className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest ml-4">Ton Pseudo</label>
                             <Input 
                                 placeholder="PseudoCool7074" 
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="h-16 text-2xl bg-white text-slate-900 border-b-8 border-slate-200 rounded-2xl text-center font-black placeholder:font-bold placeholder:text-slate-300 focus:ring-0 focus:border-indigo-500 transition-all shadow-xl"
+                                className="h-16 text-2xl text-center font-bold rounded-2xl"
                             />
                         </div>
 
                         {activeTab === 'join' && (
                             <div className="space-y-2 animate-in slide-in-from-right">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-4">Code de la salle</label>
+                                <label className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest ml-4">Code de la salle</label>
                                 <Input 
                                     placeholder="CODE" 
                                     value={code}
                                     onChange={(e) => setCode(e.target.value.toUpperCase())}
-                                    className="h-16 text-2xl bg-white text-slate-900 border-b-8 border-slate-200 rounded-2xl text-center font-black placeholder:font-bold placeholder:text-slate-300 focus:ring-0 focus:border-purple-500 transition-all shadow-xl uppercase font-mono tracking-widest"
+                                    className="h-16 text-2xl text-center font-bold rounded-2xl uppercase font-mono tracking-widest"
                                 />
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* MAIN BUTTON */}
+                {/* MAIN BUTTON - Fond #6366F1 */}
                 <Button 
                     onClick={handleAction}
-                    className={`w-full h-20 mt-8 text-2xl font-black uppercase tracking-widest rounded-2xl border-b-8 active:border-b-0 active:translate-y-2 transition-all shadow-xl ${
-                        activeTab === 'create'
-                        ? 'bg-indigo-500 border-indigo-700 hover:bg-indigo-400 text-white'
-                        : 'bg-purple-500 border-purple-700 hover:bg-purple-400 text-white'
-                    }`}
+                    variant="purple"
+                    className={`w-full h-20 mt-8 text-2xl font-bold uppercase tracking-widest rounded-2xl`}
                 >
                     {activeTab === 'create' ? 'DÉMARRER' : 'ENTRER'}
                 </Button>
             </div>
 
-            {/* RIGHT PANEL: HOW TO PLAY */}
-            <div className="bg-slate-900/60 backdrop-blur-xl border-2 border-purple-500/30 rounded-[2.5rem] p-8 shadow-2xl flex flex-col h-full min-h-[450px] relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+            {/* RIGHT PANEL: HOW TO PLAY - Cartes avec fond #1E293B */}
+            <div className="bg-[#1E293B] border border-[#334155] rounded-[2.5rem] p-8 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[450px] relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#3B82F6] via-[#6366F1] to-pink-500"></div>
                 
-                <h2 className="text-2xl font-black text-center text-white uppercase tracking-widest mb-8 drop-shadow-md">
+                <h2 className="text-2xl font-bold text-center text-[#F8FAFC] uppercase tracking-widest mb-8">
                     COMMENT JOUER
                 </h2>
 
@@ -181,47 +175,45 @@ export default function Home() {
                     {/* Animated Scene */}
                     <div className="z-10 w-full max-w-sm">
                         <div className="mb-8 h-48 w-full flex items-center justify-center">
-                            <div className="w-full h-full bg-slate-800/50 border-4 border-slate-700/50 rounded-3xl flex items-center justify-center relative overflow-hidden transition-all duration-500 key={currentStep}">
+                            <div className="w-full h-full bg-[#0F172A] border-4 border-[#334155] rounded-3xl flex items-center justify-center relative overflow-hidden transition-all duration-500">
                                 
-                                {/* Step 1: Create/Join - Users Animation */}
+                                {/* Step 1: Create/Join */}
                                 {currentStep === 0 && (
                                     <div className="relative w-full h-full flex items-center justify-center gap-4">
                                         <div className="absolute inset-0 bg-indigo-500/10 animate-pulse-slow"></div>
-                                        <div className="w-16 h-16 bg-indigo-500 rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-lg" style={{ animationDelay: '0s' }}>
+                                        <div className="w-16 h-16 bg-[#3B82F6] rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-[4px_4px_0px_0px_#020617]" style={{ animationDelay: '0s' }}>
                                             <Users className="w-8 h-8 text-white" />
                                         </div>
-                                        <div className="w-16 h-16 bg-purple-500 rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-lg" style={{ animationDelay: '0.2s' }}>
+                                        <div className="w-16 h-16 bg-[#6366F1] rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-[4px_4px_0px_0px_#020617]" style={{ animationDelay: '0.2s' }}>
                                             <Users className="w-8 h-8 text-white" />
                                         </div>
-                                        <div className="w-16 h-16 bg-green-500 rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-lg" style={{ animationDelay: '0.4s' }}>
+                                        <div className="w-16 h-16 bg-green-500 rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-[4px_4px_0px_0px_#020617]" style={{ animationDelay: '0.4s' }}>
                                             <Users className="w-8 h-8 text-white" />
                                         </div>
                                     </div>
                                 )}
 
-                                {/* Step 2: Choose Game - Card Selection Animation */}
+                                {/* Step 2: Choose Game */}
                                 {currentStep === 1 && (
                                     <div className="relative w-full h-full flex items-center justify-center">
                                         <div className="absolute inset-0 bg-purple-500/10 animate-pulse-slow"></div>
-                                        <div className="w-24 h-32 bg-white rounded-xl border-4 border-slate-200 shadow-xl transform -rotate-12 absolute left-1/4 top-8 animate-float-up" style={{ animationDuration: '3s' }}></div>
-                                        <div className="w-24 h-32 bg-indigo-500 rounded-xl border-4 border-indigo-300 shadow-2xl transform rotate-6 z-10 flex items-center justify-center animate-pulse">
+                                        <div className="w-24 h-32 bg-white rounded-xl border-4 border-slate-200 shadow-[4px_4px_0px_0px_#020617] transform -rotate-12 absolute left-1/4 top-8 animate-float-up" style={{ animationDuration: '3s' }}></div>
+                                        <div className="w-24 h-32 bg-[#6366F1] rounded-xl border-4 border-indigo-300 shadow-[4px_4px_0px_0px_#020617] transform rotate-6 z-10 flex items-center justify-center animate-pulse">
                                             <Gamepad2 className="w-12 h-12 text-white" />
                                         </div>
-                                        <div className="w-24 h-32 bg-slate-700 rounded-xl border-4 border-slate-600 shadow-xl transform rotate-12 absolute right-1/4 top-8 animate-float-up" style={{ animationDuration: '4s' }}></div>
+                                        <div className="w-24 h-32 bg-[#334155] rounded-xl border-4 border-slate-600 shadow-[4px_4px_0px_0px_#020617] transform rotate-12 absolute right-1/4 top-8 animate-float-up" style={{ animationDuration: '4s' }}></div>
                                     </div>
                                 )}
 
-                                {/* Step 3: Play - Action/Reaction Animation */}
+                                {/* Step 3: Play */}
                                 {currentStep === 2 && (
                                     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
                                         <div className="absolute inset-0 bg-green-500/10 animate-pulse-slow"></div>
-                                        {/* Floating Emojis */}
                                         <div className="absolute text-4xl animate-float-up left-10 bottom-0">❤️</div>
                                         <div className="absolute text-4xl animate-float-up left-1/2 bottom-0" style={{ animationDelay: '0.5s' }}>😂</div>
                                         <div className="absolute text-4xl animate-float-up right-10 bottom-0" style={{ animationDelay: '1s' }}>🔥</div>
                                         
-                                        {/* Trophy */}
-                                        <div className="w-20 h-20 bg-yellow-400 rounded-full border-4 border-yellow-200 shadow-[0_0_30px_rgba(250,204,21,0.6)] flex items-center justify-center z-10 animate-bounce">
+                                        <div className="w-20 h-20 bg-yellow-400 rounded-full border-4 border-yellow-200 shadow-[4px_4px_0px_0px_#020617] flex items-center justify-center z-10 animate-bounce">
                                             <Play className="w-10 h-10 text-yellow-800 ml-1" />
                                         </div>
                                     </div>
@@ -230,10 +222,10 @@ export default function Home() {
                             </div>
                         </div>
                         
-                        <h3 className="text-3xl font-black text-white mb-4 uppercase tracking-wide min-h-[40px]">
+                        <h3 className="text-3xl font-bold text-[#F8FAFC] mb-4 uppercase tracking-wide min-h-[40px]">
                             {STEPS[currentStep].title}
                         </h3>
-                        <p className="text-lg text-slate-300 font-medium leading-relaxed min-h-[60px]">
+                        <p className="text-lg text-[#94A3B8] font-medium leading-relaxed min-h-[60px]">
                             {STEPS[currentStep].description}
                         </p>
                     </div>
@@ -241,7 +233,7 @@ export default function Home() {
 
                 {/* Carousel Dots */}
                 <div className="flex items-center justify-center gap-6 mt-8">
-                    <button onClick={() => setCurrentStep((prev) => (prev - 1 + STEPS.length) % STEPS.length)} className="p-2 text-slate-500 hover:text-white transition-colors">
+                    <button onClick={() => setCurrentStep((prev) => (prev - 1 + STEPS.length) % STEPS.length)} className="p-2 text-[#94A3B8] hover:text-white transition-colors">
                         <ChevronLeft className="w-8 h-8" />
                     </button>
                     <div className="flex gap-3">
@@ -252,12 +244,12 @@ export default function Home() {
                                 className={`w-4 h-4 rounded-full transition-all duration-300 ${
                                     i === currentStep 
                                     ? 'bg-white scale-125 shadow-[0_0_10px_rgba(255,255,255,0.5)]' 
-                                    : 'bg-slate-700 hover:bg-slate-500'
+                                    : 'bg-[#334155] hover:bg-[#475569]'
                                 }`}
                             />
                         ))}
                     </div>
-                    <button onClick={() => setCurrentStep((prev) => (prev + 1) % STEPS.length)} className="p-2 text-slate-500 hover:text-white transition-colors">
+                    <button onClick={() => setCurrentStep((prev) => (prev + 1) % STEPS.length)} className="p-2 text-[#94A3B8] hover:text-white transition-colors">
                         <ChevronRight className="w-8 h-8" />
                     </button>
                 </div>
@@ -265,7 +257,7 @@ export default function Home() {
         </div>
 
         {/* FOOTER */}
-        <div className="flex gap-6 text-sm font-bold text-slate-500 uppercase tracking-widest mt-8">
+        <div className="flex gap-6 text-sm font-bold text-[#94A3B8] uppercase tracking-widest mt-8">
             <a href="#" className="hover:text-white transition-colors">Conditions</a>
             <span>•</span>
             <a href="#" className="hover:text-white transition-colors">Confidentialité</a>

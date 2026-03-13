@@ -3,27 +3,27 @@ import { ButtonHTMLAttributes, forwardRef } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'purple';
   size?: 'sm' | 'md' | 'lg' | 'icon';
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ children, className, variant = 'primary', size = 'md', ...props }, ref) => {
-    // Gamey Style Base Classes
-    const baseClasses = 'inline-flex items-center justify-center font-black uppercase tracking-wider rounded-xl transition-all focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed transform active:translate-y-1 active:border-b-0 border-b-4';
+    const baseClasses = 'inline-flex items-center justify-center font-bold uppercase tracking-wider rounded-xl transition-all duration-100 focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed';
     
     const variants = {
-      primary: 'bg-indigo-500 border-indigo-700 text-white hover:bg-indigo-400 hover:border-indigo-600',
-      secondary: 'bg-slate-700 border-slate-900 text-white hover:bg-slate-600 hover:border-slate-800',
-      outline: 'bg-transparent border-2 border-slate-500 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-400 active:translate-y-0 active:border-2', // Less gamey for outline
-      ghost: 'bg-transparent border-transparent text-slate-400 hover:text-white hover:bg-white/5 active:translate-y-0 active:border-transparent', // No 3D for ghost
+      primary: 'bg-[#3B82F6] text-white hover:bg-[#2563EB] shadow-[4px_4px_0px_0px_#020617] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+      secondary: 'bg-[#334155] text-white hover:bg-[#475569] shadow-[4px_4px_0px_0px_#020617] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+      outline: 'bg-transparent border-2 border-[#334155] text-[#94A3B8] hover:bg-[#1E293B] hover:text-white hover:border-[#475569] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+      ghost: 'bg-transparent border-transparent text-[#94A3B8] hover:text-white hover:bg-[#1E293B] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+      purple: 'bg-[#6366F1] text-white hover:bg-[#4F46E5] shadow-[4px_4px_0px_0px_#020617] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
     };
     
     const sizes = {
-      sm: 'px-3 py-1 text-xs h-8',
-      md: 'px-5 py-2 text-sm h-12',
-      lg: 'px-8 py-4 text-lg h-16',
-      icon: 'h-12 w-12 p-0 flex items-center justify-center',
+      sm: 'px-3 py-1.5 text-xs h-8',
+      md: 'px-5 py-2.5 text-sm h-11',
+      lg: 'px-8 py-3.5 text-base h-14',
+      icon: 'h-11 w-11 p-0 flex items-center justify-center',
     };
 
     return (

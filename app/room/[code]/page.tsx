@@ -789,31 +789,32 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   if (showPseudoModal) {
       return (
-          <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-              <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl animate-in zoom-in duration-300">
+          <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-4">
+              <div className="w-full max-w-md bg-[#1E293B] border border-[#334155] rounded-2xl p-8 shadow-[4px_4px_0px_0px_#020617] animate-in zoom-in duration-300">
                   <div className="flex justify-center mb-6">
-                      <div className="bg-indigo-500/10 p-4 rounded-full">
-                          <Users className="w-12 h-12 text-indigo-500" />
+                      <div className="bg-[#3B82F6]/20 p-4 rounded-full">
+                          <Users className="w-12 h-12 text-[#3B82F6]" />
                       </div>
                   </div>
-                  <h1 className="text-2xl font-bold text-center text-white mb-2">Rejoindre la partie</h1>
-                  <p className="text-center text-slate-400 mb-8">Entrez un pseudo pour rejoindre la salle <span className="font-mono text-white bg-slate-800 px-2 py-0.5 rounded">{params.code}</span></p>
+                  <h1 className="text-2xl font-bold text-center text-[#F8FAFC] mb-2">Rejoindre la partie</h1>
+                  <p className="text-center text-[#94A3B8] mb-8">Entrez un pseudo pour rejoindre la salle <span className="font-mono text-[#F8FAFC] bg-[#334155] px-2 py-0.5 rounded">{params.code}</span></p>
                   
                   <form onSubmit={handlePseudoSubmit} className="space-y-4">
                       <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Votre Pseudo</label>
+                          <label className="block text-sm font-medium text-[#94A3B8] mb-2">Votre Pseudo</label>
                           <Input 
                               value={pseudoInput}
                               onChange={(e) => setPseudoInput(e.target.value)}
                               placeholder="Ex: PikaPika"
-                              className="bg-slate-800 border-slate-700 text-white h-12 text-lg focus:ring-indigo-500"
+                              className="h-12 text-lg"
                               autoFocus
                           />
                       </div>
                       <Button 
                           type="submit" 
                           disabled={!pseudoInput.trim()}
-                          className="w-full h-12 text-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold"
+                          variant="purple"
+                          className="w-full h-12 text-lg font-bold"
                       >
                           Rejoindre
                       </Button>
@@ -825,13 +826,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   if (isRoomDeleted) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-center space-y-6">
+      <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-4 text-center space-y-6">
         <LogOut className="w-24 h-24 text-red-500 animate-bounce" />
-        <h1 className="text-4xl font-black text-white">Cette salle n'existe plus</h1>
-        <p className="text-slate-400 text-lg max-w-md">
+        <h1 className="text-4xl font-black text-[#F8FAFC]">Cette salle n'existe plus</h1>
+        <p className="text-[#94A3B8] text-lg max-w-md">
           L'hôte a quitté ou la salle a été supprimée.
         </p>
-        <Button onClick={() => router.push('/')} size="lg" className="bg-slate-800 hover:bg-slate-700">
+        <Button onClick={() => router.push('/')} size="lg" variant="secondary">
           Retour à l'accueil
         </Button>
       </div>
@@ -840,17 +841,17 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   if (showJoinOverlay) {
     return (
-      <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
+      <div className="fixed inset-0 z-[100] bg-[#0F172A] flex items-center justify-center">
           {/* Close Button */}
           <button 
               onClick={() => setShowJoinOverlay(false)}
-              className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors"
+              className="absolute top-8 right-8 text-[#94A3B8] hover:text-white transition-colors"
           >
               <LogOut className="w-8 h-8 rotate-180" />
           </button>
 
           <div className="text-center space-y-12 animate-in fade-in zoom-in duration-500">
-              <h1 className="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 to-purple-600 tracking-tighter mb-8">
+              <h1 className="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-[#3B82F6] to-[#6366F1] tracking-tighter mb-8">
                   IttolecHub
               </h1>
 
@@ -864,12 +865,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               </div>
 
               <div className="space-y-4">
-                  <h2 className="text-4xl font-bold text-white uppercase tracking-widest">
+                  <h2 className="text-4xl font-bold text-[#F8FAFC] uppercase tracking-widest">
                       Rejoignez la partie !
                   </h2>
-                  <div className="flex items-center justify-center gap-4 text-3xl text-slate-400 font-mono">
+                  <div className="flex items-center justify-center gap-4 text-3xl text-[#94A3B8] font-mono">
                       <span>Code :</span>
-                      <span className="bg-slate-800 px-6 py-3 rounded-xl text-white border border-slate-700 font-black tracking-widest">
+                      <span className="bg-[#334155] px-6 py-3 rounded-xl text-[#F8FAFC] border border-[#475569] font-black tracking-widest">
                           {params.code}
                       </span>
                   </div>
@@ -880,12 +881,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 font-sans selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-[#0F172A] text-[#F8FAFC] p-4 sm:p-6 font-sans selection:bg-indigo-500/30">
       
       {/* Background Gradients */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px] animate-pulse-slow" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#3B82F6]/10 rounded-full blur-[120px] animate-pulse-slow" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-[#6366F1]/10 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto">
@@ -896,15 +897,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 <Button 
                     onClick={leaveRoom} 
                     variant="ghost" 
-                    className="rounded-full h-10 w-10 p-0 hover:bg-white/10 text-slate-400 hover:text-white"
+                    className="rounded-full h-10 w-10 p-0 hover:bg-[#1E293B] text-[#94A3B8] hover:text-white"
                 >
                     <LogOut className="h-5 w-5" />
                 </Button>
                 <div className="flex flex-col">
-                    <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
+                    <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#6366F1]">
                         Salon de jeu
                     </h1>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
                         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                         En ligne
                     </div>
@@ -930,8 +931,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     variant="ghost"
                     className={`flex items-center gap-2 h-12 px-4 rounded-xl transition-all border ${
                         streamerMode 
-                        ? 'text-indigo-400 bg-indigo-900/20 border-indigo-500/30 hover:bg-indigo-900/30' 
-                        : 'text-slate-400 hover:text-white bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'
+                        ? 'text-[#3B82F6] bg-[#3B82F6]/20 border-[#3B82F6]/30 hover:bg-[#3B82F6]/30' 
+                        : 'text-[#94A3B8] hover:text-white bg-[#1E293B] border-[#334155] hover:bg-[#334155]'
                     }`}
                     title={streamerMode ? "Désactiver le mode confidentialité" : "Activer le mode confidentialité (masque les codes)"}
                 >
@@ -943,12 +944,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 {!streamerMode && (
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button variant="ghost" className="h-12 w-12 p-0 rounded-xl text-slate-400 hover:text-white bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all">
+                            <Button variant="ghost" className="h-12 w-12 p-0 rounded-xl text-[#94A3B8] hover:text-white bg-[#1E293B] border border-[#334155] hover:bg-[#334155] transition-all">
                                 <QrCode className="w-5 h-5" />
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 border-none aspect-square">
-                        <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">Scanner pour rejoindre</h2>
+                        <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-[#1E293B] border-[#334155] aspect-square">
+                        <h2 className="text-2xl font-bold mb-6 text-[#F8FAFC]">Scanner pour rejoindre</h2>
                         <div className="p-4 bg-white rounded-xl shadow-lg aspect-square flex items-center justify-center w-full">
                             <QRCode 
                                 value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
@@ -957,7 +958,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                 viewBox={`0 0 256 256`}
                             />
                         </div>
-                        <p className="mt-6 text-slate-500 dark:text-slate-400 font-mono text-xl tracking-widest">
+                        <p className="mt-6 text-[#94A3B8] font-mono text-xl tracking-widest">
                             {params.code}
                         </p>
                     </DialogContent>
@@ -965,15 +966,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 )}
 
                 <div 
-                    className="h-12 flex items-center gap-3 bg-white/5 border border-white/10 px-5 rounded-xl cursor-pointer hover:bg-white/10 hover:border-white/20 transition-all group"
+                    className="h-12 flex items-center gap-3 bg-[#1E293B] border border-[#334155] px-5 rounded-xl cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all group"
                     onClick={copyRoomCode}
                     title={streamerMode ? "Code masqué (cliquez pour copier)" : "Copier le code"}
                 >
-                    <span className="text-xs text-slate-400 uppercase tracking-widest font-bold">Code</span>
-                    <span className="font-mono text-lg font-bold tracking-widest text-white group-hover:text-indigo-300 transition-colors">
+                    <span className="text-xs text-[#94A3B8] uppercase tracking-widest font-bold">Code</span>
+                    <span className="font-mono text-lg font-bold tracking-widest text-[#F8FAFC] group-hover:text-[#3B82F6] transition-colors">
                         {streamerMode ? '••••••' : params.code}
                     </span>
-                    {copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-slate-500 group-hover:text-white" />}
+                    {copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-[#94A3B8] group-hover:text-white" />}
                 </div>
             </div>
         </header>
@@ -984,12 +985,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           <div className="lg:col-span-8 space-y-6">
             
             {/* Game Selection Card */}
-            <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 lg:p-8">
+            <div className="bg-[#1E293B] border border-[#334155] rounded-3xl p-6 lg:p-8 shadow-[4px_4px_0px_0px_#020617]">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 rounded-xl bg-indigo-500/20 text-indigo-400">
+                    <div className="p-3 rounded-xl bg-[#3B82F6]/20 text-[#3B82F6]">
                         <Gamepad2 className="h-6 w-6" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white">Choix du jeu</h2>
+                    <h2 className="text-2xl font-bold text-[#F8FAFC]">Choix du jeu</h2>
                 </div>
 
                 {isHost ? (
@@ -1009,16 +1010,16 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                         }
                                         setSelectedGameId(game.id);
                                     }}
-                                    className={`cursor-pointer relative overflow-hidden rounded-2xl border-2 transition-all duration-300 hover:scale-[1.02] ${
+                                    className={`cursor-pointer relative overflow-hidden rounded-2xl border-2 transition-all duration-100 hover:scale-[1.02] ${
                                         isComingSoon ? 'opacity-60 cursor-not-allowed' : ''
                                     } ${
                                         isSelected 
-                                        ? 'border-indigo-500 bg-indigo-500/10' 
-                                        : 'border-white/5 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                                        ? 'border-[#3B82F6] bg-[#3B82F6]/10' 
+                                        : 'border-[#334155] bg-[#334155]/50 hover:border-[#475569] hover:bg-[#334155]'
                                     }`}
                                 >
                                     {isComingSoon && (
-                                        <div className="absolute top-2 right-2 bg-slate-900 text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full border border-slate-700 z-10">
+                                        <div className="absolute top-2 right-2 bg-[#0F172A] text-[#94A3B8] text-[10px] font-bold px-2 py-1 rounded-full border border-[#334155] z-10">
                                             BIENTÔT
                                         </div>
                                     )}
@@ -1027,8 +1028,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                             <Icon className="h-6 w-6 text-white" />
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-white">{game.name}</h3>
-                                            <p className="text-xs text-slate-400 line-clamp-1">{game.description}</p>
+                                            <h3 className="font-bold text-[#F8FAFC]">{game.name}</h3>
+                                            <p className="text-xs text-[#94A3B8] line-clamp-1">{game.description}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1036,19 +1037,19 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         })}
                     </div>
                 ) : (
-                    <div className="bg-white/5 rounded-2xl p-8 text-center border border-white/10">
+                    <div className="bg-[#0F172A] rounded-2xl p-8 text-center border border-[#334155]">
                         {selectedGame ? (
                             <div className="flex flex-col items-center gap-4 animate-in zoom-in duration-300">
                                 <div className={`p-6 rounded-3xl bg-gradient-to-br ${selectedGame.color}`}>
                                     <selectedGame.icon className="h-12 w-12 text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="text-3xl font-bold text-white mb-2">{selectedGame.name}</h3>
-                                    <p className="text-slate-400 max-w-md mx-auto">{selectedGame.description}</p>
+                                    <h3 className="text-3xl font-bold text-[#F8FAFC] mb-2">{selectedGame.name}</h3>
+                                    <p className="text-[#94A3B8] max-w-md mx-auto">{selectedGame.description}</p>
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center gap-4 text-slate-500 py-8">
+                            <div className="flex flex-col items-center gap-4 text-[#94A3B8] py-8">
                                 <div className="animate-spin-slow">
                                     <Settings className="h-12 w-12 opacity-20" />
                                 </div>
@@ -1061,16 +1062,16 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
             {/* Settings Card */}
             {selectedGame && (
-                <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 lg:p-8 animate-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-[#1E293B] border border-[#334155] rounded-3xl p-6 lg:p-8 animate-in slide-in-from-bottom-4 duration-500 shadow-[4px_4px_0px_0px_#020617]">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                             <div className="p-3 rounded-xl bg-pink-500/20 text-pink-400">
                                 <Settings className="h-6 w-6" />
                             </div>
-                            <h2 className="text-xl font-bold text-white">Paramètres</h2>
+                            <h2 className="text-xl font-bold text-[#F8FAFC]">Paramètres</h2>
                         </div>
                         {!isHost && (
-                            <span className="text-xs font-medium px-3 py-1 rounded-full bg-white/10 text-slate-400 border border-white/5">
+                            <span className="text-xs font-medium px-3 py-1 rounded-full bg-[#334155] text-[#94A3B8] border border-[#475569]">
                                 Synchronisé avec l'hôte
                             </span>
                         )}
@@ -1079,7 +1080,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {selectedGame.settings.map((setting) => (
                             <div key={setting.id} className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                                <label className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider ml-1">
                                     {setting.label}
                                 </label>
                                 
@@ -1090,7 +1091,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                 type="number"
                                                 value={String(gameSettings[setting.id] ?? setting.default)}
                                                 onChange={(e) => handleSettingChange(setting.id, e.target.value === '' ? setting.default : Number(e.target.value))}
-                                                className="bg-slate-950 border-white/10 text-white rounded-xl h-12 focus:ring-indigo-500 focus:border-indigo-500"
+                                                className="bg-[#0F172A] border-none text-[#F8FAFC] rounded-xl h-12"
                                             />
                                         )}
                                         {setting.type === 'text' && (
@@ -1098,7 +1099,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                 type="text"
                                                 value={String(gameSettings[setting.id] ?? setting.default)}
                                                 onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-                                                className="bg-slate-950 border-white/10 text-white rounded-xl h-12"
+                                                className="bg-[#0F172A] border-none text-[#F8FAFC] rounded-xl h-12"
                                             />
                                         )}
                                         {setting.type === 'select' && setting.options && (
@@ -1106,12 +1107,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                 value={String(gameSettings[setting.id] ?? setting.default)}
                                                 onValueChange={(v) => handleSettingChange(setting.id, v)}
                                             >
-                                                <SelectTrigger className="bg-slate-950 border-white/10 text-white rounded-xl h-12">
+                                                <SelectTrigger className="bg-[#0F172A] border-none text-[#F8FAFC] rounded-xl h-12">
                                                     <SelectValue />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                                <SelectContent className="bg-[#1E293B] border-[#334155] text-[#F8FAFC]">
                                                     {setting.options.map((opt) => (
-                                                        <SelectItem key={opt.value} value={opt.value} className="focus:bg-white/10 cursor-pointer">
+                                                        <SelectItem key={opt.value} value={opt.value} className="focus:bg-[#334155] cursor-pointer">
                                                             {opt.label}
                                                         </SelectItem>
                                                     ))}
@@ -1119,7 +1120,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                             </Select>
                                         )}
                                         {setting.type === 'multiselect' && setting.options && (
-                                            <div className="flex flex-wrap gap-2 bg-slate-950 p-2 rounded-xl border border-white/10 min-h-[48px]">
+                                            <div className="flex flex-wrap gap-2 bg-[#0F172A] p-2 rounded-xl border border-[#334155] min-h-[48px]">
                                                 {setting.options.map((opt) => {
                                                     const currentVal = gameSettings[setting.id];
                                                     const current = Array.isArray(currentVal) ? currentVal : (setting.default as any[]);
@@ -1141,8 +1142,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                             }}
                                                             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                                                                 isSelected 
-                                                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
-                                                                : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                                                                ? 'bg-[#3B82F6] text-white shadow-[2px_2px_0px_0px_#020617]' 
+                                                                : 'bg-[#334155] text-[#94A3B8] hover:bg-[#475569] hover:text-white'
                                                             }`}
                                                         >
                                                             {opt.label}
@@ -1153,7 +1154,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="h-12 flex items-center px-4 bg-white/5 border border-white/5 rounded-xl text-white font-medium">
+                                    <div className="h-12 flex items-center px-4 bg-[#0F172A] border border-[#334155] rounded-xl text-[#F8FAFC] font-medium">
                                         {setting.type === 'select' && setting.options 
                                             ? setting.options.find(o => o.value === String(gameSettings[setting.id] ?? setting.default))?.label 
                                             : setting.type === 'multiselect'
@@ -1167,10 +1168,11 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     </div>
 
                     {isHost && (
-                        <div className="mt-8 pt-6 border-t border-white/10">
+                        <div className="mt-8 pt-6 border-t border-[#334155]">
                             <Button
                                 onClick={startGame}
-                                className="w-full h-14 text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl shadow-xl shadow-indigo-500/20 transition-all hover:scale-[1.02] hover:shadow-indigo-500/30"
+                                variant="purple"
+                                className="w-full h-14 text-lg font-bold rounded-xl"
                             >
                                 <Play className="w-5 h-5 mr-2 fill-current" /> Lancer la partie
                             </Button>
@@ -1182,15 +1184,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
           {/* RIGHT: Players List */}
           <div className="lg:col-span-4 h-full">
-            <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 h-full min-h-[400px] flex flex-col shadow-2xl">
+            <div className="bg-[#1E293B] border border-[#334155] rounded-3xl p-6 h-full min-h-[400px] flex flex-col shadow-[4px_4px_0px_0px_#020617]">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                         <div className="p-3 rounded-xl bg-green-500/20 text-green-400">
                             <Users className="h-6 w-6" />
                         </div>
-                        <h2 className="text-xl font-bold text-white">Joueurs</h2>
+                        <h2 className="text-xl font-bold text-[#F8FAFC]">Joueurs</h2>
                     </div>
-                    <span className="bg-white/10 px-3 py-1 rounded-full text-sm font-bold text-white">
+                    <span className="bg-[#334155] px-3 py-1 rounded-full text-sm font-bold text-[#F8FAFC]">
                         {players.length}
                     </span>
                 </div>
@@ -1199,50 +1201,49 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     {players.map((player) => (
                         <div 
                             key={player.id} 
-                            className="group flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all hover:translate-x-1"
+                            className="group flex items-center justify-between p-3 rounded-xl bg-[#0F172A] border border-[#334155] hover:bg-[#334155] transition-all hover:translate-x-1"
                         >
                             <div className="flex items-center gap-3 overflow-hidden">
                                 <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-black shadow-lg ${
                                     player.isHost 
-                                    ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' 
-                                    : 'bg-slate-800 text-slate-400 group-hover:text-white'
+                                    ? 'bg-gradient-to-br from-[#3B82F6] to-[#6366F1] text-white' 
+                                    : 'bg-[#334155] text-[#94A3B8] group-hover:text-white'
                                 }`}>
                                     {player.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex flex-col truncate">
-                                    <span className={`font-bold truncate ${player.isHost ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                                    <span className={`font-bold truncate ${player.isHost ? 'text-[#F8FAFC]' : 'text-[#94A3B8] group-hover:text-white'}`}>
                                         {player.name}
                                     </span>
                                     {player.isHost && (
-                                        <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400">
+                                        <span className="text-[10px] uppercase tracking-wider font-bold text-[#3B82F6]">
                                             Hôte
                                         </span>
                                     )}
                                 </div>
                             </div>
                             
-                            {/* Status Indicator (Optional) */}
-                            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                            {/* Status Indicator - Supprimé le petit point vert */}
                         </div>
                     ))}
                     
                     {/* Empty slots placeholders to fill space visually */}
                     {Array.from({ length: Math.max(0, 4 - players.length) }).map((_, i) => (
-                        <div key={`empty-${i}`} className="border-2 border-dashed border-white/5 rounded-xl p-3 flex items-center justify-center text-slate-600 text-sm h-[66px]">
+                        <div key={`empty-${i}`} className="border-2 border-dashed border-[#334155] rounded-xl p-3 flex items-center justify-center text-[#94A3B8] text-sm h-[66px]">
                             En attente...
                         </div>
                     ))}
                 </div>
 
                 {!isHost && (
-                    <div className="mt-6 pt-6 border-t border-white/10 text-center space-y-3">
-                        <div className="inline-block p-3 rounded-full bg-indigo-500/10 mb-2">
+                    <div className="mt-6 pt-6 border-t border-[#334155] text-center space-y-3">
+                        <div className="inline-block p-3 rounded-full bg-[#3B82F6]/20 mb-2">
                             <div className="animate-spin-slow">
-                                <Settings className="h-6 w-6 text-indigo-400" />
+                                <Settings className="h-6 w-6 text-[#3B82F6]" />
                             </div>
                         </div>
-                        <p className="text-sm text-slate-400">
-                            En attente du lancement par <span className="text-white font-bold">{getHostName()}</span>
+                        <p className="text-sm text-[#94A3B8]">
+                            En attente du lancement par <span className="text-[#F8FAFC] font-bold">{getHostName()}</span>
                         </p>
                     </div>
                 )}
