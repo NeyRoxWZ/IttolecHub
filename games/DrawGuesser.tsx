@@ -41,6 +41,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
   const gamePlayers = draw?.players || [];
   
   const currentPhase = game.phase || 'setup';
+  const currentRound = game.current_round || 1;
   const currentWord = game.current_word;
   const currentDrawerId = game.current_drawer_id;
   const isDrawer = playerId === currentDrawerId;
@@ -105,18 +106,23 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           if (myPlayer) {
               setHasGuessed(myPlayer.has_guessed);
               setGuessRank(myPlayer.guess_rank);
-              if (currentPhase === 'playing' && !myPlayer.has_guessed) {
-                  // Reset local state for new round
-                  setUserGuess('');
-                  // Clear canvas locally on new round start
-                  const ctx = canvasRef.current?.getContext('2d');
-                  if (ctx && canvasRef.current) {
-                      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-                  }
-              }
           }
       }
-  }, [gamePlayers, playerId, currentPhase]);
+  }, [gamePlayers, playerId]);
+
+  // Reset local state on new round
+  useEffect(() => {
+      if (currentPhase === 'playing') {
+          setUserGuess('');
+          setHasGuessed(false);
+          setGuessRank(0);
+          // Clear canvas locally on new round start
+          const ctx = canvasRef.current?.getContext('2d');
+          if (ctx && canvasRef.current) {
+              ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          }
+      }
+  }, [currentRound, currentPhase]);
 
   // Handle Incoming Draw Events
   useEffect(() => {
