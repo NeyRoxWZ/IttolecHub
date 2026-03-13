@@ -790,7 +790,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   if (showPseudoModal) {
       return (
           <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-4">
-              <div className="w-full max-w-md bg-[#1E293B] border border-[#334155] rounded-2xl p-8 shadow-[4px_4px_0px_0px_#020617] animate-in zoom-in duration-300">
+              <div className="w-full max-w-md bg-[#1E293B] border border-[#334155] rounded-2xl p-8 shadow-[0_4px_0_0px_#020617] animate-in zoom-in duration-300">
                   <div className="flex justify-center mb-6">
                       <div className="bg-[#3B82F6]/20 p-4 rounded-full">
                           <Users className="w-12 h-12 text-[#3B82F6]" />
@@ -985,7 +985,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           <div className="lg:col-span-8 space-y-6">
             
             {/* Game Selection Card */}
-            <div className="bg-[#1E293B] border border-[#334155] rounded-3xl p-6 lg:p-8 shadow-[4px_4px_0px_0px_#020617]">
+            <div className="bg-[#1E293B] border border-[#334155] rounded-3xl p-6 lg:p-8 shadow-[0_4px_0_0px_#020617]">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-3 rounded-xl bg-[#3B82F6]/20 text-[#3B82F6]">
                         <Gamepad2 className="h-6 w-6" />
@@ -1062,7 +1062,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
             {/* Settings Card */}
             {selectedGame && (
-                <div className="bg-[#1E293B] border border-[#334155] rounded-3xl p-6 lg:p-8 animate-in slide-in-from-bottom-4 duration-500 shadow-[4px_4px_0px_0px_#020617]">
+                <div className="bg-[#1E293B] border border-[#334155] rounded-3xl p-6 lg:p-8 animate-in slide-in-from-bottom-4 duration-500 shadow-[0_4px_0_0px_#020617]">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                             <div className="p-3 rounded-xl bg-pink-500/20 text-pink-400">
@@ -1184,7 +1184,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
           {/* RIGHT: Players List */}
           <div className="lg:col-span-4 h-full">
-            <div className="bg-[#1E293B] border border-[#334155] rounded-3xl p-6 h-full min-h-[400px] flex flex-col shadow-[4px_4px_0px_0px_#020617]">
+            <div className="bg-[#1E293B] border border-[#334155] rounded-3xl p-6 h-full min-h-[400px] flex flex-col shadow-[0_4px_0_0px_#020617]">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                         <div className="p-3 rounded-xl bg-green-500/20 text-green-400">
