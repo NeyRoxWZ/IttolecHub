@@ -29,7 +29,8 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
     logo,
     roomId,
     lastEvent,
-    broadcast
+    broadcast,
+    roomStatus
   } = useGameSync(roomCode, 'logo');
 
   // --- DERIVED STATE ---
@@ -71,6 +72,13 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
         router.push(`/room/${roomCode}`);
     }
   }, [lastEvent, roomCode, router]);
+
+  // Listen for room status changes to navigate back to lobby
+  useEffect(() => {
+    if (roomStatus === 'waiting') {
+      router.push(`/room/${roomCode}`);
+    }
+  }, [roomStatus, roomCode, router]);
 
   // Timer & Blur Logic
   useEffect(() => {

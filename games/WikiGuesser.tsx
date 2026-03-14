@@ -29,7 +29,8 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
     resetAllPlayersReady,
     roomId,
     lastEvent,
-    broadcast
+    broadcast,
+    roomStatus
   } = useGameSync(roomCode, 'wiki');
 
   // --- DERIVED STATE ---
@@ -62,6 +63,13 @@ export default function WikiGuesser({ roomCode }: WikiGuesserProps) {
         router.push(`/room/${roomCode}`);
     }
   }, [lastEvent, roomCode, router]);
+
+  // Listen for room status changes to navigate back to lobby
+  useEffect(() => {
+    if (roomStatus === 'waiting') {
+      router.push(`/room/${roomCode}`);
+    }
+  }, [roomStatus, roomCode, router]);
 
   // Timer Logic
   useEffect(() => {
