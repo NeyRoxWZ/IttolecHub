@@ -617,12 +617,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   // Synchroniser les changements de config (Host uniquement)
   const isUpdatingSettingsRef = useRef(false);
+  const isStartingGameRef = useRef(false);
   
   useEffect(() => {
       if (!isHost || !roomId || !selectedGameId || selectedGameId === '__placeholder__') return;
       
       const updateRoomSettings = async () => {
-          if (isUpdatingSettingsRef.current) return;
+          if (isUpdatingSettingsRef.current || isStartingGameRef.current) return;
           
           // Verify we have valid data before sending
           if (typeof selectedGameId !== 'string') {
@@ -645,9 +646,6 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
           if (error) {
              console.error('ERREUR COMPLÈTE UPDATE SETTINGS:', error.message, error.details, error.hint);
-             // Stop updating if we hit a persistent error
-             // We don't set isUpdatingSettingsRef to false immediately to avoid loop
-             // But we should probably retry eventually or let user retry by changing settings
           }
           
           isUpdatingSettingsRef.current = false;
@@ -688,6 +686,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   const startGame = async () => {
     if (!selectedGameId || selectedGameId === '__placeholder__' || !roomId) return;
+    if (isStartingGameRef.current) return; // Prevent double click
     
     // Check if game is coming soon
     const gameInfo = gamesList.find(g => g.id === selectedGameId);
@@ -696,61 +695,62 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         return;
     }
 
-    // 1. Create/Update Session FIRST with initial state
-    const sessionPayload = {
-        room_id: roomId,
-        status: 'round_active', // Start directly
-        current_round: 1,
-        total_rounds: Number(gameSettings['rounds'] || 5), // Default fallback
-        answers: {},
-        // We initialize round_data as empty, the game component will fetch/generate its first round
-        // OR we should trigger generation here?
-        // Better: let the game component handle "setup" phase if round_data is empty.
-        // But the user says: "state containing the first question".
-        // Generating question here requires game-specific logic which is hard to centralize.
-        // COMPROMISE: We set status to 'setup' so game component knows to generate immediately.
-        round_data: { phase: 'setup', startTime: Date.now() } 
-    };
+    isStartingGameRef.current = true;
+    toast.loading("Démarrage de la partie...");
 
-    const { error: sessionError } = await supabase
-        .from('game_sessions')
-        .upsert(sessionPayload, { onConflict: 'room_id' });
+    try {
+        // 1. Create/Update Session FIRST with initial state
+        const sessionPayload = {
+            room_id: roomId,
+            status: 'round_active', // Start directly
+            current_round: 1,
+            total_rounds: Number(gameSettings['rounds'] || 5), // Default fallback
+            answers: {},
+            round_data: { phase: 'setup', startTime: Date.now() } 
+        };
 
-    if (sessionError) {
-        console.error('Failed to create game session:', sessionError);
-        return; // Don't redirect if session creation failed
-    }
+        const { error: sessionError } = await supabase
+            .from('game_sessions')
+            .upsert(sessionPayload, { onConflict: 'room_id' });
 
-    // 2. Update Room status
-    await supabase.from('rooms').update({
-        status: 'in_game',
-        game_type: selectedGameId,
-        settings: gameSettings
-    }).eq('id', roomId);
-    
-    // 3. Construct URL
-    const paramsUrl = new URLSearchParams();
-    
-    // Flatten settings for URL
-    if (gameSettings) {
-        Object.entries(gameSettings).forEach(([k, v]) => {
-            if (v !== '' && v !== undefined && v !== null) {
-                if (Array.isArray(v)) {
-                    paramsUrl.set(k, v.join(','));
-                } else {
-                    paramsUrl.set(k, String(v));
+        if (sessionError) {
+            console.error('Failed to create game session:', sessionError);
+            return; // Don't redirect if session creation failed
+        }
+
+        // 2. Update Room status
+        await supabase.from('rooms').update({
+            status: 'in_game',
+            game_type: selectedGameId,
+            settings: gameSettings
+        }).eq('id', roomId);
+        
+        // 3. Construct URL
+        const paramsUrl = new URLSearchParams();
+        
+        // Flatten settings for URL
+        if (gameSettings) {
+            Object.entries(gameSettings).forEach(([k, v]) => {
+                if (v !== '' && v !== undefined && v !== null) {
+                    if (Array.isArray(v)) {
+                        paramsUrl.set(k, v.join(','));
+                    } else {
+                        paramsUrl.set(k, String(v));
+                    }
                 }
-            }
-        });
+            });
+        }
+        
+        const queryString = paramsUrl.toString();
+        const targetUrl = `/games/${selectedGameId}/${params.code}${queryString ? `?${queryString}` : ''}`;
+        
+        console.log('Redirecting to:', targetUrl);
+        
+        // 4. Force redirect
+        router.push(targetUrl);
+    } finally {
+        isStartingGameRef.current = false;
     }
-    
-    const queryString = paramsUrl.toString();
-    const targetUrl = `/games/${selectedGameId}/${params.code}${queryString ? `?${queryString}` : ''}`;
-    
-    console.log('Redirecting to:', targetUrl);
-    
-    // 4. Force redirect
-    router.push(targetUrl);
   };
 
   const copyRoomCode = () => {
