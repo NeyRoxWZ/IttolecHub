@@ -30,30 +30,6 @@ interface GameSetting {
 
 const gamesList: { id: string; name: string; description: string; icon: any; color: string; settings: GameSetting[]; comingSoon?: boolean }[] = [
   {
-    id: 'wikiguessr',
-    name: 'WikiGuessr',
-    description: 'Explorez Wikipédia à l\'aveugle.',
-    icon: Globe,
-    color: 'from-gray-500 to-slate-600',
-    settings: [
-      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
-      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 60 },
-      { 
-        id: 'category', 
-        label: 'Thème', 
-        type: 'select', 
-        default: 'all',
-        options: [
-          { value: 'all', label: 'Aléatoire' },
-          { value: 'Personnages', label: 'Célébrités' },
-          { value: 'Géographie', label: 'Lieux & Pays' },
-          { value: 'Sciences', label: 'Sciences' },
-          { value: 'Culture', label: 'Art & Culture' },
-        ]
-      },
-    ],
-  },
-  {
     id: 'pokeguessr',
     name: 'PokéGuessr',
     description: 'Quel est ce Pokémon ?',
