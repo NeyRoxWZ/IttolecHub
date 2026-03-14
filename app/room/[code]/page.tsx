@@ -213,11 +213,11 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
         type: 'select', 
         default: 'films',
         options: [
-          { value: 'films', label: 'Films 🎬' },
-          { value: 'hightech', label: 'High-Tech 🖥️', disabled: true },
-          { value: 'maison', label: 'Maison 🏠', disabled: true },
-          { value: 'luxe', label: 'Luxe 💎', disabled: true },
-          { value: 'alimentation', label: 'Alimentation 🛒', disabled: true },
+          { value: 'films', label: 'Films' },
+          { value: 'hightech', label: 'High-Tech', disabled: true },
+          { value: 'maison', label: 'Maison', disabled: true },
+          { value: 'luxe', label: 'Luxe', disabled: true },
+          { value: 'alimentation', label: 'Alimentation', disabled: true },
         ]
       },
     ],
@@ -1118,7 +1118,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                             disabled={opt.disabled}
                                                             className={`focus:bg-[#334155] ${opt.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                                                         >
-                                                            {opt.label} {opt.disabled && '(BientÔt)'}
+                                                            {opt.label} {opt.disabled && '(bientot)'}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
