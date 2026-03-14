@@ -30,8 +30,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
     resetAllPlayersReady,
     roomId,
     lastEvent,
-    broadcast,
-    roomStatus
+    broadcast
   } = useGameSync(roomCode, 'budget');
 
   // --- DERIVED STATE ---
@@ -62,13 +61,6 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
         router.push(`/room/${roomCode}`);
     }
   }, [lastEvent, roomCode, router]);
-
-  // Listen for room status changes to navigate back to lobby
-  useEffect(() => {
-    if (roomStatus === 'waiting') {
-      router.push(`/room/${roomCode}`);
-    }
-  }, [roomStatus, roomCode, router]);
 
   // Timer Logic
   useEffect(() => {

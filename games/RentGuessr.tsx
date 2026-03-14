@@ -36,8 +36,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
     resetAllPlayersReady,
     roomId,
     lastEvent,
-    broadcast,
-    roomStatus
+    broadcast
   } = useGameSync(roomCode, 'rent');
 
   // --- DERIVED STATE ---
@@ -82,13 +81,6 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
         router.push(`/room/${roomCode}`);
     }
   }, [lastEvent, roomCode, router]);
-
-  // Listen for room status changes to navigate back to lobby
-  useEffect(() => {
-    if (roomStatus === 'waiting') {
-      router.push(`/room/${roomCode}`);
-    }
-  }, [roomStatus, roomCode, router]);
 
   // Timer Logic
   useEffect(() => {

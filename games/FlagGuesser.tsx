@@ -31,8 +31,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
     resetAllPlayersReady,
     roomId,
     lastEvent,
-    broadcast,
-    roomStatus
+    broadcast
   } = useGameSync(roomCode, 'flag');
 
   // --- DERIVED STATE ---
@@ -66,13 +65,6 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
         router.push(`/room/${roomCode}`);
     }
   }, [lastEvent, roomCode, router]);
-
-  // Listen for room status changes to navigate back to lobby
-  useEffect(() => {
-    if (roomStatus === 'waiting') {
-      router.push(`/room/${roomCode}`);
-    }
-  }, [roomStatus, roomCode, router]);
 
   // Timer Logic
   useEffect(() => {

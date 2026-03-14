@@ -25,7 +25,7 @@ interface GameSetting {
   label: string;
   type: 'number' | 'text' | 'select' | 'multiselect';
   default: string | number | any[];
-  options?: { value: string; label: string }[];
+  options?: { value: string; label: string; disabled?: boolean }[];
 }
 
 const gamesList: { id: string; name: string; description: string; icon: any; color: string; settings: GameSetting[]; comingSoon?: boolean }[] = [
@@ -209,15 +209,15 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
       { 
         id: 'category', 
-        label: 'Rayon', 
+        label: 'Catégorie', 
         type: 'select', 
-        default: 'all',
+        default: 'films',
         options: [
-          { value: 'all', label: 'Tout le magasin' },
-          { value: 'High-Tech', label: 'High-Tech' },
-          { value: 'Maison', label: 'Maison & Déco' },
-          { value: 'Luxe', label: 'Luxe & Mode' },
-          { value: 'Alimentation', label: 'Supermarché' },
+          { value: 'films', label: 'Films 🎬' },
+          { value: 'hightech', label: 'High-Tech 🖥️', disabled: true },
+          { value: 'maison', label: 'Maison 🏠', disabled: true },
+          { value: 'luxe', label: 'Luxe 💎', disabled: true },
+          { value: 'alimentation', label: 'Alimentation 🛒', disabled: true },
         ]
       },
     ],
@@ -617,13 +617,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   // Synchroniser les changements de config (Host uniquement)
   const isUpdatingSettingsRef = useRef(false);
-  const isStartingGameRef = useRef(false);
   
   useEffect(() => {
       if (!isHost || !roomId || !selectedGameId || selectedGameId === '__placeholder__') return;
       
       const updateRoomSettings = async () => {
-          if (isUpdatingSettingsRef.current || isStartingGameRef.current) return;
+          if (isUpdatingSettingsRef.current) return;
           
           // Verify we have valid data before sending
           if (typeof selectedGameId !== 'string') {
@@ -646,6 +645,9 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
           if (error) {
              console.error('ERREUR COMPLÈTE UPDATE SETTINGS:', error.message, error.details, error.hint);
+             // Stop updating if we hit a persistent error
+             // We don't set isUpdatingSettingsRef to false immediately to avoid loop
+             // But we should probably retry eventually or let user retry by changing settings
           }
           
           isUpdatingSettingsRef.current = false;
@@ -686,7 +688,6 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   const startGame = async () => {
     if (!selectedGameId || selectedGameId === '__placeholder__' || !roomId) return;
-    if (isStartingGameRef.current) return; // Prevent double click
     
     // Check if game is coming soon
     const gameInfo = gamesList.find(g => g.id === selectedGameId);
@@ -695,62 +696,61 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         return;
     }
 
-    isStartingGameRef.current = true;
-    toast.loading("Démarrage de la partie...");
+    // 1. Create/Update Session FIRST with initial state
+    const sessionPayload = {
+        room_id: roomId,
+        status: 'round_active', // Start directly
+        current_round: 1,
+        total_rounds: Number(gameSettings['rounds'] || 5), // Default fallback
+        answers: {},
+        // We initialize round_data as empty, the game component will fetch/generate its first round
+        // OR we should trigger generation here?
+        // Better: let the game component handle "setup" phase if round_data is empty.
+        // But the user says: "state containing the first question".
+        // Generating question here requires game-specific logic which is hard to centralize.
+        // COMPROMISE: We set status to 'setup' so game component knows to generate immediately.
+        round_data: { phase: 'setup', startTime: Date.now() } 
+    };
 
-    try {
-        // 1. Create/Update Session FIRST with initial state
-        const sessionPayload = {
-            room_id: roomId,
-            status: 'round_active', // Start directly
-            current_round: 1,
-            total_rounds: Number(gameSettings['rounds'] || 5), // Default fallback
-            answers: {},
-            round_data: { phase: 'setup', startTime: Date.now() } 
-        };
+    const { error: sessionError } = await supabase
+        .from('game_sessions')
+        .upsert(sessionPayload, { onConflict: 'room_id' });
 
-        const { error: sessionError } = await supabase
-            .from('game_sessions')
-            .upsert(sessionPayload, { onConflict: 'room_id' });
-
-        if (sessionError) {
-            console.error('Failed to create game session:', sessionError);
-            return; // Don't redirect if session creation failed
-        }
-
-        // 2. Update Room status
-        await supabase.from('rooms').update({
-            status: 'in_game',
-            game_type: selectedGameId,
-            settings: gameSettings
-        }).eq('id', roomId);
-        
-        // 3. Construct URL
-        const paramsUrl = new URLSearchParams();
-        
-        // Flatten settings for URL
-        if (gameSettings) {
-            Object.entries(gameSettings).forEach(([k, v]) => {
-                if (v !== '' && v !== undefined && v !== null) {
-                    if (Array.isArray(v)) {
-                        paramsUrl.set(k, v.join(','));
-                    } else {
-                        paramsUrl.set(k, String(v));
-                    }
-                }
-            });
-        }
-        
-        const queryString = paramsUrl.toString();
-        const targetUrl = `/games/${selectedGameId}/${params.code}${queryString ? `?${queryString}` : ''}`;
-        
-        console.log('Redirecting to:', targetUrl);
-        
-        // 4. Force redirect
-        router.push(targetUrl);
-    } finally {
-        isStartingGameRef.current = false;
+    if (sessionError) {
+        console.error('Failed to create game session:', sessionError);
+        return; // Don't redirect if session creation failed
     }
+
+    // 2. Update Room status
+    await supabase.from('rooms').update({
+        status: 'in_game',
+        game_type: selectedGameId,
+        settings: gameSettings
+    }).eq('id', roomId);
+    
+    // 3. Construct URL
+    const paramsUrl = new URLSearchParams();
+    
+    // Flatten settings for URL
+    if (gameSettings) {
+        Object.entries(gameSettings).forEach(([k, v]) => {
+            if (v !== '' && v !== undefined && v !== null) {
+                if (Array.isArray(v)) {
+                    paramsUrl.set(k, v.join(','));
+                } else {
+                    paramsUrl.set(k, String(v));
+                }
+            }
+        });
+    }
+    
+    const queryString = paramsUrl.toString();
+    const targetUrl = `/games/${selectedGameId}/${params.code}${queryString ? `?${queryString}` : ''}`;
+    
+    console.log('Redirecting to:', targetUrl);
+    
+    // 4. Force redirect
+    router.push(targetUrl);
   };
 
   const copyRoomCode = () => {
@@ -1112,8 +1112,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                 </SelectTrigger>
                                                 <SelectContent className="bg-[#1E293B] border-[#334155] text-[#F8FAFC]">
                                                     {setting.options.map((opt) => (
-                                                        <SelectItem key={opt.value} value={opt.value} className="focus:bg-[#334155] cursor-pointer">
-                                                            {opt.label}
+                                                        <SelectItem 
+                                                            key={opt.value} 
+                                                            value={opt.value} 
+                                                            disabled={opt.disabled}
+                                                            className={`focus:bg-[#334155] ${opt.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                        >
+                                                            {opt.label} {opt.disabled && '(BientÔt)'}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
@@ -1129,7 +1134,9 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                     return (
                                                         <button
                                                             key={opt.value}
+                                                            disabled={opt.disabled}
                                                             onClick={() => {
+                                                                if (opt.disabled) return;
                                                                 const val = Number(opt.value);
                                                                 let newVal;
                                                                 if (isSelected) {
@@ -1141,9 +1148,11 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                                 handleSettingChange(setting.id, newVal);
                                                             }}
                                                             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                                                                isSelected 
-                                                                ? 'bg-[#3B82F6] text-white shadow-[2px_2px_0px_0px_#020617]' 
-                                                                : 'bg-[#334155] text-[#94A3B8] hover:bg-[#475569] hover:text-white'
+                                                                opt.disabled
+                                                                ? 'opacity-40 cursor-not-allowed'
+                                                                : isSelected 
+                                                                    ? 'bg-[#3B82F6] text-white shadow-[2px_2px_0px_0px_#020617]' 
+                                                                    : 'bg-[#334155] text-[#94A3B8] hover:bg-[#475569] hover:text-white'
                                                             }`}
                                                         >
                                                             {opt.label}

@@ -51,13 +51,6 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         router.push(`/room/${roomCode}`);
     }
   }, [lastEvent, roomCode, router]);
-
-  // Listen for room status changes to navigate back to lobby
-  useEffect(() => {
-    if (roomStatus === 'waiting') {
-      router.push(`/room/${roomCode}`);
-    }
-  }, [roomStatus, roomCode, router]);
   
   const roles = useMemo(() => {
       const r: Record<string, Role> = {};

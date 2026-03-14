@@ -37,8 +37,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
     resetAllPlayersReady,
     roomId,
     lastEvent,
-    broadcast,
-    roomStatus
+    broadcast
   } = useGameSync(roomCode, 'poke');
 
   // --- DERIVED STATE ---
@@ -72,13 +71,6 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
         router.push(`/room/${roomCode}`);
     }
   }, [lastEvent, roomCode, router]);
-
-  // Listen for room status changes to navigate back to lobby
-  useEffect(() => {
-    if (roomStatus === 'waiting') {
-      router.push(`/room/${roomCode}`);
-    }
-  }, [roomStatus, roomCode, router]);
 
   // Timer Logic
   useEffect(() => {
