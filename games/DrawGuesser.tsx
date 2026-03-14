@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { Trophy, Clock, PenTool, CheckCircle, Eraser, Eye, Trash2, Home, Loader2 } from 'lucide-react';
+import { Trophy, Clock, PenTool, CheckCircle, Eraser, Eye, EyeOff, Trash2, Home, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -16,8 +16,11 @@ interface DrawGuesserProps {
   roomCode: string;
 }
 
-const COLORS = ['#000000', '#FFFFFF', '#FF0000', '#0000FF', '#00FF00', '#FFFF00', '#FFA500', '#800080'];
-const SIZES = [2, 5, 10];
+const COLORS = [
+  '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FFA500', '#800080',
+  '#FF69B4', '#00CED1', '#8B4513', '#808080', '#FF6347', '#40E0D0', '#EEE8AA', '#98FB98'
+];
+const SIZES = [3, 6, 10, 15];
 
 export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
   const router = useRouter();
@@ -45,6 +48,12 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
   const currentWord = game.current_word;
   const currentDrawerId = game.current_drawer_id;
   const isDrawer = playerId === currentDrawerId;
+  
+  const getDrawerName = () => {
+      const drawer = players.find(p => p.id === currentDrawerId);
+      return drawer?.name || 'Unknown';
+  };
+  
   const timerStartAt = game.timer_start_at;
   const timerSeconds = game.timer_seconds || 90;
   
@@ -118,8 +127,10 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           setGuessRank(0);
           // Clear canvas locally on new round start
           const ctx = canvasRef.current?.getContext('2d');
-          if (ctx && canvasRef.current) {
-              ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          const parent = canvasRef.current?.parentElement;
+          if (ctx && canvasRef.current && parent) {
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, parent.clientWidth, parent.clientHeight);
           }
       }
   }, [currentRound, currentPhase]);
@@ -145,7 +156,11 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           ctx.lineCap = 'round';
           ctx.stroke();
       } else if (lastEvent.type === 'clear_canvas') {
-          ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          const parent = canvasRef.current.parentElement;
+          if (parent) {
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, parent.clientWidth, parent.clientHeight);
+          }
       } else if (lastEvent.type === 'player_found') {
           const { playerName } = lastEvent.payload;
           toast.success(`✅ ${playerName} a trouvé !`);
@@ -214,7 +229,11 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
   const clearCanvas = () => {
       if (!isDrawer || !canvasRef.current) return;
       const ctx = canvasRef.current.getContext('2d');
-      if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      const parent = canvasRef.current.parentElement;
+      if (ctx && parent) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, parent.clientWidth, parent.clientHeight);
+      }
       if (broadcast) broadcast('clear_canvas', {});
   };
 
@@ -483,8 +502,22 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           if (canvasRef.current) {
               const parent = canvasRef.current.parentElement;
               if (parent) {
-                  canvasRef.current.width = parent.clientWidth;
-                  canvasRef.current.height = parent.clientHeight;
+                  // Higher resolution for better quality
+                  const scale = 2;
+                  canvasRef.current.width = parent.clientWidth * scale;
+                  canvasRef.current.height = parent.clientHeight * scale;
+                  canvasRef.current.style.width = parent.clientWidth + 'px';
+                  canvasRef.current.style.height = parent.clientHeight + 'px';
+                  
+                  // Set white background and smoothing
+                  const ctx = canvasRef.current.getContext('2d');
+                  if (ctx) {
+                      ctx.scale(scale, scale);
+                      ctx.imageSmoothingEnabled = true;
+                      ctx.imageSmoothingQuality = 'high';
+                      ctx.fillStyle = '#FFFFFF';
+                      ctx.fillRect(0, 0, parent.clientWidth, parent.clientHeight);
+                  }
               }
           }
       };
@@ -541,29 +574,49 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
         {(currentPhase === 'playing' || currentPhase === 'round_results') && (
             <div className="flex flex-col w-full h-full relative">
                 
-                {/* DRAWER INFO / WORD REVEAL */}
+                {/* DRAWER INFO / WORD REVEAL - Style Undercover */}
                 <div className="absolute top-0 left-0 right-0 z-20 flex justify-center pointer-events-none">
                     {isDrawer && currentPhase === 'playing' && (
-                        <div className="pointer-events-auto mt-2">
-                             <Button
-                                onMouseDown={() => setRevealedWord(true)}
-                                onMouseUp={() => setRevealedWord(false)}
-                                onTouchStart={() => setRevealedWord(true)}
-                                onTouchEnd={() => setRevealedWord(false)}
-                                className="bg-[#1E293B] border border-[#475569] text-[#F8FAFC] font-bold text-lg px-6 py-2 rounded-full shadow-[0_4px_0_0px_#020617] active:scale-95 transition-transform"
-                             >
-                                 <Eye className="w-5 h-5 mr-2" />
-                                 {revealedWord ? (
-                                     <span className="text-green-400">{currentWord?.word}</span>
-                                 ) : (
-                                     <span>Maintenir pour voir le mot</span>
-                                 )}
-                             </Button>
+                        <div className="pointer-events-auto mt-2 bg-[#0F172A]/90 backdrop-blur p-6 rounded-3xl border border-[#334155] shadow-2xl">
+                            <div className="flex flex-col items-center gap-4">
+                                {revealedWord ? (
+                                    <div className="animate-in zoom-in duration-200 flex flex-col items-center">
+                                        <div className="bg-[#334155] px-8 py-4 rounded-xl border border-[#475569]">
+                                            <span className="block text-sm text-[#94A3B8] uppercase tracking-widest mb-1">Mot à dessiner</span>
+                                            <span className="text-3xl font-bold text-[#F8FAFC]">{currentWord?.word}</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center animate-in fade-in">
+                                        <EyeOff className="w-12 h-12 mb-2 text-[#94A3B8]" />
+                                        <p className="text-lg text-[#94A3B8]">Maintenir pour révéler</p>
+                                    </div>
+                                )}
+                                <button
+                                    className="w-full bg-[#334155] hover:bg-[#475569] active:bg-[#475569] border border-[#475569] rounded-xl p-3 transition-colors select-none touch-none"
+                                    onMouseDown={() => setRevealedWord(true)}
+                                    onMouseUp={() => setRevealedWord(false)}
+                                    onMouseLeave={() => setRevealedWord(false)}
+                                    onTouchStart={() => setRevealedWord(true)}
+                                    onTouchEnd={() => setRevealedWord(false)}
+                                >
+                                    <Eye className="w-6 h-6 mx-auto text-[#F8FAFC]" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    {!isDrawer && currentPhase === 'playing' && (
+                        <div className="mt-2 bg-[#0F172A]/90 backdrop-blur px-8 py-4 rounded-full border border-[#334155] shadow-xl">
+                            <div className="flex items-center gap-3">
+                                <PenTool className="w-5 h-5 text-pink-400" />
+                                <span className="text-[#F8FAFC] font-bold">{getDrawerName()} dessine...</span>
+                            </div>
                         </div>
                     )}
                     {currentPhase === 'round_results' && (
-                        <div className="mt-2 bg-green-600 text-white font-bold text-2xl px-8 py-3 rounded-full shadow-xl animate-bounce">
-                            Le mot était : {currentWord?.word}
+                        <div className="mt-2 bg-[#334155] px-8 py-4 rounded-2xl border border-[#475569] shadow-[0_4px_0_0px_#020617] animate-bounce">
+                            <span className="block text-sm text-[#94A3B8] uppercase tracking-widest mb-1 text-center">Le mot était</span>
+                            <span className="text-2xl font-bold text-[#F8FAFC]">{currentWord?.word}</span>
                         </div>
                     )}
                 </div>

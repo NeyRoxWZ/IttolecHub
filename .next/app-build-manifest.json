@@ -27,6 +27,17 @@
       "static/chunks/787-f174d2449d416715.js",
       "static/chunks/app/games/airbnbguessr/[code]/page-d978a95a41871ea2.js"
     ],
+    "/games/budgetguessr/[code]/page": [
+      "static/chunks/webpack-629b387d2a5f9d3b.js",
+      "static/chunks/fd9d1056-ac2c2568773ffb66.js",
+      "static/chunks/938-2943117b812cf416.js",
+      "static/chunks/main-app-b0c1a9794663b8f1.js",
+      "static/chunks/409-344b0e6146d954e7.js",
+      "static/chunks/61-33d6461d778ca65d.js",
+      "static/chunks/905-e082da2f87e5d457.js",
+      "static/chunks/787-f174d2449d416715.js",
+      "static/chunks/app/games/budgetguessr/[code]/page-bcebfc89e13b29df.js"
+    ],
     "/games/drawguessr/[code]/page": [
       "static/chunks/webpack-629b387d2a5f9d3b.js",
       "static/chunks/fd9d1056-ac2c2568773ffb66.js",
@@ -36,7 +47,7 @@
       "static/chunks/61-33d6461d778ca65d.js",
       "static/chunks/905-e082da2f87e5d457.js",
       "static/chunks/787-f174d2449d416715.js",
-      "static/chunks/app/games/drawguessr/[code]/page-771551cf67f7ba1a.js"
+      "static/chunks/app/games/drawguessr/[code]/page-7efb949679cda279.js"
     ],
     "/games/flagguessr/[code]/page": [
       "static/chunks/webpack-629b387d2a5f9d3b.js",
@@ -49,17 +60,6 @@
       "static/chunks/706-fcf401cf32323516.js",
       "static/chunks/787-f174d2449d416715.js",
       "static/chunks/app/games/flagguessr/[code]/page-d7d526bee0c7b57f.js"
-    ],
-    "/games/budgetguessr/[code]/page": [
-      "static/chunks/webpack-629b387d2a5f9d3b.js",
-      "static/chunks/fd9d1056-ac2c2568773ffb66.js",
-      "static/chunks/938-2943117b812cf416.js",
-      "static/chunks/main-app-b0c1a9794663b8f1.js",
-      "static/chunks/409-344b0e6146d954e7.js",
-      "static/chunks/61-33d6461d778ca65d.js",
-      "static/chunks/905-e082da2f87e5d457.js",
-      "static/chunks/787-f174d2449d416715.js",
-      "static/chunks/app/games/budgetguessr/[code]/page-bcebfc89e13b29df.js"
     ],
     "/games/infiltre/[code]/page": [
       "static/chunks/webpack-629b387d2a5f9d3b.js",
