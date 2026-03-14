@@ -1118,7 +1118,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                             disabled={opt.disabled}
                                                             className={`focus:bg-[#334155] ${opt.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                                                         >
-                                                            {opt.label} {opt.disabled && '(bientot)'}
+                                                            {opt.label} {opt.disabled && '(Bientôt)'}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
