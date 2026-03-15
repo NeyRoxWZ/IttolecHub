@@ -826,27 +826,47 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               <LogOut className="w-8 h-8 rotate-180" />
           </button>
 
-          <div className="text-center space-y-12 animate-in fade-in zoom-in duration-500">
-              <h1 className="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-[#3B82F6] to-[#6366F1] tracking-tighter mb-8">
-                  IttolecHub
-              </h1>
-
-              <div className="relative inline-block bg-white p-6 rounded-[2.5rem] shadow-2xl">
-                  <QRCode 
-                      value={`${window.location.origin}/room/${params.code}?source=qrcode`}
-                      size={300}
-                      fgColor="#000000"
-                      bgColor="transparent"
-                  />
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-12 animate-in fade-in zoom-in duration-500">
+              {/* Left side - Logo */}
+              <div className="flex flex-col items-center">
+                  <img src="/logosite.png" alt="IttolecHub" className="h-32 md:h-48 w-auto" />
               </div>
 
-              <div className="space-y-4">
-                  <h2 className="text-4xl font-bold text-[#F8FAFC] uppercase tracking-widest">
-                      Rejoignez la partie !
-                  </h2>
-                  <div className="flex items-center justify-center gap-4 text-3xl text-[#94A3B8] font-mono">
-                      <span>Code :</span>
-                      <span className="bg-[#334155] px-6 py-3 rounded-xl text-[#F8FAFC] border border-[#475569] font-black tracking-widest">
+              {/* Right side - QR Code + Link */}
+              <div className="flex flex-col items-center gap-8">
+                  {/* Big QR Code */}
+                  <div className="relative inline-block bg-white p-4 rounded-2xl shadow-2xl">
+                      <QRCode 
+                          value={`${window.location.origin}/room/${params.code}?source=qrcode`}
+                          size={280}
+                          fgColor="#000000"
+                          bgColor="transparent"
+                      />
+                  </div>
+
+                  {/* Link with copy */}
+                  <div className="w-full max-w-sm space-y-2">
+                      <p className="text-sm text-[#94A3B8] text-center">Lien de partage:</p>
+                      <div className="flex items-center gap-2 bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-3">
+                          <span className="flex-1 text-sm text-[#94A3B8] truncate font-mono">
+                              {typeof window !== 'undefined' ? window.location.origin : ''}/room/{params.code}?source=qrcode
+                          </span>
+                          <button 
+                              onClick={() => {
+                                  navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`);
+                                  toast.success('Lien copié !');
+                              }}
+                              className="text-[#3B82F6] hover:text-[#60A5FA] transition-colors"
+                          >
+                              <Copy className="w-5 h-5" />
+                          </button>
+                      </div>
+                  </div>
+
+                  {/* Code display */}
+                  <div className="flex items-center justify-center gap-3">
+                      <span className="text-sm text-[#94A3B8]">Code:</span>
+                      <span className="font-mono text-2xl font-bold tracking-widest text-[#F8FAFC]">
                           {params.code}
                       </span>
                   </div>
@@ -889,7 +909,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             </div>
 
             <div className="flex items-center gap-3">
-                {/* Join Overlay Button - Logo (Hidden in Privacy Mode) */}
+                {/* Join Overlay Button - Logo + Streamer text (Hidden in Privacy Mode) */}
                 {isHost && !streamerMode && (
                     <Button 
                         onClick={() => setShowJoinOverlay(true)}
@@ -897,6 +917,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         className="hidden sm:flex items-center gap-2 h-12 px-4 rounded-xl text-purple-400 hover:text-purple-300 hover:bg-purple-900/20 transition-all border border-transparent hover:border-purple-500/20"
                     >
                         <img src="/logosite.png" alt="IttolecHub" className="h-8 w-auto" />
+                        <span className="font-bold">Streamer</span>
                     </Button>
                 )}
 
@@ -965,6 +986,22 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         </DialogContent>
                     </Dialog>
                 )}
+
+                {/* Code with copy toast */}
+                <div 
+                    className="h-12 flex items-center gap-3 bg-[#1E293B] border border-[#334155] px-5 rounded-xl cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all group"
+                    onClick={() => {
+                        navigator.clipboard.writeText(params.code);
+                        toast.success('Code copié !');
+                    }}
+                    title={streamerMode ? "Code masqué (cliquez pour copier)" : "Copier le code"}
+                >
+                    <span className="text-xs text-[#94A3B8] uppercase tracking-widest font-bold">Code</span>
+                    <span className="font-mono text-lg font-bold tracking-widest text-[#F8FAFC] group-hover:text-[#3B82F6] transition-colors">
+                        {streamerMode ? '••••••' : params.code}
+                    </span>
+                    {copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-[#94A3B8] group-hover:text-white" />}
+                </div>
             </div>
         </header>
 
