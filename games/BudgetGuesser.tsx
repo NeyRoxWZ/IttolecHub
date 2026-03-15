@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
+import VoteToLobby from './components/VoteToLobby';
 import { Trophy, Clock, DollarSign, Home, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -524,7 +525,9 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                 )}
             </div>
         )}
-
+        {currentPhase !== 'setup' && (
+            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
+        )}
       </div>
     </GameLayout>
   );

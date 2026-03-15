@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Euro, TrendingUp, TrendingDown, Clock, MapPin, Home, Bed, Layout, Building2, Trophy, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import VoteToLobby from './components/VoteToLobby';
 
 interface AirbnbGuessrProps {
   roomCode: string;
@@ -532,6 +533,9 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
                   )}
               </div>
           )}
+        {currentPhase !== 'setup' && (
+            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
+        )}
       </GameLayout>
   );
 }

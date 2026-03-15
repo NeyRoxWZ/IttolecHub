@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
+import VoteToLobby from './components/VoteToLobby';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -339,7 +340,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
           players={playersMap}
           timeLeft={timeLeft}
       >
-          {/* Setup Phase */}
+          <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
           {currentPhase === 'setup' && (
               <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500">
                   <div className="relative">

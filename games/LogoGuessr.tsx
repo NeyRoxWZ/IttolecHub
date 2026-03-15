@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
+import VoteToLobby from './components/VoteToLobby';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { supabase } from '@/lib/supabase/client';
@@ -574,6 +575,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           players={playersMap}
           timeLeft={timeLeft}
       >
+          <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
           {/* Setup Phase */}
           {currentPhase === 'setup' && (
               <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500">

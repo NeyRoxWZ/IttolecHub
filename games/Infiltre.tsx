@@ -9,6 +9,7 @@ import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Skull, Loader2, Send, 
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import VoteToLobby from './components/VoteToLobby';
 
 type Role = 'MASTER' | 'INFILTRE' | 'CITIZEN';
 type Phase = 'setup' | 'roles' | 'playing' | 'voting_finder' | 'voting_infiltre' | 'results';
@@ -1022,7 +1023,9 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                 </div>
             </div>
         )}
-
+        {currentPhase !== 'setup' && (
+            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
+        )}
       </div>
     </GameLayout>
   );

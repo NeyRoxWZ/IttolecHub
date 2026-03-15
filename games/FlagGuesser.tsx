@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
+import VoteToLobby from './components/VoteToLobby';
 import { Trophy, CheckCircle, XCircle, Clock, Flag, Loader2, Home, LogOut, ArrowRight, Play, Globe } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
@@ -366,6 +367,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
       gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
     >
+      <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
       <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)]">
         
         {/* PHASE: SETUP */}

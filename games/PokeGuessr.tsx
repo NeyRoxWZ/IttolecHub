@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import Fuse from 'fuse.js';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import VoteToLobby from './components/VoteToLobby';
 
 interface PokeGuessrProps {
   roomCode: string;
@@ -607,6 +608,9 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                     </Button>
                 )}
             </div>
+        )}
+        {currentPhase !== 'setup' && (
+            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
         )}
     </GameLayout>
   );

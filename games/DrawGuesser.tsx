@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
+import VoteToLobby from './components/VoteToLobby';
 import { Trophy, Clock, PenTool, CheckCircle, Eraser, Eye, EyeOff, Trash2, Home, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -897,6 +898,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
     >
+      <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
       <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)] relative">
         
         {/* PHASE: SETUP */}

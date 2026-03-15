@@ -9,6 +9,7 @@ import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Skull, Loader2, Send, 
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import VoteToLobby from './components/VoteToLobby';
 
 type Role = 'CIVIL' | 'UNDERCOVER' | 'MR_WHITE';
 type Phase = 'setup' | 'roles' | 'clues' | 'discussion' | 'vote' | 'mrwhite_guess' | 'results' | 'game_over';
@@ -971,7 +972,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                 </div>
             </div>
         )}
-
+        {currentPhase !== 'setup' && (
+            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
+        )}
       </div>
     </GameLayout>
   );
