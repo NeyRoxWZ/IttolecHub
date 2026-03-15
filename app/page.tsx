@@ -69,7 +69,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-[#F8FAFC] font-sans selection:bg-indigo-500/30 overflow-hidden flex flex-col items-center justify-center relative p-4">
+    <div className="h-screen bg-[#0F172A] text-[#F8FAFC] font-sans selection:bg-indigo-500/30 overflow-hidden flex flex-col items-center justify-center relative p-4">
       
       {/* Background Pattern */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 z-0"></div>
@@ -81,30 +81,30 @@ export default function Home() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-purple-600/20 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
       </div>
 
-      <main className="relative z-10 w-full max-w-6xl flex flex-col items-center gap-8 animate-in fade-in zoom-in duration-500">
+      <main className="relative z-10 w-full max-w-6xl flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500 overflow-hidden">
         
-        {/* LOGO IMAGE */}
-        <div className="text-center mt-8">
+        {/* LOGO IMAGE - smaller */}
+        <div className="text-center">
           <img 
             src="/logosite.png"
             alt="IttolecHub" 
-            className="h-40 md:h-56 w-auto mx-auto drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] logo-flottant"
+            className="h-28 md:h-36 w-auto mx-auto logo-flottant"
             style={{ animation: 'float 4s ease-in-out infinite' }}
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
             
             {/* LEFT PANEL: PLAYER CARD - Fond #1E293B */}
-            <div className="bg-[#1E293B] border border-[#334155] rounded-[2.5rem] p-8 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[450px]">
+            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-5 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[380px]">
                 
                 {/* TABS */}
-                <div className="flex bg-[#0F172A] p-1.5 rounded-2xl mb-8 border border-[#334155]">
+                <div className="flex bg-[#0F172A] p-1 rounded-xl mb-4 border border-[#334155]">
                     <button 
                         onClick={() => setActiveTab('create')}
-                        className={`flex-1 py-3 text-lg font-bold uppercase tracking-wider rounded-xl transition-all duration-100 ${
+                        className={`flex-1 py-2 text-base font-bold uppercase tracking-wider rounded-lg transition-all duration-100 ${
                             activeTab === 'create' 
-                            ? 'bg-[#3B82F6] text-white shadow-[4px_4px_0px_0px_#020617] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none' 
+                            ? 'bg-[#3B82F6] text-white shadow-[2px_2px_0px_0px_#020617] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none' 
                             : 'bg-transparent text-[#94A3B8] hover:text-white'
                         }`}
                     >
@@ -112,9 +112,9 @@ export default function Home() {
                     </button>
                     <button 
                         onClick={() => setActiveTab('join')}
-                        className={`flex-1 py-3 text-lg font-bold uppercase tracking-wider rounded-xl transition-all duration-100 ${
+                        className={`flex-1 py-2 text-base font-bold uppercase tracking-wider rounded-lg transition-all duration-100 ${
                             activeTab === 'join' 
-                            ? 'bg-[#6366F1] text-white shadow-[4px_4px_0px_0px_#020617] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none' 
+                            ? 'bg-[#3B82F6] text-white shadow-[2px_2px_0px_0px_#020617] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none' 
                             : 'bg-transparent text-[#94A3B8] hover:text-white'
                         }`}
                     >
@@ -165,18 +165,18 @@ export default function Home() {
             </div>
 
             {/* RIGHT PANEL: HOW TO PLAY - Cartes avec fond #1E293B */}
-            <div className="bg-[#1E293B] border border-[#334155] rounded-[2.5rem] p-8 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[450px] relative overflow-hidden">
+            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-5 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[380px] relative overflow-hidden">
                 { /* decorative line removed to clean UI as requested */ }
                 
-                <h2 className="text-2xl font-bold text-center text-[#F8FAFC] uppercase tracking-widest mb-8">
+                <h2 className="text-xl font-bold text-center text-[#F8FAFC] uppercase tracking-widest mb-4">
                     COMMENT JOUER
                 </h2>
 
                 <div className="flex-1 flex flex-col items-center justify-center text-center relative">
                     {/* Animated Scene */}
                     <div className="z-10 w-full max-w-sm">
-                        <div className="mb-8 h-48 w-full flex items-center justify-center">
-                            <div className="w-full h-full bg-[#0F172A] border-4 border-[#334155] rounded-3xl flex items-center justify-center relative overflow-hidden transition-all duration-500">
+                        <div className="mb-4 h-32 w-full flex items-center justify-center">
+                            <div className="w-full h-full bg-[#0F172A] border-4 border-[#334155] rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-500">
                                 
                                 {/* Step 1: Create/Join */}
                                 {currentStep === 0 && (
@@ -236,26 +236,26 @@ export default function Home() {
                             </div>
                         </div>
                         
-                        <h3 className="text-3xl font-bold text-[#F8FAFC] mb-4 uppercase tracking-wide min-h-[40px]">
+                        <h3 className="text-xl font-bold text-[#F8FAFC] mb-2 uppercase tracking-wide min-h-[30px]">
                             {STEPS[currentStep].title}
                         </h3>
-                        <p className="text-lg text-[#94A3B8] font-medium leading-relaxed min-h-[60px]">
+                        <p className="text-sm text-[#94A3B8] font-medium leading-relaxed min-h-[40px]">
                             {STEPS[currentStep].description}
                         </p>
                     </div>
                 </div>
 
                 {/* Carousel Dots */}
-                <div className="flex items-center justify-center gap-6 mt-8">
-                    <button onClick={() => setCurrentStep((prev) => (prev - 1 + STEPS.length) % STEPS.length)} className="p-2 text-[#94A3B8] hover:text-white transition-colors">
-                        <ChevronLeft className="w-8 h-8" />
+                <div className="flex items-center justify-center gap-4 mt-4">
+                    <button onClick={() => setCurrentStep((prev) => (prev - 1 + STEPS.length) % STEPS.length)} className="p-1 text-[#94A3B8] hover:text-white transition-colors">
+                        <ChevronLeft className="w-6 h-6" />
                     </button>
-                    <div className="flex gap-3">
+                    <div className="flex gap-2">
                         {STEPS.map((_, i) => (
                             <button
                                 key={i}
                                 onClick={() => setCurrentStep(i)}
-                                className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                                className={`w-3 h-3 rounded-full transition-all duration-300 ${
                                     i === currentStep 
                                     ? 'bg-white scale-125 shadow-[0_0_10px_rgba(255,255,255,0.5)]' 
                                     : 'bg-[#334155] hover:bg-[#475569]'
@@ -263,15 +263,15 @@ export default function Home() {
                             />
                         ))}
                     </div>
-                    <button onClick={() => setCurrentStep((prev) => (prev + 1) % STEPS.length)} className="p-2 text-[#94A3B8] hover:text-white transition-colors">
-                        <ChevronRight className="w-8 h-8" />
+                    <button onClick={() => setCurrentStep((prev) => (prev + 1) % STEPS.length)} className="p-1 text-[#94A3B8] hover:text-white transition-colors">
+                        <ChevronRight className="w-6 h-6" />
                     </button>
                 </div>
             </div>
         </div>
 
         {/* FOOTER */}
-        <div className="flex gap-6 text-sm font-bold text-[#94A3B8] uppercase tracking-widest mt-8">
+        <div className="flex gap-4 text-xs font-bold text-[#94A3B8] uppercase tracking-widest mt-2">
             <a href="#" className="hover:text-white transition-colors">Conditions</a>
             <span>•</span>
             <a href="#" className="hover:text-white transition-colors">Confidentialité</a>
