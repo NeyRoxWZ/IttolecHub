@@ -118,16 +118,16 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode, gameT
       </div>
 
       {/* Mobile: Bottom left floating - same style as ReactionButton */}
-      <div className="md:hidden fixed bottom-20 left-6 z-[90]">
+      <div className="md:hidden fixed bottom-6 left-6 z-[90]">
         <button
           onClick={handleVote}
           disabled={hasVoted}
-          className="h-12 w-12 flex items-center justify-center bg-[#1E293B] border-2 border-[#334155] rounded-full cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          className="h-12 w-12 flex items-center justify-center bg-[#1E293B]/80 backdrop-blur-md border-2 border-[#334155] rounded-full cursor-pointer hover:bg-[#334155] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
         >
           {hasVoted ? (
             <div className="w-3 h-3 rounded-full bg-green-400" />
           ) : (
-            <LogOut className="w-5 h-5 text-[#94A3B8]" />
+            <LogOut className="w-6 h-6 text-[#F8FAFC]" />
           )}
         </button>
         <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs font-bold text-[#F8FAFC] whitespace-nowrap">
