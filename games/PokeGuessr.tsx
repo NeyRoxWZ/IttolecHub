@@ -610,7 +610,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
             </div>
         )}
         {currentPhase !== 'setup' && (
-            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
+            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />
         )}
     </GameLayout>
   );

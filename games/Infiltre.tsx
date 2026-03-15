@@ -1024,7 +1024,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
             </div>
         )}
         {currentPhase !== 'setup' && (
-            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
+            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />
         )}
       </div>
     </GameLayout>

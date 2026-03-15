@@ -534,7 +534,7 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
               </div>
           )}
         {currentPhase !== 'setup' && (
-            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
+            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />
         )}
       </GameLayout>
   );

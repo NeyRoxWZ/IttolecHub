@@ -367,7 +367,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
       gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
     >
-      <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} />
+      <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />
       <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)]">
         
         {/* PHASE: SETUP */}
