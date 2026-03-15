@@ -86,6 +86,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
   const isDrawing = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
   const [revealedWord, setRevealedWord] = useState(false);
+  const isHoldingRef = useRef(false);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const currentStroke = useRef<Stroke | null>(null);
   const strokeBatch = useRef<StrokePoint[]>([]);
@@ -181,7 +182,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           const batch = lastEvent.payload as Stroke;
           setStrokes(prev => {
               const newStrokes = [...prev, batch];
-              drawStrokeOnCanvas(ctx, batch);
+              drawStrokeOnCanvasWithConnection(ctx, prev, batch);
               return newStrokes;
           });
       } else if (lastEvent.type === 'clear_canvas') {
@@ -207,7 +208,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
   };
 
   const drawStrokeOnCanvas = (ctx: CanvasRenderingContext2D, stroke: Stroke) => {
-      if (stroke.points.length < 2) return;
+      if (stroke.points.length < 1) return;
       const canvas = ctx.canvas;
       
       ctx.beginPath();
@@ -216,11 +217,48 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       
+      if (stroke.points.length === 1) {
+          const point = stroke.points[0];
+          ctx.arc(point.x * canvas.width, point.y * canvas.height, stroke.size / 2, 0, Math.PI * 2);
+          ctx.fillStyle = stroke.color;
+          ctx.fill();
+          return;
+      }
+      
       const firstPoint = stroke.points[0];
       ctx.moveTo(firstPoint.x * canvas.width, firstPoint.y * canvas.height);
       
       for (let i = 1; i < stroke.points.length; i++) {
           const point = stroke.points[i];
+          ctx.lineTo(point.x * canvas.width, point.y * canvas.height);
+      }
+      ctx.stroke();
+  };
+
+  const drawStrokeOnCanvasWithConnection = (ctx: CanvasRenderingContext2D, previousStrokes: Stroke[], newBatch: Stroke) => {
+      const canvas = ctx.canvas;
+      
+      ctx.beginPath();
+      ctx.strokeStyle = newBatch.color;
+      ctx.lineWidth = newBatch.size;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      // Connect to last point of previous stroke if exists
+      if (previousStrokes.length > 0) {
+          const lastStroke = previousStrokes[previousStrokes.length - 1];
+          if (lastStroke.points.length > 0) {
+              const lastPoint = lastStroke.points[lastStroke.points.length - 1];
+              ctx.moveTo(lastPoint.x * canvas.width, lastPoint.y * canvas.height);
+          }
+      } else if (newBatch.points.length > 0) {
+          const firstPoint = newBatch.points[0];
+          ctx.moveTo(firstPoint.x * canvas.width, firstPoint.y * canvas.height);
+      }
+      
+      // Draw all points in the new batch
+      for (let i = 0; i < newBatch.points.length; i++) {
+          const point = newBatch.points[i];
           ctx.lineTo(point.x * canvas.width, point.y * canvas.height);
       }
       ctx.stroke();
@@ -496,72 +534,82 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
 
   const submitGuess = async () => {
       if (!roomId || !playerId || hasGuessed || isDrawer || currentPhase !== 'playing') return;
-      if (!currentWord) return;
+      if (!currentWord || !currentWord.word) {
+          toast.error("Pas de mot à deviner");
+          return;
+      }
+      
+      const guess = userGuess.trim();
+      if (!guess) return;
       
       // Filter numbers
-      if (/\d/.test(userGuess)) {
+      if (/\d/.test(guess)) {
           toast.error("Pas de chiffres !");
           return;
       }
 
-      const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-      const userGuessNorm = normalize(userGuess);
-      const correctWordNorm = normalize(currentWord.word);
-      
-      // Levenshtein
-      const dist = levenshteinDistance(userGuessNorm, correctWordNorm);
-      const threshold = correctWordNorm.length > 5 ? 2 : 1;
-      const isCorrect = dist <= threshold;
+      try {
+          const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+          const userGuessNorm = normalize(guess);
+          const correctWordNorm = normalize(currentWord.word);
+          
+          // Levenshtein
+          const dist = levenshteinDistance(userGuessNorm, correctWordNorm);
+          const threshold = correctWordNorm.length > 5 ? 2 : 1;
+          const isCorrect = dist <= threshold;
 
-      if (isCorrect) {
-          const now = Date.now();
-          const start = new Date(timerStartAt).getTime();
-          const timeTaken = Math.max(0, now - start); // ms
+          if (isCorrect) {
+              const now = Date.now();
+              const start = timerStartAt ? new Date(timerStartAt).getTime() : now;
+              const timeTaken = Math.max(0, now - start);
 
-          // Calculate Score (1000 -> 100)
-          const maxTime = timerSeconds * 1000;
-          // Linear decay from 1000 to 100
-          // If < 5s -> 1000
-          let points = 100;
-          if (timeTaken <= 5000) {
-              points = 1000;
+              // Calculate Score (1000 -> 100)
+              const maxTime = timerSeconds * 1000;
+              let points = 100;
+              if (timeTaken <= 5000) {
+                  points = 1000;
+              } else if (maxTime > 5000) {
+                  const factor = 1 - ((timeTaken - 5000) / (maxTime - 5000));
+                  points = Math.max(100, Math.round(100 + 900 * Math.max(0, factor)));
+              }
+
+              // Fetch current rank
+              const { count } = await supabase.from('draw_players').select('*', { count: 'exact', head: true }).eq('room_id', roomId).eq('has_guessed', true);
+              const rank = (count || 0) + 1;
+
+              setHasGuessed(true);
+              setGuessRank(rank);
+              vibrate(HAPTIC.SUCCESS);
+              toast.success(`Trouvé ! +${points} pts`);
+
+              // Update DB
+              const { data: pData } = await supabase.from('draw_players').select('score').eq('room_id', roomId).eq('player_id', playerId).single();
+              await supabase.from('draw_players').update({
+                  score: (pData?.score || 0) + points,
+                  has_guessed: true,
+                  guess_rank: rank,
+                  guess_time_ms: timeTaken
+              }).eq('room_id', roomId).eq('player_id', playerId);
+
+              // Broadcast found
+              const myName = players.find(p => p.id === playerId)?.name || 'Quelqu\'un';
+              if (broadcast) broadcast('player_found', { playerName: myName });
+              
+              setUserGuess('');
           } else {
-              const factor = 1 - ((timeTaken - 5000) / (maxTime - 5000));
-              points = Math.max(100, Math.round(100 + 900 * Math.max(0, factor)));
+              // Check closeness for "Chauffe !" message
+              if (dist <= threshold + 2) {
+                  vibrate(HAPTIC.WARNING);
+                  toast('Chauffe !', { icon: '🔥' });
+              } else {
+                  vibrate(HAPTIC.ERROR);
+              }
+              // Don't clear input on wrong answer - let them retry
           }
-
-          // Fetch current rank
-          const { count } = await supabase.from('draw_players').select('*', { count: 'exact', head: true }).eq('room_id', roomId).eq('has_guessed', true);
-          const rank = (count || 0) + 1;
-
-          setHasGuessed(true);
-          setGuessRank(rank);
-          vibrate(HAPTIC.SUCCESS);
-          toast.success(`Trouvé ! +${points} pts`);
-
-          // Update DB
-          const { data: pData } = await supabase.from('draw_players').select('score').eq('room_id', roomId).eq('player_id', playerId).single();
-          await supabase.from('draw_players').update({
-              score: (pData?.score || 0) + points,
-              has_guessed: true,
-              guess_rank: rank,
-              guess_time_ms: timeTaken
-          }).eq('room_id', roomId).eq('player_id', playerId);
-
-          // Broadcast found
-          const myName = players.find(p => p.id === playerId)?.name || 'Quelqu\'un';
-          if (broadcast) broadcast('player_found', { playerName: myName });
-      } else {
-          // Check closeness for "Chauffe !" message?
-          if (dist <= threshold + 2) {
-              vibrate(HAPTIC.WARNING);
-              toast('Chauffe !', { icon: '🔥' });
-          } else {
-              vibrate(HAPTIC.ERROR);
-              // Shake
-          }
+      } catch (err) {
+          console.error('Error submitting guess:', err);
+          toast.error("Erreur lors de la soumission");
       }
-      setUserGuess(''); // Clear input for retry
   };
 
   const returnToLobby = async () => {
@@ -713,12 +761,13 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                                     <p className="text-[#94A3B8] text-sm">Maintenir le bouton pour voir le mot</p>
                                 )}
                                 <button
+                                    type="button"
                                     className="w-full bg-[#334155] hover:bg-[#475569] active:bg-[#475569] border border-[#475569] rounded-xl py-3 transition-colors select-none touch-none"
-                                    onMouseDown={(e) => { e.preventDefault(); setRevealedWord(true); }}
-                                    onMouseUp={(e) => { e.preventDefault(); setRevealedWord(false); }}
-                                    onMouseLeave={() => setRevealedWord(false)}
-                                    onTouchStart={(e) => { e.preventDefault(); setRevealedWord(true); }}
-                                    onTouchEnd={(e) => { e.preventDefault(); setRevealedWord(false); }}
+                                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); isHoldingRef.current = true; setRevealedWord(true); }}
+                                    onMouseUp={(e) => { e.preventDefault(); e.stopPropagation(); isHoldingRef.current = false; setRevealedWord(false); }}
+                                    onMouseLeave={() => { if (isHoldingRef.current) { isHoldingRef.current = false; setRevealedWord(false); } }}
+                                    onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); isHoldingRef.current = true; setRevealedWord(true); }}
+                                    onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); isHoldingRef.current = false; setRevealedWord(false); }}
                                 >
                                     <Eye className="w-6 h-6 mx-auto text-[#F8FAFC]" />
                                 </button>
@@ -793,7 +842,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                 {/* BOTTOM: Answer Input (Guesser Only) */}
                 {!isDrawer && currentPhase === 'playing' && !hasGuessed && (
                     <div className="flex-shrink-0 pb-2">
-                        <form onSubmit={submitGuess} className="flex gap-2">
+                        <form onSubmit={(e) => { e.preventDefault(); submitGuess(); }} className="flex gap-2">
                             <Input 
                                 placeholder="Devinez le mot..." 
                                 value={userGuess}
