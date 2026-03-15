@@ -5,9 +5,17 @@
 -- UNDERCOVER
 -- ==========================================
 ALTER TABLE undercover_games ADD COLUMN IF NOT EXISTS round_id text;
-ALTER TABLE undercover_players ADD COLUMN IF NOT EXISTS round_id text;
 ALTER TABLE undercover_clues ADD COLUMN IF NOT EXISTS round_id text;
 ALTER TABLE undercover_votes ADD COLUMN IF NOT EXISTS round_id text;
+
+-- For players, we need to handle existing data first
+ALTER TABLE undercover_players ADD COLUMN IF NOT EXISTS round_id text;
+
+-- Update existing records with a temporary round_id
+UPDATE undercover_players SET round_id = 'legacy' WHERE round_id IS NULL;
+
+-- Add NOT NULL constraint
+ALTER TABLE undercover_players ALTER COLUMN round_id SET NOT NULL;
 
 -- Drop old primary key and add new one with round_id
 DO $$ 
@@ -29,9 +37,17 @@ CREATE INDEX IF NOT EXISTS undercover_votes_round_idx ON undercover_votes(room_i
 -- INFILTRE
 -- ==========================================
 ALTER TABLE infiltre_games ADD COLUMN IF NOT EXISTS round_id text;
-ALTER TABLE infiltre_players ADD COLUMN IF NOT EXISTS round_id text;
 ALTER TABLE infiltre_questions ADD COLUMN IF NOT EXISTS round_id text;
 ALTER TABLE infiltre_votes ADD COLUMN IF NOT EXISTS round_id text;
+
+-- For players, we need to handle existing data first
+ALTER TABLE infiltre_players ADD COLUMN IF NOT EXISTS round_id text;
+
+-- Update existing records with a temporary round_id
+UPDATE infiltre_players SET round_id = 'legacy' WHERE round_id IS NULL;
+
+-- Add NOT NULL constraint
+ALTER TABLE infiltre_players ALTER COLUMN round_id SET NOT NULL;
 
 -- Drop old primary key and add new one with round_id
 DO $$ 
