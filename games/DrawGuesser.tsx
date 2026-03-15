@@ -28,9 +28,21 @@ interface StrokePoint {
 }
 
 interface Stroke {
+  strokeId: string;
+  sequence: number;
   points: StrokePoint[];
   color: string;
   size: number;
+  isEnd: boolean;
+}
+
+interface StrokeBatch {
+  strokeId: string;
+  sequence: number;
+  points: StrokePoint[];
+  color: string;
+  size: number;
+  isEnd: boolean;
 }
 
 export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
@@ -56,6 +68,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
   
   const currentPhase = game.phase || 'setup';
   const currentRound = game.current_round || 1;
+  const currentRoundId = game.round_id || null;
   const currentWord = game.current_word;
   const currentDrawerId = game.current_drawer_id;
   const isDrawer = playerId === currentDrawerId;
@@ -94,6 +107,16 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
   const batchTimeout = useRef<NodeJS.Timeout | null>(null);
   const isDrawingRef = useRef(false);
   const strokesLoaded = useRef(false);
+  
+  // Round ID system
+  const [roundId, setRoundId] = useState<string | null>(null);
+  const currentStrokeId = useRef<string>('');
+  const strokeSequence = useRef(0);
+  
+  // Render queue for receiving strokes
+  const renderQueue = useRef<StrokeBatch[]>([]);
+  const isProcessingQueue = useRef(false);
+  const receivedStrokes = useRef<Map<string, StrokeBatch[]>>(new Map());
 
   // --- EFFECTS ---
   
@@ -145,21 +168,24 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           setHasGuessed(false);
           setGuessRank(0);
           setStrokes([]);
+          setRoundId(currentRoundId);
           strokesLoaded.current = false;
+          renderQueue.current = [];
+          receivedStrokes.current.clear();
           clearCanvasLocal();
       }
-  }, [currentRound, currentPhase]);
+  }, [currentRound, currentPhase, currentRoundId]);
 
   // Load strokes from Supabase when drawer starts or when joining
   useEffect(() => {
-      if (!roomId || currentPhase !== 'playing' || strokesLoaded.current) return;
+      if (!roomId || currentPhase !== 'playing' || strokesLoaded.current || !currentRoundId) return;
       
       const loadStrokes = async () => {
           const { data } = await supabase
               .from('draw_strokes')
               .select('strokes_data')
               .eq('room_id', roomId)
-              .eq('round', currentRound)
+              .eq('round_id', currentRoundId)
               .single();
           
           if (data?.strokes_data && Array.isArray(data.strokes_data)) {
@@ -170,30 +196,126 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       };
       
       loadStrokes();
-  }, [roomId, currentPhase, currentRound]);
+  }, [roomId, currentPhase, currentRound, currentRoundId]);
+
+  // Process render queue with requestAnimationFrame
+  const processRenderQueue = () => {
+      if (renderQueue.current.length === 0) {
+          isProcessingQueue.current = false;
+          return;
+      }
+      
+      isProcessingQueue.current = true;
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!ctx || !canvas) {
+          isProcessingQueue.current = false;
+          return;
+      }
+      
+      // Process next batch
+      const batch = renderQueue.current.shift();
+      if (batch) {
+          drawBatchOnCanvas(ctx, batch);
+          requestAnimationFrame(processRenderQueue);
+      }
+  };
+
+  const drawBatchOnCanvas = (ctx: CanvasRenderingContext2D, batch: StrokeBatch) => {
+      const canvas = ctx.canvas;
+      const parent = canvas.parentElement;
+      const displayWidth = parent?.clientWidth || parseFloat(canvas.style.width) || canvas.width;
+      const displayHeight = parent?.clientHeight || parseFloat(canvas.style.height) || canvas.height;
+      
+      ctx.beginPath();
+      ctx.strokeStyle = batch.color;
+      ctx.lineWidth = batch.size;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      if (batch.points.length === 0) return;
+      
+      // Get previous strokes to connect
+      const existingBatches = receivedStrokes.current.get(batch.strokeId) || [];
+      const isFirstBatch = existingBatches.length === 0;
+      
+      // Connect to last point of previous batch if exists
+      if (!isFirstBatch && existingBatches.length > 0) {
+          const lastBatch = existingBatches[existingBatches.length - 1];
+          if (lastBatch.points.length > 0) {
+              const lastPoint = lastBatch.points[lastBatch.points.length - 1];
+              ctx.moveTo(lastPoint.x * displayWidth, lastPoint.y * displayHeight);
+          }
+      } else {
+          ctx.moveTo(batch.points[0].x * displayWidth, batch.points[0].y * displayHeight);
+      }
+      
+      for (let i = 0; i < batch.points.length; i++) {
+          const point = batch.points[i];
+          ctx.lineTo(point.x * displayWidth, point.y * displayHeight);
+      }
+      ctx.stroke();
+      
+      // Store batch
+      existingBatches.push(batch);
+      receivedStrokes.current.set(batch.strokeId, existingBatches);
+      
+      // Update strokes state when stroke is complete
+      if (batch.isEnd) {
+          const allPoints: StrokePoint[] = [];
+          for (const b of existingBatches) {
+              allPoints.push(...b.points);
+          }
+          const completeStroke: Stroke = {
+              strokeId: batch.strokeId,
+              sequence: batch.sequence,
+              points: allPoints,
+              color: batch.color,
+              size: batch.size,
+              isEnd: true
+          };
+          setStrokes(prev => [...prev, completeStroke]);
+      }
+  };
 
   // Handle Incoming Draw Events
   useEffect(() => {
       if (!lastEvent || !canvasRef.current) return;
-      
-      const ctx = canvasRef.current.getContext('2d');
-      if (!ctx) return;
 
       if (lastEvent.type === 'draw_batch') {
-          const batch = lastEvent.payload as Stroke;
-          setStrokes(prev => {
-              const newStrokes = [...prev, batch];
-              drawStrokeOnCanvasWithConnection(ctx, prev, batch);
-              return newStrokes;
-          });
+          const batch = lastEvent.payload as StrokeBatch;
+          
+          // Verify round ID matches
+          if (currentRoundId && roundId && roundId !== currentRoundId) {
+              return; // Ignore strokes from old round
+          }
+          
+          // Add to render queue
+          renderQueue.current.push(batch);
+          
+          // Start processing if not already
+          if (!isProcessingQueue.current) {
+              isProcessingQueue.current = true;
+              requestAnimationFrame(processRenderQueue);
+          }
       } else if (lastEvent.type === 'clear_canvas') {
           clearCanvasLocal();
           setStrokes([]);
+          renderQueue.current = [];
+          receivedStrokes.current.clear();
       } else if (lastEvent.type === 'player_found') {
           const { playerName } = lastEvent.payload;
           toast.success(`✅ ${playerName} a trouvé !`);
+      } else if (lastEvent.type === 'new_round') {
+          // Reset for new round
+          setRoundId(lastEvent.payload.roundId);
+          clearCanvasLocal();
+          setStrokes([]);
+          renderQueue.current = [];
+          receivedStrokes.current.clear();
+          strokesLoaded.current = false;
       }
-  }, [lastEvent]);
+  }, [lastEvent, roundId, currentRoundId]);
 
   // --- CANVAS HELPERS ---
   const clearCanvasLocal = () => {
@@ -288,25 +410,30 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
 
   // Save strokes to Supabase
   const saveStrokesToSupabase = async (newStrokes: Stroke[]) => {
-      if (!roomId || !isDrawer) return;
+      if (!roomId || !isDrawer || !currentRoundId) return;
       await supabase.from('draw_strokes').upsert({
           room_id: roomId,
+          round_id: currentRoundId,
           round: currentRound,
           strokes_data: newStrokes
-      }, { onConflict: 'room_id,round' });
+      }, { onConflict: 'room_id,round_id' });
   };
 
   // Broadcast batched strokes
-  const broadcastBatch = () => {
-      if (strokeBatch.current.length < 2 || !broadcast) return;
+  const broadcastBatch = (isEnd: boolean = false) => {
+      if (strokeBatch.current.length < 1 || !broadcast) return;
       
-      const batch: Stroke = {
+      const batch: StrokeBatch = {
+          strokeId: currentStrokeId.current,
+          sequence: strokeSequence.current,
           points: [...strokeBatch.current],
           color,
-          size
+          size,
+          isEnd
       };
       
       broadcast('draw_batch', batch);
+      strokeSequence.current++;
       strokeBatch.current = [];
   };
   const getCoords = (e: any) => {
@@ -329,10 +456,17 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       const { x, y } = getCoords(e);
       lastPos.current = { x, y };
       
+      // Generate new stroke ID
+      currentStrokeId.current = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      strokeSequence.current = 0;
+      
       currentStroke.current = {
+          strokeId: currentStrokeId.current,
+          sequence: 0,
           points: [{ x, y }],
           color,
-          size
+          size,
+          isEnd: false
       };
       strokeBatch.current = [{ x, y }];
   };
@@ -366,25 +500,35 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       }
       
       lastPos.current = { x, y };
-      
-      if (strokeBatch.current.length >= 10) {
-          broadcastBatch();
-      }
   };
+
+  // Batch sending every 40ms
+  useEffect(() => {
+      if (!isDrawing.current || !isDrawer) return;
+      
+      const interval = setInterval(() => {
+          if (strokeBatch.current.length > 0) {
+              broadcastBatch(false);
+          }
+      }, 40);
+      
+      return () => clearInterval(interval);
+  }, [isDrawer, isDrawing.current]);
 
   const stopDrawing = () => {
       if (!isDrawing.current) return;
       isDrawing.current = false;
       isDrawingRef.current = false;
       
-      if (currentStroke.current && currentStroke.current.points.length >= 2) {
+      // Send final batch with isEnd: true
+      if (strokeBatch.current.length > 0) {
+          broadcastBatch(true);
+      }
+      
+      if (currentStroke.current && currentStroke.current.points.length >= 1) {
           const newStrokes = [...strokes, currentStroke.current];
           setStrokes(newStrokes);
           saveStrokesToSupabase(newStrokes);
-      }
-      
-      if (strokeBatch.current.length >= 2) {
-          broadcastBatch();
       }
       
       currentStroke.current = null;
@@ -466,7 +610,10 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           const firstWord = words[0];
           const queue = words.slice(1);
           
-          const firstDrawerId = players[0].id; // Simple rotation logic start
+          const firstDrawerId = players[0].id;
+          
+          // Generate round ID
+          const roundId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
           // Reset Players
           const playerInserts = players.map(p => ({
@@ -480,12 +627,16 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           
           await supabase.from('draw_players').delete().eq('room_id', roomId);
           await supabase.from('draw_players').insert(playerInserts);
+          
+          // Clear old strokes
+          await supabase.from('draw_strokes').delete().eq('room_id', roomId);
 
-          // Update Game
+          // Update Game with round_id
           await supabase.from('draw_games').upsert({
               room_id: roomId,
               phase: 'playing',
               current_round: 1,
+              round_id: roundId,
               total_rounds: totalRounds,
               timer_seconds: Number(settings.time || 90),
               timer_start_at: new Date().toISOString(),
@@ -496,6 +647,11 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           }, { onConflict: 'room_id' });
 
           await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
+          setRoundId(roundId);
+          
+          // Broadcast new round
+          if (broadcast) broadcast('new_round', { roundId });
+          
           toast.dismiss();
           toast.success("À vos pinceaux !");
 
@@ -509,9 +665,9 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       if (!isHost || !roomId) return;
 
       const queue = game.queue || [];
-      const currentRound = game.current_round || 1;
+      const currentRoundNum = game.current_round || 1;
 
-      if (queue.length === 0 || currentRound >= totalRounds) {
+      if (queue.length === 0 || currentRoundNum >= totalRounds) {
           // Game Over -> Podium
           await supabase.from('draw_games').update({
               phase: 'podium'
@@ -521,6 +677,9 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
 
       const nextWord = queue[0];
       const nextQueue = queue.slice(1);
+      
+      // Generate new round ID
+      const newRoundId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       // Determine next drawer
       const currentIndex = players.findIndex(p => p.id === currentDrawerId);
@@ -533,19 +692,33 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           guess_rank: 0,
           guess_time_ms: 0
       }).eq('room_id', roomId);
+      
+      // Clear old strokes for this room
+      await supabase.from('draw_strokes').delete().eq('room_id', roomId);
 
-      // Start next round
+      // Start next round with new round_id
       await supabase.from('draw_games').update({
           phase: 'playing',
-          current_round: currentRound + 1,
+          current_round: currentRoundNum + 1,
+          round_id: newRoundId,
           current_word: nextWord,
           current_drawer_id: nextDrawerId,
           queue: nextQueue,
           timer_start_at: new Date().toISOString()
       }).eq('room_id', roomId);
       
-      // Clear canvas broadcast
-      if (broadcast) broadcast('clear_canvas', {});
+      // Update local state
+      setRoundId(newRoundId);
+      setStrokes([]);
+      strokesLoaded.current = false;
+      renderQueue.current = [];
+      receivedStrokes.current.clear();
+      
+      // Broadcast new round and clear canvas
+      if (broadcast) {
+          broadcast('new_round', { roundId: newRoundId });
+          broadcast('clear_canvas', {});
+      }
   };
 
   const submitGuess = async () => {

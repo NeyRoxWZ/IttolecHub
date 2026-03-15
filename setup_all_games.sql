@@ -204,6 +204,7 @@ create table if not exists draw_games (
   room_id uuid references rooms(id) on delete cascade primary key,
   phase text default 'setup', -- setup, playing, round_results, podium
   current_round int default 1,
+  round_id text, -- Unique ID for current round (regenerated each round)
   total_rounds int default 5,
   difficulty text default 'mix',
   timer_seconds int default 90,
@@ -228,6 +229,22 @@ create table if not exists draw_players (
 
 alter publication supabase_realtime add table draw_games;
 alter publication supabase_realtime add table draw_players;
+
+-- DrawGuessr Strokes Table
+create table if not exists draw_strokes (
+  id uuid primary key default gen_random_uuid(),
+  room_id uuid references rooms(id) on delete cascade,
+  round_id text,
+  round int default 1,
+  strokes_data jsonb default '[]'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists draw_strokes_room_idx on draw_strokes(room_id);
+create index if not exists draw_strokes_round_id_idx on draw_strokes(round_id);
+
+alter publication supabase_realtime add table draw_strokes;
 -- PokeGuessr Tables
 
 create table if not exists poke_games (
