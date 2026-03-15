@@ -11,6 +11,7 @@ alter publication supabase_realtime add table game_moves;
 create table if not exists undercover_games (
   room_id uuid references rooms(id) on delete cascade primary key,
   phase text default 'setup',
+  round_id text, -- Unique ID for current game session
   civil_word text,
   undercover_word text,
   current_speaker_id uuid,
@@ -25,15 +26,17 @@ create table if not exists undercover_games (
 
 create table if not exists undercover_players (
   room_id uuid references rooms(id) on delete cascade,
+  round_id text,
   player_id uuid references players(id) on delete cascade,
   role text, -- 'CIVIL', 'UNDERCOVER', 'MR_WHITE'
   is_alive boolean default true,
-  primary key (room_id, player_id)
+  primary key (room_id, round_id, player_id)
 );
 
 create table if not exists undercover_clues (
   id uuid default gen_random_uuid() primary key,
   room_id uuid references rooms(id) on delete cascade,
+  round_id text,
   player_id uuid references players(id) on delete cascade,
   text text not null,
   round_number int,
@@ -43,10 +46,15 @@ create table if not exists undercover_clues (
 create table if not exists undercover_votes (
   id uuid default gen_random_uuid() primary key,
   room_id uuid references rooms(id) on delete cascade,
+  round_id text,
   voter_id uuid references players(id) on delete cascade,
   target_id uuid references players(id) on delete cascade,
   created_at timestamptz default now()
 );
+
+create index if not exists undercover_players_round_idx on undercover_players(room_id, round_id);
+create index if not exists undercover_clues_round_idx on undercover_clues(room_id, round_id);
+create index if not exists undercover_votes_round_idx on undercover_votes(room_id, round_id);
 
 alter publication supabase_realtime add table undercover_games;
 alter publication supabase_realtime add table undercover_players;
@@ -60,6 +68,7 @@ alter publication supabase_realtime add table undercover_votes;
 create table if not exists infiltre_games (
   room_id uuid references rooms(id) on delete cascade primary key,
   phase text default 'setup',
+  round_id text, -- Unique ID for current game session
   secret_word text,
   category text,
   master_id uuid,
@@ -72,15 +81,17 @@ create table if not exists infiltre_games (
 
 create table if not exists infiltre_players (
   room_id uuid references rooms(id) on delete cascade,
+  round_id text,
   player_id uuid references players(id) on delete cascade,
   role text, -- 'MASTER', 'INFILTRE', 'CITIZEN'
   is_alive boolean default true,
-  primary key (room_id, player_id)
+  primary key (room_id, round_id, player_id)
 );
 
 create table if not exists infiltre_questions (
   id uuid default gen_random_uuid() primary key,
   room_id uuid references rooms(id) on delete cascade,
+  round_id text,
   player_id uuid references players(id) on delete cascade,
   text text not null,
   answer text, -- 'OUI', 'NON', 'NE_SAIS_PAS', null
@@ -90,11 +101,16 @@ create table if not exists infiltre_questions (
 create table if not exists infiltre_votes (
   id uuid default gen_random_uuid() primary key,
   room_id uuid references rooms(id) on delete cascade,
+  round_id text,
   voter_id uuid references players(id) on delete cascade,
   target_id uuid references players(id) on delete cascade,
   vote_phase text, -- 'FINDER' or 'INFILTRE'
   created_at timestamptz default now()
 );
+
+create index if not exists infiltre_players_round_idx on infiltre_players(room_id, round_id);
+create index if not exists infiltre_questions_round_idx on infiltre_questions(room_id, round_id);
+create index if not exists infiltre_votes_round_idx on infiltre_votes(room_id, round_id);
 
 alter publication supabase_realtime add table infiltre_games;
 alter publication supabase_realtime add table infiltre_players;
@@ -109,6 +125,7 @@ create table if not exists flag_games (
   room_id uuid references rooms(id) on delete cascade primary key,
   phase text default 'setup', -- setup, playing, round_results, podium
   current_round int default 1,
+  round_id text, -- Unique ID for current round
   total_rounds int default 10,
   region text default 'all',
   mode text default 'mcq', -- mcq, text
@@ -146,6 +163,7 @@ create table if not exists wiki_games (
   room_id uuid references rooms(id) on delete cascade primary key,
   phase text default 'setup', -- setup, playing, round_results, podium
   current_round int default 1,
+  round_id text, -- Unique ID for current round
   total_rounds int default 5,
   category text default 'all',
   timer_seconds int default 60,
@@ -174,6 +192,7 @@ create table if not exists budget_games (
   room_id uuid references rooms(id) on delete cascade primary key,
   phase text default 'setup', -- setup, playing, round_results, podium
   current_round int default 1,
+  round_id text, -- Unique ID for current round
   total_rounds int default 5,
   decade text default 'all',
   difficulty text default 'normal',
@@ -251,6 +270,7 @@ create table if not exists poke_games (
   room_id uuid references rooms(id) on delete cascade primary key,
   phase text default 'setup', -- setup, playing, round_results, podium
   current_round int default 1,
+  round_id text, -- Unique ID for current round
   total_rounds int default 5,
   difficulty text default 'normal', -- easy, normal, hard
   generations int[] default '{1}',
@@ -283,6 +303,7 @@ create table if not exists rent_games (
   room_id uuid references rooms(id) on delete cascade primary key,
   phase text default 'setup', -- setup, playing, round_results, podium
   current_round int default 1,
+  round_id text, -- Unique ID for current round
   total_rounds int default 5,
   timer_seconds int default 30,
   timer_start_at timestamptz,
@@ -312,6 +333,7 @@ create table if not exists airbnb_games (
   room_id uuid references rooms(id) on delete cascade primary key,
   phase text default 'setup', -- setup, playing, round_results, podium
   current_round int default 1,
+  round_id text, -- Unique ID for current round
   total_rounds int default 5,
   timer_seconds int default 30,
   timer_start_at timestamptz,
@@ -341,6 +363,7 @@ create table if not exists logo_games (
   room_id uuid references rooms(id) on delete cascade primary key,
   phase text default 'setup', -- setup, playing, round_results, podium
   current_round int default 1,
+  round_id text, -- Unique ID for current round
   total_rounds int default 5,
   category text default 'all',
   difficulty text default 'mix',
