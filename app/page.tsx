@@ -84,7 +84,7 @@ export default function Home() {
       <main className="relative z-10 w-full max-w-6xl flex flex-col items-center gap-8 animate-in fade-in zoom-in duration-500">
         
         {/* LOGO IMAGE */}
-        <div className="text-center mb-4">
+        <div className="text-center mt-8">
           <img 
             src="/logosite.png"
             alt="IttolecHub" 

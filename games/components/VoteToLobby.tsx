@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface VoteToLobbyProps {
@@ -66,7 +66,7 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode }: Vot
   };
 
   const requiredVotes = players.length;
-  const votePercentage = Math.round((votes.length / requiredVotes) * 100);
+  const votePercentage = requiredVotes > 0 ? Math.round((votes.length / requiredVotes) * 100) : 0;
 
   useEffect(() => {
     if (votes.length >= requiredVotes && requiredVotes > 0) {
@@ -86,29 +86,23 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode }: Vot
   return (
     <div className="fixed top-4 left-4 z-50">
       <div className="flex items-center gap-2">
-        {!hasVoted ? (
-          <button
-            onClick={handleVote}
-            className="h-10 flex items-center gap-2 bg-[#1E293B] border border-[#334155] px-4 rounded-xl cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all group text-sm font-medium text-[#94A3B8] hover:text-white"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Quitter</span>
-          </button>
-        ) : (
-          <div className="h-10 flex items-center gap-2 bg-[#1E293B] border border-[#334155] px-4 rounded-xl">
-            <CheckCircle className="w-4 h-4 text-green-400" />
-            <span className="text-sm text-[#94A3B8]">En attente...</span>
-          </div>
-        )}
+        <button
+          onClick={handleVote}
+          disabled={hasVoted}
+          className="h-12 flex items-center gap-2 bg-[#1E293B] border border-[#334155] px-4 rounded-xl cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {hasVoted ? (
+            <CheckCircle className="w-5 h-5 text-green-400" />
+          ) : (
+            <LogOut className="w-5 h-5 text-[#94A3B8]" />
+          )}
+          <span className="text-sm font-medium text-[#F8FAFC]">
+            {hasVoted ? 'Vote enviado' : 'Quitter'}
+          </span>
+        </button>
         
-        <div className="h-10 flex items-center gap-2 bg-[#1E293B] border border-[#334155] px-3 rounded-xl min-w-[80px]">
-          <span className="text-xs text-[#94A3B8]">{votes.length}/{requiredVotes}</span>
-          <div className="h-1.5 flex-1 bg-[#334155] rounded-full overflow-hidden w-16">
-            <div 
-              className="h-full bg-[#3B82F6] transition-all duration-300"
-              style={{ width: `${votePercentage}%` }}
-            />
-          </div>
+        <div className="h-12 flex items-center gap-2 bg-[#1E293B] border border-[#334155] px-3 rounded-xl">
+          <span className="text-sm font-bold text-[#F8FAFC]">{votes.length}/{requiredVotes}</span>
         </div>
       </div>
     </div>
