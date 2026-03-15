@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap, Shield, EyeOff, Settings, Play, LogOut, CheckCircle, Home, QrCode, Eye, Monitor } from 'lucide-react';
+import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap, Shield, EyeOff, Settings, Play, LogOut, CheckCircle, Home, QrCode, Eye, Monitor, Share2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import QRCode from 'react-qr-code';
@@ -261,7 +261,6 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [showJoinOverlay, setShowJoinOverlay] = useState(false); // Overlay QR Code
   const [showPseudoModal, setShowPseudoModal] = useState(false);
   const [pseudoInput, setPseudoInput] = useState('');
-  const [tempName, setTempName] = useState('');
   
   // Refs for interval access
   const playersRef = useRef(players);
@@ -736,45 +735,6 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleJoinWithName = async () => {
-    if (!tempName.trim() || !roomId) return;
-    
-    const { data: existingPlayer } = await supabase
-      .from('players')
-      .select('id, name')
-      .eq('room_id', roomId)
-      .eq('name', tempName.trim())
-      .maybeSingle();
-
-    if (existingPlayer) {
-      toast.error('Ce pseudo est déjà utilisé dans cette salle');
-      return;
-    }
-
-    const { data: newPlayer, error } = await supabase
-      .from('players')
-      .insert({
-        room_id: roomId,
-        name: tempName.trim(),
-        is_host: false,
-        score: 0
-      })
-      .select()
-      .single();
-
-    if (error) {
-      toast.error('Erreur lors de la rejointée');
-      return;
-    }
-
-    sessionStorage.setItem('playerName', tempName.trim());
-    sessionStorage.setItem('playerId', newPlayer.id);
-    sessionStorage.setItem('isHost', 'false');
-    setPlayerName(tempName.trim());
-    setTempName('');
-    toast.success('Tu as rejoint la partie !');
-  };
-
   const leaveRoom = async () => {
     // Supprimer le joueur de la DB
     if (roomId && playerName) {
@@ -929,15 +889,14 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             </div>
 
             <div className="flex items-center gap-3">
-                {/* Join Overlay Button (Hidden in Privacy Mode) */}
+                {/* Join Overlay Button - Logo (Hidden in Privacy Mode) */}
                 {isHost && !streamerMode && (
                     <Button 
                         onClick={() => setShowJoinOverlay(true)}
                         variant="ghost"
                         className="hidden sm:flex items-center gap-2 h-12 px-4 rounded-xl text-purple-400 hover:text-purple-300 hover:bg-purple-900/20 transition-all border border-transparent hover:border-purple-500/20"
                     >
-                        <Users className="w-5 h-5" />
-                        <span className="hidden md:inline font-bold">Rejoindre</span>
+                        <img src="/logosite.png" alt="IttolecHub" className="h-8 w-auto" />
                     </Button>
                 )}
 
@@ -956,68 +915,56 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     <span className="hidden lg:inline font-medium">{streamerMode ? 'Privé' : 'Public'}</span>
                 </Button>
 
-                {/* QR Code Dialog (Hidden in Privacy Mode) */}
+                {/* Share Dialog - QR Code + Link (Hidden in Privacy Mode) */}
                 {!streamerMode && (
                     <Dialog>
                         <DialogTrigger asChild>
                             <Button variant="ghost" className="h-12 w-12 p-0 rounded-xl text-[#94A3B8] hover:text-white bg-[#1E293B] border border-[#334155] hover:bg-[#334155] transition-all">
-                                <QrCode className="w-5 h-5" />
+                                <Share2 className="w-5 h-5" />
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-[#1E293B] border-[#334155] aspect-square">
-                        <h2 className="text-2xl font-bold mb-6 text-[#F8FAFC]">Scanner pour rejoindre</h2>
-                        <div className="p-4 bg-white rounded-xl shadow-lg aspect-square flex items-center justify-center w-full">
-                            <QRCode 
-                                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
-                                size={256}
-                                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                                viewBox={`0 0 256 256`}
-                            />
-                        </div>
-                        <p className="mt-6 text-[#94A3B8] font-mono text-xl tracking-widest">
-                            {params.code}
-                        </p>
-                    </DialogContent>
+                        <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-[#1E293B] border-[#334155]">
+                            <h2 className="text-2xl font-bold mb-6 text-[#F8FAFC]">Partager le salon</h2>
+                            
+                            {/* QR Code */}
+                            <div className="p-4 bg-white rounded-xl shadow-lg aspect-square flex items-center justify-center w-64">
+                                <QRCode 
+                                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
+                                    size={256}
+                                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                    viewBox={`0 0 256 256`}
+                                />
+                            </div>
+                            
+                            {/* Link with copy */}
+                            <div className="mt-6 w-full space-y-3">
+                                <p className="text-sm text-[#94A3B8] text-center">Ou partagez le lien:</p>
+                                <div className="flex items-center gap-2 bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3">
+                                    <span className="flex-1 text-sm text-[#94A3B8] truncate font-mono">
+                                        {typeof window !== 'undefined' ? window.location.origin : ''}/room/{params.code}?source=qrcode
+                                    </span>
+                                    <button 
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`);
+                                            toast.success('Lien copié !');
+                                        }}
+                                        className="text-[#3B82F6] hover:text-[#60A5FA] transition-colors"
+                                    >
+                                        <Copy className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {/* Code display */}
+                            <div className="mt-4 flex items-center justify-center gap-3">
+                                <span className="text-sm text-[#94A3B8]">Code:</span>
+                                <span className="font-mono text-xl font-bold tracking-widest text-[#F8FAFC]">
+                                    {params.code}
+                                </span>
+                            </div>
+                        </DialogContent>
                     </Dialog>
                 )}
-
-                {/* Join with Nickname Dialog */}
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button variant="ghost" className="h-12 w-12 p-0 rounded-xl text-[#94A3B8] hover:text-white bg-[#1E293B] border border-[#334155] hover:bg-[#334155] transition-all">
-                            <LogOut className="w-5 h-5 rotate-180" />
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-[#1E293B] border-[#334155]">
-                        <h2 className="text-2xl font-bold mb-6 text-[#F8FAFC]">Rejoindre la partie</h2>
-                        <Input 
-                            placeholder="Ton Pseudo" 
-                            value={tempName}
-                            onChange={(e) => setTempName(e.target.value)}
-                            className="h-14 text-xl text-center font-bold rounded-2xl mb-6 bg-[#0F172A] border-[#334155]"
-                            onKeyDown={(e) => e.key === 'Enter' && handleJoinWithName()}
-                        />
-                        <Button 
-                            onClick={handleJoinWithName}
-                            disabled={!tempName.trim()}
-                            className="w-full h-14 text-xl font-bold rounded-2xl bg-[#3B82F6] hover:bg-[#2563EB]"
-                        >
-                            Rejoindre
-                        </Button>
-                    </DialogContent>
-                </Dialog>
-
-                <div 
-                    className="h-12 flex items-center gap-3 bg-[#1E293B] border border-[#334155] px-5 rounded-xl cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all group"
-                    onClick={copyRoomCode}
-                    title={streamerMode ? "Code masqué (cliquez pour copier)" : "Copier le code"}
-                >
-                    <span className="text-xs text-[#94A3B8] uppercase tracking-widest font-bold">Code</span>
-                    <span className="font-mono text-lg font-bold tracking-widest text-[#F8FAFC] group-hover:text-[#3B82F6] transition-colors">
-                        {streamerMode ? '••••••' : params.code}
-                    </span>
-                    {copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-[#94A3B8] group-hover:text-white" />}
-                </div>
             </div>
         </header>
 
