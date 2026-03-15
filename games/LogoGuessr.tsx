@@ -574,8 +574,8 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           timer={timeLeft.toString()}
           players={playersMap}
           timeLeft={timeLeft}
+          voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />}
       >
-          <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />
           {/* Setup Phase */}
           {currentPhase === 'setup' && (
               <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500">

@@ -338,6 +338,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
       gameTitle="BudgetGuessr"
       gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
+      voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} /> : undefined}
     >
       <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)]">
         
@@ -524,9 +525,6 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                     </Button>
                 )}
             </div>
-        )}
-        {currentPhase !== 'setup' && (
-            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />
         )}
       </div>
     </GameLayout>

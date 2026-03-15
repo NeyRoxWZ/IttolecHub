@@ -431,6 +431,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
         timer={timeLeft.toString()}
         players={playersMap}
         timeLeft={timeLeft}
+        voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} /> : undefined}
     >
         {/* SETUP */}
         {currentPhase === 'setup' && (
@@ -608,9 +609,6 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                     </Button>
                 )}
             </div>
-        )}
-        {currentPhase !== 'setup' && (
-            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />
         )}
     </GameLayout>
   );

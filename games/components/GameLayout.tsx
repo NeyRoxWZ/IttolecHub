@@ -19,6 +19,7 @@ interface GameLayoutProps {
   gameStarted?: boolean;
   className?: string;
   showScores?: boolean; // New prop to toggle score display
+  voteToLobby?: ReactNode; // Vote to lobby button
 }
 
 export default function GameLayout({
@@ -31,7 +32,8 @@ export default function GameLayout({
   timeLeft = 0,
   gameStarted = true,
   className,
-  showScores = true // Default true
+  showScores = true, // Default true
+  voteToLobby // Default undefined
 }: GameLayoutProps) {
   
   // Extract roomId from URL (simple hack since we don't pass it down yet)
@@ -82,9 +84,13 @@ export default function GameLayout({
             </div>
 
             {/* Right: Timer (Mobile) or Extra Info */}
-            <div className="md:hidden flex items-center gap-2 font-mono font-bold text-lg">
-                <Clock className="w-4 h-4 text-[#3B82F6]" />
-                {timer}
+            <div className="flex items-center gap-3">
+              <div className="md:hidden flex items-center gap-2 font-mono font-bold text-lg">
+                  <Clock className="w-4 h-4 text-[#3B82F6]" />
+                  {timer}
+              </div>
+              {/* Vote to Lobby button - desktop in header, mobile handled separately */}
+              {voteToLobby}
             </div>
         </div>
       </header>

@@ -300,6 +300,7 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
           timer={timeLeft.toString()}
           players={playersMap}
           timeLeft={timeLeft}
+          voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />}
       >
           {/* Setup Phase */}
           {currentPhase === 'setup' && (
@@ -533,10 +534,7 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
                   )}
               </div>
           )}
-        {currentPhase !== 'setup' && (
-            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />
-        )}
-      </GameLayout>
+        </GameLayout>
   );
 }
 

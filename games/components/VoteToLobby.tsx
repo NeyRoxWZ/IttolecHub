@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { LogOut, Users } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface VoteToLobbyProps {
@@ -22,11 +22,15 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode }: Vot
   const router = useRouter();
   const [votes, setVotes] = useState<Vote[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
+  const [channel, setChannel] = useState<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (!roomId) return;
 
-    const channel = supabase.channel(`room_${roomId}_votes`)
+    const voteChannel = supabase.channel(`room_${roomId}_votes`);
+    setChannel(voteChannel);
+
+    voteChannel
       .on('broadcast', { event: 'vote_lobby' }, (payload) => {
         const newVote = payload.payload as Vote;
         setVotes(prev => {
@@ -40,12 +44,12 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode }: Vot
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(voteChannel);
     };
   }, [roomId, roomCode, router]);
 
   const handleVote = async () => {
-    if (hasVoted || !roomId || !playerId) return;
+    if (hasVoted || !roomId || !playerId || !channel) return;
 
     const playerName = players.find(p => p.id === playerId)?.name || 'Joueur';
     
@@ -58,7 +62,7 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode }: Vot
     setHasVoted(true);
     setVotes(prev => [...prev, vote]);
 
-    await supabase.channel(`room_${roomId}_votes`).send({
+    await channel.send({
       type: 'broadcast',
       event: 'vote_lobby',
       payload: vote
@@ -68,15 +72,15 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode }: Vot
   const requiredVotes = players.length;
 
   useEffect(() => {
-    if (votes.length >= requiredVotes && requiredVotes > 0) {
-      supabase.channel(`room_${roomId}_votes`).send({
+    if (votes.length >= requiredVotes && requiredVotes > 0 && channel) {
+      channel.send({
         type: 'broadcast',
         event: 'return_to_lobby',
         payload: {}
       });
       router.push(`/room/${roomCode}`);
     }
-  }, [votes.length, requiredVotes, roomId, roomCode, router]);
+  }, [votes.length, requiredVotes, roomId, roomCode, router, channel]);
 
   if (votes.length >= requiredVotes) {
     return null;
@@ -84,12 +88,12 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode }: Vot
 
   return (
     <>
-      {/* Desktop: Right of timer in header */}
-      <div className="hidden md:flex fixed top-[52px] right-4 z-50">
+      {/* Desktop: Inside header, right side */}
+      <div className="hidden md:block">
         <button
           onClick={handleVote}
           disabled={hasVoted}
-          className="h-10 flex items-center gap-2 bg-[#1E293B] border border-[#334155] px-3 rounded-lg cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-9 flex items-center gap-2 bg-[#1E293B] border border-[#334155] px-3 rounded-lg cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {hasVoted ? (
             <div className="w-2 h-2 rounded-full bg-green-400" />
@@ -112,7 +116,7 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode }: Vot
           {hasVoted ? (
             <div className="w-3 h-3 rounded-full bg-green-400" />
           ) : (
-            <Users className="w-5 h-5 text-[#94A3B8]" />
+            <LogOut className="w-5 h-5 text-[#94A3B8]" />
           )}
         </button>
         <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-bold text-[#F8FAFC] whitespace-nowrap">

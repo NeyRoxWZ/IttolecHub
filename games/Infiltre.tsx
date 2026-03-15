@@ -629,6 +629,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
       gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
       showScores={false}
+      voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} /> : undefined}
     >
       <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)]">
         
@@ -1022,9 +1023,6 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                     </Button>
                 </div>
             </div>
-        )}
-        {currentPhase !== 'setup' && (
-            <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />
         )}
       </div>
     </GameLayout>
