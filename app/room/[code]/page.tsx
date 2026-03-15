@@ -943,10 +943,10 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                             <h2 className="text-2xl font-bold mb-4 text-[#F8FAFC]">Partager le salon</h2>
                             
                             {/* QR Code - bigger and centered */}
-                            <div className="p-4 bg-white rounded-xl shadow-lg flex items-center justify-center w-full max-w-[280px]">
+                            <div className="p-5 bg-white rounded-xl shadow-lg flex items-center justify-center">
                                 <QRCode 
                                     value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
-                                    size={240}
+                                    size={260}
                                     style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                                     viewBox={`0 0 256 256`}
                                 />
