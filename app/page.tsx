@@ -87,9 +87,8 @@ export default function Home() {
           <img 
             src="/logo.png" 
             alt="IttolecHub" 
-            className="h-24 md:h-32 w-auto mx-auto drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]"
+            className="h-40 md:h-56 w-auto mx-auto drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]"
           />
-          <div className="h-2 w-32 bg-indigo-500 mx-auto mt-4 rounded-full shadow-[0_0_15px_rgba(79,70,229,0.8)]"></div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
