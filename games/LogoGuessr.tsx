@@ -113,11 +113,14 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   const [currentLogoUrl, setCurrentLogoUrl] = useState<string>('');
   const [imageLoaded, setImageLoaded] = useState(false);
   const pixelCanvasRef = useRef<HTMLCanvasElement>(null);
+  const tileCanvasRef = useRef<HTMLCanvasElement>(null);
   const loadedImageRef = useRef<HTMLImageElement | null>(null);
   
   // Difficulty effect state
-  const [blurLevel, setBlurLevel] = useState(20); // For facile/moyen
-  const [pixelSize, setPixelSize] = useState(320); // For difficile (starts at canvasWidth, goes to 1)
+  const [blurLevel, setBlurLevel] = useState(20); // For facile
+  const [pixelSize, setPixelSize] = useState(320); // For difficile
+  const [tilesRevealed, setTilesRevealed] = useState(0); // For moyen
+  const shuffledTilesRef = useRef<{r: number, c: number}[]>([]); // For moyen
 
   // --- EFFECTS ---
 
@@ -149,6 +152,22 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
     const start = new Date(timerStartAt).getTime();
     const duration = timerSeconds * 1000;
     const canvasWidth = 320; // container size
+    
+    // Generate shuffled tiles for Moyen mode (once at start)
+    const rows = 8;
+    const cols = 8;
+    const tiles = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        tiles.push({ r, c });
+      }
+    }
+    // Fisher-Yates shuffle
+    for (let i = tiles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+    }
+    shuffledTilesRef.current = tiles;
 
     let animationId: number;
 
@@ -168,16 +187,20 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
         const newBlur = 20 * timeRatio;
         setBlurLevel(newBlur);
         setPixelSize(canvasWidth);
+        setTilesRevealed(0);
       } else if (difficulty === 'medium') {
-        // Silhouette + progressive deblur
-        const newBlur = 20 * timeRatio;
-        setBlurLevel(newBlur);
+        // Tile reveal: 0 -> 64 tiles
+        const totalTiles = rows * cols;
+        const revealed = Math.floor(timeRatio * totalTiles);
+        setTilesRevealed(revealed);
+        setBlurLevel(0);
         setPixelSize(canvasWidth);
       } else if (difficulty === 'hard') {
         // Smooth pixelation: canvasWidth -> 1
         const blockSize = Math.max(1, Math.round(canvasWidth * timeRatio));
         setPixelSize(blockSize);
         setBlurLevel(0);
+        setTilesRevealed(0);
       }
       
       if (remaining > 0) {
@@ -240,6 +263,39 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
     drawPixelated();
   }, [pixelSize, difficulty, imageLoaded]);
 
+  // Draw tile reveal on canvas for Moyen mode
+  useEffect(() => {
+    if (difficulty !== 'medium' || !tileCanvasRef.current || !imageLoaded || tilesRevealed === 0) {
+      return;
+    }
+
+    const canvas = tileCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx || !imgRef.current) return;
+
+    const img = imgRef.current;
+    const containerSize = 320;
+    const rows = 8;
+    const cols = 8;
+    const tileW = containerSize / cols;
+    const tileH = containerSize / rows;
+
+    canvas.width = containerSize;
+    canvas.height = containerSize;
+
+    // Draw the logo first
+    ctx.drawImage(img, 0, 0, containerSize, containerSize);
+
+    // Draw black tiles over unrevealed tiles
+    const totalTiles = rows * cols;
+    const tilesToHide = shuffledTilesRef.current.slice(tilesRevealed);
+    
+    ctx.fillStyle = '#000000';
+    for (const tile of tilesToHide) {
+      ctx.fillRect(tile.c * tileW, tile.r * tileH, tileW + 1, tileH + 1);
+    }
+  }, [tilesRevealed, difficulty, imageLoaded]);
+
   // Load image once
   const imgRef = useRef<HTMLImageElement | null>(null);
   
@@ -282,8 +338,9 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           setHasFound(false);
           setInputDisabled(false);
           setLogoError(false);
-          setBlurLevel(difficulty === 'easy' || difficulty === 'medium' ? 20 : 0);
+          setBlurLevel(difficulty === 'easy' ? 20 : 0);
           setPixelSize(difficulty === 'hard' ? 320 : 320);
+          setTilesRevealed(0);
           setImageLoaded(false);
           if (currentLogo?.domain) {
               setCurrentLogoUrl(getLogoUrl(currentLogo.domain));
@@ -547,6 +604,11 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                                       className="w-full h-full"
                                       style={{ imageRendering: 'pixelated' }}
                                   />
+                              ) : difficulty === 'medium' ? (
+                                  <canvas 
+                                      ref={tileCanvasRef}
+                                      className="w-full h-full"
+                                  />
                               ) : (
                                   <img 
                                       key={currentLogo.domain || currentRound}
@@ -557,7 +619,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                                       onError={() => setLogoError(true)}
                                       className="select-none w-full h-full object-contain"
                                       style={{
-                                          filter: difficulty === 'medium' ? `blur(${blurLevel}px) brightness(0)` : `blur(${blurLevel}px)`,
+                                          filter: `blur(${blurLevel}px)`,
                                       }}
                                   />
                               )}
