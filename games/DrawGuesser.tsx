@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { Trophy, Clock, PenTool, CheckCircle, Eraser, Eye, EyeOff, Trash2, Home, Loader2 } from 'lucide-react';
+import { Trophy, Clock, PenTool, CheckCircle, Eraser, Eye, EyeOff, Trash2, Home, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -572,28 +572,23 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
 
         {/* PHASE: PLAYING / RESULTS */}
         {(currentPhase === 'playing' || currentPhase === 'round_results') && (
-            <div className="flex flex-col w-full h-full relative">
+            <div className="flex flex-col w-full h-full gap-4">
                 
-                {/* DRAWER INFO / WORD REVEAL - Style Undercover */}
-                <div className="absolute top-0 left-0 right-0 z-20 flex justify-center pointer-events-none">
+                {/* TOP: Word Reveal Card */}
+                <div className="flex-shrink-0">
                     {isDrawer && currentPhase === 'playing' && (
-                        <div className="pointer-events-auto mt-2 bg-[#0F172A]/90 backdrop-blur p-6 rounded-3xl border border-[#334155] shadow-2xl">
-                            <div className="flex flex-col items-center gap-4">
+                        <div className="bg-[#0F172A] p-4 rounded-2xl border border-[#334155] shadow-lg">
+                            <div className="flex flex-col items-center gap-3">
                                 {revealedWord ? (
-                                    <div className="animate-in zoom-in duration-200 flex flex-col items-center">
-                                        <div className="bg-[#334155] px-8 py-4 rounded-xl border border-[#475569]">
-                                            <span className="block text-sm text-[#94A3B8] uppercase tracking-widest mb-1">Mot à dessiner</span>
-                                            <span className="text-3xl font-bold text-[#F8FAFC]">{currentWord?.word}</span>
-                                        </div>
+                                    <div className="bg-[#334155] px-6 py-3 rounded-xl border border-[#475569] w-full">
+                                        <span className="block text-xs text-[#94A3B8] uppercase tracking-widest text-center">Mot à dessiner</span>
+                                        <span className="text-2xl font-bold text-[#F8FAFC] block text-center">{currentWord?.word}</span>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col items-center animate-in fade-in">
-                                        <EyeOff className="w-12 h-12 mb-2 text-[#94A3B8]" />
-                                        <p className="text-lg text-[#94A3B8]">Maintenir pour révéler</p>
-                                    </div>
+                                    <p className="text-[#94A3B8] text-sm">Maintenir le bouton pour voir le mot</p>
                                 )}
                                 <button
-                                    className="w-full bg-[#334155] hover:bg-[#475569] active:bg-[#475569] border border-[#475569] rounded-xl p-3 transition-colors select-none touch-none"
+                                    className="w-full bg-[#334155] hover:bg-[#475569] active:bg-[#475569] border border-[#475569] rounded-xl py-3 transition-colors"
                                     onMouseDown={() => setRevealedWord(true)}
                                     onMouseUp={() => setRevealedWord(false)}
                                     onMouseLeave={() => setRevealedWord(false)}
@@ -606,23 +601,21 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                         </div>
                     )}
                     {!isDrawer && currentPhase === 'playing' && (
-                        <div className="mt-2 bg-[#0F172A]/90 backdrop-blur px-8 py-4 rounded-full border border-[#334155] shadow-xl">
-                            <div className="flex items-center gap-3">
-                                <PenTool className="w-5 h-5 text-pink-400" />
-                                <span className="text-[#F8FAFC] font-bold">{getDrawerName()} dessine...</span>
-                            </div>
+                        <div className="bg-[#0F172A] px-6 py-3 rounded-2xl border border-[#334155] shadow-lg flex items-center justify-center gap-3">
+                            <PenTool className="w-5 h-5 text-pink-400" />
+                            <span className="text-[#F8FAFC] font-bold">{getDrawerName()} dessine</span>
                         </div>
                     )}
                     {currentPhase === 'round_results' && (
-                        <div className="mt-2 bg-[#334155] px-8 py-4 rounded-2xl border border-[#475569] shadow-[0_4px_0_0px_#020617] animate-bounce">
-                            <span className="block text-sm text-[#94A3B8] uppercase tracking-widest mb-1 text-center">Le mot était</span>
-                            <span className="text-2xl font-bold text-[#F8FAFC]">{currentWord?.word}</span>
+                        <div className="bg-[#334155] px-6 py-3 rounded-2xl border border-[#475569] shadow-[0_4px_0_0px_#020617]">
+                            <span className="block text-xs text-[#94A3B8] uppercase tracking-widest text-center">Le mot était</span>
+                            <span className="text-xl font-bold text-[#F8FAFC] block text-center">{currentWord?.word}</span>
                         </div>
                     )}
                 </div>
 
-                {/* CANVAS AREA */}
-                <div className="flex-1 bg-[#1E293B] rounded-xl shadow-2xl overflow-hidden relative touch-none border-4 border-[#334155]">
+                {/* MIDDLE: Canvas */}
+                <div className="flex-1 bg-[#1E293B] rounded-xl shadow-lg overflow-hidden relative touch-none border-2 border-[#334155] min-h-[200px]">
                     <canvas
                         ref={canvasRef}
                         onMouseDown={startDrawing}
@@ -637,59 +630,56 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                     
                     {/* TOOLBAR (Drawer Only) */}
                     {isDrawer && currentPhase === 'playing' && (
-                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#0F172A]/90 backdrop-blur p-3 rounded-2xl flex items-center gap-4 shadow-xl border border-[#334155]">
-                            <div className="flex gap-2">
-                                {COLORS.map(c => (
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#0F172A]/95 backdrop-blur px-3 py-2 rounded-xl flex items-center gap-3 shadow-lg border border-[#334155]">
+                            <div className="flex gap-1.5">
+                                {COLORS.slice(0, 8).map(c => (
                                     <button
                                         key={c}
                                         onClick={() => setColor(c)}
-                                        className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${color === c ? 'border-white scale-110' : 'border-transparent'}`}
+                                        className={`w-6 h-6 rounded-full border transition-transform hover:scale-110 ${color === c ? 'border-white scale-110' : 'border-transparent'}`}
                                         style={{ backgroundColor: c }}
                                     />
                                 ))}
                             </div>
-                            <div className="w-px h-8 bg-[#334155]" />
-                            <div className="flex gap-2 items-center">
+                            <div className="w-px h-6 bg-[#334155]" />
+                            <div className="flex gap-1">
                                 {SIZES.map(s => (
                                     <button
                                         key={s}
                                         onClick={() => setSize(s)}
-                                        className={`rounded-full bg-[#475569] hover:bg-[#334155] flex items-center justify-center transition-all ${size === s ? 'ring-2 ring-[#F8FAFC]' : ''}`}
-                                        style={{ width: s * 2 + 10, height: s * 2 + 10 }}
+                                        className={`rounded-full bg-[#475569] flex items-center justify-center transition-all ${size === s ? 'ring-2 ring-white' : ''}`}
+                                        style={{ width: s + 8, height: s + 8 }}
                                     >
-                                        <div className="rounded-full bg-[#F8FAFC]" style={{ width: s, height: s }} />
+                                        <div className="rounded-full bg-white" style={{ width: s, height: s }} />
                                     </button>
                                 ))}
                             </div>
-                            <div className="w-px h-8 bg-[#334155]" />
-                            <button onClick={() => setColor('#FFFFFF')} className={`p-2 rounded-lg hover:bg-[#334155] ${color === '#FFFFFF' ? 'bg-[#475569]' : ''}`}>
-                                <Eraser className="w-5 h-5 text-[#F8FAFC]" />
+                            <div className="w-px h-6 bg-[#334155]" />
+                            <button onClick={() => setColor('#FFFFFF')} className={`p-1.5 rounded hover:bg-[#334155] ${color === '#FFFFFF' ? 'bg-[#475569]' : ''}`}>
+                                <Eraser className="w-4 h-4 text-[#F8FAFC]" />
                             </button>
-                            <button onClick={clearCanvas} className="p-2 rounded-lg hover:bg-red-900/50 text-red-400">
-                                <Trash2 className="w-5 h-5" />
+                            <button onClick={clearCanvas} className="p-1.5 rounded hover:bg-red-900/50 text-red-400">
+                                <Trash2 className="w-4 h-4" />
                             </button>
                         </div>
                     )}
                 </div>
 
-                {/* GUESS INPUT (Non-Drawer) */}
+                {/* BOTTOM: Answer Input (Guesser Only) */}
                 {!isDrawer && currentPhase === 'playing' && !hasGuessed && (
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md px-4">
-                        <Input 
-                            placeholder="Devine le dessin..." 
-                            value={userGuess}
-                            onChange={e => setUserGuess(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && submitGuess()}
-                            className="h-14 text-lg bg-[#334155]/90 backdrop-blur border-[#3B82F6] text-[#F8FAFC] placeholder:text-[#94A3B8] shadow-xl rounded-2xl"
-                            autoFocus
-                        />
-                    </div>
-                )}
-                 {!isDrawer && hasGuessed && currentPhase === 'playing' && (
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-                         <div className="bg-green-600 text-white px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 animate-bounce">
-                             <CheckCircle className="w-5 h-5" /> Trouvé !
-                         </div>
+                    <div className="flex-shrink-0 pb-2">
+                        <form onSubmit={submitGuess} className="flex gap-2">
+                            <Input 
+                                placeholder="Devinez le mot..." 
+                                value={userGuess}
+                                onChange={e => setUserGuess(e.target.value)}
+                                className="h-12 text-base"
+                                autoFocus
+                            />
+                            <Button type="submit" variant="primary" className="h-12 px-6">
+                                <Send className="w-5 h-5" />
+                            </Button>
+                        </form>
                     </div>
                 )}
             </div>
