@@ -88,6 +88,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   const currentLogo = game.current_logo;
   const currentRound = game.current_round || 1;
   const timerStartAt = game.timer_start_at;
+  const logoQueue = game.queue || [];
   
   // Settings
   const settings = gameState?.settings || {};
@@ -179,25 +180,24 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
       
       setTimeLeft(remaining);
       
-      const progress = Math.min(1, elapsed / duration);
-      const timeRatio = 1 - progress; // 1 at start, 0 at end
+      // Use elapsed time for linear progression
+      const progress = Math.min(1, elapsed / duration); // 0 at start, 1 at end
       
       if (difficulty === 'easy') {
         // Progressive deblur: 20px -> 0px
-        const newBlur = 20 * timeRatio;
+        const newBlur = 20 * (1 - progress);
         setBlurLevel(newBlur);
         setPixelSize(canvasWidth);
         setTilesRevealed(0);
       } else if (difficulty === 'medium') {
-        // Tile reveal: 0 -> 64 tiles (linear)
+        // Tile reveal: tiles disappear as time progresses (reveal logo)
         const totalTiles = rows * cols;
-        const revealed = Math.floor(timeRatio * totalTiles);
+        const revealed = Math.floor(progress * totalTiles);
         setTilesRevealed(revealed);
         setBlurLevel(0);
         setPixelSize(canvasWidth);
       } else if (difficulty === 'hard') {
-        // Smooth pixelation: 320 -> 1 linearly
-        // Use progress directly (0 -> 1) instead of timeRatio to ensure linear
+        // Smooth pixelation: canvasWidth -> 1 linearly (based on elapsed time)
         const blockSize = Math.max(1, Math.round(canvasWidth * (1 - progress)));
         setPixelSize(blockSize);
         setBlurLevel(0);
@@ -284,11 +284,11 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
     canvas.width = containerSize;
     canvas.height = containerSize;
 
-    // Draw the logo first
+    // Draw the logo first (background)
     ctx.drawImage(img, 0, 0, containerSize, containerSize);
 
-    // Draw black tiles over unrevealed tiles
-    const totalTiles = rows * cols;
+    // Draw black tiles over tiles that are NOT revealed yet
+    // shuffledTiles.slice(tilesRevealed) = tiles from index tilesRevealed to end = NOT revealed
     const tilesToHide = shuffledTilesRef.current.slice(tilesRevealed);
     
     if (tilesToHide.length > 0) {
@@ -439,17 +439,20 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
       try {
           // Fetch settings for API
           const categoryParam = settings.category || 'all';
-          const difficultyParam = settings.difficulty || 'mix';
+          const difficultyParam = settings.difficulty || 'easy';
           
-          const data = await fetch(`/api/games/logo?count=1&category=${categoryParam}&difficulty=${difficultyParam}`);
+          // Fetch ALL logos at once for the whole game
+          const data = await fetch(`/api/games/logo?count=${totalRounds}`);
           const logos = await data.json();
           
           if (!logos || logos.length === 0) {
-              toast.error("Erreur lors du chargement du logo");
+              toast.error("Erreur lors du chargement des logos");
               return;
           }
           
-          const nextLogo = logos[0];
+          // Store queue in game state
+          const queue = logos.slice(1); // All except first
+          const nextLogo = logos[0]; // First logo for this round
           
           // 1. Initial Setup if needed
           if (currentPhase === 'setup') {
@@ -461,7 +464,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                   has_found: false,
                   find_time_ms: 0
               }));
-              
+
               await supabase.from('logo_players').delete().eq('room_id', roomId);
               await supabase.from('logo_players').insert(playerInserts);
 
@@ -475,13 +478,18 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                   category: categoryParam,
                   difficulty: difficultyParam,
                   current_logo: nextLogo,
+                  queue: queue,
                   timer_start_at: new Date().toISOString(),
                   created_at: new Date().toISOString()
               }, { onConflict: 'room_id' });
               
               await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
           } else {
-              // Next Round
+              // Next Round - use queue
+              const queue = game.queue || [];
+              const nextLogoFromQueue = queue[0];
+              const newQueue = queue.slice(1);
+              
               await supabase.from('logo_players').update({
                   has_found: false,
                   find_time_ms: 0,
@@ -490,7 +498,8 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
               
               await supabase.from('logo_games').update({
                   phase: 'playing',
-                  current_logo: nextLogo,
+                  current_logo: nextLogoFromQueue,
+                  queue: newQueue,
                   timer_start_at: new Date().toISOString(),
                   current_round: currentRound + 1
               }).eq('room_id', roomId);
@@ -639,11 +648,6 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                               </span>
                           </div>
                       )}
-                      
-                      {/* Difficulty Badge */}
-                      <div className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500 uppercase tracking-wider">
-                          {difficulty === 'easy' ? 'Facile' : difficulty === 'medium' ? 'Moyen' : 'Difficile'}
-                      </div>
                   </div>
 
                   {/* Input Area */}
