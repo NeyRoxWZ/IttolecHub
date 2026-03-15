@@ -72,3 +72,23 @@ create table if not exists public.game_votes (
 create index if not exists game_votes_room_phase_idx
   on public.game_votes(room_id, game_type, phase);
 
+-- DrawGuessr strokes storage
+create table if not exists public.draw_strokes (
+  id uuid primary key default gen_random_uuid(),
+  room_id uuid not null references public.rooms(id) on delete cascade,
+  round integer not null default 1,
+  strokes_data jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(room_id, round)
+);
+
+create index if not exists draw_strokes_room_idx on public.draw_strokes(room_id);
+
+-- Enable RLS
+alter table public.draw_strokes enable row level security;
+
+-- Policies for draw_strokes
+create policy "draw_strokes_all_access" on public.draw_strokes
+  for all using (true);
+

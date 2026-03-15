@@ -20,7 +20,18 @@ const COLORS = [
   '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FFA500', '#800080',
   '#FF69B4', '#00CED1', '#8B4513', '#808080', '#FF6347', '#40E0D0', '#EEE8AA', '#98FB98'
 ];
-const SIZES = [3, 6, 10, 15];
+const SIZES = [4, 8, 12, 18];
+
+interface StrokePoint {
+  x: number;
+  y: number;
+}
+
+interface Stroke {
+  points: StrokePoint[];
+  color: string;
+  size: number;
+}
 
 export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
   const router = useRouter();
@@ -71,10 +82,16 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
   // Canvas State
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [color, setColor] = useState('#000000');
-  const [size, setSize] = useState(5);
+  const [size, setSize] = useState(8);
   const isDrawing = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
-  const [revealedWord, setRevealedWord] = useState(false); // Hold to reveal
+  const [revealedWord, setRevealedWord] = useState(false);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const currentStroke = useRef<Stroke | null>(null);
+  const strokeBatch = useRef<StrokePoint[]>([]);
+  const batchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const isDrawingRef = useRef(false);
+  const strokesLoaded = useRef(false);
 
   // --- EFFECTS ---
   
@@ -125,15 +142,33 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           setUserGuess('');
           setHasGuessed(false);
           setGuessRank(0);
-          // Clear canvas locally on new round start
-          const ctx = canvasRef.current?.getContext('2d');
-          const parent = canvasRef.current?.parentElement;
-          if (ctx && canvasRef.current && parent) {
-              ctx.fillStyle = '#FFFFFF';
-              ctx.fillRect(0, 0, parent.clientWidth, parent.clientHeight);
-          }
+          setStrokes([]);
+          strokesLoaded.current = false;
+          clearCanvasLocal();
       }
   }, [currentRound, currentPhase]);
+
+  // Load strokes from Supabase when drawer starts or when joining
+  useEffect(() => {
+      if (!roomId || currentPhase !== 'playing' || strokesLoaded.current) return;
+      
+      const loadStrokes = async () => {
+          const { data } = await supabase
+              .from('draw_strokes')
+              .select('strokes_data')
+              .eq('room_id', roomId)
+              .eq('round', currentRound)
+              .single();
+          
+          if (data?.strokes_data && Array.isArray(data.strokes_data)) {
+              setStrokes(data.strokes_data);
+              redrawCanvas(data.strokes_data);
+          }
+          strokesLoaded.current = true;
+      };
+      
+      loadStrokes();
+  }, [roomId, currentPhase, currentRound]);
 
   // Handle Incoming Draw Events
   useEffect(() => {
@@ -142,32 +177,89 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       const ctx = canvasRef.current.getContext('2d');
       if (!ctx) return;
 
-      if (lastEvent.type === 'draw_stroke') {
-          const { x0, y0, x1, y1, color, size } = lastEvent.payload;
-          // Scale coordinates
-          const w = canvasRef.current.width;
-          const h = canvasRef.current.height;
-          
-          ctx.beginPath();
-          ctx.moveTo(x0 * w, y0 * h);
-          ctx.lineTo(x1 * w, y1 * h);
-          ctx.strokeStyle = color;
-          ctx.lineWidth = size;
-          ctx.lineCap = 'round';
-          ctx.stroke();
+      if (lastEvent.type === 'draw_batch') {
+          const batch = lastEvent.payload as Stroke;
+          setStrokes(prev => {
+              const newStrokes = [...prev, batch];
+              drawStrokeOnCanvas(ctx, batch);
+              return newStrokes;
+          });
       } else if (lastEvent.type === 'clear_canvas') {
-          const parent = canvasRef.current.parentElement;
-          if (parent) {
-              ctx.fillStyle = '#FFFFFF';
-              ctx.fillRect(0, 0, parent.clientWidth, parent.clientHeight);
-          }
+          clearCanvasLocal();
+          setStrokes([]);
       } else if (lastEvent.type === 'player_found') {
           const { playerName } = lastEvent.payload;
           toast.success(`✅ ${playerName} a trouvé !`);
       }
   }, [lastEvent]);
 
-  // --- CANVAS HANDLERS ---
+  // --- CANVAS HELPERS ---
+  const clearCanvasLocal = () => {
+      const ctx = canvasRef.current?.getContext('2d');
+      const parent = canvasRef.current?.parentElement;
+      if (ctx && canvasRef.current && parent) {
+          ctx.save();
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          ctx.restore();
+      }
+  };
+
+  const drawStrokeOnCanvas = (ctx: CanvasRenderingContext2D, stroke: Stroke) => {
+      if (stroke.points.length < 2) return;
+      const canvas = ctx.canvas;
+      
+      ctx.beginPath();
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.size;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      const firstPoint = stroke.points[0];
+      ctx.moveTo(firstPoint.x * canvas.width, firstPoint.y * canvas.height);
+      
+      for (let i = 1; i < stroke.points.length; i++) {
+          const point = stroke.points[i];
+          ctx.lineTo(point.x * canvas.width, point.y * canvas.height);
+      }
+      ctx.stroke();
+  };
+
+  const redrawCanvas = (strokesToDraw: Stroke[]) => {
+      const ctx = canvasRef.current?.getContext('2d');
+      if (!ctx || !canvasRef.current) return;
+      
+      clearCanvasLocal();
+      
+      for (const stroke of strokesToDraw) {
+          drawStrokeOnCanvas(ctx, stroke);
+      }
+  };
+
+  // Save strokes to Supabase
+  const saveStrokesToSupabase = async (newStrokes: Stroke[]) => {
+      if (!roomId || !isDrawer) return;
+      await supabase.from('draw_strokes').upsert({
+          room_id: roomId,
+          round: currentRound,
+          strokes_data: newStrokes
+      }, { onConflict: 'room_id,round' });
+  };
+
+  // Broadcast batched strokes
+  const broadcastBatch = () => {
+      if (strokeBatch.current.length < 2 || !broadcast) return;
+      
+      const batch: Stroke = {
+          points: [...strokeBatch.current],
+          color,
+          size
+      };
+      
+      broadcast('draw_batch', batch);
+      strokeBatch.current = [];
+  };
   const getCoords = (e: any) => {
       const canvas = canvasRef.current;
       if (!canvas) return { x: 0, y: 0 };
@@ -175,66 +267,84 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       return {
-          x: (clientX - rect.left) / rect.width,
-          y: (clientY - rect.top) / rect.height
+          x: Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)),
+          y: Math.max(0, Math.min(1, (clientY - rect.top) / rect.height))
       };
   };
 
   const startDrawing = (e: any) => {
       if (!isDrawer || currentPhase !== 'playing') return;
+      e.preventDefault();
       isDrawing.current = true;
+      isDrawingRef.current = true;
       const { x, y } = getCoords(e);
       lastPos.current = { x, y };
+      
+      currentStroke.current = {
+          points: [{ x, y }],
+          color,
+          size
+      };
+      strokeBatch.current = [{ x, y }];
   };
 
   const drawStroke = (e: any) => {
       if (!isDrawing.current || !isDrawer || !canvasRef.current) return;
-      e.preventDefault(); // Prevent scroll on touch
+      e.preventDefault();
       
       const { x, y } = getCoords(e);
       const lastX = lastPos.current.x;
       const lastY = lastPos.current.y;
       
-      // Draw locally immediately
       const ctx = canvasRef.current.getContext('2d');
-      if (ctx) {
-          const w = canvasRef.current.width;
-          const h = canvasRef.current.height;
+      if (ctx && currentStroke.current) {
+          currentStroke.current.points.push({ x, y });
+          strokeBatch.current.push({ x, y });
+          
           ctx.beginPath();
-          ctx.moveTo(lastX * w, lastY * h);
-          ctx.lineTo(x * w, y * h);
           ctx.strokeStyle = color;
           ctx.lineWidth = size;
           ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.moveTo(lastX * canvasRef.current.width, lastY * canvasRef.current.height);
+          ctx.lineTo(x * canvasRef.current.width, y * canvasRef.current.height);
           ctx.stroke();
-      }
-
-      // Broadcast
-      if (broadcast) {
-          broadcast('draw_stroke', {
-              x0: lastX, y0: lastY,
-              x1: x, y1: y,
-              color,
-              size
-          });
       }
       
       lastPos.current = { x, y };
+      
+      if (strokeBatch.current.length >= 10) {
+          broadcastBatch();
+      }
   };
 
   const stopDrawing = () => {
+      if (!isDrawing.current) return;
       isDrawing.current = false;
+      isDrawingRef.current = false;
+      
+      if (currentStroke.current && currentStroke.current.points.length >= 2) {
+          const newStrokes = [...strokes, currentStroke.current];
+          setStrokes(newStrokes);
+          saveStrokesToSupabase(newStrokes);
+      }
+      
+      if (strokeBatch.current.length >= 2) {
+          broadcastBatch();
+      }
+      
+      currentStroke.current = null;
+      strokeBatch.current = [];
   };
 
   const clearCanvas = () => {
-      if (!isDrawer || !canvasRef.current) return;
-      const ctx = canvasRef.current.getContext('2d');
-      const parent = canvasRef.current.parentElement;
-      if (ctx && parent) {
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, parent.clientWidth, parent.clientHeight);
-      }
+      if (!isDrawer && !isHost) return;
+      clearCanvasLocal();
+      setStrokes([]);
       if (broadcast) broadcast('clear_canvas', {});
+      if (isDrawer && roomId) {
+          saveStrokesToSupabase([]);
+      }
   };
 
   // --- HOST LOGIC ---
@@ -502,29 +612,44 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           if (canvasRef.current) {
               const parent = canvasRef.current.parentElement;
               if (parent) {
-                  // Higher resolution for better quality
-                  const scale = 2;
-                  canvasRef.current.width = parent.clientWidth * scale;
-                  canvasRef.current.height = parent.clientHeight * scale;
-                  canvasRef.current.style.width = parent.clientWidth + 'px';
-                  canvasRef.current.style.height = parent.clientHeight + 'px';
+                  const scale = window.devicePixelRatio || 2;
+                  const displayWidth = parent.clientWidth;
+                  const displayHeight = parent.clientHeight;
                   
-                  // Set white background and smoothing
+                  canvasRef.current.width = displayWidth * scale;
+                  canvasRef.current.height = displayHeight * scale;
+                  canvasRef.current.style.width = displayWidth + 'px';
+                  canvasRef.current.style.height = displayHeight + 'px';
+                  
                   const ctx = canvasRef.current.getContext('2d');
                   if (ctx) {
                       ctx.scale(scale, scale);
                       ctx.imageSmoothingEnabled = true;
                       ctx.imageSmoothingQuality = 'high';
+                      ctx.lineCap = 'round';
+                      ctx.lineJoin = 'round';
                       ctx.fillStyle = '#FFFFFF';
-                      ctx.fillRect(0, 0, parent.clientWidth, parent.clientHeight);
+                      ctx.fillRect(0, 0, displayWidth, displayHeight);
+                      
+                      if (strokes.length > 0) {
+                          redrawCanvas(strokes);
+                      }
                   }
               }
           }
       };
-      window.addEventListener('resize', handleResize);
+      
       handleResize();
-      return () => window.removeEventListener('resize', handleResize);
-  }, []);
+      window.addEventListener('resize', handleResize);
+      const observer = new ResizeObserver(handleResize);
+      if (canvasRef.current?.parentElement) {
+          observer.observe(canvasRef.current.parentElement);
+      }
+      return () => {
+          window.removeEventListener('resize', handleResize);
+          observer.disconnect();
+      };
+  }, [strokes]);
 
   return (
     <GameLayout
@@ -588,12 +713,12 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                                     <p className="text-[#94A3B8] text-sm">Maintenir le bouton pour voir le mot</p>
                                 )}
                                 <button
-                                    className="w-full bg-[#334155] hover:bg-[#475569] active:bg-[#475569] border border-[#475569] rounded-xl py-3 transition-colors"
-                                    onMouseDown={() => setRevealedWord(true)}
-                                    onMouseUp={() => setRevealedWord(false)}
+                                    className="w-full bg-[#334155] hover:bg-[#475569] active:bg-[#475569] border border-[#475569] rounded-xl py-3 transition-colors select-none touch-none"
+                                    onMouseDown={(e) => { e.preventDefault(); setRevealedWord(true); }}
+                                    onMouseUp={(e) => { e.preventDefault(); setRevealedWord(false); }}
                                     onMouseLeave={() => setRevealedWord(false)}
-                                    onTouchStart={() => setRevealedWord(true)}
-                                    onTouchEnd={() => setRevealedWord(false)}
+                                    onTouchStart={(e) => { e.preventDefault(); setRevealedWord(true); }}
+                                    onTouchEnd={(e) => { e.preventDefault(); setRevealedWord(false); }}
                                 >
                                     <Eye className="w-6 h-6 mx-auto text-[#F8FAFC]" />
                                 </button>
@@ -630,25 +755,25 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                     
                     {/* TOOLBAR (Drawer Only) */}
                     {isDrawer && currentPhase === 'playing' && (
-                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#0F172A]/95 backdrop-blur px-3 py-2 rounded-xl flex items-center gap-3 shadow-lg border border-[#334155]">
-                            <div className="flex gap-1.5">
-                                {COLORS.slice(0, 8).map(c => (
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#0F172A]/95 backdrop-blur px-3 py-2 rounded-xl flex items-center gap-3 shadow-lg border border-[#334155] max-w-[95%] overflow-x-auto">
+                            <div className="flex gap-1.5 flex-wrap justify-center max-w-[180px]">
+                                {COLORS.map(c => (
                                     <button
                                         key={c}
                                         onClick={() => setColor(c)}
-                                        className={`w-6 h-6 rounded-full border transition-transform hover:scale-110 ${color === c ? 'border-white scale-110' : 'border-transparent'}`}
+                                        className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 flex-shrink-0 ${color === c ? 'border-white scale-110' : 'border-transparent'}`}
                                         style={{ backgroundColor: c }}
                                     />
                                 ))}
                             </div>
                             <div className="w-px h-6 bg-[#334155]" />
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 items-center">
                                 {SIZES.map(s => (
                                     <button
                                         key={s}
                                         onClick={() => setSize(s)}
                                         className={`rounded-full bg-[#475569] flex items-center justify-center transition-all ${size === s ? 'ring-2 ring-white' : ''}`}
-                                        style={{ width: s + 8, height: s + 8 }}
+                                        style={{ width: s + 10, height: s + 10, minWidth: s + 10, minHeight: s + 10 }}
                                     >
                                         <div className="rounded-full bg-white" style={{ width: s, height: s }} />
                                     </button>
