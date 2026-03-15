@@ -600,7 +600,13 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                   <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
                   
                   <div className="w-full space-y-4 mb-8">
-                      {players.sort((a, b) => b.score - a.score).map((p, i) => (
+                      {gamePlayers
+                          .map((gp: any) => ({
+                              ...gp,
+                              name: players.find((p: any) => p.id === gp.player_id)?.name || 'Inconnu'
+                          }))
+                          .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
+                          .map((p: any, i: number) => (
                           <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
                               i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
                               i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
@@ -633,11 +639,18 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                       ))}
                   </div>
                   
-                  {isHost && (
-                      <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
-                          Retour au salon
-                      </Button>
-                  )}
+                  <div className="flex gap-4">
+                      {isHost && (
+                          <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
+                              Retour au salon
+                          </Button>
+                      )}
+                      {!isHost && (
+                          <div className="text-[#94A3B8] text-center">
+                              En attente de l'hôte...
+                          </div>
+                      )}
+                  </div>
               </div>
           )}
       </GameLayout>

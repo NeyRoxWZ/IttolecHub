@@ -174,33 +174,33 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
 
     const update = () => {
       const now = Date.now();
-      const timeElapsed = now - start;
-      const elapsedSeconds = timeElapsed / 1000;
       const remainingMs = Math.max(0, start + duration - now);
       const remaining = Math.ceil(remainingMs / 1000);
+      const timeLeft = remainingMs / 1000;
       
       setTimeLeft(remaining);
       
-      // Use elapsed time directly from Date.now() for smooth calculation
-      const progress = Math.min(1, Math.max(0, elapsedSeconds / (duration / 1000)));
+      // Use timeLeft directly for smooth calculation (same as easy mode)
+      const timeRatio = timeLeft / (duration / 1000);
       
       if (difficulty === 'easy') {
         // Progressive deblur: 20px -> 0px
-        const newBlur = 20 * (1 - progress);
+        const newBlur = 20 * timeRatio;
         setBlurLevel(newBlur);
         setPixelSize(canvasWidth);
         setTilesRevealed(0);
       } else if (difficulty === 'medium') {
         // Tile reveal: tiles disappear as time progresses (reveal logo)
         const totalTiles = rows * cols;
-        const revealed = Math.floor(progress * totalTiles);
+        const revealed = Math.floor((1 - timeRatio) * totalTiles);
         setTilesRevealed(revealed);
         setBlurLevel(0);
         setPixelSize(canvasWidth);
       } else if (difficulty === 'hard') {
-        // Exponential inverse pixelation for visual linearity
-        // blockSize = canvasWidth^ (1-progress) gives visual linear effect
-        const blockSize = Math.max(1, Math.round(Math.pow(canvasWidth, 1 - progress)));
+        // Same linear formula as easy but with blockSize
+        // blockSize = maxBlockSize * (timeLeft / totalTime)
+        const maxBlockSize = 50;
+        const blockSize = Math.max(1, Math.round(maxBlockSize * timeRatio));
         setPixelSize(blockSize);
         setBlurLevel(0);
         setTilesRevealed(0);
