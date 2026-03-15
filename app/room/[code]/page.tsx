@@ -222,10 +222,10 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
         id: 'difficulty', 
         label: 'Difficulté', 
         type: 'select', 
-        default: 'mix',
+        default: 'easy',
         options: [
-          { value: 'mix', label: 'Mix' },
           { value: 'easy', label: 'Facile' },
+          { value: 'medium', label: 'Moyen' },
           { value: 'hard', label: 'Difficile' },
         ]
       },
