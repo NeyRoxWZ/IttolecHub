@@ -189,15 +189,16 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
         setPixelSize(canvasWidth);
         setTilesRevealed(0);
       } else if (difficulty === 'medium') {
-        // Tile reveal: 0 -> 64 tiles
+        // Tile reveal: 0 -> 64 tiles (linear)
         const totalTiles = rows * cols;
         const revealed = Math.floor(timeRatio * totalTiles);
         setTilesRevealed(revealed);
         setBlurLevel(0);
         setPixelSize(canvasWidth);
       } else if (difficulty === 'hard') {
-        // Smooth pixelation: canvasWidth -> 1
-        const blockSize = Math.max(1, Math.round(canvasWidth * timeRatio));
+        // Smooth pixelation: 320 -> 1 linearly
+        // Use progress directly (0 -> 1) instead of timeRatio to ensure linear
+        const blockSize = Math.max(1, Math.round(canvasWidth * (1 - progress)));
         setPixelSize(blockSize);
         setBlurLevel(0);
         setTilesRevealed(0);
@@ -265,7 +266,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
 
   // Draw tile reveal on canvas for Moyen mode
   useEffect(() => {
-    if (difficulty !== 'medium' || !tileCanvasRef.current || !imageLoaded || tilesRevealed === 0) {
+    if (difficulty !== 'medium' || !tileCanvasRef.current || !imageLoaded) {
       return;
     }
 
@@ -290,20 +291,24 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
     const totalTiles = rows * cols;
     const tilesToHide = shuffledTilesRef.current.slice(tilesRevealed);
     
-    ctx.fillStyle = '#000000';
-    for (const tile of tilesToHide) {
-      ctx.fillRect(tile.c * tileW, tile.r * tileH, tileW + 1, tileH + 1);
+    if (tilesToHide.length > 0) {
+      ctx.fillStyle = '#000000';
+      for (const tile of tilesToHide) {
+        ctx.fillRect(tile.c * tileW, tile.r * tileH, tileW + 1, tileH + 1);
+      }
     }
   }, [tilesRevealed, difficulty, imageLoaded]);
 
-  // Load image once
+  // Load image for all modes
   const imgRef = useRef<HTMLImageElement | null>(null);
   
   useEffect(() => {
-    if (difficulty !== 'hard' || !currentLogoUrl) return;
+    if (!currentLogoUrl) return;
     
-    imgRef.current = null;
-    setImageLoaded(false);
+    // Load image for all difficulties
+    if ((difficulty === 'hard' || difficulty === 'medium') && !imageLoaded) {
+      imgRef.current = null;
+    }
     
     const img = new (window.Image || (globalThis as any).Image)();
     img.crossOrigin = 'anonymous';
