@@ -940,16 +940,16 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-[#1E293B] border-[#334155]">
-                            <h2 className="text-2xl font-bold mb-6 text-[#F8FAFC]">Partager le salon</h2>
+                            <h2 className="text-2xl font-bold mb-4 text-[#F8FAFC]">Partager le salon</h2>
                             
                             {/* Logo */}
-                            <img src="/logosite.png" alt="IttolecHub" className="h-16 w-auto mb-6" />
+                            <img src="/logosite.png" alt="IttolecHub" className="h-12 w-auto mb-4" />
                             
-                            {/* QR Code - centered */}
-                            <div className="p-4 bg-white rounded-xl shadow-lg">
+                            {/* QR Code - bigger and centered */}
+                            <div className="p-4 bg-white rounded-xl shadow-lg flex items-center justify-center">
                                 <QRCode 
                                     value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
-                                    size={220}
+                                    size={240}
                                     style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                                     viewBox={`0 0 256 256`}
                                 />
