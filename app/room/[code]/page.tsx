@@ -1258,27 +1258,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                             {/* Status Indicator - Supprimé le petit point vert */}
                         </div>
                     ))}
-                    
-                    {/* Empty slots placeholders to fill space visually */}
-                    {Array.from({ length: Math.max(0, 4 - players.length) }).map((_, i) => (
-                        <div key={`empty-${i}`} className="border-2 border-dashed border-[#334155] rounded-xl p-3 flex items-center justify-center text-[#94A3B8] text-sm h-[66px]">
-                            En attente...
-                        </div>
-                    ))}
                 </div>
-
-                {!isHost && (
-                    <div className="mt-6 pt-6 border-t border-[#334155] text-center space-y-3">
-                        <div className="inline-block p-3 rounded-full bg-[#3B82F6]/20 mb-2">
-                            <div className="animate-spin-slow">
-                                <Settings className="h-6 w-6 text-[#3B82F6]" />
-                            </div>
-                        </div>
-                        <p className="text-sm text-[#94A3B8]">
-                            En attente du lancement par <span className="text-[#F8FAFC] font-bold">{getHostName()}</span>
-                        </p>
-                    </div>
-                )}
             </div>
           </div>
 
