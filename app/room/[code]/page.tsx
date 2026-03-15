@@ -817,34 +817,34 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   if (showJoinOverlay) {
     return (
-      <div className="fixed inset-0 z-[100] bg-[#0F172A] flex items-center justify-center">
+      <div className="fixed inset-0 z-[100] bg-[#0F172A] flex items-center justify-center p-8">
           {/* Close Button */}
           <button 
               onClick={() => setShowJoinOverlay(false)}
               className="absolute top-8 right-8 text-[#94A3B8] hover:text-white transition-colors"
           >
-              <LogOut className="w-8 h-8 rotate-180" />
+              <LogOut className="w-10 h-10" />
           </button>
 
-          <div className="flex flex-col items-center justify-center gap-8 animate-in fade-in zoom-in duration-500">
-              {/* Logo */}
-              <img src="/logosite.png" alt="IttolecHub" className="h-24 md:h-32 w-auto" />
+          <div className="flex flex-col items-center justify-center gap-10 animate-in fade-in zoom-in duration-500">
+              {/* Logo - bigger */}
+              <img src="/logosite.png" alt="IttolecHub" className="h-40 md:h-48 w-auto" />
 
-              {/* QR Code - centered */}
-              <div className="relative inline-block bg-white p-4 rounded-2xl shadow-2xl">
+              {/* QR Code - bigger */}
+              <div className="relative inline-block bg-white p-6 rounded-3xl shadow-2xl">
                   <QRCode 
                       value={`${window.location.origin}/room/${params.code}?source=qrcode`}
-                      size={260}
+                      size={320}
                       fgColor="#000000"
                       bgColor="transparent"
                   />
               </div>
 
-              {/* Link with copy */}
-              <div className="w-full max-w-sm space-y-2">
-                  <p className="text-sm text-[#94A3B8] text-center">Lien de partage:</p>
-                  <div className="flex items-center gap-2 bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-3">
-                      <span className="flex-1 text-sm text-[#94A3B8] truncate font-mono">
+              {/* Link with copy - bigger */}
+              <div className="w-full max-w-md space-y-3">
+                  <p className="text-lg text-[#94A3B8] text-center">Lien de partage:</p>
+                  <div className="flex items-center gap-3 bg-[#1E293B] border border-[#334155] rounded-xl px-5 py-4">
+                      <span className="flex-1 text-base text-[#94A3B8] truncate font-mono">
                           {typeof window !== 'undefined' ? window.location.origin : ''}/room/{params.code}?source=qrcode
                       </span>
                       <button 
@@ -854,15 +854,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                           }}
                           className="text-[#3B82F6] hover:text-[#60A5FA] transition-colors"
                       >
-                          <Copy className="w-5 h-5" />
+                          <Copy className="w-6 h-6" />
                       </button>
                   </div>
               </div>
 
-              {/* Code display */}
-              <div className="flex items-center justify-center gap-3">
-                  <span className="text-sm text-[#94A3B8]">Code:</span>
-                  <span className="font-mono text-2xl font-bold tracking-widest text-[#F8FAFC]">
+              {/* Code display - bigger */}
+              <div className="flex items-center justify-center gap-4">
+                  <span className="text-xl text-[#94A3B8]">Code:</span>
+                  <span className="font-mono text-4xl font-bold tracking-widest text-[#F8FAFC]">
                       {params.code}
                   </span>
               </div>
@@ -942,11 +942,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-[#1E293B] border-[#334155]">
                             <h2 className="text-2xl font-bold mb-4 text-[#F8FAFC]">Partager le salon</h2>
                             
-                            {/* Logo */}
-                            <img src="/logosite.png" alt="IttolecHub" className="h-12 w-auto mb-4" />
-                            
                             {/* QR Code - bigger and centered */}
-                            <div className="p-4 bg-white rounded-xl shadow-lg flex items-center justify-center">
+                            <div className="p-4 bg-white rounded-xl shadow-lg flex items-center justify-center w-full max-w-[280px]">
                                 <QRCode 
                                     value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
                                     size={240}
@@ -957,7 +954,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                             
                             {/* Link with copy */}
                             <div className="mt-6 w-full space-y-3">
-                                <p className="text-sm text-[#94A3B8] text-center">Ou partagez le lien:</p>
+                                <p className="text-base text-[#94A3B8] text-center">Ou partagez le lien:</p>
                                 <div className="flex items-center gap-2 bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3">
                                     <span className="flex-1 text-sm text-[#94A3B8] truncate font-mono">
                                         {typeof window !== 'undefined' ? window.location.origin : ''}/room/{params.code}?source=qrcode
@@ -976,8 +973,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                             
                             {/* Code display */}
                             <div className="mt-4 flex items-center justify-center gap-3">
-                                <span className="text-sm text-[#94A3B8]">Code:</span>
-                                <span className="font-mono text-xl font-bold tracking-widest text-[#F8FAFC]">
+                                <span className="text-base text-[#94A3B8]">Code:</span>
+                                <span className="font-mono text-2xl font-bold tracking-widest text-[#F8FAFC]">
                                     {params.code}
                                 </span>
                             </div>
