@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Gamepad2, Play, Users, ArrowRight, X, ChevronRight, ChevronLeft } from 'lucide-react';
+import AnimatedNumber from './components/AnimatedNumber';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { toast } from 'sonner';
@@ -215,17 +216,17 @@ export default function Home() {
                                         <div className="w-full max-w-2xl rounded-xl p-4 overflow-hidden">
                                             <div className="font-bold text-[#F8FAFC] mb-2">Leaderboard</div>
                                             <div className="space-y-2 overflow-y-auto" style={{ maxHeight: '28vh' }}>
-                                                <div className="flex items-center justify-between px-2 py-1 rounded text-sm bg-transparent">
-                                                    <span className="text-white font-bold">P1</span>
-                                                    <span className="text-yellow-400 font-bold">2500</span>
+                                                <div className="flex items-center justify-between px-3 py-2 rounded-lg text-sm bg-yellow-500/20 border border-yellow-500/30">
+                                                    <span className="text-yellow-400 font-bold">P1</span>
+                                                    <AnimatedNumber value={2500} className="text-yellow-400 font-bold" />
                                                 </div>
-                                                <div className="flex items-center justify-between px-2 py-1 rounded text-sm bg-transparent">
-                                                    <span className="text-white font-bold">P2</span>
-                                                    <span className="text-[#93A3B8] font-bold">1800</span>
+                                                <div className="flex items-center justify-between px-3 py-2 rounded-lg text-sm bg-slate-500/20 border border-slate-500/30">
+                                                    <span className="text-slate-300 font-bold">P2</span>
+                                                    <AnimatedNumber value={1800} className="text-[#93A3B8] font-bold" />
                                                 </div>
-                                                <div className="flex items-center justify-between px-2 py-1 rounded text-sm bg-transparent">
-                                                    <span className="text-white font-bold">P3</span>
-                                                    <span className="text-amber-300 font-bold">1200</span>
+                                                <div className="flex items-center justify-between px-3 py-2 rounded-lg text-sm bg-amber-700/20 border border-amber-700/30">
+                                                    <span className="text-amber-400 font-bold">P3</span>
+                                                    <AnimatedNumber value={1200} className="text-amber-300 font-bold" />
                                                 </div>
                                             </div>
                                         </div>
