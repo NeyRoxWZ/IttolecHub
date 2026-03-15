@@ -174,14 +174,15 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
 
     const update = () => {
       const now = Date.now();
-      const elapsed = now - start;
+      const timeElapsed = now - start;
+      const elapsedSeconds = timeElapsed / 1000;
       const remainingMs = Math.max(0, start + duration - now);
       const remaining = Math.ceil(remainingMs / 1000);
       
       setTimeLeft(remaining);
       
-      // Use elapsed time for linear progression
-      const progress = Math.min(1, elapsed / duration); // 0 at start, 1 at end
+      // Use elapsed time directly from Date.now() for smooth calculation
+      const progress = Math.min(1, Math.max(0, elapsedSeconds / (duration / 1000)));
       
       if (difficulty === 'easy') {
         // Progressive deblur: 20px -> 0px
@@ -197,8 +198,9 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
         setBlurLevel(0);
         setPixelSize(canvasWidth);
       } else if (difficulty === 'hard') {
-        // Smooth pixelation: canvasWidth -> 1 linearly (based on elapsed time)
-        const blockSize = Math.max(1, Math.round(canvasWidth * (1 - progress)));
+        // Exponential inverse pixelation for visual linearity
+        // blockSize = canvasWidth^ (1-progress) gives visual linear effect
+        const blockSize = Math.max(1, Math.round(Math.pow(canvasWidth, 1 - progress)));
         setPixelSize(blockSize);
         setBlurLevel(0);
         setTilesRevealed(0);
