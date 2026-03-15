@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Gamepad2, Users, ArrowRight, X, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Gamepad2, Play, Users, ArrowRight, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { toast } from 'sonner';
@@ -24,6 +24,11 @@ const STEPS = [
     title: "CHOISISSEZ UN JEU",
     description: "L'hôte sélectionne parmi +10 mini-jeux (Quiz, Dessin, Bluff...).",
     icon: Gamepad2
+  },
+  {
+    title: "JOUEZ ENSEMBLE",
+    description: "Affrontez-vous en temps réel et grimpez dans le classement !",
+    icon: Play
   }
 ];
 
@@ -159,7 +164,8 @@ export default function Home() {
             </div>
 
             {/* RIGHT PANEL: HOW TO PLAY - Cartes avec fond #1E293B */}
-            <div className="bg-[#1E293B] border border-[#334155] rounded-[2.5rem] p-8 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[450px]">
+            <div className="bg-[#1E293B] border border-[#334155] rounded-[2.5rem] p-8 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[450px] relative overflow-hidden">
+                { /* decorative line removed to clean UI as requested */ }
                 
                 <h2 className="text-2xl font-bold text-center text-[#F8FAFC] uppercase tracking-widest mb-8">
                     COMMENT JOUER
@@ -199,6 +205,33 @@ export default function Home() {
                                     </div>
                                 )}
 
+                                {/* Step 3: Play - Leaderboard Animé */}
+                                {currentStep === 2 && (
+                                    <div className="relative w-full h-full flex items-center justify-center overflow-hidden p-2">
+                                        <div className="absolute inset-0 bg-[#6366F1]/10 animate-pulse-slow"></div>
+                                        
+                                
+                                        {/* Leaderboard replaces placeholder, occupying available space */}
+                                        <div className="w-full max-w-2xl bg-[#1E293B] border-2 border-[#334155] rounded-xl p-4 overflow-hidden">
+                                            <div className="font-bold text-[#F8FAFC] mb-2">Leaderboard</div>
+                                            <div className="space-y-2 overflow-y-auto" style={{ maxHeight: '28vh' }}>
+                                                <div className="flex items-center justify-between px-2 py-1 rounded bg-[#334155] bg-opacity-40 text-sm">
+                                                    <span className="text-[#F8FAFC] font-bold">P1</span>
+                                                    <span className="text-yellow-400 font-bold">2500</span>
+                                                </div>
+                                                <div className="flex items-center justify-between px-2 py-1 rounded bg-[#6366F1] bg-opacity-40 text-sm">
+                                                    <span className="text-[#F8FAFC] font-bold">P2</span>
+                                                    <span className="text-[#93A3B8] font-bold">1800</span>
+                                                </div>
+                                                <div className="flex items-center justify-between px-2 py-1 rounded bg-[#334155] bg-opacity-40 text-sm">
+                                                    <span className="text-[#F8FAFC] font-bold">P3</span>
+                                                    <span className="text-amber-300 font-bold">1200</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                             </div>
                         </div>
                         
@@ -232,41 +265,6 @@ export default function Home() {
                     <button onClick={() => setCurrentStep((prev) => (prev + 1) % STEPS.length)} className="p-2 text-[#94A3B8] hover:text-white transition-colors">
                         <ChevronRight className="w-8 h-8" />
                     </button>
-                </div>
-
-                {/* Leaderboard - Sort de la card */}
-                <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-[110%] max-w-md">
-                    <div className="bg-[#0F172A] border-2 border-[#334155] rounded-2xl p-4 shadow-[0_4px_0_0px_#020617]">
-                        <h3 className="text-lg font-bold text-[#F8FAFC] text-center mb-3 uppercase tracking-wider">Top Joueurs</h3>
-                        <div className="flex items-end justify-center gap-2 mb-3">
-                            <div className="flex flex-col items-center">
-                                <div className="w-8 h-8 bg-[#475569] rounded-full flex items-center justify-center text-[#F8FAFC] font-bold text-xs">2</div>
-                                <div className="w-10 h-8 bg-[#475569] rounded-t-lg mt-1"></div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-black font-bold text-sm">1</div>
-                                <div className="w-12 h-12 bg-yellow-500 rounded-t-lg mt-1"></div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <div className="w-8 h-8 bg-amber-600 rounded-full flex items-center justify-center text-[#F8FAFC] font-bold text-xs">3</div>
-                                <div className="w-10 h-6 bg-amber-600 rounded-t-lg mt-1"></div>
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <div className="flex items-center justify-between bg-[#3B82F6]/20 px-3 py-2 rounded-lg">
-                                <span className="text-[#F8FAFC] font-bold">NeyRox</span>
-                                <span className="text-yellow-400 font-bold">2500</span>
-                            </div>
-                            <div className="flex items-center justify-between bg-[#6366F1]/20 px-3 py-2 rounded-lg">
-                                <span className="text-[#F8FAFC] font-bold">Masso</span>
-                                <span className="text-[#94A3B8] font-bold">1800</span>
-                            </div>
-                            <div className="flex items-center justify-between bg-[#334155]/50 px-3 py-2 rounded-lg">
-                                <span className="text-[#94A3B8] font-bold">Ittolec</span>
-                                <span className="text-amber-600 font-bold">1200</span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
