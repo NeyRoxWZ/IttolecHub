@@ -89,11 +89,18 @@ export default function GameLayout({
                   <Clock className="w-4 h-4 text-[#3B82F6]" />
                   {timer}
               </div>
-              {/* Vote to Lobby button - desktop in header, mobile handled separately */}
-              {voteToLobby}
+              {/* Vote to Lobby button - desktop only in header */}
+              <div className="hidden md:block">
+                {voteToLobby}
+              </div>
             </div>
         </div>
       </header>
+
+      {/* Mobile floating vote button - rendered outside header */}
+      <div className="md:hidden">
+        {voteToLobby}
+      </div>
 
       {/* MAIN CONTENT AREA */}
       <main className={cn(
