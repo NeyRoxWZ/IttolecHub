@@ -111,10 +111,13 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   const [inputDisabled, setInputDisabled] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [currentLogoUrl, setCurrentLogoUrl] = useState<string>('');
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const pixelCanvasRef = useRef<HTMLCanvasElement>(null);
+  const loadedImageRef = useRef<HTMLImageElement | null>(null);
   
   // Difficulty effect state
   const [blurLevel, setBlurLevel] = useState(20); // For facile/moyen
-  const [pixelSize, setPixelSize] = useState(8); // For difficile
+  const [pixelSize, setPixelSize] = useState(40); // For difficile (starts at 40, goes to 1)
 
   // --- EFFECTS ---
 
@@ -125,7 +128,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
     }
   }, [lastEvent, roomCode, router]);
 
-  // Timer & Difficulty Effects
+  // Timer & Difficulty Effects with smooth RAF
   useEffect(() => {
     if (currentPhase === 'setup') {
       setBlurLevel(0);
@@ -145,43 +148,117 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
 
     const start = new Date(timerStartAt).getTime();
     const duration = timerSeconds * 1000;
-    setTotalTime(duration);
+    const maxBlockSize = 40;
 
-    const interval = setInterval(() => {
+    let animationId: number;
+
+    const update = () => {
       const now = Date.now();
       const elapsed = now - start;
-      const remaining = Math.max(0, Math.ceil((start + duration - now) / 1000));
+      const remainingMs = Math.max(0, start + duration - now);
+      const remaining = Math.ceil(remainingMs / 1000);
       
       setTimeLeft(remaining);
       
       const progress = Math.min(1, elapsed / duration);
+      const timeRatio = 1 - progress; // 1 at start, 0 at end
       
       if (difficulty === 'easy') {
         // Progressive deblur: 20px -> 0px
-        const newBlur = 20 * (1 - progress);
+        const newBlur = 20 * timeRatio;
         setBlurLevel(newBlur);
+        setPixelSize(256);
       } else if (difficulty === 'medium') {
         // Silhouette + progressive deblur
-        const newBlur = 20 * (1 - progress);
+        const newBlur = 20 * timeRatio;
         setBlurLevel(newBlur);
+        setPixelSize(256);
       } else if (difficulty === 'hard') {
-        // Progressive pixelation: 8 -> 16 -> 32 -> 64 -> 256
-        let newPixelSize: number;
-        if (progress < 0.2) newPixelSize = 8;
-        else if (progress < 0.4) newPixelSize = 16;
-        else if (progress < 0.6) newPixelSize = 32;
-        else if (progress < 0.8) newPixelSize = 64;
-        else newPixelSize = 256;
-        setPixelSize(newPixelSize);
+        // Smooth pixelation: 40 -> 1
+        const blockSize = Math.max(1, Math.round(maxBlockSize * timeRatio));
+        setPixelSize(blockSize);
+        setBlurLevel(0);
       }
       
-      if (remaining <= 0) {
-        clearInterval(interval);
+      if (remaining > 0) {
+        animationId = requestAnimationFrame(update);
       }
-    }, 50);
+    };
 
-    return () => clearInterval(interval);
+    animationId = requestAnimationFrame(update);
+
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
   }, [timerStartAt, timerSeconds, currentPhase, difficulty]);
+
+  // Draw pixelated image on canvas
+  useEffect(() => {
+    if (difficulty !== 'hard' || !currentLogoUrl || !pixelCanvasRef.current) {
+      return;
+    }
+
+    const canvas = pixelCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const img = new (window.Image || (globalThis as any).Image)();
+    img.crossOrigin = 'anonymous';
+    
+    const drawPixelated = () => {
+      if (!ctx || pixelSize >= 256 || !img.width || !img.height) return;
+      
+      const containerSize = 320;
+      canvas.width = containerSize;
+      canvas.height = containerSize;
+      
+      ctx.imageSmoothingEnabled = false;
+      
+      // Calculate pixel block size
+      const blockSize = Math.max(1, pixelSize);
+      const blocks = Math.ceil(containerSize / blockSize);
+      
+      // Clear canvas with white background
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, containerSize, containerSize);
+      
+      // Draw pixelated
+      for (let y = 0; y < blocks; y++) {
+        for (let x = 0; x < blocks; x++) {
+          const px = x * blockSize;
+          const py = y * blockSize;
+          
+          // Get color from scaled position
+          const srcX = (x * blockSize * img.width) / containerSize;
+          const srcY = (y * blockSize * img.height) / containerSize;
+          
+          ctx.drawImage(
+            img,
+            srcX, srcY, Math.max(1, img.width / blocks), Math.max(1, img.height / blocks),
+            px, py, blockSize, blockSize
+          );
+        }
+      }
+    };
+
+    img.onload = () => {
+      setImageLoaded(true);
+      drawPixelated();
+    };
+
+    img.onerror = () => {
+      setLogoError(true);
+    };
+
+    img.src = currentLogoUrl;
+
+    // Redraw when pixelSize changes
+    if (img.complete) {
+      drawPixelated();
+    }
+  }, [pixelSize, currentLogoUrl, difficulty]);
 
   // Sync Local Player State
   useEffect(() => {
@@ -459,23 +536,26 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                   <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-[#1E293B] rounded-3xl shadow-2xl flex items-center justify-center p-2 border-4 border-[#334155] overflow-hidden min-h-[16rem]">
                       {currentLogo && !logoError ? (
                           <div className="relative w-full h-full flex items-center justify-center">
-                              <img 
-                                  key={currentLogo.domain || currentRound}
-                                  src={currentLogoUrl || getLogoUrl(currentLogo.domain)} 
-                                  alt="Logo mystère" 
-                                  draggable={false}
-                                  loading="eager"
-                                  onError={() => setLogoError(true)}
-                                  className="select-none"
-                                  style={{
-                                      filter: difficulty === 'medium' ? `blur(${blurLevel}px) brightness(0)` : `blur(${blurLevel}px)`,
-                                      width: difficulty === 'hard' ? `${pixelSize}px` : '100%',
-                                      height: difficulty === 'hard' ? `${pixelSize}px` : '100%',
-                                      imageRendering: difficulty === 'hard' ? 'pixelated' : 'auto',
-                                      objectFit: 'contain',
-                                      transition: 'all 50ms linear'
-                                  }}
-                              />
+                              {difficulty === 'hard' ? (
+                                  <canvas 
+                                      ref={pixelCanvasRef}
+                                      className="w-full h-full"
+                                      style={{ imageRendering: 'pixelated' }}
+                                  />
+                              ) : (
+                                  <img 
+                                      key={currentLogo.domain || currentRound}
+                                      src={currentLogoUrl || getLogoUrl(currentLogo.domain)} 
+                                      alt="Logo mystère" 
+                                      draggable={false}
+                                      loading="eager"
+                                      onError={() => setLogoError(true)}
+                                      className="select-none w-full h-full object-contain"
+                                      style={{
+                                          filter: difficulty === 'medium' ? `blur(${blurLevel}px) brightness(0)` : `blur(${blurLevel}px)`,
+                                      }}
+                                  />
+                              )}
                           </div>
                       ) : (
                           <div 
