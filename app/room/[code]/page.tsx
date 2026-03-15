@@ -826,50 +826,45 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               <LogOut className="w-8 h-8 rotate-180" />
           </button>
 
-          <div className="flex flex-col lg:flex-row items-center justify-center gap-12 animate-in fade-in zoom-in duration-500">
-              {/* Left side - Logo */}
-              <div className="flex flex-col items-center">
-                  <img src="/logosite.png" alt="IttolecHub" className="h-32 md:h-48 w-auto" />
+          <div className="flex flex-col items-center justify-center gap-8 animate-in fade-in zoom-in duration-500">
+              {/* Logo */}
+              <img src="/logosite.png" alt="IttolecHub" className="h-24 md:h-32 w-auto" />
+
+              {/* QR Code - centered */}
+              <div className="relative inline-block bg-white p-4 rounded-2xl shadow-2xl">
+                  <QRCode 
+                      value={`${window.location.origin}/room/${params.code}?source=qrcode`}
+                      size={260}
+                      fgColor="#000000"
+                      bgColor="transparent"
+                  />
               </div>
 
-              {/* Right side - QR Code + Link */}
-              <div className="flex flex-col items-center gap-8">
-                  {/* Big QR Code */}
-                  <div className="relative inline-block bg-white p-4 rounded-2xl shadow-2xl">
-                      <QRCode 
-                          value={`${window.location.origin}/room/${params.code}?source=qrcode`}
-                          size={280}
-                          fgColor="#000000"
-                          bgColor="transparent"
-                      />
-                  </div>
-
-                  {/* Link with copy */}
-                  <div className="w-full max-w-sm space-y-2">
-                      <p className="text-sm text-[#94A3B8] text-center">Lien de partage:</p>
-                      <div className="flex items-center gap-2 bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-3">
-                          <span className="flex-1 text-sm text-[#94A3B8] truncate font-mono">
-                              {typeof window !== 'undefined' ? window.location.origin : ''}/room/{params.code}?source=qrcode
-                          </span>
-                          <button 
-                              onClick={() => {
-                                  navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`);
-                                  toast.success('Lien copié !');
-                              }}
-                              className="text-[#3B82F6] hover:text-[#60A5FA] transition-colors"
-                          >
-                              <Copy className="w-5 h-5" />
-                          </button>
-                      </div>
-                  </div>
-
-                  {/* Code display */}
-                  <div className="flex items-center justify-center gap-3">
-                      <span className="text-sm text-[#94A3B8]">Code:</span>
-                      <span className="font-mono text-2xl font-bold tracking-widest text-[#F8FAFC]">
-                          {params.code}
+              {/* Link with copy */}
+              <div className="w-full max-w-sm space-y-2">
+                  <p className="text-sm text-[#94A3B8] text-center">Lien de partage:</p>
+                  <div className="flex items-center gap-2 bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-3">
+                      <span className="flex-1 text-sm text-[#94A3B8] truncate font-mono">
+                          {typeof window !== 'undefined' ? window.location.origin : ''}/room/{params.code}?source=qrcode
                       </span>
+                      <button 
+                          onClick={() => {
+                              navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`);
+                              toast.success('Lien copié !');
+                          }}
+                          className="text-[#3B82F6] hover:text-[#60A5FA] transition-colors"
+                      >
+                          <Copy className="w-5 h-5" />
+                      </button>
                   </div>
+              </div>
+
+              {/* Code display */}
+              <div className="flex items-center justify-center gap-3">
+                  <span className="text-sm text-[#94A3B8]">Code:</span>
+                  <span className="font-mono text-2xl font-bold tracking-widest text-[#F8FAFC]">
+                      {params.code}
+                  </span>
               </div>
           </div>
       </div>
@@ -947,11 +942,14 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-[#1E293B] border-[#334155]">
                             <h2 className="text-2xl font-bold mb-6 text-[#F8FAFC]">Partager le salon</h2>
                             
-                            {/* QR Code */}
-                            <div className="p-4 bg-white rounded-xl shadow-lg aspect-square flex items-center justify-center w-64">
+                            {/* Logo */}
+                            <img src="/logosite.png" alt="IttolecHub" className="h-16 w-auto mb-6" />
+                            
+                            {/* QR Code - centered */}
+                            <div className="p-4 bg-white rounded-xl shadow-lg">
                                 <QRCode 
                                     value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
-                                    size={256}
+                                    size={220}
                                     style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                                     viewBox={`0 0 256 256`}
                                 />

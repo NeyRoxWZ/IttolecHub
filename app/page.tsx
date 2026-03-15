@@ -277,6 +277,8 @@ export default function Home() {
             <a href="#" className="hover:text-white transition-colors">Confidentialité</a>
             <span>•</span>
             <a href="#" className="hover:text-white transition-colors">Contact</a>
+            <span>•</span>
+            <a href="#" className="hover:text-white transition-colors">PatchNote</a>
         </div>
 
       </main>
