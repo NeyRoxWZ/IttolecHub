@@ -939,44 +939,46 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                 <Share2 className="w-5 h-5" />
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-[#1E293B] border-[#334155]">
-                            <h2 className="text-2xl font-bold mb-4 text-[#F8FAFC]">Partager le salon</h2>
-                            
-                            {/* QR Code - bigger and centered */}
-                            <div className="p-5 bg-white rounded-xl shadow-lg flex items-center justify-center">
-                                <QRCode 
-                                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
-                                    size={260}
-                                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                                    viewBox={`0 0 256 256`}
-                                />
-                            </div>
-                            
-                            {/* Link with copy */}
-                            <div className="mt-6 w-full space-y-3">
-                                <p className="text-base text-[#94A3B8] text-center">Ou partagez le lien:</p>
-                                <div className="flex items-center gap-2 bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3">
-                                    <span className="flex-1 text-sm text-[#94A3B8] truncate font-mono">
-                                        {typeof window !== 'undefined' ? window.location.origin : ''}/room/{params.code}?source=qrcode
-                                    </span>
-                                    <button 
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`);
-                                            toast.success('Lien copié !');
-                                        }}
-                                        className="text-[#3B82F6] hover:text-[#60A5FA] transition-colors"
-                                    >
-                                        <Copy className="w-5 h-5" />
-                                    </button>
+                        <DialogContent className="sm:max-w-md bg-[#1E293B] border-[#334155] p-8">
+                            <div className="flex flex-col items-center justify-center w-full">
+                                <h2 className="text-2xl font-bold mb-6 text-[#F8FAFC]">Partager le salon</h2>
+                                
+                                {/* QR Code - centered */}
+                                <div className="p-5 bg-white rounded-xl shadow-lg">
+                                    <QRCode 
+                                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
+                                        size={260}
+                                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                        viewBox={`0 0 256 256`}
+                                    />
                                 </div>
-                            </div>
-                            
-                            {/* Code display */}
-                            <div className="mt-4 flex items-center justify-center gap-3">
-                                <span className="text-base text-[#94A3B8]">Code:</span>
-                                <span className="font-mono text-2xl font-bold tracking-widest text-[#F8FAFC]">
-                                    {params.code}
-                                </span>
+                                
+                                {/* Link with copy */}
+                                <div className="mt-6 w-full max-w-xs space-y-3">
+                                    <p className="text-base text-[#94A3B8] text-center">Ou partagez le lien:</p>
+                                    <div className="flex items-center gap-2 bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3">
+                                        <span className="flex-1 text-sm text-[#94A3B8] truncate font-mono">
+                                            {typeof window !== 'undefined' ? window.location.origin : ''}/room/{params.code}?source=qrcode
+                                        </span>
+                                        <button 
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`);
+                                                toast.success('Lien copié !');
+                                            }}
+                                            className="text-[#3B82F6] hover:text-[#60A5FA] transition-colors"
+                                        >
+                                            <Copy className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {/* Code display */}
+                                <div className="mt-4 flex items-center justify-center gap-3">
+                                    <span className="text-base text-[#94A3B8]">Code:</span>
+                                    <span className="font-mono text-2xl font-bold tracking-widest text-[#F8FAFC]">
+                                        {params.code}
+                                    </span>
+                                </div>
                             </div>
                         </DialogContent>
                     </Dialog>
