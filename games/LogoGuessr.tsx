@@ -117,7 +117,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   
   // Difficulty effect state
   const [blurLevel, setBlurLevel] = useState(20); // For facile/moyen
-  const [pixelSize, setPixelSize] = useState(40); // For difficile (starts at 40, goes to 1)
+  const [pixelSize, setPixelSize] = useState(320); // For difficile (starts at canvasWidth, goes to 1)
 
   // --- EFFECTS ---
 
@@ -132,7 +132,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   useEffect(() => {
     if (currentPhase === 'setup') {
       setBlurLevel(0);
-      setPixelSize(256);
+      setPixelSize(320); // canvas width
       setTimeLeft(0);
       return;
     }
@@ -140,7 +140,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
     if (currentPhase !== 'playing') {
       setTimeLeft(0);
       setBlurLevel(0);
-      setPixelSize(256);
+      setPixelSize(320);
       return;
     }
 
@@ -148,7 +148,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
 
     const start = new Date(timerStartAt).getTime();
     const duration = timerSeconds * 1000;
-    const maxBlockSize = 40;
+    const canvasWidth = 320; // container size
 
     let animationId: number;
 
@@ -167,15 +167,15 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
         // Progressive deblur: 20px -> 0px
         const newBlur = 20 * timeRatio;
         setBlurLevel(newBlur);
-        setPixelSize(256);
+        setPixelSize(canvasWidth);
       } else if (difficulty === 'medium') {
         // Silhouette + progressive deblur
         const newBlur = 20 * timeRatio;
         setBlurLevel(newBlur);
-        setPixelSize(256);
+        setPixelSize(canvasWidth);
       } else if (difficulty === 'hard') {
-        // Smooth pixelation: 40 -> 1
-        const blockSize = Math.max(1, Math.round(maxBlockSize * timeRatio));
+        // Smooth pixelation: canvasWidth -> 1
+        const blockSize = Math.max(1, Math.round(canvasWidth * timeRatio));
         setPixelSize(blockSize);
         setBlurLevel(0);
       }
@@ -194,71 +194,75 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
     };
   }, [timerStartAt, timerSeconds, currentPhase, difficulty]);
 
-  // Draw pixelated image on canvas
+  // Draw pixelated image on canvas - updated on every RAF frame
   useEffect(() => {
-    if (difficulty !== 'hard' || !currentLogoUrl || !pixelCanvasRef.current) {
+    if (difficulty !== 'hard' || !currentLogoUrl || !pixelCanvasRef.current || !imageLoaded) {
       return;
     }
 
     const canvas = pixelCanvasRef.current;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx || !imgRef.current) return;
 
-    const img = new (window.Image || (globalThis as any).Image)();
-    img.crossOrigin = 'anonymous';
+    const img = imgRef.current;
+    const containerSize = 320;
     
     const drawPixelated = () => {
-      if (!ctx || pixelSize >= 256 || !img.width || !img.height) return;
+      if (!ctx || !img || !img.width || !img.height) return;
       
-      const containerSize = 320;
       canvas.width = containerSize;
       canvas.height = containerSize;
       
-      ctx.imageSmoothingEnabled = false;
-      
-      // Calculate pixel block size
+      // blockSize: starts at containerSize (1 block = whole image), goes to 1 (full res)
       const blockSize = Math.max(1, pixelSize);
-      const blocks = Math.ceil(containerSize / blockSize);
       
-      // Clear canvas with white background
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, containerSize, containerSize);
-      
-      // Draw pixelated
-      for (let y = 0; y < blocks; y++) {
-        for (let x = 0; x < blocks; x++) {
-          const px = x * blockSize;
-          const py = y * blockSize;
-          
-          // Get color from scaled position
-          const srcX = (x * blockSize * img.width) / containerSize;
-          const srcY = (y * blockSize * img.height) / containerSize;
-          
-          ctx.drawImage(
-            img,
-            srcX, srcY, Math.max(1, img.width / blocks), Math.max(1, img.height / blocks),
-            px, py, blockSize, blockSize
-          );
-        }
+      if (blockSize <= 1) {
+        // Full resolution
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(img, 0, 0, containerSize, containerSize);
+        return;
       }
+      
+      // Create offscreen canvas for pixelation
+      const offscreen = document.createElement('canvas');
+      offscreen.width = Math.max(1, Math.floor(containerSize / blockSize));
+      offscreen.height = Math.max(1, Math.floor(containerSize / blockSize));
+      const offCtx = offscreen.getContext('2d');
+      if (!offCtx) return;
+      
+      offCtx.imageSmoothingEnabled = false;
+      offCtx.drawImage(img, 0, 0, offscreen.width, offscreen.height);
+      
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(offscreen, 0, 0, containerSize, containerSize);
     };
 
+    drawPixelated();
+  }, [pixelSize, difficulty, imageLoaded]);
+
+  // Load image once
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  
+  useEffect(() => {
+    if (difficulty !== 'hard' || !currentLogoUrl) return;
+    
+    imgRef.current = null;
+    setImageLoaded(false);
+    
+    const img = new (window.Image || (globalThis as any).Image)();
+    img.crossOrigin = 'anonymous';
+    
     img.onload = () => {
+      imgRef.current = img;
       setImageLoaded(true);
-      drawPixelated();
     };
-
+    
     img.onerror = () => {
       setLogoError(true);
     };
-
+    
     img.src = currentLogoUrl;
-
-    // Redraw when pixelSize changes
-    if (img.complete) {
-      drawPixelated();
-    }
-  }, [pixelSize, currentLogoUrl, difficulty]);
+  }, [currentLogoUrl, difficulty]);
 
   // Sync Local Player State
   useEffect(() => {
@@ -279,7 +283,8 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           setInputDisabled(false);
           setLogoError(false);
           setBlurLevel(difficulty === 'easy' || difficulty === 'medium' ? 20 : 0);
-          setPixelSize(difficulty === 'hard' ? 8 : 256);
+          setPixelSize(difficulty === 'hard' ? 320 : 320);
+          setImageLoaded(false);
           if (currentLogo?.domain) {
               setCurrentLogoUrl(getLogoUrl(currentLogo.domain));
           }
