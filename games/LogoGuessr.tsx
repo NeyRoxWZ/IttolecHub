@@ -8,6 +8,20 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+const LOGO_CDNS = [
+  (slug: string) => `https://cdn.simpleicons.org/${slug}`,
+  (slug: string) => `https://logo.clearbit.com/${slug}.com`,
+  (slug: string) => `https://img.icons8.com/color/256/${slug}.png`,
+];
+
+const getLogoUrl = (slug: string): string => {
+  return LOGO_CDNS[0](slug);
+};
+
+const getFallbackUrls = (slug: string): string[] => {
+  return LOGO_CDNS.map(fn => fn(slug));
+};
+
 import { Timer, CheckCircle, XCircle, Trophy, Eye, Image as ImageIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Fuse from 'fuse.js';
@@ -62,6 +76,8 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   const [hasFound, setHasFound] = useState(false);
   const [blurAmount, setBlurAmount] = useState(20);
   const [inputDisabled, setInputDisabled] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+  const [currentLogoUrl, setCurrentLogoUrl] = useState<string>('');
 
   // --- EFFECTS ---
 
@@ -141,8 +157,12 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           setUserGuess('');
           setHasFound(false);
           setInputDisabled(false);
+          setLogoError(false);
+          if (currentLogo?.slug) {
+              setCurrentLogoUrl(getLogoUrl(currentLogo.slug));
+          }
       }
-  }, [currentLogo?.id, currentPhase]);
+  }, [currentLogo?.id, currentPhase, currentLogo?.slug]);
 
   // Matching Logic (Strict Levenshtein)
   const checkAnswer = async (guess: string) => {
@@ -399,19 +419,33 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                       {currentLogo && (
                           <img 
                               key={currentLogo.slug || currentRound}
-                              src={`https://cdn.simpleicons.org/${currentLogo.slug}`} 
+                              src={currentLogoUrl || getLogoUrl(currentLogo.slug)} 
                               alt="Logo mystère" 
                               draggable={false}
                               loading="eager"
                               width={320}
                               height={320}
                               onContextMenu={(e) => e.preventDefault()}
-                              className={`w-full h-full object-contain select-none ${blurAmount >= 20 ? '' : 'transition-all duration-1000 ease-linear'}`}
+                              onError={(e) => {
+                                  const fallbackUrls = getFallbackUrls(currentLogo.slug);
+                                  const currentIndex = fallbackUrls.indexOf(currentLogoUrl);
+                                  if (currentIndex < fallbackUrls.length - 1) {
+                                      setCurrentLogoUrl(fallbackUrls[currentIndex + 1]);
+                                  } else {
+                                      setLogoError(true);
+                                  }
+                              }}
+                              className={`w-full h-full object-contain select-none ${blurAmount >= 20 ? '' : 'transition-all duration-1000 ease-linear'} ${logoError ? 'opacity-0' : ''}`}
                               style={{ 
                                   filter: `blur(${blurAmount}px) brightness(0) grayscale(100%)`,
                                   opacity: 1
                               }}
                           />
+                      )}
+                      {logoError && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-[#1E293B]">
+                              <span className="text-[#94A3B8] text-sm text-center">Logo non disponible</span>
+                          </div>
                       )}
                       
                       {/* Difficulty Badge */}
@@ -462,9 +496,20 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
               <div className="flex flex-col items-center justify-center h-full w-full space-y-8 animate-in zoom-in">
                   <div className="w-48 h-48 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-6 border-4 border-green-500">
                       <img 
-                          src={`https://cdn.simpleicons.org/${currentLogo?.slug}`} 
+                          src={currentLogoUrl || (currentLogo ? getLogoUrl(currentLogo.slug) : '')} 
                           alt="Logo" 
                           className="w-full h-full object-contain"
+                          onError={(e) => {
+                              if (!logoError) {
+                                  const fallbackUrls = currentLogo ? getFallbackUrls(currentLogo.slug) : [];
+                                  const currentIndex = fallbackUrls.indexOf(currentLogoUrl);
+                                  if (currentIndex < fallbackUrls.length - 1) {
+                                      setCurrentLogoUrl(fallbackUrls[currentIndex + 1]);
+                                  } else {
+                                      setLogoError(true);
+                                  }
+                              }
+                          }}
                       />
                   </div>
                   
