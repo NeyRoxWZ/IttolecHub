@@ -211,8 +211,8 @@ export default function Home() {
                                         <div className="absolute inset-0 bg-[#6366F1]/10 animate-pulse-slow"></div>
                                         
                                 
-                                        {/* Leaderboard replaces placeholder, occupying available space */}
-                                        <div className="w-full max-w-2xl bg-[#1E293B] border-2 border-[#334155] rounded-xl p-4 overflow-hidden">
+                                        {/* Leaderboard replaces placeholder, occupying available space (no background) */}
+                                        <div className="w-full max-w-2xl border-2 border-[#334155] rounded-xl p-4 overflow-hidden">
                                             <div className="font-bold text-[#F8FAFC] mb-2">Leaderboard</div>
                                             <div className="space-y-2 overflow-y-auto" style={{ maxHeight: '28vh' }}>
                                                 <div className="flex items-center justify-between px-2 py-1 rounded bg-[#334155] bg-opacity-40 text-sm">
