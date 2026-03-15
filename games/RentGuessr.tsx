@@ -259,6 +259,19 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
       }
   };
 
+  // Force transition to podium after round_results (fallback)
+  useEffect(() => {
+    if (!isHost || currentPhase !== 'round_results') return;
+    
+    const timeout = setTimeout(async () => {
+      if (currentRound >= totalRounds) {
+        await supabase.from('rent_games').update({ phase: 'podium' }).eq('room_id', roomId);
+      }
+    }, 8000);
+    
+    return () => clearTimeout(timeout);
+  }, [isHost, currentPhase, currentRound, totalRounds, roomId]);
+
   // Monitor Game State (Host)
   useEffect(() => {
       if (!isHost || currentPhase !== 'playing' || !timerStartAt) return;
@@ -603,48 +616,39 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                       {gamePlayers
                           .map((gp: any) => ({
                               ...gp,
-                              playerName: players.find((p: any) => p.id === gp.player_id)?.name || 'Inconnu'
+                              name: players.find((p: any) => p.id === gp.player_id)?.name || 'Inconnu'
                           }))
                           .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
                           .map((p: any, i: number) => (
-                      <div key={p.player_id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
-                          i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                          i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
-                          i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
-                      }`}>
-                          {/* Badges */}
-                          {i === 0 && (
-                              <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform rotate-12">
-                                  Expert Immobilier
-                              </div>
-                          )}
-                          {i === 1 && (
-                              <div className="absolute -top-3 -right-3 bg-slate-400 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg">
-                                  Pro
-                              </div>
-                          )}
-                          {i === 2 && (
-                              <div className="absolute -top-3 -right-3 bg-amber-700 text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg">
-                                  Amateur
-                              </div>
-                          )}
-                          
-                          <div className="flex items-center gap-4">
-                              <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
-                                  i === 0 ? 'bg-yellow-500 text-black' : 
-                                  i === 1 ? 'bg-slate-400 text-slate-900' :
-                                  i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
-                              }`}>{i + 1}</span>
+                          <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
+                              i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
+                              i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
+                              i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
+                          }`}>
+                              {/* Badges */}
+                              {i === 0 && (
+                                  <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform rotate-12">
+                                      Expert Immobilier
+                                  </div>
+                              )}
                               
-                              <div className="flex flex-col">
-                                  <span className="text-xl font-bold text-[#F8FAFC]">{p.playerName}</span>
-                                  <span className="text-xs text-slate-400 font-medium">
-                                      {i === 0 ? '🤑 Le Juste Prix' : i === 1 ? '📈 Expert' : '📉 Participant'}
-                                  </span>
+                              <div className="flex items-center gap-4">
+                                  <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
+                                      i === 0 ? 'bg-yellow-500 text-black' : 
+                                      i === 1 ? 'bg-slate-400 text-slate-900' :
+                                      i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
+                                  }`}>{i + 1}</span>
+                                  
+                                  <div className="flex flex-col">
+                                      <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
+                                      {/* Fake Stat for Demo */}
+                                      <span className="text-xs text-slate-400 font-medium">
+                                          {i === 0 ? '🤑 Le Juste Prix' : '📉 Négociateur'}
+                                      </span>
+                                  </div>
                               </div>
+                              <span className="text-3xl font-mono font-black text-indigo-400">{p.score}</span>
                           </div>
-                          <span className="text-3xl font-mono font-black text-indigo-400">{p.score || 0}</span>
-                      </div>
                       ))}
                   </div>
                   
@@ -655,9 +659,9 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                           </Button>
                       )}
                       {!isHost && (
-                          <div className="text-[#94A3B8] text-center">
-                              En attente de l'hôte...
-                          </div>
+                          <Button onClick={() => router.push(`/room/${roomCode}`)} size="lg" variant="outline" className="border-[#334155] text-[#F8FAFC]">
+                              Quitter la partie
+                          </Button>
                       )}
                   </div>
               </div>
