@@ -1,31 +1,65 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-const LOGO_CDNS = [
-  (slug: string) => `https://cdn.simpleicons.org/${slug}`,
-  (slug: string) => `https://logo.clearbit.com/${slug}.com`,
-  (slug: string) => `https://img.icons8.com/color/256/${slug}.png`,
-];
-
-const getLogoUrl = (slug: string): string => {
-  return LOGO_CDNS[0](slug);
-};
-
-const getFallbackUrls = (slug: string): string[] => {
-  return LOGO_CDNS.map(fn => fn(slug));
-};
-
-import { Timer, CheckCircle, XCircle, Trophy, Eye, Image as ImageIcon } from 'lucide-react';
+import { CheckCircle, Trophy, Send, Loader2, Image } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import Fuse from 'fuse.js';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+
+const BRANDFETCH_CLIENT_ID = '1idE9skP3OyDrucd4OC';
+
+const getLogoUrl = (domain: string): string => {
+  return `https://cdn.brandfetch.io/${domain}/w/400/h/400?c=${BRANDFETCH_CLIENT_ID}`;
+};
+
+const getInitials = (name: string): string => {
+  return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+};
+
+const getPlaceholderColor = (domain: string): string => {
+  let hash = 0;
+  for (let i = 0; i < domain.length; i++) {
+    hash = domain.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colors = ['#EF4444', '#F97316', '#EAB308', '#22C55E', '#14B8A6', '#3B82F6', '#8B5CF6', '#EC4899', '#6366F1'];
+  return colors[Math.abs(hash) % colors.length];
+};
+
+function levenshteinDistance(a: string, b: string): number {
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) { matrix[i] = [i]; }
+  for (let j = 0; j <= a.length; j++) { matrix[0][j] = j; }
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+function normalizeString(str: string): string {
+  return str.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[-'_\s]/g, '')
+    .trim();
+}
+
+function getLevenshteinThreshold(nameLength: number): number {
+  if (nameLength <= 3) return 0;
+  if (nameLength <= 6) return 1;
+  if (nameLength <= 10) return 2;
+  return 3;
+}
 
 interface LogoGuessrProps {
   roomCode: string;
@@ -59,8 +93,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   const settings = gameState?.settings || {};
   const totalRounds = Number(settings.rounds || 5);
   const timerSeconds = Number(settings.time || 15);
-  const category = settings.category || 'all';
-  const difficulty = settings.difficulty || 'mix';
+  const difficulty = settings.difficulty || 'easy';
 
   // Players Map for GameLayout
   const playersMap = useMemo(() => {
@@ -72,12 +105,16 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
 
   // Local State
   const [timeLeft, setTimeLeft] = useState(0);
+  const [totalTime, setTotalTime] = useState(0);
   const [userGuess, setUserGuess] = useState('');
   const [hasFound, setHasFound] = useState(false);
-  const [blurAmount, setBlurAmount] = useState(20);
   const [inputDisabled, setInputDisabled] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [currentLogoUrl, setCurrentLogoUrl] = useState<string>('');
+  
+  // Difficulty effect state
+  const [blurLevel, setBlurLevel] = useState(20); // For facile/moyen
+  const [pixelSize, setPixelSize] = useState(8); // For difficile
 
   // --- EFFECTS ---
 
@@ -88,57 +125,63 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
     }
   }, [lastEvent, roomCode, router]);
 
-  // Timer & Blur Logic
+  // Timer & Difficulty Effects
   useEffect(() => {
-    // Initial blur for setup/playing
-    if (currentPhase === 'playing') {
-        // Ensure blur starts high
-        if (timeLeft > timerSeconds * 0.66) {
-            setBlurAmount(20);
-        }
-    } else if (currentPhase === 'setup') {
-        setBlurAmount(0);
-    } else {
-        setBlurAmount(0);
+    if (currentPhase === 'setup') {
+      setBlurLevel(0);
+      setPixelSize(256);
+      setTimeLeft(0);
+      return;
     }
 
-    if (!timerStartAt || currentPhase !== 'playing') {
-        if (currentPhase !== 'playing') {
-            setTimeLeft(0);
-            setBlurAmount(0); // Reveal on results
-        }
-        return;
+    if (currentPhase !== 'playing') {
+      setTimeLeft(0);
+      setBlurLevel(0);
+      setPixelSize(256);
+      return;
     }
+
+    if (!timerStartAt) return;
 
     const start = new Date(timerStartAt).getTime();
     const duration = timerSeconds * 1000;
-    
-    // Calculate steps based on duration
-    const stepDuration = duration / 3;
+    setTotalTime(duration);
 
     const interval = setInterval(() => {
-        const now = Date.now();
-        const elapsed = (now - start);
-        const remaining = Math.max(0, Math.ceil((start + duration - now) / 1000));
-        
-        setTimeLeft(remaining);
-        
-        // Progressive Blur Logic
-        if (elapsed < stepDuration) {
-            setBlurAmount(20);
-        } else if (elapsed < stepDuration * 2) {
-            setBlurAmount(8);
-        } else {
-            setBlurAmount(0);
-        }
-        
-        if (remaining <= 0) {
-            clearInterval(interval);
-        }
-    }, 100);
+      const now = Date.now();
+      const elapsed = now - start;
+      const remaining = Math.max(0, Math.ceil((start + duration - now) / 1000));
+      
+      setTimeLeft(remaining);
+      
+      const progress = Math.min(1, elapsed / duration);
+      
+      if (difficulty === 'easy') {
+        // Progressive deblur: 20px -> 0px
+        const newBlur = 20 * (1 - progress);
+        setBlurLevel(newBlur);
+      } else if (difficulty === 'medium') {
+        // Silhouette + progressive deblur
+        const newBlur = 20 * (1 - progress);
+        setBlurLevel(newBlur);
+      } else if (difficulty === 'hard') {
+        // Progressive pixelation: 8 -> 16 -> 32 -> 64 -> 256
+        let newPixelSize: number;
+        if (progress < 0.2) newPixelSize = 8;
+        else if (progress < 0.4) newPixelSize = 16;
+        else if (progress < 0.6) newPixelSize = 32;
+        else if (progress < 0.8) newPixelSize = 64;
+        else newPixelSize = 256;
+        setPixelSize(newPixelSize);
+      }
+      
+      if (remaining <= 0) {
+        clearInterval(interval);
+      }
+    }, 50);
 
     return () => clearInterval(interval);
-  }, [timerStartAt, timerSeconds, currentPhase]);
+  }, [timerStartAt, timerSeconds, currentPhase, difficulty]);
 
   // Sync Local Player State
   useEffect(() => {
@@ -158,32 +201,39 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           setHasFound(false);
           setInputDisabled(false);
           setLogoError(false);
-          if (currentLogo?.slug) {
-              setCurrentLogoUrl(getLogoUrl(currentLogo.slug));
+          setBlurLevel(difficulty === 'easy' || difficulty === 'medium' ? 20 : 0);
+          setPixelSize(difficulty === 'hard' ? 8 : 256);
+          if (currentLogo?.domain) {
+              setCurrentLogoUrl(getLogoUrl(currentLogo.domain));
           }
       }
-  }, [currentLogo?.id, currentPhase, currentLogo?.slug]);
+  }, [currentLogo?.id, currentPhase, currentLogo?.domain, difficulty]);
 
-  // Matching Logic (Strict Levenshtein)
-  const checkAnswer = async (guess: string) => {
+  // Submit guess on button click or Enter
+  const handleSubmitGuess = async () => {
       if (!currentLogo || hasFound || !roomId || !playerId) return;
+      if (!userGuess.trim()) return;
       
-      const targetName = currentLogo.name.toLowerCase().trim();
-      const userGuessNormalized = guess.toLowerCase().trim();
+      const targetName = currentLogo.name;
+      const guess = userGuess.trim();
       
-      // 1. Strict Exact Match
-      if (userGuessNormalized === targetName) {
-          handleCorrectAnswer(guess);
+      const targetNorm = normalizeString(targetName);
+      const guessNorm = normalizeString(guess);
+      
+      // Exact match
+      if (targetNorm === guessNorm) {
+          await handleCorrectAnswer(guess);
           return;
       }
-
-      // 2. Levenshtein Distance for typos
-      // Allow max 1 error for short words (<5 chars), 2 for longer
-      const maxDistance = targetName.length < 5 ? 1 : 2;
-      const distance = levenshteinDistance(userGuessNormalized, targetName);
       
-      if (distance <= maxDistance) {
-          handleCorrectAnswer(guess);
+      // Levenshtein with threshold based on name length
+      const threshold = getLevenshteinThreshold(targetName.length);
+      const distance = levenshteinDistance(guessNorm, targetNorm);
+      
+      if (distance <= threshold) {
+          await handleCorrectAnswer(guess);
+      } else {
+          vibrate(HAPTIC.ERROR);
       }
   };
 
@@ -213,22 +263,13 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
       toast.success("Correct !");
       
       const now = Date.now();
-      const start = new Date(timerStartAt).getTime();
-      const timeTaken = now - start;
+      const start = timerStartAt ? new Date(timerStartAt).getTime() : now;
+      const timeTaken = Math.max(0, now - start);
       const duration = timerSeconds * 1000;
-      const stepDuration = duration / 3;
       
-      // Calculate Score
-      let points = 0;
-      if (timeTaken < stepDuration) points = 1000;      // Step 1
-      else if (timeTaken < stepDuration * 2) points = 600; // Step 2
-      else points = 200;                      // Step 3
-      
-      // Bonus: +100 if found within first 2s of the step
-      const currentStepStart = Math.floor(timeTaken / stepDuration) * stepDuration;
-      if (timeTaken - currentStepStart < 2000) {
-          points += 100;
-      }
+      // Linear progressive scoring: 1000 -> 100
+      const progress = Math.min(1, timeTaken / duration);
+      const points = Math.max(100, Math.round(1000 - (900 * progress)));
       
       // Update DB
       const myPlayer = players.find(p => p.id === playerId);
@@ -382,7 +423,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           {currentPhase === 'setup' && (
               <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500">
                   <div className="relative">
-                      <ImageIcon className="w-24 h-24 text-orange-400" />
+                      <Image className="w-24 h-24 text-orange-400" />
                   </div>
                   
                   <div className="text-center space-y-4 max-w-lg">
@@ -390,7 +431,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                           Logo <span className="text-orange-400">Guessr</span>
                       </h2>
                       <p className="text-[#94A3B8] text-lg">
-                          Les logos apparaîtront floutés puis deviendront nets. Soyez le plus rapide à deviner la marque !
+                          Les logos apparaîtront progressivement. Soyez le plus rapide à deviner la marque !
                       </p>
                   </div>
                   
@@ -404,7 +445,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                       </Button>
                   ) : (
                       <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full border border-[#475569]">
-                          <Timer className="w-5 h-5 animate-spin text-orange-400" />
+                          <Loader2 className="w-5 h-5 animate-spin text-orange-400" />
                           <span className="text-[#F8FAFC] font-medium">En attente de l'hôte...</span>
                       </div>
                   )}
@@ -415,72 +456,71 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           {currentPhase === 'playing' && (
               <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto space-y-8">
                   {/* Logo Display */}
-                  <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-[#1E293B] rounded-3xl shadow-2xl flex items-center justify-center p-8 border-4 border-[#334155] overflow-hidden min-h-[16rem]">
-                      {currentLogo && (
-                          <img 
-                              key={currentLogo.slug || currentRound}
-                              src={currentLogoUrl || getLogoUrl(currentLogo.slug)} 
-                              alt="Logo mystère" 
-                              draggable={false}
-                              loading="eager"
-                              width={320}
-                              height={320}
-                              onContextMenu={(e) => e.preventDefault()}
-                              onError={(e) => {
-                                  const fallbackUrls = getFallbackUrls(currentLogo.slug);
-                                  const currentIndex = fallbackUrls.indexOf(currentLogoUrl);
-                                  if (currentIndex < fallbackUrls.length - 1) {
-                                      setCurrentLogoUrl(fallbackUrls[currentIndex + 1]);
-                                  } else {
-                                      setLogoError(true);
-                                  }
-                              }}
-                              className={`w-full h-full object-contain select-none ${blurAmount >= 20 ? '' : 'transition-all duration-1000 ease-linear'} ${logoError ? 'opacity-0' : ''}`}
-                              style={{ 
-                                  filter: `blur(${blurAmount}px) brightness(0) grayscale(100%)`,
-                                  opacity: 1
-                              }}
-                          />
-                      )}
-                      {logoError && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-[#1E293B]">
-                              <span className="text-[#94A3B8] text-sm text-center">Logo non disponible</span>
+                  <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-[#1E293B] rounded-3xl shadow-2xl flex items-center justify-center p-2 border-4 border-[#334155] overflow-hidden min-h-[16rem]">
+                      {currentLogo && !logoError ? (
+                          <div className="relative w-full h-full flex items-center justify-center">
+                              <img 
+                                  key={currentLogo.domain || currentRound}
+                                  src={currentLogoUrl || getLogoUrl(currentLogo.domain)} 
+                                  alt="Logo mystère" 
+                                  draggable={false}
+                                  loading="eager"
+                                  onError={() => setLogoError(true)}
+                                  className="select-none"
+                                  style={{
+                                      filter: difficulty === 'medium' ? `blur(${blurLevel}px) brightness(0)` : `blur(${blurLevel}px)`,
+                                      width: difficulty === 'hard' ? `${pixelSize}px` : '100%',
+                                      height: difficulty === 'hard' ? `${pixelSize}px` : '100%',
+                                      imageRendering: difficulty === 'hard' ? 'pixelated' : 'auto',
+                                      objectFit: 'contain',
+                                      transition: 'all 50ms linear'
+                                  }}
+                              />
+                          </div>
+                      ) : (
+                          <div 
+                              className="w-32 h-32 rounded-2xl flex items-center justify-center"
+                              style={{ backgroundColor: currentLogo ? getPlaceholderColor(currentLogo.domain) : '#334155' }}
+                          >
+                              <span className="text-4xl font-black text-white">
+                                  {currentLogo ? getInitials(currentLogo.name) : '?'}
+                              </span>
                           </div>
                       )}
                       
                       {/* Difficulty Badge */}
                       <div className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500 uppercase tracking-wider">
-                          {currentLogo?.difficulty}
+                          {difficulty === 'easy' ? 'Facile' : difficulty === 'medium' ? 'Moyen' : 'Difficile'}
                       </div>
                   </div>
 
                   {/* Input Area */}
                   <div className="w-full space-y-4">
-                      <div className="relative">
+                      <form onSubmit={(e) => { e.preventDefault(); handleSubmitGuess(); }} className="flex gap-2">
                           <Input
                               type="text"
                               value={userGuess}
-                              onChange={(e) => {
-                                  setUserGuess(e.target.value);
-                                  checkAnswer(e.target.value);
-                              }}
+                              onChange={(e) => setUserGuess(e.target.value)}
                               disabled={inputDisabled}
                               placeholder={hasFound ? "Bravo ! Vous avez trouvé." : "Tapez le nom de la marque..."}
                               className={`h-16 text-2xl font-bold text-center rounded-2xl border-2 transition-all ${
                                   hasFound 
                                   ? 'bg-green-100 border-green-500 text-green-700 placeholder:text-green-600' 
-                                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20'
+                                  : 'bg-[#334155] border-[#475569] text-[#F8FAFC] placeholder:text-[#94A3B8]'
                               }`}
                               autoFocus
                           />
-                          {hasFound && (
-                              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-green-600 animate-in zoom-in">
-                                  <CheckCircle className="w-8 h-8" />
-                              </div>
-                          )}
-                      </div>
+                          <Button 
+                              type="submit" 
+                              disabled={inputDisabled || !userGuess.trim()}
+                              className="h-16 px-6"
+                              variant={hasFound ? "secondary" : "primary"}
+                          >
+                              <Send className="w-6 h-6" />
+                          </Button>
+                      </form>
                       
-                      <div className="text-center text-sm text-slate-400">
+                      <div className="text-center text-sm text-[#94A3B8]">
                           {hasFound ? (
                               <span className="text-green-500 font-bold">Marque trouvée !</span>
                           ) : (
@@ -494,35 +534,35 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           {/* Round Results Phase */}
           {currentPhase === 'round_results' && (
               <div className="flex flex-col items-center justify-center h-full w-full space-y-8 animate-in zoom-in">
-                  <div className="w-48 h-48 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-6 border-4 border-green-500">
-                      <img 
-                          src={currentLogoUrl || (currentLogo ? getLogoUrl(currentLogo.slug) : '')} 
-                          alt="Logo" 
-                          className="w-full h-full object-contain"
-                          onError={(e) => {
-                              if (!logoError) {
-                                  const fallbackUrls = currentLogo ? getFallbackUrls(currentLogo.slug) : [];
-                                  const currentIndex = fallbackUrls.indexOf(currentLogoUrl);
-                                  if (currentIndex < fallbackUrls.length - 1) {
-                                      setCurrentLogoUrl(fallbackUrls[currentIndex + 1]);
-                                  } else {
-                                      setLogoError(true);
-                                  }
-                              }
-                          }}
-                      />
+                  <div className="w-48 h-48 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-2 border-4 border-green-500 overflow-hidden">
+                      {currentLogo && !logoError ? (
+                          <img 
+                              src={currentLogoUrl || getLogoUrl(currentLogo.domain)} 
+                              alt="Logo" 
+                              className="w-full h-full object-contain"
+                              onError={() => setLogoError(true)}
+                          />
+                      ) : (
+                          <div 
+                              className="w-32 h-32 rounded-2xl flex items-center justify-center"
+                              style={{ backgroundColor: currentLogo ? getPlaceholderColor(currentLogo.domain) : '#334155' }}
+                          >
+                              <span className="text-4xl font-black text-white">
+                                  {currentLogo ? getInitials(currentLogo.name) : '?'}
+                              </span>
+                          </div>
+                      )}
                   </div>
                   
                   <div className="text-center space-y-2">
-                      <h2 className="text-4xl font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                      <h2 className="text-4xl font-black text-[#F8FAFC] uppercase tracking-wider">
                           {currentLogo?.name}
                       </h2>
-                      <p className="text-slate-500 font-medium">{currentLogo?.sector}</p>
                   </div>
 
                   {/* Winners List */}
                   <div className="w-full max-w-md space-y-2">
-                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 text-center">Joueurs ayant trouvé</h3>
+                      <h3 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-4 text-center">Joueurs ayant trouvé</h3>
                       {gamePlayers
                           .filter((p: any) => p.has_found)
                           .sort((a: any, b: any) => a.find_time_ms - b.find_time_ms)
@@ -532,7 +572,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                                   <div key={p.player_id} className="flex items-center justify-between bg-green-900/20 p-3 rounded-xl border border-green-800">
                                       <div className="flex items-center gap-3">
                                           <div className="font-bold text-green-400">#{index + 1}</div>
-                                          <div className="font-bold text-slate-100">{playerInfo?.name}</div>
+                                          <div className="font-bold text-[#F8FAFC]">{playerInfo?.name}</div>
                                       </div>
                                       <div className="text-sm font-mono text-green-400">
                                           {(p.find_time_ms / 1000).toFixed(2)}s
