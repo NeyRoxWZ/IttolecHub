@@ -27,7 +27,6 @@ interface Reaction {
 export default function ReactionButton({ roomId }: { roomId: string }) {
   const [floatingReactions, setFloatingReactions] = useState<Reaction[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
     if (!roomId) return;
@@ -43,14 +42,6 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
     };
   }, [roomId]);
 
-  // Cooldown timer effect
-  useEffect(() => {
-    if (cooldown > 0) {
-        const timer = setTimeout(() => setCooldown(c => Math.max(0, c - 0.5)), 500);
-        return () => clearTimeout(timer);
-    }
-  }, [cooldown]);
-
   const addFloatingReaction = (emoji: string) => {
     const id = Math.random().toString(36).substr(2, 9);
     // Random position horizontally (10% to 90%)
@@ -65,10 +56,7 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
   };
 
   const sendReaction = async (emoji: string) => {
-    if (cooldown > 0) return;
-    
     setIsOpen(false); // Close popover immediately
-    setCooldown(3); // 3 seconds cooldown
 
     // Optimistic local show
     addFloatingReaction(emoji);
@@ -106,18 +94,9 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
           <Button 
             variant="outline" 
             size="icon" 
-            disabled={cooldown > 0}
-            className={`rounded-full w-12 h-12 backdrop-blur-md shadow-lg transition-all ${
-                cooldown > 0 
-                ? 'bg-[#334155]/50 border-[#475569] text-[#94A3B8] cursor-not-allowed' 
-                : 'bg-[#1E293B]/80 border-[#334155] text-[#F8FAFC] hover:bg-[#334155]'
-            }`}
+            className="rounded-full w-12 h-12 backdrop-blur-md shadow-lg transition-all bg-[#1E293B]/80 border-[#334155] text-[#F8FAFC] hover:bg-[#334155]"
           >
-            {cooldown > 0 ? (
-                <span className="text-xs font-bold">{Math.ceil(cooldown)}s</span>
-            ) : (
-                <Smile className="w-6 h-6" />
-            )}
+            <Smile className="w-6 h-6" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-2 bg-[#1E293B] border-[#334155] rounded-2xl" side="top" align="center">
