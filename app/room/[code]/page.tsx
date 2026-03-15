@@ -261,6 +261,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [showJoinOverlay, setShowJoinOverlay] = useState(false); // Overlay QR Code
   const [showPseudoModal, setShowPseudoModal] = useState(false);
   const [pseudoInput, setPseudoInput] = useState('');
+  const [tempName, setTempName] = useState('');
   
   // Refs for interval access
   const playersRef = useRef(players);
@@ -735,6 +736,45 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleJoinWithName = async () => {
+    if (!tempName.trim() || !roomId) return;
+    
+    const { data: existingPlayer } = await supabase
+      .from('players')
+      .select('id, name')
+      .eq('room_id', roomId)
+      .eq('name', tempName.trim())
+      .maybeSingle();
+
+    if (existingPlayer) {
+      toast.error('Ce pseudo est déjà utilisé dans cette salle');
+      return;
+    }
+
+    const { data: newPlayer, error } = await supabase
+      .from('players')
+      .insert({
+        room_id: roomId,
+        name: tempName.trim(),
+        is_host: false,
+        score: 0
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast.error('Erreur lors de la rejointée');
+      return;
+    }
+
+    sessionStorage.setItem('playerName', tempName.trim());
+    sessionStorage.setItem('playerId', newPlayer.id);
+    sessionStorage.setItem('isHost', 'false');
+    setPlayerName(tempName.trim());
+    setTempName('');
+    toast.success('Tu as rejoint la partie !');
+  };
+
   const leaveRoom = async () => {
     // Supprimer le joueur de la DB
     if (roomId && playerName) {
@@ -940,6 +980,32 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     </DialogContent>
                     </Dialog>
                 )}
+
+                {/* Join with Nickname Dialog */}
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="ghost" className="h-12 w-12 p-0 rounded-xl text-[#94A3B8] hover:text-white bg-[#1E293B] border border-[#334155] hover:bg-[#334155] transition-all">
+                            <LogOut className="w-5 h-5 rotate-180" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8 bg-[#1E293B] border-[#334155]">
+                        <h2 className="text-2xl font-bold mb-6 text-[#F8FAFC]">Rejoindre la partie</h2>
+                        <Input 
+                            placeholder="Ton Pseudo" 
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            className="h-14 text-xl text-center font-bold rounded-2xl mb-6 bg-[#0F172A] border-[#334155]"
+                            onKeyDown={(e) => e.key === 'Enter' && handleJoinWithName()}
+                        />
+                        <Button 
+                            onClick={handleJoinWithName}
+                            disabled={!tempName.trim()}
+                            className="w-full h-14 text-xl font-bold rounded-2xl bg-[#3B82F6] hover:bg-[#2563EB]"
+                        >
+                            Rejoindre
+                        </Button>
+                    </DialogContent>
+                </Dialog>
 
                 <div 
                     className="h-12 flex items-center gap-3 bg-[#1E293B] border border-[#334155] px-5 rounded-xl cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all group"
