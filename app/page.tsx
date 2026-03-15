@@ -87,7 +87,8 @@ export default function Home() {
           <img 
             src="/logo.png" 
             alt="IttolecHub" 
-            className="h-40 md:h-56 w-auto mx-auto drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]"
+            className="h-40 md:h-56 w-auto mx-auto drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] logo-flottant"
+            style={{ animation: 'float 4s ease-in-out infinite' }}
           />
         </div>
 
