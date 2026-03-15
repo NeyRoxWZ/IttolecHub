@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Gamepad2, Play, Users, ArrowRight, X, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Gamepad2, Users, ArrowRight, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { toast } from 'sonner';
@@ -24,11 +24,6 @@ const STEPS = [
     title: "CHOISISSEZ UN JEU",
     description: "L'hôte sélectionne parmi +10 mini-jeux (Quiz, Dessin, Bluff...).",
     icon: Gamepad2
-  },
-  {
-    title: "JOUEZ ENSEMBLE",
-    description: "Affrontez-vous en temps réel et grimpez dans le classement !",
-    icon: Play
   }
 ];
 
@@ -163,53 +158,111 @@ export default function Home() {
                 </Button>
             </div>
 
-            {/* RIGHT PANEL: LEADERBOARD */}
+            {/* RIGHT PANEL: HOW TO PLAY - Cartes avec fond #1E293B */}
             <div className="bg-[#1E293B] border border-[#334155] rounded-[2.5rem] p-8 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[450px]">
                 
                 <h2 className="text-2xl font-bold text-center text-[#F8FAFC] uppercase tracking-widest mb-8">
-                    TOP JOUEURS
+                    COMMENT JOUER
                 </h2>
 
-                <div className="flex-1 flex flex-col items-center justify-center">
-                    <div className="w-full max-w-sm bg-[#0F172A] border-4 border-[#334155] rounded-3xl p-6">
-                        
-                        {/* Podium */}
-                        <div className="flex items-end justify-center gap-4 mb-8">
-                            <div className="flex flex-col items-center">
-                                <div className="w-12 h-12 bg-[#475569] rounded-full flex items-center justify-center text-[#F8FAFC] font-bold text-lg mb-2">2</div>
-                                <div className="w-16 h-14 bg-[#475569] rounded-t-xl"></div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <div className="w-14 h-14 bg-yellow-500 rounded-full flex items-center justify-center text-black font-bold text-xl mb-2 animate-pulse">1</div>
-                                <div className="w-20 h-20 bg-yellow-500 rounded-t-xl"></div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <div className="w-12 h-12 bg-amber-600 rounded-full flex items-center justify-center text-[#F8FAFC] font-bold text-lg mb-2">3</div>
-                                <div className="w-16 h-10 bg-amber-600 rounded-t-xl"></div>
+                <div className="flex-1 flex flex-col items-center justify-center text-center relative">
+                    {/* Animated Scene */}
+                    <div className="z-10 w-full max-w-sm">
+                        <div className="mb-8 h-48 w-full flex items-center justify-center">
+                            <div className="w-full h-full bg-[#0F172A] border-4 border-[#334155] rounded-3xl flex items-center justify-center relative overflow-hidden transition-all duration-500">
+                                
+                                {/* Step 1: Create/Join */}
+                                {currentStep === 0 && (
+                                    <div className="relative w-full h-full flex items-center justify-center gap-4">
+                                        <div className="absolute inset-0 bg-indigo-500/10 animate-pulse-slow"></div>
+                                        <div className="w-16 h-16 bg-[#3B82F6] rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-[4px_4px_0px_0px_#020617]" style={{ animationDelay: '0s' }}>
+                                            <Users className="w-8 h-8 text-white" />
+                                        </div>
+                                        <div className="w-16 h-16 bg-[#6366F1] rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-[4px_4px_0px_0px_#020617]" style={{ animationDelay: '0.2s' }}>
+                                            <Users className="w-8 h-8 text-white" />
+                                        </div>
+                                        <div className="w-16 h-16 bg-green-500 rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-[4px_4px_0px_0px_#020617]" style={{ animationDelay: '0.4s' }}>
+                                            <Users className="w-8 h-8 text-white" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Step 2: Choose Game */}
+                                {currentStep === 1 && (
+                                    <div className="relative w-full h-full flex items-center justify-center">
+                                        <div className="absolute inset-0 bg-purple-500/10 animate-pulse-slow"></div>
+                                        <div className="w-24 h-32 bg-white rounded-xl border-4 border-slate-200 shadow-[4px_4px_0px_0px_#020617] transform -rotate-12 absolute left-1/4 top-8 animate-float-up" style={{ animationDuration: '3s' }}></div>
+                                        <div className="w-24 h-32 bg-[#6366F1] rounded-xl border-4 border-indigo-300 shadow-[4px_4px_0px_0px_#020617] transform rotate-6 z-10 flex items-center justify-center animate-pulse">
+                                            <Gamepad2 className="w-12 h-12 text-white" />
+                                        </div>
+                                        <div className="w-24 h-32 bg-[#334155] rounded-xl border-4 border-slate-600 shadow-[4px_4px_0px_0px_#020617] transform rotate-12 absolute right-1/4 top-8 animate-float-up" style={{ animationDuration: '4s' }}></div>
+                                    </div>
+                                )}
+
                             </div>
                         </div>
                         
-                        {/* Rankings */}
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between bg-[#3B82F6]/20 px-4 py-3 rounded-xl">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[#94A3B8] font-bold w-6">4</span>
-                                    <span className="text-[#F8FAFC] font-bold">Player4</span>
-                                </div>
+                        <h3 className="text-3xl font-bold text-[#F8FAFC] mb-4 uppercase tracking-wide min-h-[40px]">
+                            {STEPS[currentStep].title}
+                        </h3>
+                        <p className="text-lg text-[#94A3B8] font-medium leading-relaxed min-h-[60px]">
+                            {STEPS[currentStep].description}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Carousel Dots */}
+                <div className="flex items-center justify-center gap-6 mt-8">
+                    <button onClick={() => setCurrentStep((prev) => (prev - 1 + STEPS.length) % STEPS.length)} className="p-2 text-[#94A3B8] hover:text-white transition-colors">
+                        <ChevronLeft className="w-8 h-8" />
+                    </button>
+                    <div className="flex gap-3">
+                        {STEPS.map((_, i) => (
+                            <button
+                                key={i}
+                                onClick={() => setCurrentStep(i)}
+                                className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                                    i === currentStep 
+                                    ? 'bg-white scale-125 shadow-[0_0_10px_rgba(255,255,255,0.5)]' 
+                                    : 'bg-[#334155] hover:bg-[#475569]'
+                                }`}
+                            />
+                        ))}
+                    </div>
+                    <button onClick={() => setCurrentStep((prev) => (prev + 1) % STEPS.length)} className="p-2 text-[#94A3B8] hover:text-white transition-colors">
+                        <ChevronRight className="w-8 h-8" />
+                    </button>
+                </div>
+
+                {/* Leaderboard - Sort de la card */}
+                <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-[110%] max-w-md">
+                    <div className="bg-[#0F172A] border-2 border-[#334155] rounded-2xl p-4 shadow-[0_4px_0_0px_#020617]">
+                        <h3 className="text-lg font-bold text-[#F8FAFC] text-center mb-3 uppercase tracking-wider">Top Joueurs</h3>
+                        <div className="flex items-end justify-center gap-2 mb-3">
+                            <div className="flex flex-col items-center">
+                                <div className="w-8 h-8 bg-[#475569] rounded-full flex items-center justify-center text-[#F8FAFC] font-bold text-xs">2</div>
+                                <div className="w-10 h-8 bg-[#475569] rounded-t-lg mt-1"></div>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-black font-bold text-sm">1</div>
+                                <div className="w-12 h-12 bg-yellow-500 rounded-t-lg mt-1"></div>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <div className="w-8 h-8 bg-amber-600 rounded-full flex items-center justify-center text-[#F8FAFC] font-bold text-xs">3</div>
+                                <div className="w-10 h-6 bg-amber-600 rounded-t-lg mt-1"></div>
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <div className="flex items-center justify-between bg-[#3B82F6]/20 px-3 py-2 rounded-lg">
+                                <span className="text-[#F8FAFC] font-bold">NeyRox</span>
                                 <span className="text-yellow-400 font-bold">2500</span>
                             </div>
-                            <div className="flex items-center justify-between bg-[#6366F1]/20 px-4 py-3 rounded-xl">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[#94A3B8] font-bold w-6">5</span>
-                                    <span className="text-[#F8FAFC] font-bold">Player5</span>
-                                </div>
+                            <div className="flex items-center justify-between bg-[#6366F1]/20 px-3 py-2 rounded-lg">
+                                <span className="text-[#F8FAFC] font-bold">Masso</span>
                                 <span className="text-[#94A3B8] font-bold">1800</span>
                             </div>
-                            <div className="flex items-center justify-between bg-[#334155]/50 px-4 py-3 rounded-xl">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[#94A3B8] font-bold w-6">6</span>
-                                    <span className="text-[#94A3B8] font-bold">Player6</span>
-                                </div>
+                            <div className="flex items-center justify-between bg-[#334155]/50 px-3 py-2 rounded-lg">
+                                <span className="text-[#94A3B8] font-bold">Ittolec</span>
                                 <span className="text-amber-600 font-bold">1200</span>
                             </div>
                         </div>
