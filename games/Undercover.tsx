@@ -597,6 +597,15 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       } catch (e) { console.error(e); }
   };
 
+  const cleanupForVote = async () => {
+      if (!isHost || !roomId) return;
+      await supabase.from('undercover_games').delete().eq('room_id', roomId);
+      await supabase.from('undercover_players').delete().eq('room_id', roomId);
+      await supabase.from('undercover_clues').delete().eq('room_id', roomId);
+      await supabase.from('undercover_votes').delete().eq('room_id', roomId);
+      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+  };
+
   // --- CLIENT ---
   const sendReady = async () => {
     // Toggle ready state
@@ -661,7 +670,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
       showScores={false}
-      voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} /> : undefined}
+      voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} /> : undefined}
     >
       <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)]">
         

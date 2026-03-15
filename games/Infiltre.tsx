@@ -607,6 +607,15 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
       } catch (e) { console.error(e); }
   };
 
+  const cleanupForVote = async () => {
+      if (!isHost || !roomId) return;
+      await supabase.from('infiltre_games').delete().eq('room_id', roomId);
+      await supabase.from('infiltre_players').delete().eq('room_id', roomId);
+      await supabase.from('infiltre_questions').delete().eq('room_id', roomId);
+      await supabase.from('infiltre_votes').delete().eq('room_id', roomId);
+      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+  };
+
   // --- CLIENT ACTIONS ---
   const sendReady = async () => {
     // Toggle ready state
@@ -629,7 +638,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
       gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
       showScores={false}
-      voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} /> : undefined}
+      voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} /> : undefined}
     >
       <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)]">
         

@@ -392,6 +392,13 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
       router.push(`/room/${roomCode}`);
   };
 
+  const cleanupForVote = async () => {
+      if (!isHost || !roomId) return;
+      await supabase.from('poke_games').delete().eq('room_id', roomId);
+      await supabase.from('poke_players').delete().eq('room_id', roomId);
+      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+  };
+
   // --- RENDER HELPERS ---
   const getImageStyle = () => {
       if (currentPhase === 'playing') {
@@ -431,7 +438,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
         timer={timeLeft.toString()}
         players={playersMap}
         timeLeft={timeLeft}
-        voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} /> : undefined}
+        voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} /> : undefined}
     >
         {/* SETUP */}
         {currentPhase === 'setup' && (

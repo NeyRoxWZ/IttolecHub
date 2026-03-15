@@ -10,6 +10,8 @@ interface VoteToLobbyProps {
   playerId: string;
   players: { id: string; name: string }[];
   roomCode: string;
+  gameType?: string;
+  onAllVoted?: () => Promise<void>;
 }
 
 interface Vote {
@@ -18,7 +20,7 @@ interface Vote {
   timestamp: number;
 }
 
-export default function VoteToLobby({ roomId, playerId, players, roomCode }: VoteToLobbyProps) {
+export default function VoteToLobby({ roomId, playerId, players, roomCode, gameType, onAllVoted }: VoteToLobbyProps) {
   const router = useRouter();
   const [votes, setVotes] = useState<Vote[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
@@ -73,14 +75,23 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode }: Vot
 
   useEffect(() => {
     if (votes.length >= requiredVotes && requiredVotes > 0 && channel) {
-      channel.send({
-        type: 'broadcast',
-        event: 'return_to_lobby',
-        payload: {}
-      });
-      router.push(`/room/${roomCode}`);
+      const handleAllVoted = async () => {
+        if (onAllVoted) {
+          await onAllVoted();
+        }
+        
+        channel.send({
+          type: 'broadcast',
+          event: 'return_to_lobby',
+          payload: {}
+        });
+        
+        router.push(`/room/${roomCode}`);
+      };
+      
+      handleAllVoted();
     }
-  }, [votes.length, requiredVotes, roomId, roomCode, router, channel]);
+  }, [votes.length, requiredVotes, roomId, roomCode, router, channel, onAllVoted]);
 
   if (votes.length >= requiredVotes) {
     return null;
@@ -106,12 +117,12 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode }: Vot
         </button>
       </div>
 
-      {/* Mobile: Bottom left floating */}
-      <div className="md:hidden fixed bottom-6 left-6 z-50">
+      {/* Mobile: Bottom left floating - same style as ReactionButton */}
+      <div className="md:hidden fixed bottom-20 left-6 z-[90]">
         <button
           onClick={handleVote}
           disabled={hasVoted}
-          className="h-12 w-12 flex items-center justify-center bg-[#1E293B] border border-[#334155] rounded-full cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-12 w-12 flex items-center justify-center bg-[#1E293B] border-2 border-[#334155] rounded-full cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
         >
           {hasVoted ? (
             <div className="w-3 h-3 rounded-full bg-green-400" />
@@ -119,7 +130,7 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode }: Vot
             <LogOut className="w-5 h-5 text-[#94A3B8]" />
           )}
         </button>
-        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-bold text-[#F8FAFC] whitespace-nowrap">
+        <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs font-bold text-[#F8FAFC] whitespace-nowrap">
           {votes.length}/{requiredVotes}
         </div>
       </div>

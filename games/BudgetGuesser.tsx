@@ -304,6 +304,13 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
       router.push(`/room/${roomCode}`);
   };
 
+  const cleanupForVote = async () => {
+      if (!isHost || !roomId) return;
+      await supabase.from('budget_games').delete().eq('room_id', roomId);
+      await supabase.from('budget_players').delete().eq('room_id', roomId);
+      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+  };
+
   // --- RENDER ---
   const formatCurrency = (val: number) => {
       return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
@@ -338,7 +345,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
       gameTitle="BudgetGuessr"
       gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
-      voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} /> : undefined}
+      voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} /> : undefined}
     >
       <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)]">
         

@@ -290,6 +290,13 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
       router.push(`/room/${roomCode}`);
   };
 
+  const cleanupForVote = async () => {
+      if (!isHost || !roomId) return;
+      await supabase.from('airbnb_games').delete().eq('room_id', roomId);
+      await supabase.from('airbnb_players').delete().eq('room_id', roomId);
+      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+  };
+
   // --- RENDER ---
   
   return (
@@ -300,7 +307,7 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
           timer={timeLeft.toString()}
           players={playersMap}
           timeLeft={timeLeft}
-          voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />}
+          voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} />}
       >
           {/* Setup Phase */}
           {currentPhase === 'setup' && (

@@ -329,6 +329,13 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
       router.push(`/room/${roomCode}`);
   };
 
+  const cleanupForVote = async () => {
+      if (!isHost || !roomId) return;
+      await supabase.from('rent_games').delete().eq('room_id', roomId);
+      await supabase.from('rent_players').delete().eq('room_id', roomId);
+      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+  };
+
   // --- RENDER ---
   
   return (
@@ -339,7 +346,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
           timer={timeLeft.toString()}
           players={playersMap}
           timeLeft={timeLeft}
-          voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />}
+          voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} />}
       >
           {currentPhase === 'setup' && (
               <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500">

@@ -811,6 +811,13 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       router.push(`/room/${roomCode}`);
   };
 
+  const cleanupForVote = async () => {
+      if (!isHost || !roomId) return;
+      await supabase.from('draw_games').delete().eq('room_id', roomId);
+      await supabase.from('draw_players').delete().eq('room_id', roomId);
+      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+  };
+
   // --- UTILS ---
   const levenshteinDistance = (a: string, b: string) => {
       if (a.length === 0) return b.length; 
@@ -897,7 +904,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       gameTitle="DrawGuessr"
       gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
-      voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} />}
+      voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} />}
     >
       <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)] relative">
         
