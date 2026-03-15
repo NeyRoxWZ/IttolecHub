@@ -217,16 +217,16 @@ export default function Home() {
                                             <div className="font-bold text-[#F8FAFC] mb-2">Leaderboard</div>
                                             <div className="space-y-2 overflow-y-auto" style={{ maxHeight: '28vh' }}>
                                                 <div className="flex items-center justify-between px-2 py-1 rounded text-sm bg-transparent">
-                                                    <span className="text-[#F8FAFC] font-bold">P1</span>
-                                                    <AnimatedNumber value={2500} digits={4} className="text-yellow-400 font-bold" />
+                                                    <span className="text-white font-bold">P1</span>
+                                                    <span className="text-yellow-400 font-bold">2500</span>
                                                 </div>
                                                 <div className="flex items-center justify-between px-2 py-1 rounded text-sm bg-transparent">
-                                                    <span className="text-[#F8FAFC] font-bold">P2</span>
-                                                    <AnimatedNumber value={1800} digits={4} className="text-[#93A3B8] font-bold" />
+                                                    <span className="text-white font-bold">P2</span>
+                                                    <span className="text-[#93A3B8] font-bold">1800</span>
                                                 </div>
                                                 <div className="flex items-center justify-between px-2 py-1 rounded text-sm bg-transparent">
-                                                    <span className="text-[#F8FAFC] font-bold">P3</span>
-                                                    <AnimatedNumber value={1200} digits={4} className="text-amber-300 font-bold" />
+                                                    <span className="text-white font-bold">P3</span>
+                                                    <span className="text-amber-300 font-bold">1200</span>
                                                 </div>
                                             </div>
                                         </div>
