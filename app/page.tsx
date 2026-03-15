@@ -69,7 +69,7 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen bg-[#0F172A] text-[#F8FAFC] font-sans selection:bg-indigo-500/30 overflow-hidden flex flex-col items-center justify-center relative p-3 md:p-6">
+    <div className="h-screen bg-[#0F172A] text-[#F8FAFC] font-sans selection:bg-indigo-500/30 overflow-hidden flex flex-col items-center justify-center relative p-4">
       
       {/* Background Pattern */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 z-0"></div>
@@ -81,28 +81,28 @@ export default function Home() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-purple-600/20 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
       </div>
 
-      <main className="relative z-10 w-full max-w-5xl flex flex-col items-center animate-in fade-in zoom-in duration-500 overflow-hidden">
+      <main className="relative z-10 w-full max-w-6xl flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500 overflow-hidden">
         
-        {/* LOGO IMAGE */}
-        <div className="mb-2">
+        {/* LOGO IMAGE - smaller */}
+        <div className="text-center">
           <img 
             src="/logosite.png"
             alt="IttolecHub" 
-            className="h-20 md:h-28 w-auto mx-auto logo-flottant"
+            className="h-28 md:h-36 w-auto mx-auto logo-flottant"
             style={{ animation: 'float 4s ease-in-out infinite' }}
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
             
             {/* LEFT PANEL: PLAYER CARD - Fond #1E293B */}
-            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-4 md:p-5 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[340px]">
+            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-5 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[380px]">
                 
                 {/* TABS */}
-                <div className="flex bg-[#0F172A] p-1 rounded-xl mb-3 border border-[#334155]">
+                <div className="flex bg-[#0F172A] p-1 rounded-xl mb-4 border border-[#334155]">
                     <button 
                         onClick={() => setActiveTab('create')}
-                        className={`flex-1 py-2 text-sm font-bold uppercase tracking-wider rounded-lg transition-all duration-100 ${
+                        className={`flex-1 py-2 text-base font-bold uppercase tracking-wider rounded-lg transition-all duration-100 ${
                             activeTab === 'create' 
                             ? 'bg-[#3B82F6] text-white shadow-[2px_2px_0px_0px_#020617] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none' 
                             : 'bg-transparent text-[#94A3B8] hover:text-white'
@@ -112,7 +112,7 @@ export default function Home() {
                     </button>
                     <button 
                         onClick={() => setActiveTab('join')}
-                        className={`flex-1 py-2 text-sm font-bold uppercase tracking-wider rounded-lg transition-all duration-100 ${
+                        className={`flex-1 py-2 text-base font-bold uppercase tracking-wider rounded-lg transition-all duration-100 ${
                             activeTab === 'join' 
                             ? 'bg-[#3B82F6] text-white shadow-[2px_2px_0px_0px_#020617] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none' 
                             : 'bg-transparent text-[#94A3B8] hover:text-white'
@@ -123,20 +123,20 @@ export default function Home() {
                 </div>
 
                 {/* AVATAR + INPUTS */}
-                <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                <div className="flex-1 flex flex-col items-center justify-center gap-6">
                     {/* Avatar Placeholder - Icône #94A3B8, bordure #334155, pas de hover, pas de point vert */}
-                    <div className="w-20 h-20 rounded-full bg-[#0F172A] border-4 border-[#334155] flex items-center justify-center mb-1">
-                        <Users className="w-8 h-8 text-[#94A3B8]" />
+                    <div className="w-28 h-28 rounded-full bg-[#0F172A] border-4 border-[#334155] flex items-center justify-center mb-2">
+                        <Users className="w-12 h-12 text-[#94A3B8]" />
                     </div>
 
-                    <div className="w-full space-y-3">
+                    <div className="w-full space-y-4">
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest ml-4">Ton Pseudo</label>
                             <Input 
                                 placeholder="PseudoCool7074" 
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="h-12 text-lg text-center font-bold rounded-xl"
+                                className="h-16 text-2xl text-center font-bold rounded-2xl"
                             />
                         </div>
 
@@ -147,7 +147,7 @@ export default function Home() {
                                     placeholder="CODE" 
                                     value={code}
                                     onChange={(e) => setCode(e.target.value.toUpperCase())}
-                                    className="h-12 text-lg text-center font-bold rounded-xl uppercase font-mono tracking-widest"
+                                    className="h-16 text-2xl text-center font-bold rounded-2xl uppercase font-mono tracking-widest"
                                 />
                             </div>
                         )}
@@ -158,38 +158,38 @@ export default function Home() {
                 <Button 
                     onClick={handleAction}
                     variant="purple"
-                    className={`w-full h-14 mt-4 text-lg font-bold uppercase tracking-widest rounded-xl`}
+                    className={`w-full h-20 mt-8 text-2xl font-bold uppercase tracking-widest rounded-2xl`}
                 >
                     {activeTab === 'create' ? 'DÉMARRER' : 'ENTRER'}
                 </Button>
             </div>
 
             {/* RIGHT PANEL: HOW TO PLAY - Cartes avec fond #1E293B */}
-            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-4 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[340px] relative overflow-hidden">
+            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-5 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[380px] relative overflow-hidden">
                 { /* decorative line removed to clean UI as requested */ }
                 
-                <h2 className="text-lg font-bold text-center text-[#F8FAFC] uppercase tracking-widest mb-3">
+                <h2 className="text-xl font-bold text-center text-[#F8FAFC] uppercase tracking-widest mb-4">
                     COMMENT JOUER
                 </h2>
 
                 <div className="flex-1 flex flex-col items-center justify-center text-center relative">
                     {/* Animated Scene */}
                     <div className="z-10 w-full max-w-sm">
-                        <div className="mb-3 h-24 w-full flex items-center justify-center">
+                        <div className="mb-4 h-32 w-full flex items-center justify-center">
                             <div className="w-full h-full bg-[#0F172A] border-4 border-[#334155] rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-500">
                                 
                                 {/* Step 1: Create/Join */}
                                 {currentStep === 0 && (
-                                    <div className="relative w-full h-full flex items-center justify-center gap-3">
+                                    <div className="relative w-full h-full flex items-center justify-center gap-4">
                                         <div className="absolute inset-0 bg-indigo-500/10 animate-pulse-slow"></div>
-                                        <div className="w-12 h-12 bg-[#3B82F6] rounded-full border-3 border-white flex items-center justify-center animate-bounce shadow-[2px_2px_0px_0px_#020617]" style={{ animationDelay: '0s' }}>
-                                            <Users className="w-6 h-6 text-white" />
+                                        <div className="w-16 h-16 bg-[#3B82F6] rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-[4px_4px_0px_0px_#020617]" style={{ animationDelay: '0s' }}>
+                                            <Users className="w-8 h-8 text-white" />
                                         </div>
-                                        <div className="w-12 h-12 bg-[#6366F1] rounded-full border-3 border-white flex items-center justify-center animate-bounce shadow-[2px_2px_0px_0px_#020617]" style={{ animationDelay: '0.2s' }}>
-                                            <Users className="w-6 h-6 text-white" />
+                                        <div className="w-16 h-16 bg-[#6366F1] rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-[4px_4px_0px_0px_#020617]" style={{ animationDelay: '0.2s' }}>
+                                            <Users className="w-8 h-8 text-white" />
                                         </div>
-                                        <div className="w-12 h-12 bg-green-500 rounded-full border-3 border-white flex items-center justify-center animate-bounce shadow-[2px_2px_0px_0px_#020617]" style={{ animationDelay: '0.4s' }}>
-                                            <Users className="w-6 h-6 text-white" />
+                                        <div className="w-16 h-16 bg-green-500 rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-[4px_4px_0px_0px_#020617]" style={{ animationDelay: '0.4s' }}>
+                                            <Users className="w-8 h-8 text-white" />
                                         </div>
                                     </div>
                                 )}
@@ -236,26 +236,26 @@ export default function Home() {
                             </div>
                         </div>
                         
-                        <h3 className="text-lg font-bold text-[#F8FAFC] mb-1 uppercase tracking-wide min-h-[24px]">
+                        <h3 className="text-xl font-bold text-[#F8FAFC] mb-2 uppercase tracking-wide min-h-[30px]">
                             {STEPS[currentStep].title}
                         </h3>
-                        <p className="text-xs text-[#94A3B8] font-medium leading-relaxed min-h-[32px]">
+                        <p className="text-sm text-[#94A3B8] font-medium leading-relaxed min-h-[40px]">
                             {STEPS[currentStep].description}
                         </p>
                     </div>
                 </div>
 
                 {/* Carousel Dots */}
-                <div className="flex items-center justify-center gap-3 mt-2">
+                <div className="flex items-center justify-center gap-4 mt-4">
                     <button onClick={() => setCurrentStep((prev) => (prev - 1 + STEPS.length) % STEPS.length)} className="p-1 text-[#94A3B8] hover:text-white transition-colors">
-                        <ChevronLeft className="w-5 h-5" />
+                        <ChevronLeft className="w-6 h-6" />
                     </button>
                     <div className="flex gap-2">
                         {STEPS.map((_, i) => (
                             <button
                                 key={i}
                                 onClick={() => setCurrentStep(i)}
-                                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                                className={`w-3 h-3 rounded-full transition-all duration-300 ${
                                     i === currentStep 
                                     ? 'bg-white scale-125 shadow-[0_0_10px_rgba(255,255,255,0.5)]' 
                                     : 'bg-[#334155] hover:bg-[#475569]'
@@ -264,7 +264,7 @@ export default function Home() {
                         ))}
                     </div>
                     <button onClick={() => setCurrentStep((prev) => (prev + 1) % STEPS.length)} className="p-1 text-[#94A3B8] hover:text-white transition-colors">
-                        <ChevronRight className="w-5 h-5" />
+                        <ChevronRight className="w-6 h-6" />
                     </button>
                 </div>
             </div>
