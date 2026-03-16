@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Skull, Loader2, Send, Check, Crown, Home } from 'lucide-react';
+import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Skull, Loader2, Send, Check, Crown, Home, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -679,13 +679,29 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in">
                {players.length < 3 ? (
                  <>
-                    <User className="w-16 h-16 text-gray-600 animate-pulse" />
-                    <p className="text-2xl font-medium text-gray-400">En attente de joueurs ({players.length}/3)...</p>
+                     <User className="w-16 h-16 text-gray-600 animate-pulse" />
+                     <p className="text-2xl font-medium text-gray-400">En attente de joueurs ({players.length}/3)...</p>
                  </>
                ) : (
                  <>
-                    <Loader2 className="w-16 h-16 animate-spin text-red-500" />
-                    <p className="text-2xl font-medium animate-pulse text-red-200">Démarrage de la mission...</p>
+                    {isHost ? (
+                        <>
+                            <Play className="w-16 h-16 text-green-500" />
+                            <p className="text-2xl font-medium text-green-400">Prêt à lancer la partie !</p>
+                            <Button 
+                                onClick={startNewGame}
+                                size="lg"
+                                className="mt-4 bg-green-600 hover:bg-green-500 text-white text-xl font-bold px-8 py-4 rounded-xl"
+                            >
+                                DÉMARRER LA PARTIE
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <Loader2 className="w-16 h-16 animate-spin text-red-500" />
+                            <p className="text-2xl font-medium animate-pulse text-red-200">En attente de l'hôte...</p>
+                        </>
+                    )}
                  </>
                )}
             </div>
