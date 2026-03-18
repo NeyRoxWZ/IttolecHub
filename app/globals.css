@@ -1,41 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Nunito:wght@700;800;900&display=swap');
-
-:root {
-  --radius-outer: 20px;
-  --radius-inner: 12px;
-  --radius-btn: 8px;
-}
-
-html, body {
-  background-color: #0F0F1A;
-  color: #F8F8FF;
-  font-family: 'Inter', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-h1, h2, h3, h4 {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 800;
-}
-
-.card {
-  background-color: #1A1A2E;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 20px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-}
-
-.card-inner {
-  background-color: #22223B;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px;
-}
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.4); border-radius: 9999px; }
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -43,7 +5,7 @@ h1, h2, h3, h4 {
 /* Thème Bleu Gaming - IttolecHub */
 @layer base {
   body {
-    @apply bg-brand-bg text-text-primary font-body antialiased;
+    @apply bg-[#0F172A] text-[#F8FAFC];
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     overflow-x: hidden;

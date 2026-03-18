@@ -32,12 +32,6 @@ export function useRealtime(roomCode: string, gameType: string) {
         const state = channel.presenceState();
         setPresence(Object.values(state).flat());
       })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('Nouveau joueur:', newPresences);
-      })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.log('Joueur parti:', leftPresences);
-      })
       .on('broadcast', { event: gameType }, ({ payload }) => {
         setMessages(prev => [...prev, payload]);
       })

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Gamepad2, Play, Users, ArrowRight, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import AnimatedNumber from './components/AnimatedNumber';
 import { Button } from '@/components/ui/Button';
@@ -69,7 +70,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg text-text-primary font-body selection:bg-accent-primary/30 flex flex-col items-center justify-center relative p-4 py-8">
+    <div className="min-h-screen bg-[#0F172A] text-[#F8FAFC] font-sans selection:bg-indigo-500/30 flex flex-col items-center justify-center relative p-4 py-8">
       
       {/* Background Pattern */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 z-0"></div>
@@ -85,18 +86,21 @@ export default function Home() {
         
         {/* LOGO IMAGE - medium size */}
         <div className="text-center">
-          <img 
+          <Image
             src="/logosite.png"
-            alt="IttolecHub" 
+            alt="IttolecHub"
+            width={320}
+            height={176}
             className="h-32 md:h-44 w-auto mx-auto logo-flottant"
             style={{ animation: 'float 4s ease-in-out infinite' }}
+            priority
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
             
             {/* LEFT PANEL: PLAYER CARD - Fond #1E293B */}
-            <div className="bg-brand-card border border-brand-border rounded-xl p-6 shadow-card flex flex-col h-full min-h-[440px]">
+            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-6 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[440px]">
                 
                 {/* TABS */}
                 <div className="flex bg-[#0F172A] p-1.5 rounded-xl mb-4 border border-[#334155]">
@@ -157,18 +161,18 @@ export default function Home() {
                 {/* MAIN BUTTON - Fond #6366F1 */}
                 <Button 
                     onClick={handleAction}
-                    variant="primary"
-                    className="w-full h-16 mt-6 text-xl font-bold uppercase tracking-widest bg-accent-primary hover:bg-accent-primary-hover text-text-primary rounded-md transition-all duration-200 hover:-translate-y-0.5"
+                    variant="purple"
+                    className={`w-full h-16 mt-6 text-xl font-bold uppercase tracking-widest rounded-2xl`}
                 >
                     {activeTab === 'create' ? 'DÉMARRER' : 'ENTRER'}
                 </Button>
             </div>
 
             {/* RIGHT PANEL: HOW TO PLAY - Cartes avec fond #1E293B */}
-            <div className="bg-brand-card border border-brand-border rounded-xl p-6 shadow-card flex flex-col h-full min-h-[440px] relative overflow-hidden">
+            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-6 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[440px] relative overflow-hidden">
                 { /* decorative line removed to clean UI as requested */ }
                 
-                <h2 className="text-xl font-bold font-display text-center text-text-primary uppercase tracking-widest mb-4">
+                <h2 className="text-xl font-bold text-center text-[#F8FAFC] uppercase tracking-widest mb-4">
                     COMMENT JOUER
                 </h2>
 
@@ -236,7 +240,7 @@ export default function Home() {
                             </div>
                         </div>
                         
-                        <h3 className="text-lg font-bold font-display text-text-primary mb-2 uppercase tracking-wide min-h-[30px]">
+                        <h3 className="text-lg font-bold text-[#F8FAFC] mb-2 uppercase tracking-wide min-h-[30px]">
                             {STEPS[currentStep].title}
                         </h3>
                         <p className="text-sm text-[#94A3B8] font-medium leading-relaxed min-h-[40px]">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -501,7 +502,6 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 const lastSeen = new Date(host.last_seen_at).getTime();
                 // If host inactive > 2m30s
                 if (Date.now() - lastSeen > 150000) {
-                     console.log("Host inactive, closing room...");
                      // Check current status first to avoid spam
                      const { data: currentRoom } = await supabase.from('rooms').select('status').eq('id', roomId).maybeSingle();
                      if (currentRoom && currentRoom.status !== 'closed') {
@@ -613,7 +613,6 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           
           isUpdatingSettingsRef.current = true;
           
-          console.log('Updating room settings:', { game_type: selectedGameId, settings: gameSettings });
           const { error } = await supabase.from('rooms').update({
               game_type: selectedGameId,
               settings: gameSettings || {} // Ensure not undefined
@@ -653,7 +652,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           }
       }
     }
-  }, [selectedGameId, isHost]);
+  }, [selectedGameId, isHost, gameSettings]);
 
   const handleSettingChange = (settingId: string, value: any) => {
     setGameSettings(prev => {
@@ -722,9 +721,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     
     const queryString = paramsUrl.toString();
     const targetUrl = `/games/${selectedGameId}/${params.code}${queryString ? `?${queryString}` : ''}`;
-    
-    console.log('Redirecting to:', targetUrl);
-    
+
     // 4. Force redirect
     router.push(targetUrl);
   };
@@ -828,7 +825,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
           <div className="flex flex-col items-center justify-center gap-10 animate-in fade-in zoom-in duration-500">
               {/* Logo - bigger */}
-              <img src="/logosite.png" alt="IttolecHub" className="h-40 md:h-48 w-auto" />
+              <Image src="/logosite.png" alt="IttolecHub" width={320} height={192} className="h-40 md:h-48 w-auto" />
 
               {/* QR Code - bigger */}
               <div className="relative inline-block bg-white p-6 rounded-3xl shadow-2xl">
@@ -911,7 +908,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         variant="ghost"
                         className="hidden sm:flex items-center gap-2 h-12 px-4 rounded-xl text-purple-400 hover:text-purple-300 hover:bg-purple-900/20 transition-all border border-transparent hover:border-purple-500/20"
                     >
-                        <img src="/logosite.png" alt="IttolecHub" className="h-8 w-auto" />
+                        <Image src="/logosite.png" alt="IttolecHub" width={96} height={32} className="h-8 w-auto" />
                         <span className="font-bold">Streamer</span>
                     </Button>
                 )}

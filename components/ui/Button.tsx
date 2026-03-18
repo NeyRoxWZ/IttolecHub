@@ -1,80 +1,43 @@
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
-import * as React from 'react';
+import { ButtonHTMLAttributes, forwardRef } from 'react';
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?:
-    | 'primary'
-    | 'secondary'
-    | 'danger'
-    | 'ghost'
-    | 'success'
-    | 'outline'
-    | 'purple';
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  children: React.ReactNode;
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'purple';
   size?: 'sm' | 'md' | 'lg' | 'icon';
-  isLoading?: boolean;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
 }
 
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
-      className,
-      variant = 'primary',
-      size = 'md',
-      isLoading = false,
-      leftIcon,
-      rightIcon,
-      disabled,
-      children,
-      ...props
-    },
-    ref
-  ) => {
-    const baseClasses =
-      'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-body font-semibold transition-[background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0';
-
-    const variants: Record<NonNullable<ButtonProps['variant']>, string> = {
-      primary:
-        'bg-accent-primary text-text-primary hover:bg-accent-primary-hover hover:shadow-glow-primary',
-      secondary:
-        'bg-transparent border border-accent-primary text-accent-primary hover:bg-accent-primary/10',
-      danger: 'bg-accent-danger text-text-primary hover:brightness-95',
-      ghost: 'bg-transparent text-text-primary hover:bg-brand-inner',
-      success: 'bg-accent-success text-text-primary hover:brightness-95',
-      outline:
-        'bg-transparent border border-brand-border text-text-secondary hover:bg-brand-inner hover:text-text-primary',
-      purple:
-        'bg-accent-primary text-text-primary hover:bg-accent-primary-hover hover:shadow-glow-primary',
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ children, className, variant = 'primary', size = 'md', ...props }, ref) => {
+    const baseClasses = 'inline-flex items-center justify-center font-bold uppercase tracking-wider rounded-xl transition-all duration-100 focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed';
+    
+    const variants = {
+      primary: 'bg-[#3B82F6] text-white hover:bg-[#2563EB] shadow-[0_4px_0_0px_#020617] active:translate-y-[4px] active:shadow-none',
+      secondary: 'bg-[#334155] text-white hover:bg-[#475569] shadow-[0_4px_0_0px_#020617] active:translate-y-[4px] active:shadow-none',
+      outline: 'bg-transparent border-2 border-[#334155] text-[#94A3B8] hover:bg-[#1E293B] hover:text-white hover:border-[#475569] active:translate-y-[4px] active:shadow-none',
+      ghost: 'bg-transparent border-transparent text-[#94A3B8] hover:text-white hover:bg-[#1E293B] active:translate-y-[4px] active:shadow-none',
+      purple: 'bg-[#6366F1] text-white hover:bg-[#4F46E5] shadow-[0_4px_0_0px_#020617] active:translate-y-[4px] active:shadow-none',
     };
-
-    const sizes: Record<NonNullable<ButtonProps['size']>, string> = {
-      sm: 'px-3 py-1.5 text-sm',
-      md: 'px-5 py-2.5 text-sm',
-      lg: 'px-7 py-3 text-base',
-      icon: 'h-10 w-10 p-0',
+    
+    const sizes = {
+      sm: 'px-3 py-1.5 text-xs h-8',
+      md: 'px-5 py-2.5 text-sm h-11',
+      lg: 'px-8 py-3.5 text-base h-14',
+      icon: 'h-11 w-11 p-0 flex items-center justify-center',
     };
-
-    const isDisabled = Boolean(disabled || isLoading);
 
     return (
       <button
         ref={ref}
-        className={cn(baseClasses, variants[variant], sizes[size], className)}
-        disabled={isDisabled}
-        aria-busy={isLoading || undefined}
+        className={cn(
+          baseClasses,
+          variants[variant],
+          sizes[size],
+          className
+        )}
         {...props}
       >
-        {isLoading ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : leftIcon ? (
-          <span className="shrink-0">{leftIcon}</span>
-        ) : null}
         {children}
-        {!isLoading && rightIcon ? (
-          <span className="shrink-0">{rightIcon}</span>
-        ) : null}
       </button>
     );
   }

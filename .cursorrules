@@ -1,0 +1,29 @@
+# Règles de développement — à respecter ABSOLUMENT
+
+## Fichiers
+- Ne JAMAIS créer de fichiers .md (documentation, notes, changelogs, etc.)
+- Ne JAMAIS créer de fichiers .txt
+- Ne JAMAIS créer de fichiers de backup ou duplicata
+- Ne JAMAIS créer de dossiers vides
+- Chaque nouveau composant va dans components/ ou components/ui/
+- Chaque nouvelle page va dans app/ selon la convention App Router Next.js
+- Chaque nouvel utilitaire va dans lib/ ou utils/
+- Les fichiers de types TypeScript globaux vont dans types/
+
+## Code
+- Ne JAMAIS laisser de console.log() dans le code final
+- Ne JAMAIS laisser de code commenté (supprimer, pas commenter)
+- Ne JAMAIS déclarer une variable ou une fonction sans l'utiliser
+- Ne JAMAIS laisser un import inutilisé
+- TOUJOURS utiliser les design tokens Tailwind (jamais de couleur hex en dur dans un className)
+- TOUJOURS utiliser cn() pour merger les classes Tailwind
+- TOUJOURS typer explicitement les props des composants React (interface Props)
+
+## Composants
+- Un composant = un fichier
+- Pas de logique métier dans les composants UI (components/ui/*)
+- Les appels Supabase se font uniquement dans les hooks (hooks/) ou
+  dans les Server Components (pas dans les composants UI)
+
+## Git
+- Ne JAMAIS push si npm run build échoue

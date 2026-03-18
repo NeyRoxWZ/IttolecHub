@@ -1,15 +1,17 @@
 import { cn } from '@/lib/utils';
-import * as React from 'react';
 
 interface CardProps {
-  variant?: 'default' | 'inner';
-  className?: string;
   children: React.ReactNode;
+  className?: string;
 }
 
-export function Card({ variant = 'default', children, className }: CardProps) {
+export function Card({ children, className }: CardProps) {
   return (
-    <div className={cn(variant === 'inner' ? 'card-inner' : 'card', className)}>
+    <div className={cn(
+      'bg-[#1E293B] border border-[#334155]',
+      'text-[#F8FAFC] rounded-2xl',
+      className
+    )}>
       {children}
     </div>
   );

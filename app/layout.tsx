@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ToasterProvider } from '@/components/ToasterProvider'
+
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'ItollecHub - Mini-jeux multijoueurs',
@@ -37,7 +40,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="bg-brand-bg text-text-primary font-body antialiased">
+      <body className={inter.className}>
         <ThemeProvider>
           {children}
           <ToasterProvider />
