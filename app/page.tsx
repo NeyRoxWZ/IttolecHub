@@ -135,12 +135,12 @@ export default function Home() {
         <div className="w-full max-w-5xl mx-auto px-6">
           <div className="flex flex-col md:flex-row gap-6 md:gap-8">
             <div className="md:flex-1 bg-brand-card border-2 border-brand-border rounded-xl shadow-card p-6 md:p-7">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="mt-4 font-display text-2xl md:text-3xl">
+                  <h2 className="font-display text-2xl md:text-3xl">
                     {activeTab === 'create' ? 'Créer une room' : 'Rejoindre une room'}
                   </h2>
-                  <p className="mt-1 text-sm text-tx-secondary">
+                  <p className="mt-2 text-sm text-tx-secondary min-h-[2.5rem]">
                     {activeTab === 'create'
                       ? 'Choisis un pseudo, on te génère un code à partager.'
                       : 'Entre ton pseudo et le code de la salle.'}
@@ -161,7 +161,7 @@ export default function Home() {
                     className={cn(
                       'h-11 rounded-xl font-display font-extrabold tracking-wide transition-colors border-2',
                       activeTab === 'create'
-                        ? 'bg-brand-card text-tx-base border-accent-primary'
+                        ? 'bg-brand-card text-tx-base border-accent-primary shadow-brutal'
                         : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border'
                     )}
                   >
@@ -173,7 +173,7 @@ export default function Home() {
                     className={cn(
                       'h-11 rounded-xl font-display font-extrabold tracking-wide transition-colors border-2',
                       activeTab === 'join'
-                        ? 'bg-brand-card text-tx-base border-accent-secondary'
+                        ? 'bg-brand-card text-tx-base border-accent-secondary shadow-brutal-cyan'
                         : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border'
                     )}
                   >
@@ -217,9 +217,9 @@ export default function Home() {
                   className={cn(
                     'w-full h-14 rounded-xl font-display font-black tracking-wider transition-colors border-2',
                     activeTab === 'create'
-                      ? 'bg-brand-inner text-tx-base border-accent-primary hover:bg-brand-card'
-                      : 'bg-brand-inner text-tx-base border-accent-secondary hover:bg-brand-card',
-                    !canSubmit && 'opacity-50 cursor-not-allowed'
+                      ? 'bg-brand-inner text-tx-base border-accent-primary shadow-brutal hover:bg-brand-card'
+                      : 'bg-brand-inner text-tx-base border-accent-secondary shadow-brutal-cyan hover:bg-brand-card',
+                    !canSubmit && 'opacity-50 cursor-not-allowed shadow-none'
                   )}
                 >
                   {activeTab === 'create' ? 'Démarrer' : 'Rejoindre'}
@@ -376,7 +376,7 @@ export default function Home() {
                         <div className="text-xs text-tx-muted">Fin de partie</div>
                       </div>
 
-                      <div className="relative h-44 md:h-52 rounded-xl border-2 border-brand-border bg-brand-card p-4 overflow-hidden">
+                      <div className="relative h-44 md:h-52 rounded-xl border-2 border-brand-border bg-brand-card px-4 pb-4 pt-6 overflow-hidden">
                         <div
                           className="pointer-events-none absolute inset-0"
                           style={{
@@ -389,13 +389,13 @@ export default function Home() {
                         <div className="relative h-full flex items-end justify-between gap-3">
                           {[
                             { initial: 'N', score: 2000, height: 0.72, accent: 'border-accent-primary' },
-                            { initial: 'M', score: 2800, height: 1.0, accent: 'border-accent-secondary' },
+                            { initial: 'M', score: 2500, height: 0.92, accent: 'border-accent-secondary' },
                             { initial: 'L', score: 2300, height: 0.84, accent: 'border-accent-success' },
                           ].map((p, idx) => (
                             <div key={p.initial} className="flex-1 flex flex-col items-center justify-end gap-3">
                               <div className="relative flex items-center justify-center h-9">
                                 {idx === 1 && (
-                                  <div className="absolute -top-6 text-accent-primary">
+                                  <div className="absolute -top-5 text-accent-primary">
                                     <Crown className="h-7 w-7" />
                                   </div>
                                 )}
@@ -411,11 +411,18 @@ export default function Home() {
                                     height: `${Math.round(120 * p.height)}px`,
                                     transform: 'scaleY(0)',
                                     transformOrigin: 'bottom',
-                                    animation: 'ih-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                                    animation: 'ih-rise 1200ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
                                     animationDelay: `${120 + idx * 80}ms`,
                                   }}
                                 />
-                                <div className="text-xs text-tx-secondary font-display font-extrabold">
+                                <div
+                                  className="ih-anim text-xs text-tx-secondary font-display font-extrabold"
+                                  style={{
+                                    opacity: 0,
+                                    animation: 'ih-fadeUp 520ms ease-out forwards',
+                                    animationDelay: `${980 + idx * 90}ms`,
+                                  }}
+                                >
                                   <AnimatedNumber value={p.score} className="font-display font-extrabold" />
                                 </div>
                               </div>
