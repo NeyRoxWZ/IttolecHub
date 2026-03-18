@@ -43,7 +43,7 @@ h1, h2, h3, h4 {
 /* Thème Bleu Gaming - IttolecHub */
 @layer base {
   body {
-    @apply bg-[#0F172A] text-[#F8FAFC];
+    @apply bg-brand-bg text-text-primary font-body antialiased;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     overflow-x: hidden;
