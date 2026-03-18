@@ -1,12 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { Gamepad2, Play, Users, ArrowRight, X, ChevronRight, ChevronLeft } from 'lucide-react';
-import AnimatedNumber from './components/AnimatedNumber';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { ChevronLeft, ChevronRight, Gamepad2, Trophy, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const viewport = {
@@ -18,20 +14,20 @@ export const viewport = {
 
 const STEPS = [
   {
-    title: "CRÉEZ OU REJOIGNEZ",
-    description: "Lancez une partie et partagez le code à vos amis sur mobile ou PC.",
-    icon: Users
+    title: 'Creer ou Rejoindre',
+    description: 'Cree une salle et partage le code a tes amis. Ou rejoins une partie avec un code.',
+    icon: Users,
   },
   {
-    title: "CHOISISSEZ UN JEU",
-    description: "L'hôte sélectionne parmi +10 mini-jeux (Quiz, Dessin, Bluff...).",
-    icon: Gamepad2
+    title: 'Choisir un jeu',
+    description: "L'hote selectionne le mini-jeu et configure les manches. Les joueurs voient la selection en temps reel.",
+    icon: Gamepad2,
   },
   {
-    title: "JOUEZ ENSEMBLE",
-    description: "Affrontez-vous en temps réel et grimpez dans le classement !",
-    icon: Play
-  }
+    title: 'Jouer ensemble',
+    description: 'Affrontez-vous en temps reel. Le classement se met a jour apres chaque manche.',
+    icon: Trophy,
+  },
 ];
 
 export default function Home() {
@@ -40,12 +36,20 @@ export default function Home() {
   const [name, setName] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startAutoSlide = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % STEPS.length);
+    }, 4000);
+  };
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentStep((prev) => (prev + 1) % STEPS.length);
-    }, 5000);
-    return () => clearInterval(interval);
+    startAutoSlide();
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, []);
 
   const handleAction = (e?: React.FormEvent) => {
@@ -69,223 +73,227 @@ export default function Home() {
     }
   };
 
+  const previousSlide = () => {
+    setCurrentStep((prev) => (prev - 1 + STEPS.length) % STEPS.length);
+    startAutoSlide();
+  };
+
+  const nextSlide = () => {
+    setCurrentStep((prev) => (prev + 1) % STEPS.length);
+    startAutoSlide();
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentStep(index);
+    startAutoSlide();
+  };
+
+  const slide = STEPS[currentStep];
+  const SlideIcon = slide.icon;
+  const isCreateDisabled = !name.trim();
+  const isJoinDisabled = !name.trim() || !code.trim();
+
   return (
-    <div className="min-h-screen bg-[#0F172A] text-[#F8FAFC] font-sans selection:bg-indigo-500/30 flex flex-col items-center justify-center relative p-4 py-8">
-      
-      {/* Background Pattern */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 z-0"></div>
-      <div className="fixed inset-0 bg-gradient-to-br from-indigo-900/40 to-purple-900/40 z-0"></div>
-      
-      {/* Animated Blobs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse-slow" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-purple-600/20 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
-      </div>
+    <main className="bg-brand-bg min-h-screen flex flex-col justify-between">
+      <header className="flex flex-col items-center pt-8 pb-6">
+        <h1 className="font-display font-black text-4xl bg-gradient-to-r from-accent-primary to-accent-secondary bg-clip-text text-transparent">
+          IttolecHub
+        </h1>
+        <p className="text-tx-secondary text-sm font-body mt-1 text-center">
+          Mini-jeux multijoueurs entre amis
+        </p>
+      </header>
 
-      <main className="relative z-10 w-full max-w-5xl flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-500">
-        
-        {/* LOGO IMAGE - medium size */}
-        <div className="text-center">
-          <Image
-            src="/logosite.png"
-            alt="IttolecHub"
-            width={320}
-            height={176}
-            className="h-32 md:h-44 w-auto mx-auto logo-flottant"
-            style={{ animation: 'float 4s ease-in-out infinite' }}
-            priority
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-            
-            {/* LEFT PANEL: PLAYER CARD - Fond #1E293B */}
-            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-6 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[440px]">
-                
-                {/* TABS */}
-                <div className="flex bg-[#0F172A] p-1.5 rounded-xl mb-4 border border-[#334155]">
-                    <button 
-                        onClick={() => setActiveTab('create')}
-                        className={`flex-1 py-2.5 text-lg font-bold uppercase tracking-wider rounded-lg transition-all duration-100 ${
-                            activeTab === 'create' 
-                            ? 'bg-[#3B82F6] text-white shadow-[2px_2px_0px_0px_#020617] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none' 
-                            : 'bg-transparent text-[#94A3B8] hover:text-white'
-                        }`}
-                    >
-                        Créer
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('join')}
-                        className={`flex-1 py-2.5 text-lg font-bold uppercase tracking-wider rounded-lg transition-all duration-100 ${
-                            activeTab === 'join' 
-                            ? 'bg-[#3B82F6] text-white shadow-[2px_2px_0px_0px_#020617] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none' 
-                            : 'bg-transparent text-[#94A3B8] hover:text-white'
-                        }`}
-                    >
-                        Rejoindre
-                    </button>
-                </div>
-
-                {/* AVATAR + INPUTS */}
-                <div className="flex-1 flex flex-col items-center justify-center gap-6">
-                    {/* Avatar Placeholder */}
-                    <div className="w-28 h-28 rounded-full bg-[#0F172A] border-4 border-[#334155] flex items-center justify-center mb-2">
-                        <Users className="w-12 h-12 text-[#94A3B8]" />
-                    </div>
-
-                    <div className="w-full space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest ml-4">Ton Pseudo</label>
-                            <Input 
-                                placeholder="PseudoCool7074" 
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="h-14 text-xl text-center font-bold rounded-2xl"
-                            />
-                        </div>
-
-                        {activeTab === 'join' && (
-                            <div className="space-y-2 animate-in slide-in-from-right">
-                                <label className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest ml-4">Code de la salle</label>
-                                <Input 
-                                    placeholder="CODE" 
-                                    value={code}
-                                    onChange={(e) => setCode(e.target.value.toUpperCase())}
-                                    className="h-14 text-xl text-center font-bold rounded-2xl uppercase font-mono tracking-widest"
-                                />
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* MAIN BUTTON - Fond #6366F1 */}
-                <Button 
-                    onClick={handleAction}
-                    variant="purple"
-                    className={`w-full h-16 mt-6 text-xl font-bold uppercase tracking-widest rounded-2xl`}
+      <section className="flex-1 flex items-center justify-center px-6 py-8">
+        <div className="max-w-5xl w-full mx-auto">
+          <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-stretch">
+            <div className="bg-brand-card border border-brand-border rounded-xl shadow-card p-6 w-full flex flex-col gap-5">
+              <div className="bg-brand-inner rounded-lg p-1 flex w-full">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('create')}
+                  className={activeTab === 'create'
+                    ? 'flex-1 text-center bg-accent-primary text-tx-primary rounded-md px-4 py-2 text-sm font-semibold transition-all duration-200'
+                    : 'flex-1 text-center text-tx-secondary hover:text-tx-primary px-4 py-2 text-sm transition-colors duration-200 cursor-pointer'}
                 >
-                    {activeTab === 'create' ? 'DÉMARRER' : 'ENTRER'}
-                </Button>
+                  Creer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('join')}
+                  className={activeTab === 'join'
+                    ? 'flex-1 text-center bg-accent-primary text-tx-primary rounded-md px-4 py-2 text-sm font-semibold transition-all duration-200'
+                    : 'flex-1 text-center text-tx-secondary hover:text-tx-primary px-4 py-2 text-sm transition-colors duration-200 cursor-pointer'}
+                >
+                  Rejoindre
+                </button>
+              </div>
+
+              {activeTab === 'create' ? (
+                <form onSubmit={handleAction} className="flex flex-col gap-4">
+                  <div>
+                    <label className="text-tx-secondary text-sm font-medium mb-1 block">
+                      Ton pseudo
+                    </label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-brand-inner border border-brand-border rounded-md px-4 py-2.5 text-tx-primary placeholder:text-tx-muted focus:outline-none focus:border-accent-primary transition-colors duration-200"
+                      placeholder="Choisis ton pseudo"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isCreateDisabled}
+                    className="w-full mt-2 bg-accent-primary hover:bg-accent-primary-h text-tx-primary font-display font-bold rounded-md py-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-glow active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                  >
+                    Demarrer
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleAction} className="flex flex-col gap-4">
+                  <div>
+                    <label className="text-tx-secondary text-sm font-medium mb-1 block">
+                      Ton pseudo
+                    </label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-brand-inner border border-brand-border rounded-md px-4 py-2.5 text-tx-primary placeholder:text-tx-muted focus:outline-none focus:border-accent-primary transition-colors duration-200"
+                      placeholder="Ton pseudo"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-tx-secondary text-sm font-medium mb-1 block">
+                      Code de la salle
+                    </label>
+                    <input
+                      type="text"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.toUpperCase())}
+                      className="w-full bg-brand-inner border border-brand-border rounded-md px-4 py-2.5 text-tx-primary placeholder:text-tx-muted focus:outline-none focus:border-accent-primary transition-colors duration-200"
+                      placeholder="Code de la salle (ex: ABC123)"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isJoinDisabled}
+                    className="w-full mt-2 bg-accent-secondary hover:opacity-90 text-tx-primary font-display font-bold rounded-md py-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-glow-cyan active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                  >
+                    Rejoindre
+                  </button>
+                </form>
+              )}
             </div>
 
-            {/* RIGHT PANEL: HOW TO PLAY - Cartes avec fond #1E293B */}
-            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-6 shadow-[4px_4px_0px_0px_#020617] flex flex-col h-full min-h-[440px] relative overflow-hidden">
-                { /* decorative line removed to clean UI as requested */ }
-                
-                <h2 className="text-xl font-bold text-center text-[#F8FAFC] uppercase tracking-widest mb-4">
-                    COMMENT JOUER
-                </h2>
-
-                <div className="flex-1 flex flex-col items-center justify-center text-center relative">
-                    {/* Animated Scene */}
-                    <div className="z-10 w-full max-w-sm">
-                        <div className="mb-4 h-28 w-full flex items-center justify-center">
-                            <div className="w-full h-full bg-[#0F172A] border-4 border-[#334155] rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-500">
-                                
-                                {/* Step 1: Create/Join */}
-                                {currentStep === 0 && (
-                                    <div className="relative w-full h-full flex items-center justify-center gap-3">
-                                        <div className="absolute inset-0 bg-indigo-500/10 animate-pulse-slow"></div>
-                                        <div className="w-14 h-14 bg-[#3B82F6] rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-[4px_4px_0px_0px_#020617]" style={{ animationDelay: '0s' }}>
-                                            <Users className="w-7 h-7 text-white" />
-                                        </div>
-                                        <div className="w-14 h-14 bg-[#6366F1] rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-[4px_4px_0px_0px_#020617]" style={{ animationDelay: '0.2s' }}>
-                                            <Users className="w-7 h-7 text-white" />
-                                        </div>
-                                        <div className="w-14 h-14 bg-green-500 rounded-full border-4 border-white flex items-center justify-center animate-bounce shadow-[4px_4px_0px_0px_#020617]" style={{ animationDelay: '0.4s' }}>
-                                            <Users className="w-7 h-7 text-white" />
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Step 2: Choose Game */}
-                                {currentStep === 1 && (
-                                    <div className="relative w-full h-full flex items-center justify-center">
-                                        <div className="absolute inset-0 bg-purple-500/10 animate-pulse-slow"></div>
-                                        <div className="w-24 h-32 bg-white rounded-xl border-4 border-slate-200 shadow-[4px_4px_0px_0px_#020617] transform -rotate-12 absolute left-1/4 top-8 animate-float-up" style={{ animationDuration: '3s' }}></div>
-                                        <div className="w-24 h-32 bg-[#6366F1] rounded-xl border-4 border-indigo-300 shadow-[4px_4px_0px_0px_#020617] transform rotate-6 z-10 flex items-center justify-center animate-pulse">
-                                            <Gamepad2 className="w-12 h-12 text-white" />
-                                        </div>
-                                        <div className="w-24 h-32 bg-[#334155] rounded-xl border-4 border-slate-600 shadow-[4px_4px_0px_0px_#020617] transform rotate-12 absolute right-1/4 top-8 animate-float-up" style={{ animationDuration: '4s' }}></div>
-                                    </div>
-                                )}
-
-                                {/* Step 3: Play - Leaderboard Animé */}
-                                {currentStep === 2 && (
-                                    <div className="relative w-full h-full flex items-center justify-center overflow-hidden p-2">
-                                        <div className="absolute inset-0 bg-[#6366F1]/10 animate-pulse-slow"></div>
-                                        
-                                
-                                        {/* Leaderboard replaces placeholder, occupying available space (no background) */}
-                                        <div className="w-full max-w-2xl rounded-xl p-4 overflow-hidden">
-                                            <div className="font-bold text-[#F8FAFC] mb-2">Leaderboard</div>
-                                            <div className="space-y-2 overflow-y-auto" style={{ maxHeight: '28vh' }}>
-                                                <div className="flex items-center justify-between px-3 py-2 rounded-lg text-sm bg-yellow-500/20 border border-yellow-500/30">
-                                                    <span className="text-yellow-400 font-bold">P1</span>
-                                                    <AnimatedNumber value={2500} className="text-yellow-400 font-bold" />
-                                                </div>
-                                                <div className="flex items-center justify-between px-3 py-2 rounded-lg text-sm bg-slate-500/20 border border-slate-500/30">
-                                                    <span className="text-slate-300 font-bold">P2</span>
-                                                    <AnimatedNumber value={1800} className="text-[#93A3B8] font-bold" />
-                                                </div>
-                                                <div className="flex items-center justify-between px-3 py-2 rounded-lg text-sm bg-amber-700/20 border border-amber-700/30">
-                                                    <span className="text-amber-400 font-bold">P3</span>
-                                                    <AnimatedNumber value={1200} className="text-amber-300 font-bold" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                            </div>
-                        </div>
-                        
-                        <h3 className="text-lg font-bold text-[#F8FAFC] mb-2 uppercase tracking-wide min-h-[30px]">
-                            {STEPS[currentStep].title}
-                        </h3>
-                        <p className="text-sm text-[#94A3B8] font-medium leading-relaxed min-h-[40px]">
-                            {STEPS[currentStep].description}
-                        </p>
+            <div className="bg-brand-card border border-brand-border rounded-xl shadow-card p-6 w-full flex flex-col">
+              <div className="flex-1 flex flex-col items-center text-center gap-3 justify-center py-4">
+                <SlideIcon size={44} className="text-accent-primary" />
+                <h2 className="font-display text-xl text-tx-primary">{slide.title}</h2>
+                <p className="text-tx-secondary text-sm leading-relaxed max-w-xs mx-auto">{slide.description}</p>
+                <div className="h-20 w-full mt-2 flex items-center justify-center">
+                  {currentStep === 0 && (
+                    <div className="bg-brand-inner rounded-lg px-6 py-3 flex items-center justify-center">
+                      {'#ABC123'.split('').map((char, index) => (
+                        <span
+                          key={`${char}-${index}`}
+                          className="font-mono text-accent-primary text-2xl font-bold"
+                          style={{
+                            opacity: 0,
+                            animation: 'fadeInChar 0.3s ease forwards',
+                            animationDelay: `${index * 0.1}s`,
+                          }}
+                        >
+                          {char}
+                        </span>
+                      ))}
                     </div>
-                </div>
-
-                {/* Carousel Dots */}
-                <div className="flex items-center justify-center gap-4 mt-4">
-                    <button onClick={() => setCurrentStep((prev) => (prev - 1 + STEPS.length) % STEPS.length)} className="p-1 text-[#94A3B8] hover:text-white transition-colors">
-                        <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <div className="flex gap-2">
-                        {STEPS.map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => setCurrentStep(i)}
-                                className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                                    i === currentStep 
-                                    ? 'bg-white scale-125 shadow-[0_0_10px_rgba(255,255,255,0.5)]' 
-                                    : 'bg-[#334155] hover:bg-[#475569]'
-                                }`}
-                            />
-                        ))}
+                  )}
+                  {currentStep === 1 && (
+                    <div className="flex gap-2 justify-center items-center h-20">
+                      {[0, 1, 2].map((idx) => (
+                        <div
+                          key={idx}
+                          className={idx === 1 ? 'bg-brand-inner rounded-md w-16 h-14 border-2 border-accent-primary' : 'bg-brand-inner rounded-md w-16 h-14'}
+                          style={{
+                            opacity: 0,
+                            animation: 'slideUp 0.4s ease forwards',
+                            animationDelay: `${idx * 0.15}s`,
+                          }}
+                        />
+                      ))}
                     </div>
-                    <button onClick={() => setCurrentStep((prev) => (prev + 1) % STEPS.length)} className="p-1 text-[#94A3B8] hover:text-white transition-colors">
-                        <ChevronRight className="w-6 h-6" />
-                    </button>
+                  )}
+                  {currentStep === 2 && (
+                    <div className="flex gap-2 justify-center items-end h-20">
+                      <div
+                        className="w-10 h-10 bg-tx-muted rounded-t-md"
+                        style={{
+                          transform: 'scaleY(0)',
+                          transformOrigin: 'bottom',
+                          animation: 'growUp 0.5s ease forwards 0.1s',
+                        }}
+                      />
+                      <div
+                        className="w-10 h-14 bg-accent-primary rounded-t-md"
+                        style={{
+                          transform: 'scaleY(0)',
+                          transformOrigin: 'bottom',
+                          animation: 'growUp 0.5s ease forwards 0s',
+                        }}
+                      />
+                      <div
+                        className="w-10 h-8 bg-brand-inner border border-brand-border rounded-t-md"
+                        style={{
+                          transform: 'scaleY(0)',
+                          transformOrigin: 'bottom',
+                          animation: 'growUp 0.5s ease forwards 0.2s',
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-brand-border">
+                <button
+                  type="button"
+                  onClick={previousSlide}
+                  className="bg-brand-inner rounded-md p-1.5 text-tx-secondary hover:text-tx-primary hover:bg-accent-primary transition-all duration-200"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <div className="flex gap-1.5 items-center">
+                  {STEPS.map((_, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => goToSlide(index)}
+                      className={index === currentStep ? 'w-5 h-2 bg-accent-primary rounded-full transition-all duration-300' : 'w-2 h-2 bg-brand-inner border border-brand-border rounded-full transition-all duration-300'}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={nextSlide}
+                  className="bg-brand-inner rounded-md p-1.5 text-tx-secondary hover:text-tx-primary hover:bg-accent-primary transition-all duration-200"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
             </div>
+          </div>
         </div>
+      </section>
 
-        {/* FOOTER */}
-        <div className="flex gap-6 text-sm font-bold text-[#94A3B8] uppercase tracking-widest mt-6">
-            <a href="#" className="hover:text-white transition-colors">Conditions</a>
-            <span>•</span>
-            <a href="#" className="hover:text-white transition-colors">Confidentialité</a>
-            <span>•</span>
-            <a href="#" className="hover:text-white transition-colors">Contact</a>
-            <span>•</span>
-            <a href="#" className="hover:text-white transition-colors">PatchNote</a>
-        </div>
-
-      </main>
-    </div>
+      <footer className="flex gap-6 justify-center flex-wrap py-5">
+        <a href="#" className="text-tx-muted text-xs hover:text-tx-secondary transition-colors duration-200">Conditions</a>
+        <a href="#" className="text-tx-muted text-xs hover:text-tx-secondary transition-colors duration-200">Confidentialite</a>
+        <a href="#" className="text-tx-muted text-xs hover:text-tx-secondary transition-colors duration-200">Contact</a>
+        <a href="#" className="text-tx-muted text-xs hover:text-tx-secondary transition-colors duration-200">Patch Notes</a>
+      </footer>
+    </main>
   );
 }

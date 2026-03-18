@@ -1,116 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Nunito:wght@700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Thème Bleu Gaming - IttolecHub */
-@layer base {
-  body {
-    @apply bg-[#0F172A] text-[#F8FAFC];
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    overflow-x: hidden;
-  }
-
-  button, a, input, select, textarea {
-    @apply transition-all duration-100;
-    touch-action: manipulation;
-  }
-
-  button, .select-none {
-    user-select: none;
-    -webkit-user-select: none;
-  }
+html, body {
+  background-color: #0F0F1A;
+  color: #F8F8FF;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+h1, h2, h3 {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
 }
 
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-15px); }
-  100% { transform: translateY(0px); }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Transitions globales */
-.transition-all, .transition-colors, .transition-opacity, .transition-transform {
-  transition-duration: 150ms !important;
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-/* Inputs : Style Bleu Gaming */
-input[type="text"],
-input[type="password"],
-input[type="email"],
-input[type="number"],
-input[type="range"],
-textarea {
-  @apply text-white bg-[#334155] border-none;
-}
-
-input::placeholder,
-textarea::placeholder {
-  @apply text-[#94A3B8];
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-[#0F172A] rounded;
-}
-
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  @apply bg-[#334155] rounded hover:bg-[#475569];
+  background: rgba(124,58,237,0.4);
+  border-radius: 9999px;
 }
 
-/* Floating Emoji Animation */
-@keyframes floatUp {
-  0% {
-    transform: translateY(0) scale(0.5) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-    transform: translateY(-20px) scale(1.2) rotate(-10deg);
-  }
-  50% {
-    transform: translateY(-150px) scale(1) rotate(10deg);
-  }
-  100% {
-    transform: translateY(-300px) scale(0.8) rotate(-5deg);
-    opacity: 0;
-  }
+@keyframes fadeInChar {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.animate-float-up {
-  animation: floatUp 2s ease-out forwards;
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Zone de contenu : ne pas passer sous le toggle thème */
-@media (min-width: 640px) {
-  .game-layout {
-    padding-right: 4rem;
-  }
-}
-
-@media (max-width: 639px) {
-  .game-layout {
-    padding-top: 3.5rem;
-  }
+@keyframes growUp {
+  from { transform: scaleY(0); transform-origin: bottom; }
+  to   { transform: scaleY(1); transform-origin: bottom; }
 }
