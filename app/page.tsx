@@ -47,7 +47,7 @@ export default function Home() {
       setCurrentStep((prev) => (prev + 1) % STEPS.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, [currentStep]);
+  }, []);
 
   useEffect(() => {
     if (currentStep !== 1) return;
@@ -106,29 +106,29 @@ export default function Home() {
           0% { opacity: 0; transform: translateY(8px); }
           100% { opacity: 1; transform: translateY(0); }
         }
+        @keyframes ih-scanUp {
+          0% { transform: translateY(40%); opacity: 0; }
+          15% { opacity: 0.45; }
+          85% { opacity: 0.45; }
+          100% { transform: translateY(-40%); opacity: 0; }
+        }
         .ih-anim { will-change: transform, opacity; }
       `}</style>
 
-      <header className="pt-8 md:pt-10 text-center px-6">
-        <div className="inline-flex items-center gap-3">
+      <header className="pt-10 md:pt-12 text-center px-6">
+        <div className="flex items-center justify-center">
           {logoVisible && (
             <Image
               src="/logo-site.png"
-              alt="IttolecHub"
-              width={96}
-              height={40}
-              className="h-10 w-auto select-none"
+              alt="ItollecHub"
+              width={560}
+              height={240}
+              className="h-24 md:h-32 w-auto select-none"
               priority
               onError={() => setLogoVisible(false)}
             />
           )}
-          <span className="font-display font-black tracking-tight text-3xl md:text-4xl bg-gradient-to-r from-accent-primary to-accent-secondary text-transparent bg-clip-text">
-            ItollecHub
-          </span>
         </div>
-        <p className="mt-2 text-tx-secondary text-sm md:text-base">
-          Mini-jeux multijoueurs entre amis
-        </p>
       </header>
 
       <section className="flex-1 flex items-center py-8 md:py-10">
@@ -137,10 +137,6 @@ export default function Home() {
             <div className="md:flex-1 bg-brand-card border-2 border-brand-border rounded-xl shadow-card p-6 md:p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-brand-border bg-brand-inner px-3 py-1 text-xs text-tx-secondary">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-success" />
-                    <span>Multijoueur temps réel</span>
-                  </div>
                   <h2 className="mt-4 font-display text-2xl md:text-3xl">
                     {activeTab === 'create' ? 'Créer une room' : 'Rejoindre une room'}
                   </h2>
@@ -151,7 +147,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="shrink-0">
-                  <div className="rounded-full border-2 border-brand-border bg-brand-inner p-3 shadow-brutal-dark">
+                  <div className="rounded-full border-2 border-brand-border bg-brand-inner p-3">
                     <Users className="h-6 w-6 text-tx-secondary" />
                   </div>
                 </div>
@@ -163,10 +159,10 @@ export default function Home() {
                     type="button"
                     onClick={() => setActiveTab('create')}
                     className={cn(
-                      'h-11 rounded-lg font-display font-extrabold tracking-wide transition-transform',
+                      'h-11 rounded-xl font-display font-extrabold tracking-wide transition-colors border-2',
                       activeTab === 'create'
-                        ? 'bg-accent-primary text-tx-base shadow-brutal'
-                        : 'bg-transparent text-tx-secondary hover:text-tx-base'
+                        ? 'bg-brand-card text-tx-base border-accent-primary'
+                        : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border'
                     )}
                   >
                     Créer
@@ -175,10 +171,10 @@ export default function Home() {
                     type="button"
                     onClick={() => setActiveTab('join')}
                     className={cn(
-                      'h-11 rounded-lg font-display font-extrabold tracking-wide transition-transform',
+                      'h-11 rounded-xl font-display font-extrabold tracking-wide transition-colors border-2',
                       activeTab === 'join'
-                        ? 'bg-accent-secondary text-brand-bg shadow-brutal-cyan'
-                        : 'bg-transparent text-tx-secondary hover:text-tx-base'
+                        ? 'bg-brand-card text-tx-base border-accent-secondary'
+                        : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border'
                     )}
                   >
                     Rejoindre
@@ -195,7 +191,7 @@ export default function Home() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="PseudoCool7074"
-                    className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-accent-secondary focus:ring-2 focus:ring-accent-secondary/20 transition-colors"
+                    className="w-full h-12 rounded-xl bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-accent-secondary focus:ring-2 focus:ring-accent-secondary/20 transition-colors"
                   />
                 </div>
 
@@ -208,7 +204,7 @@ export default function Home() {
                       value={code}
                       onChange={(e) => setCode(e.target.value.toUpperCase())}
                       placeholder="ABC123"
-                      className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 font-mono tracking-widest text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-accent-secondary focus:ring-2 focus:ring-accent-secondary/20 transition-colors"
+                      className="w-full h-12 rounded-xl bg-brand-inner border-2 border-brand-border px-4 font-mono tracking-widest text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-accent-secondary focus:ring-2 focus:ring-accent-secondary/20 transition-colors"
                       inputMode="text"
                       autoCapitalize="characters"
                     />
@@ -219,40 +215,28 @@ export default function Home() {
                   type="submit"
                   disabled={!canSubmit}
                   className={cn(
-                    'w-full h-14 rounded-xl font-display font-black tracking-wider transition-all',
+                    'w-full h-14 rounded-xl font-display font-black tracking-wider transition-colors border-2',
                     activeTab === 'create'
-                      ? 'bg-accent-primary text-tx-base shadow-brutal hover:translate-x-1 hover:translate-y-1 hover:shadow-none'
-                      : 'bg-accent-secondary text-brand-bg shadow-brutal-cyan hover:translate-x-1 hover:translate-y-1 hover:shadow-none',
-                    !canSubmit && 'opacity-50 shadow-none hover:translate-x-0 hover:translate-y-0 cursor-not-allowed'
+                      ? 'bg-brand-inner text-tx-base border-accent-primary hover:bg-brand-card'
+                      : 'bg-brand-inner text-tx-base border-accent-secondary hover:bg-brand-card',
+                    !canSubmit && 'opacity-50 cursor-not-allowed'
                   )}
                 >
                   {activeTab === 'create' ? 'Démarrer' : 'Rejoindre'}
                 </button>
               </form>
-
-              <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-tx-secondary">
-                <div className="rounded-lg border border-brand-border bg-brand-inner px-3 py-2">
-                  Code court généré
-                </div>
-                <div className="rounded-lg border border-brand-border bg-brand-inner px-3 py-2">
-                  Partage instantané
-                </div>
-              </div>
             </div>
 
             <div className="md:flex-1 bg-brand-card border-2 border-brand-border rounded-xl shadow-card p-6 md:p-7 overflow-hidden">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h2 className="font-display text-2xl md:text-3xl">Comment jouer</h2>
-                  <p className="mt-1 text-sm text-tx-secondary">
-                    Trois étapes. Une vibe. Zéro prise de tête.
-                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={goPrev}
-                    className="h-10 w-10 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base transition-colors"
+                    className="h-10 w-10 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base transition-colors"
                     aria-label="Slide précédent"
                   >
                     <ChevronLeft className="h-5 w-5 mx-auto" />
@@ -260,7 +244,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={goNext}
-                    className="h-10 w-10 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base transition-colors"
+                    className="h-10 w-10 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base transition-colors"
                     aria-label="Slide suivant"
                   >
                     <ChevronRight className="h-5 w-5 mx-auto" />
@@ -282,48 +266,50 @@ export default function Home() {
                         <div className="text-xs text-tx-muted">Partage-le à tes amis</div>
                       </div>
 
-                      <div className="flex items-center justify-center">
-                        <div className="rounded-xl border-2 border-brand-border bg-brand-card px-6 py-4 shadow-brutal-dark">
-                          <div className="font-mono text-3xl md:text-4xl tracking-[0.25em] text-tx-base">
-                            {['A', 'B', 'C', '1', '2', '3'].map((ch, i) => (
-                              <span
-                                key={i}
-                                className="ih-anim inline-block"
-                                style={{
-                                  animation: 'ih-type 360ms ease-out forwards',
-                                  animationDelay: `${i * 120}ms`,
-                                  opacity: 0,
-                                }}
-                              >
-                                {ch}
-                              </span>
-                            ))}
+                      <div className="h-44 md:h-52 flex flex-col items-center justify-center gap-6">
+                        <div className="flex items-center justify-center">
+                          <div className="rounded-xl border-2 border-brand-border bg-brand-card px-7 py-5">
+                            <div className="font-mono text-4xl md:text-5xl tracking-[0.28em] text-tx-base">
+                              {['A', 'B', 'C', '1', '2', '3'].map((ch, i) => (
+                                <span
+                                  key={i}
+                                  className="ih-anim inline-block"
+                                  style={{
+                                    animation: 'ih-type 360ms ease-out forwards',
+                                    animationDelay: `${i * 120}ms`,
+                                    opacity: 0,
+                                  }}
+                                >
+                                  {ch}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center justify-center gap-3">
-                        {[
-                          { initial: 'N', bg: 'bg-accent-primary' },
-                          { initial: 'L', bg: 'bg-accent-secondary' },
-                          { initial: 'M', bg: 'bg-accent-success' },
-                          { initial: 'S', bg: 'bg-accent-danger' },
-                        ].map((p, i) => (
-                          <div
-                            key={p.initial}
-                            className={cn(
-                              'ih-anim h-11 w-11 rounded-full border-2 border-brand-border text-brand-bg flex items-center justify-center font-display font-black shadow-brutal-dark',
-                              p.bg
-                            )}
-                            style={{
-                              animation: 'ih-pop 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                              animationDelay: `${820 + i * 140}ms`,
-                              opacity: 0,
-                            }}
-                          >
-                            {p.initial}
-                          </div>
-                        ))}
+                        <div className="flex items-center justify-center gap-3">
+                          {[
+                            { initial: 'N', bg: 'bg-accent-primary' },
+                            { initial: 'L', bg: 'bg-accent-secondary' },
+                            { initial: 'M', bg: 'bg-accent-success' },
+                            { initial: 'S', bg: 'bg-accent-danger' },
+                          ].map((p, i) => (
+                            <div
+                              key={p.initial}
+                              className={cn(
+                                'ih-anim h-12 w-12 rounded-full border-2 border-brand-border text-brand-bg flex items-center justify-center font-display font-black',
+                                p.bg
+                              )}
+                              style={{
+                                animation: 'ih-pop 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                                animationDelay: `${820 + i * 140}ms`,
+                                opacity: 0,
+                              }}
+                            >
+                              {p.initial}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -337,7 +323,7 @@ export default function Home() {
                         <div className="text-xs text-tx-muted">Sélection automatique</div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="h-44 md:h-52 grid grid-cols-2 gap-3 content-center">
                         {[
                           { name: 'PokéGuessr', icon: Zap, tint: 'text-accent-secondary' },
                           { name: 'DrawGuessr', icon: PenTool, tint: 'text-accent-primary' },
@@ -352,18 +338,18 @@ export default function Home() {
                               className={cn(
                                 'rounded-xl border-2 bg-brand-card p-4 transition-all',
                                 selected
-                                  ? 'border-accent-primary shadow-brutal'
+                                  ? 'border-accent-primary'
                                   : 'border-brand-border opacity-70'
                               )}
                             >
                               <div className="flex items-center gap-3">
                                 <div
                                   className={cn(
-                                    'h-10 w-10 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center',
+                                    'h-11 w-11 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center',
                                     selected ? 'scale-[1.02]' : ''
                                   )}
                                 >
-                                  <Icon className={cn('h-5 w-5', g.tint)} />
+                                  <Icon className={cn('h-6 w-6', g.tint)} />
                                 </div>
                                 <div className="min-w-0">
                                   <div className="font-display font-extrabold text-tx-base truncate">
@@ -385,104 +371,56 @@ export default function Home() {
                     <div className="space-y-5">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-semibold tracking-widest uppercase text-tx-secondary">
-                          Podium
+                          Leaderboard
                         </div>
                         <div className="text-xs text-tx-muted">Fin de partie</div>
                       </div>
 
-                      <div className="relative flex items-end justify-center gap-4 h-40 md:h-44">
-                        <div className="relative flex flex-col items-center gap-2">
-                          <div
-                            className="ih-anim origin-bottom w-20 md:w-24 rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal-dark"
-                            style={{
-                              height: '88%',
-                              transform: 'scaleY(0)',
-                              animation: 'ih-rise 560ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                              animationDelay: '80ms',
-                            }}
-                          />
-                          <div
-                            className="ih-anim h-10 w-10 rounded-full border-2 border-brand-border bg-accent-secondary text-brand-bg flex items-center justify-center font-display font-black shadow-brutal-dark"
-                            style={{
-                              opacity: 0,
-                              animation: 'ih-pop 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                              animationDelay: '540ms',
-                            }}
-                          >
-                            L
-                          </div>
-                          <div
-                            className="ih-anim text-xs text-tx-secondary"
-                            style={{ opacity: 0, animation: 'ih-fadeUp 320ms ease-out forwards', animationDelay: '720ms' }}
-                          >
-                            <AnimatedNumber value={1820} className="font-display font-extrabold" />
-                          </div>
-                        </div>
+                      <div className="relative h-44 md:h-52 rounded-xl border-2 border-brand-border bg-brand-card p-4 overflow-hidden">
+                        <div
+                          className="pointer-events-none absolute inset-0"
+                          style={{
+                            background:
+                              'linear-gradient(0deg, rgba(124,58,237,0) 0%, rgba(124,58,237,0.10) 45%, rgba(124,58,237,0) 100%)',
+                            animation: 'ih-scanUp 1800ms linear infinite',
+                          }}
+                        />
 
-                        <div className="relative flex flex-col items-center gap-2">
-                          <div
-                            className="ih-anim absolute -top-6 left-1/2 -translate-x-1/2 text-accent-primary"
-                            style={{
-                              opacity: 0,
-                              animation: 'ih-pop 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                              animationDelay: '640ms',
-                            }}
-                          >
-                            <Crown className="h-7 w-7" />
-                          </div>
-                          <div
-                            className="ih-anim origin-bottom w-20 md:w-24 rounded-xl border-2 border-accent-primary bg-brand-card shadow-brutal"
-                            style={{
-                              height: '100%',
-                              transform: 'scaleY(0)',
-                              animation: 'ih-rise 560ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                              animationDelay: '140ms',
-                            }}
-                          />
-                          <div
-                            className="ih-anim h-10 w-10 rounded-full border-2 border-brand-border bg-accent-primary text-tx-base flex items-center justify-center font-display font-black shadow-brutal-dark"
-                            style={{
-                              opacity: 0,
-                              animation: 'ih-pop 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                              animationDelay: '600ms',
-                            }}
-                          >
-                            N
-                          </div>
-                          <div
-                            className="ih-anim text-xs text-tx-secondary"
-                            style={{ opacity: 0, animation: 'ih-fadeUp 320ms ease-out forwards', animationDelay: '780ms' }}
-                          >
-                            <AnimatedNumber value={2500} className="font-display font-extrabold" />
-                          </div>
-                        </div>
+                        <div className="relative h-full flex items-end justify-between gap-3">
+                          {[
+                            { initial: 'N', score: 2000, height: 0.72, accent: 'border-accent-primary' },
+                            { initial: 'M', score: 2800, height: 1.0, accent: 'border-accent-secondary' },
+                            { initial: 'L', score: 2300, height: 0.84, accent: 'border-accent-success' },
+                          ].map((p, idx) => (
+                            <div key={p.initial} className="flex-1 flex flex-col items-center justify-end gap-3">
+                              <div className="relative flex items-center justify-center h-9">
+                                {idx === 1 && (
+                                  <div className="absolute -top-6 text-accent-primary">
+                                    <Crown className="h-7 w-7" />
+                                  </div>
+                                )}
+                                <div className="h-10 w-10 rounded-full border-2 border-brand-border bg-brand-inner text-tx-base flex items-center justify-center font-display font-black">
+                                  {p.initial}
+                                </div>
+                              </div>
 
-                        <div className="relative flex flex-col items-center gap-2">
-                          <div
-                            className="ih-anim origin-bottom w-20 md:w-24 rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal-dark"
-                            style={{
-                              height: '70%',
-                              transform: 'scaleY(0)',
-                              animation: 'ih-rise 560ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                              animationDelay: '200ms',
-                            }}
-                          />
-                          <div
-                            className="ih-anim h-10 w-10 rounded-full border-2 border-brand-border bg-accent-success text-brand-bg flex items-center justify-center font-display font-black shadow-brutal-dark"
-                            style={{
-                              opacity: 0,
-                              animation: 'ih-pop 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                              animationDelay: '660ms',
-                            }}
-                          >
-                            M
-                          </div>
-                          <div
-                            className="ih-anim text-xs text-tx-secondary"
-                            style={{ opacity: 0, animation: 'ih-fadeUp 320ms ease-out forwards', animationDelay: '840ms' }}
-                          >
-                            <AnimatedNumber value={1210} className="font-display font-extrabold" />
-                          </div>
+                              <div className="w-full flex flex-col items-center justify-end gap-2">
+                                <div
+                                  className={cn('ih-anim w-full rounded-xl border-2 bg-brand-inner', p.accent)}
+                                  style={{
+                                    height: `${Math.round(120 * p.height)}px`,
+                                    transform: 'scaleY(0)',
+                                    transformOrigin: 'bottom',
+                                    animation: 'ih-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                                    animationDelay: `${120 + idx * 80}ms`,
+                                  }}
+                                />
+                                <div className="text-xs text-tx-secondary font-display font-extrabold">
+                                  <AnimatedNumber value={p.score} className="font-display font-extrabold" />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -491,10 +429,10 @@ export default function Home() {
 
                 <div className="mt-4 flex items-start justify-between gap-6">
                   <div className="min-w-0">
-                    <div className="font-display font-extrabold text-lg">
+                    <div className="font-display font-extrabold text-xl md:text-2xl leading-none min-h-[2.5rem]">
                       {STEPS[currentStep].title}
                     </div>
-                    <div className="text-sm text-tx-secondary mt-1">
+                    <div className="text-sm text-tx-secondary mt-2 min-h-[2.5rem]">
                       {STEPS[currentStep].description}
                     </div>
                   </div>
