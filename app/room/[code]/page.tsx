@@ -804,12 +804,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     return (
       <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-4 text-center space-y-6">
         <LogOut className="w-24 h-24 text-red-500 animate-bounce" />
-        <h1 className="text-4xl font-black text-[#F8FAFC]">Cette salle n'existe plus</h1>
+        <h1 className="text-4xl font-black text-[#F8FAFC]">Cette salle n&apos;existe plus</h1>
         <p className="text-[#94A3B8] text-lg max-w-md">
-          L'hôte a quitté ou la salle a été supprimée.
+          L&apos;hôte a quitté ou la salle a été supprimée.
         </p>
         <Button onClick={() => router.push('/')} size="lg" variant="secondary">
-          Retour à l'accueil
+          Retour à l&apos;accueil
         </Button>
       </div>
     );
@@ -1076,7 +1076,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                 <div className="animate-spin-slow">
                                     <Settings className="h-12 w-12 opacity-20" />
                                 </div>
-                                <p>L'hôte choisit un jeu...</p>
+                                <p>L&apos;hôte choisit un jeu...</p>
                             </div>
                         )}
                     </div>
@@ -1095,7 +1095,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         </div>
                         {!isHost && (
                             <span className="text-xs font-medium px-3 py-1 rounded-full bg-[#334155] text-[#94A3B8] border border-[#475569]">
-                                Synchronisé avec l'hôte
+                                Synchronisé avec l&apos;hôte
                             </span>
                         )}
                     </div>
