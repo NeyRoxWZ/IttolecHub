@@ -231,23 +231,26 @@ export default function Home() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h2 className="font-display text-2xl md:text-3xl">Comment jouer</h2>
+                  <p aria-hidden className="mt-2 text-sm text-tx-secondary min-h-[2.5rem] opacity-0">
+                    placeholder
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={goPrev}
-                    className="h-10 w-10 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base transition-colors"
+                    className="h-12 w-12 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base transition-colors"
                     aria-label="Slide précédent"
                   >
-                    <ChevronLeft className="h-5 w-5 mx-auto" />
+                    <ChevronLeft className="h-6 w-6 mx-auto" />
                   </button>
                   <button
                     type="button"
                     onClick={goNext}
-                    className="h-10 w-10 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base transition-colors"
+                    className="h-12 w-12 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base transition-colors"
                     aria-label="Slide suivant"
                   >
-                    <ChevronRight className="h-5 w-5 mx-auto" />
+                    <ChevronRight className="h-6 w-6 mx-auto" />
                   </button>
                 </div>
               </div>
