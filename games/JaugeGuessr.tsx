@@ -497,7 +497,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
 
                             {/* User's Needle (during guessing or results) */}
                             {(!isGuider && (currentPhase === 'guessing' || currentPhase === 'round_results')) && (
-                                <g transform={`rotate(${180 - userGuess}, 100, 100)`}>
+                                <g transform={`rotate(${userGuess}, 100, 100)`}>
                                     <line x1="20" y1="100" x2="100" y2="100" stroke="#FF2A55" strokeWidth="4" strokeLinecap="round" />
                                     <circle cx="20" cy="100" r="6" fill="#FF2A55" stroke="#000" strokeWidth="2" />
                                 </g>
@@ -508,7 +508,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                 const guess = guesses[seeker.id];
                                 if (guess === undefined || seeker.id === playerId) return null; // Don't draw own needle twice
                                 return (
-                                    <g key={seeker.id} transform={`rotate(${180 - guess}, 100, 100)`}>
+                                    <g key={seeker.id} transform={`rotate(${guess}, 100, 100)`}>
                                         <line x1="20" y1="100" x2="100" y2="100" stroke="#06B6D4" strokeWidth="3" strokeLinecap="round" opacity="0.8" />
                                         <circle cx="20" cy="100" r="5" fill="#06B6D4" stroke="#000" strokeWidth="1.5" />
                                     </g>
