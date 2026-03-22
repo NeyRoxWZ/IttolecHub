@@ -767,7 +767,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   if (showPseudoModal) {
       return (
-          <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center p-4">
+          <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4">
               <div className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal animate-in zoom-in duration-300">
                   <div className="flex justify-center mb-6">
                       <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl">
@@ -808,7 +808,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   if (isRoomDeleted) {
     return (
-      <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center p-4 text-center space-y-6">
+      <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4 text-center space-y-6">
         <LogOut className="w-24 h-24 text-tx-base animate-bounce" />
         <h1 className="font-display text-4xl font-black text-tx-base">Cette salle n&apos;existe plus</h1>
         <p className="text-tx-secondary text-lg max-w-md">
@@ -837,13 +837,20 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           <div className="flex flex-col items-center justify-center gap-10 animate-in fade-in zoom-in duration-300">
               <Image src="/logo-site.png" alt="IttolecHub" width={320} height={192} className="h-24 md:h-32 w-auto select-none" />
 
-              <div className="relative inline-block bg-white p-6 border-4 border-brand-border rounded-[32px] shadow-brutal">
-                  <QRCode 
-                      value={`${window.location.origin}/room/${params.code}?source=qrcode`}
-                      size={280}
-                      fgColor="#000000"
-                      bgColor="transparent"
-                  />
+              <div className="relative inline-flex items-center justify-center bg-white p-6 border-4 border-brand-border rounded-[32px] shadow-brutal">
+                  <div className="rounded-2xl overflow-hidden">
+                      <QRCode 
+                          value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
+                          size={280}
+                          level="H"
+                          fgColor="#000000"
+                          bgColor="transparent"
+                      />
+                  </div>
+                  {/* Logo central */}
+                  <div className="absolute flex items-center justify-center w-24 h-16 bg-brand-bg border-4 border-brand-border rounded-xl shadow-brutal overflow-hidden">
+                      <Image src="/logo-site.png" alt="IttolecHub" width={80} height={40} className="object-contain" />
+                  </div>
               </div>
 
               <div className="w-full max-w-md space-y-3">
@@ -876,7 +883,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg text-tx-base p-4 sm:p-6 font-sans selection:bg-tx-base/30 flex flex-col">
+    <div className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6 font-sans selection:bg-tx-base/30 flex flex-col">
       <div className="relative z-10 w-full max-w-6xl mx-auto flex-1 flex flex-col">
         
         {/* Header */}
@@ -888,15 +895,9 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 >
                     <LogOut className="h-5 w-5" />
                 </button>
-                <div className="flex flex-col">
-                    <h1 className="font-display text-2xl font-black leading-none">
-                        Salon de jeu
-                    </h1>
-                    <div className="flex items-center gap-2 text-xs font-bold text-tx-secondary mt-1">
-                        <span className="w-2.5 h-2.5 rounded-full border border-brand-border bg-tx-base animate-pulse" />
-                        En ligne
-                    </div>
-                </div>
+                <h1 className="font-display text-2xl font-black leading-none mt-1">
+                    Salon de jeu
+                </h1>
             </div>
 
             <div className="flex items-center gap-3">
@@ -905,8 +906,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         onClick={() => setShowJoinOverlay(true)}
                         className="hidden sm:flex items-center gap-2 h-12 px-4 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-base hover:border-tx-base shadow-brutal transition-all"
                     >
-                        <QrCode className="w-5 h-5" />
-                        <span className="font-bold">QR Code</span>
+                        <Share2 className="w-5 h-5" />
+                        <span className="font-bold">Partage</span>
                     </button>
                 )}
 

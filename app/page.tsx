@@ -86,7 +86,7 @@ export default function Home() {
   const goNext = () => setCurrentStep((prev) => (prev + 1) % STEPS.length);
 
   return (
-    <main className="bg-brand-bg min-h-screen flex flex-col justify-between md:overflow-hidden">
+    <main className="bg-transparent min-h-screen flex flex-col justify-between md:overflow-hidden">
       <style jsx global>{`
         @keyframes ih-rise {
           0% { transform: scaleY(0); opacity: 0; }
