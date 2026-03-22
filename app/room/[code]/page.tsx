@@ -279,15 +279,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       qrRef.current.innerHTML = ''; // Clear previous
       
       const qrCode = new QRCodeStyling({
-        width: 320,
-        height: 320,
+        width: 280,
+        height: 280,
         shape: "circle",
         data: `${window.location.origin}/room/${params.code}?source=qrcode`,
         image: "/logo-site.png",
         imageOptions: {
           hideBackgroundDots: true,
-          imageSize: 0.35,
-          margin: 6,
+          imageSize: 0.3,
+          margin: 10,
           crossOrigin: "anonymous"
         },
         dotsOptions: {
@@ -295,15 +295,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           color: "#000000"
         },
         cornersSquareOptions: {
-          type: "extra-rounded",
-          color: "#000000"
+          type: "extra-rounded"
         },
         cornersDotOptions: {
-          type: "dot",
-          color: "#000000"
+          type: "dot"
         },
         backgroundOptions: {
-          color: "transparent"
+          color: "#ffffff"
         },
         qrOptions: {
           errorCorrectionLevel: "H"
@@ -878,8 +876,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           <div className="flex flex-col items-center justify-center gap-10 animate-in fade-in zoom-in duration-300">
               <Image src="/logo-site.png" alt="IttolecHub" width={320} height={192} className="h-24 md:h-32 w-auto select-none" />
 
-              <div className="relative inline-flex items-center justify-center p-2 rounded-[32px] bg-white border-4 border-brand-border shadow-brutal">
-                  <div className="rounded-[24px] overflow-hidden bg-transparent" ref={qrRef} />
+              <div className="relative inline-flex items-center justify-center bg-white p-6 border-4 border-brand-border rounded-[32px] shadow-brutal">
+                  <div className="rounded-2xl overflow-hidden" ref={qrRef} />
               </div>
 
               <div className="w-full max-w-md space-y-3">
