@@ -432,10 +432,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           if (room.settings.isPrivate !== undefined) {
               setIsPrivateMode(room.settings.isPrivate);
           }
-          if (room.settings.banned && Array.isArray(room.settings.banned) && room.settings.banned.includes(storedName)) {
-              toast.error("Vous avez été exclu de ce salon.");
-              router.push('/');
-              return;
+          
+          // Check if user is banned (check both name and current playerId)
+          const storedPlayerId = sessionStorage.getItem('playerId');
+          if (room.settings.banned && Array.isArray(room.settings.banned)) {
+              if (room.settings.banned.includes(storedName) || (storedPlayerId && room.settings.banned.includes(storedPlayerId))) {
+                  toast.error("Vous avez été exclu de ce salon.");
+                  router.push('/');
+                  return;
+              }
           }
         }
 
@@ -822,9 +827,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const kickPlayer = async (playerIdToKick: string, playerName: string) => {
     if (!isHost || !roomId) return;
     
-    // Add to banned list in settings
+    // 1. We must ban their actual IP or session ID, not just their display name.
+    // For this app, we'll ban their specific `playerId` so even if they change their name, 
+    // their browser session is still banned.
     const currentBanned = Array.isArray(gameSettings.banned) ? gameSettings.banned : [];
-    const newBanned = [...currentBanned, playerName];
+    
+    // Add BOTH name and playerId to the banned list to be safe
+    const newBanned = [...currentBanned, playerName, playerIdToKick];
     const newSettings = { ...gameSettings, banned: newBanned };
     
     // Delete player from DB
