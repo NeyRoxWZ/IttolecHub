@@ -7,8 +7,9 @@
 html,
 body {
   background-color: #13131A;
-  background-image: linear-gradient(rgba(38, 38, 53, 0.15) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(38, 38, 53, 0.15) 1px, transparent 1px);
+  background-image: 
+    linear-gradient(to right, #262635 1px, transparent 1px),
+    linear-gradient(to bottom, #262635 1px, transparent 1px);
   background-size: 32px 32px;
   background-attachment: fixed;
   color: #FFFFFF;
