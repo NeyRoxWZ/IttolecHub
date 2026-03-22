@@ -119,10 +119,12 @@ export default function Home() {
       {/* EASTER EGG */}
       {easterEggActive && (
         <div 
-          className="fixed inset-0 z-[100] cursor-pointer"
-          onClick={() => setEasterEggActive(false)}
+          className="fixed inset-0 z-[9999] pointer-events-none"
         >
-          <div className="absolute bottom-4 left-4 animate-in slide-in-from-bottom-full duration-500 fade-in">
+          <div 
+            className="absolute bottom-4 left-4 animate-in slide-in-from-bottom-full duration-500 fade-in pointer-events-auto cursor-pointer"
+            onClick={() => setEasterEggActive(false)}
+          >
             <img 
               src="/easteregg.png" 
               alt="Easter Egg" 
