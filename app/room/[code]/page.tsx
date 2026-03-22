@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import QRCode from 'react-qr-code';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/Dialog';
+import { cn } from '@/lib/utils';
 
 interface Player {
   id: string;
@@ -762,35 +763,39 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   if (showPseudoModal) {
       return (
-          <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-4">
-              <div className="w-full max-w-md bg-[#1E293B] border border-[#334155] rounded-2xl p-8 shadow-[0_4px_0_0px_#020617] animate-in zoom-in duration-300">
+          <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center p-4">
+              <div className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal animate-in zoom-in duration-300">
                   <div className="flex justify-center mb-6">
-                      <div className="bg-[#3B82F6]/20 p-4 rounded-full">
-                          <Users className="w-12 h-12 text-[#3B82F6]" />
+                      <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl">
+                          <Users className="w-12 h-12 text-tx-base" />
                       </div>
                   </div>
-                  <h1 className="text-2xl font-bold text-center text-[#F8FAFC] mb-2">Rejoindre la partie</h1>
-                  <p className="text-center text-[#94A3B8] mb-8">Entrez un pseudo pour rejoindre la salle <span className="font-mono text-[#F8FAFC] bg-[#334155] px-2 py-0.5 rounded">{params.code}</span></p>
+                  <h1 className="font-display text-2xl font-bold text-center text-tx-base mb-2">Rejoindre la partie</h1>
+                  <p className="text-center text-tx-secondary mb-8 text-sm">
+                      Entrez un pseudo pour rejoindre la salle <span className="font-mono font-bold text-tx-base bg-brand-inner border-2 border-brand-border px-2 py-0.5 rounded-md ml-1">{params.code}</span>
+                  </p>
                   
                   <form onSubmit={handlePseudoSubmit} className="space-y-4">
                       <div>
-                          <label className="block text-sm font-medium text-[#94A3B8] mb-2">Votre Pseudo</label>
-                          <Input 
+                          <label className="block text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2">Votre Pseudo</label>
+                          <input 
                               value={pseudoInput}
                               onChange={(e) => setPseudoInput(e.target.value)}
                               placeholder="Ex: PikaPika"
-                              className="h-12 text-lg"
+                              className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors"
                               autoFocus
                           />
                       </div>
-                      <Button 
+                      <button 
                           type="submit" 
                           disabled={!pseudoInput.trim()}
-                          variant="purple"
-                          className="w-full h-12 text-lg font-bold"
+                          className={cn(
+                              "w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 mt-2",
+                              pseudoInput.trim() ? "bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base" : "opacity-50 cursor-not-allowed bg-brand-inner text-tx-base border-brand-border"
+                          )}
                       >
                           Rejoindre
-                      </Button>
+                      </button>
                   </form>
               </div>
           </div>
@@ -799,49 +804,48 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   if (isRoomDeleted) {
     return (
-      <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-4 text-center space-y-6">
-        <LogOut className="w-24 h-24 text-red-500 animate-bounce" />
-        <h1 className="text-4xl font-black text-[#F8FAFC]">Cette salle n&apos;existe plus</h1>
-        <p className="text-[#94A3B8] text-lg max-w-md">
+      <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center p-4 text-center space-y-6">
+        <LogOut className="w-24 h-24 text-tx-base animate-bounce" />
+        <h1 className="font-display text-4xl font-black text-tx-base">Cette salle n&apos;existe plus</h1>
+        <p className="text-tx-secondary text-lg max-w-md">
           L&apos;hôte a quitté ou la salle a été supprimée.
         </p>
-        <Button onClick={() => router.push('/')} size="lg" variant="secondary">
+        <button 
+          onClick={() => router.push('/')} 
+          className="h-14 px-8 rounded-lg font-display font-black tracking-wider border-2 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+        >
           Retour à l&apos;accueil
-        </Button>
+        </button>
       </div>
     );
   }
 
   if (showJoinOverlay) {
     return (
-      <div className="fixed inset-0 z-[100] bg-[#0F172A] flex items-center justify-center p-8">
-          {/* Close Button */}
+      <div className="fixed inset-0 z-[100] bg-brand-bg/95 backdrop-blur-sm flex items-center justify-center p-8">
           <button 
               onClick={() => setShowJoinOverlay(false)}
-              className="absolute top-8 right-8 text-[#94A3B8] hover:text-white transition-colors"
+              className="absolute top-8 right-8 text-tx-secondary hover:text-tx-base transition-colors"
           >
               <LogOut className="w-10 h-10" />
           </button>
 
-          <div className="flex flex-col items-center justify-center gap-10 animate-in fade-in zoom-in duration-500">
-              {/* Logo - bigger */}
-              <Image src="/logo-site.png" alt="IttolecHub" width={320} height={192} className="h-40 md:h-48 w-auto" />
+          <div className="flex flex-col items-center justify-center gap-10 animate-in fade-in zoom-in duration-300">
+              <Image src="/logo-site.png" alt="IttolecHub" width={320} height={192} className="h-24 md:h-32 w-auto select-none" />
 
-              {/* QR Code - bigger */}
-              <div className="relative inline-block bg-white p-6 rounded-3xl shadow-2xl">
+              <div className="relative inline-block bg-white p-6 border-4 border-brand-border rounded-[32px] shadow-brutal">
                   <QRCode 
                       value={`${window.location.origin}/room/${params.code}?source=qrcode`}
-                      size={320}
+                      size={280}
                       fgColor="#000000"
                       bgColor="transparent"
                   />
               </div>
 
-              {/* Link with copy - bigger */}
               <div className="w-full max-w-md space-y-3">
-                  <p className="text-lg text-[#94A3B8] text-center">Lien de partage:</p>
-                  <div className="flex items-center gap-3 bg-[#1E293B] border border-[#334155] rounded-xl px-5 py-4">
-                      <span className="flex-1 text-base text-[#94A3B8] truncate font-mono">
+                  <p className="text-sm font-bold text-tx-secondary text-center uppercase tracking-widest">Lien de partage</p>
+                  <div className="flex items-center gap-3 bg-brand-card border-4 border-brand-border rounded-2xl p-2 shadow-brutal">
+                      <span className="flex-1 text-sm text-tx-secondary truncate font-mono px-3">
                           {typeof window !== 'undefined' ? window.location.origin : ''}/room/{params.code}?source=qrcode
                       </span>
                       <button 
@@ -849,17 +853,16 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                               navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`);
                               toast.success('Lien copié !');
                           }}
-                          className="text-[#3B82F6] hover:text-[#60A5FA] transition-colors"
+                          className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
                       >
-                          <Copy className="w-6 h-6" />
+                          <Copy className="w-5 h-5" />
                       </button>
                   </div>
               </div>
 
-              {/* Code display - bigger */}
               <div className="flex items-center justify-center gap-4">
-                  <span className="text-xl text-[#94A3B8]">Code:</span>
-                  <span className="font-mono text-4xl font-bold tracking-widest text-[#F8FAFC]">
+                  <span className="text-xl font-bold text-tx-secondary uppercase tracking-widest">Code :</span>
+                  <span className="font-mono text-5xl font-black tracking-widest text-tx-base">
                       {params.code}
                   </span>
               </div>
@@ -869,92 +872,78 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-[#F8FAFC] p-4 sm:p-6 font-sans selection:bg-indigo-500/30">
-      
-      {/* Background Gradients */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#3B82F6]/10 rounded-full blur-[120px] animate-pulse-slow" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-[#6366F1]/10 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
-      </div>
-
-      <div className="relative z-10 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-brand-bg text-tx-base p-4 sm:p-6 font-sans selection:bg-tx-base/30 flex flex-col">
+      <div className="relative z-10 w-full max-w-6xl mx-auto flex-1 flex flex-col">
         
         {/* Header */}
-        <header className="flex items-center justify-between mb-8 sm:mb-12">
-            <div className="flex items-center gap-3">
-                <Button 
+        <header className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+                <button 
                     onClick={leaveRoom} 
-                    variant="ghost" 
-                    className="rounded-full h-10 w-10 p-0 hover:bg-[#1E293B] text-[#94A3B8] hover:text-white"
+                    className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors"
                 >
                     <LogOut className="h-5 w-5" />
-                </Button>
+                </button>
                 <div className="flex flex-col">
-                    <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#6366F1]">
+                    <h1 className="font-display text-2xl font-black leading-none">
                         Salon de jeu
                     </h1>
-                    <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <div className="flex items-center gap-2 text-xs font-bold text-tx-secondary mt-1">
+                        <span className="w-2.5 h-2.5 rounded-full border border-brand-border bg-tx-base animate-pulse" />
                         En ligne
                     </div>
                 </div>
             </div>
 
             <div className="flex items-center gap-3">
-                {/* Join Overlay Button - Logo + Streamer text (Hidden in Privacy Mode) */}
                 {isHost && !streamerMode && (
-                    <Button 
+                    <button 
                         onClick={() => setShowJoinOverlay(true)}
-                        variant="ghost"
-                        className="hidden sm:flex items-center gap-2 h-12 px-4 rounded-xl text-purple-400 hover:text-purple-300 hover:bg-purple-900/20 transition-all border border-transparent hover:border-purple-500/20"
+                        className="hidden sm:flex items-center gap-2 h-12 px-4 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-base hover:border-tx-base shadow-brutal transition-all"
                     >
-                        <Image src="/logo-site.png" alt="IttolecHub" width={96} height={32} className="h-8 w-auto" />
+                        <Monitor className="w-5 h-5" />
                         <span className="font-bold">Streamer</span>
-                    </Button>
+                    </button>
                 )}
 
-                {/* Privacy Mode Toggle */}
-                <Button 
+                <button 
                     onClick={toggleStreamerMode}
-                    variant="ghost"
-                    className={`flex items-center gap-2 h-12 px-4 rounded-xl transition-all border ${
+                    className={cn(
+                        "flex items-center gap-2 h-12 px-4 rounded-xl border-2 transition-all font-bold",
                         streamerMode 
-                        ? 'text-[#3B82F6] bg-[#3B82F6]/20 border-[#3B82F6]/30 hover:bg-[#3B82F6]/30' 
-                        : 'text-[#94A3B8] hover:text-white bg-[#1E293B] border-[#334155] hover:bg-[#334155]'
-                    }`}
-                    title={streamerMode ? "Désactiver le mode confidentialité" : "Activer le mode confidentialité (masque les codes)"}
+                        ? "border-tx-base bg-tx-base text-brand-bg shadow-brutal" 
+                        : "border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base"
+                    )}
+                    title={streamerMode ? "Désactiver le mode confidentialité" : "Activer le mode confidentialité"}
                 >
                     {streamerMode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    <span className="hidden lg:inline font-medium">{streamerMode ? 'Privé' : 'Public'}</span>
-                </Button>
+                    <span className="hidden lg:inline">{streamerMode ? 'Privé' : 'Public'}</span>
+                </button>
 
-                {/* Share Dialog - QR Code + Link (Hidden in Privacy Mode) */}
                 {!streamerMode && (
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button variant="ghost" className="h-12 w-12 p-0 rounded-xl text-[#94A3B8] hover:text-white bg-[#1E293B] border border-[#334155] hover:bg-[#334155] transition-all">
+                            <button className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors">
                                 <Share2 className="w-5 h-5" />
-                            </Button>
+                            </button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-md bg-[#1E293B] border-[#334155] p-8">
+                        <DialogContent className="sm:max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal">
                             <div className="flex flex-col items-center justify-center w-full">
-                                <h2 className="text-2xl font-bold mb-6 text-[#F8FAFC]">Partager le salon</h2>
+                                <h2 className="font-display text-2xl font-black mb-6">Partager le salon</h2>
                                 
-                                {/* QR Code - centered */}
-                                <div className="p-5 bg-white rounded-xl shadow-lg">
+                                <div className="p-4 bg-white border-4 border-brand-border rounded-2xl shadow-brutal">
                                     <QRCode 
                                         value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
-                                        size={260}
+                                        size={220}
                                         style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                                         viewBox={`0 0 256 256`}
                                     />
                                 </div>
                                 
-                                {/* Link with copy */}
-                                <div className="mt-6 w-full max-w-xs space-y-3">
-                                    <p className="text-base text-[#94A3B8] text-center">Ou partagez le lien:</p>
-                                    <div className="flex items-center gap-2 bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3">
-                                        <span className="flex-1 text-sm text-[#94A3B8] truncate font-mono">
+                                <div className="mt-8 w-full space-y-3">
+                                    <p className="text-sm font-bold text-tx-secondary text-center uppercase tracking-widest">Ou partagez le lien</p>
+                                    <div className="flex items-center gap-2 bg-brand-inner border-2 border-brand-border rounded-xl p-2">
+                                        <span className="flex-1 text-xs text-tx-secondary truncate font-mono px-2">
                                             {typeof window !== 'undefined' ? window.location.origin : ''}/room/{params.code}?source=qrcode
                                         </span>
                                         <button 
@@ -962,59 +951,49 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                 navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`);
                                                 toast.success('Lien copié !');
                                             }}
-                                            className="text-[#3B82F6] hover:text-[#60A5FA] transition-colors"
+                                            className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border-2 border-brand-border bg-brand-card text-tx-base hover:border-tx-base transition-colors"
                                         >
-                                            <Copy className="w-5 h-5" />
+                                            <Copy className="w-4 h-4" />
                                         </button>
                                     </div>
-                                </div>
-                                
-                                {/* Code display */}
-                                <div className="mt-4 flex items-center justify-center gap-3">
-                                    <span className="text-base text-[#94A3B8]">Code:</span>
-                                    <span className="font-mono text-2xl font-bold tracking-widest text-[#F8FAFC]">
-                                        {params.code}
-                                    </span>
                                 </div>
                             </div>
                         </DialogContent>
                     </Dialog>
                 )}
 
-                {/* Code with copy toast */}
                 <div 
-                    className="h-12 flex items-center gap-3 bg-[#1E293B] border border-[#334155] px-5 rounded-xl cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all group"
+                    className="h-12 flex items-center gap-3 bg-brand-inner border-2 border-brand-border px-4 rounded-xl cursor-pointer hover:border-tx-base transition-all group"
                     onClick={() => {
                         navigator.clipboard.writeText(params.code);
                         toast.success('Code copié !');
                     }}
-                    title={streamerMode ? "Code masqué (cliquez pour copier)" : "Copier le code"}
                 >
-                    <span className="text-xs text-[#94A3B8] uppercase tracking-widest font-bold">Code</span>
-                    <span className="font-mono text-lg font-bold tracking-widest text-[#F8FAFC] group-hover:text-[#3B82F6] transition-colors">
+                    <span className="hidden sm:inline text-xs text-tx-secondary uppercase tracking-widest font-bold">Code</span>
+                    <span className="font-mono text-lg font-black tracking-widest text-tx-base group-hover:text-tx-secondary transition-colors">
                         {streamerMode ? '••••••' : params.code}
                     </span>
-                    {copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-[#94A3B8] group-hover:text-white" />}
+                    {copied ? <CheckCircle className="h-5 w-5 text-tx-base" /> : <Copy className="h-5 w-5 text-tx-secondary group-hover:text-tx-base" />}
                 </div>
             </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 flex-1 min-h-0">
           
-          {/* LEFT: Game Configuration (Host) or Info (Client) */}
-          <div className="lg:col-span-8 space-y-6">
+          {/* LEFT: Game Configuration */}
+          <div className="lg:col-span-8 flex flex-col gap-6 min-h-0">
             
             {/* Game Selection Card */}
-            <div className="bg-[#1E293B] border border-[#334155] rounded-3xl p-6 lg:p-8 shadow-[0_4px_0_0px_#020617]">
+            <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 rounded-xl bg-[#3B82F6]/20 text-[#3B82F6]">
-                        <Gamepad2 className="h-6 w-6" />
+                    <div className="p-2 rounded-lg border-2 border-brand-border bg-brand-inner">
+                        <Gamepad2 className="h-6 w-6 text-tx-base" />
                     </div>
-                    <h2 className="text-2xl font-bold text-[#F8FAFC]">Choix du jeu</h2>
+                    <h2 className="font-display text-2xl font-bold">Choix du jeu</h2>
                 </div>
 
                 {isHost ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto custom-scrollbar pr-2 max-h-[300px] lg:max-h-none">
                         {gamesList.map((game) => {
                             const isSelected = selectedGameId === game.id;
                             const Icon = game.icon;
@@ -1030,50 +1009,44 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                         }
                                         setSelectedGameId(game.id);
                                     }}
-                                    className={`cursor-pointer relative overflow-hidden rounded-2xl border-2 transition-all duration-100 hover:scale-[1.02] ${
-                                        isComingSoon ? 'opacity-60 cursor-not-allowed' : ''
-                                    } ${
+                                    className={cn(
+                                        "cursor-pointer rounded-xl border-2 transition-all p-3 flex items-center gap-3",
+                                        isComingSoon && "opacity-50 cursor-not-allowed",
                                         isSelected 
-                                        ? 'border-[#3B82F6] bg-[#3B82F6]/10' 
-                                        : 'border-[#334155] bg-[#334155]/50 hover:border-[#475569] hover:bg-[#334155]'
-                                    }`}
-                                >
-                                    {isComingSoon && (
-                                        <div className="absolute top-2 right-2 bg-[#0F172A] text-[#94A3B8] text-[10px] font-bold px-2 py-1 rounded-full border border-[#334155] z-10">
-                                            BIENTÔT
-                                        </div>
+                                            ? "border-tx-base bg-brand-inner shadow-brutal" 
+                                            : "border-brand-border bg-brand-card hover:border-tx-base/50"
                                     )}
-                                    <div className="p-4 flex items-center gap-4">
-                                        <div className={`p-3 rounded-xl bg-gradient-to-br ${game.color}`}>
-                                            <Icon className="h-6 w-6 text-white" />
+                                >
+                                    <Icon className={cn("h-8 w-8 shrink-0", isSelected ? "text-tx-base" : "text-tx-secondary")} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <h3 className="font-bold text-tx-base truncate">{game.name}</h3>
+                                            {isComingSoon && (
+                                                <span className="shrink-0 text-[9px] font-black uppercase tracking-wider bg-brand-inner border border-brand-border px-1.5 py-0.5 rounded">
+                                                    Bientôt
+                                                </span>
+                                            )}
                                         </div>
-                                        <div>
-                                            <h3 className="font-bold text-[#F8FAFC]">{game.name}</h3>
-                                            <p className="text-xs text-[#94A3B8] line-clamp-1">{game.description}</p>
-                                        </div>
+                                        <p className="text-xs text-tx-secondary truncate mt-0.5">{game.description}</p>
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
                 ) : (
-                    <div className="bg-[#0F172A] rounded-2xl p-8 text-center border border-[#334155]">
+                    <div className="flex-1 bg-brand-inner border-2 border-brand-border rounded-xl p-8 flex items-center justify-center text-center">
                         {selectedGame ? (
                             <div className="flex flex-col items-center gap-4 animate-in zoom-in duration-300">
-                                <div className={`p-6 rounded-3xl bg-gradient-to-br ${selectedGame.color}`}>
-                                    <selectedGame.icon className="h-12 w-12 text-white" />
-                                </div>
+                                <selectedGame.icon className="h-16 w-16 text-tx-base" />
                                 <div>
-                                    <h3 className="text-3xl font-bold text-[#F8FAFC] mb-2">{selectedGame.name}</h3>
-                                    <p className="text-[#94A3B8] max-w-md mx-auto">{selectedGame.description}</p>
+                                    <h3 className="font-display text-3xl font-black mb-2">{selectedGame.name}</h3>
+                                    <p className="text-tx-secondary font-medium">{selectedGame.description}</p>
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center gap-4 text-[#94A3B8] py-8">
-                                <div className="animate-spin-slow">
-                                    <Settings className="h-12 w-12 opacity-20" />
-                                </div>
-                                <p>L&apos;hôte choisit un jeu...</p>
+                            <div className="flex flex-col items-center gap-4 text-tx-secondary">
+                                <Settings className="h-12 w-12 animate-spin-slow opacity-50" />
+                                <p className="font-bold">L&apos;hôte choisit un jeu...</p>
                             </div>
                         )}
                     </div>
@@ -1082,129 +1055,134 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
             {/* Settings Card */}
             {selectedGame && (
-                <div className="bg-[#1E293B] border border-[#334155] rounded-3xl p-6 lg:p-8 animate-in slide-in-from-bottom-4 duration-500 shadow-[0_4px_0_0px_#020617]">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col flex-1 min-h-0 animate-in slide-in-from-bottom-4 duration-500">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
-                            <div className="p-3 rounded-xl bg-pink-500/20 text-pink-400">
-                                <Settings className="h-6 w-6" />
+                            <div className="p-2 rounded-lg border-2 border-brand-border bg-brand-inner">
+                                <Settings className="h-6 w-6 text-tx-base" />
                             </div>
-                            <h2 className="text-xl font-bold text-[#F8FAFC]">Paramètres</h2>
+                            <h2 className="font-display text-xl font-bold">Paramètres</h2>
                         </div>
                         {!isHost && (
-                            <span className="text-xs font-medium px-3 py-1 rounded-full bg-[#334155] text-[#94A3B8] border border-[#475569]">
-                                Synchronisé avec l&apos;hôte
+                            <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-brand-inner border-2 border-brand-border text-tx-secondary">
+                                Sync. avec l&apos;hôte
                             </span>
                         )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {selectedGame.settings.map((setting) => (
-                            <div key={setting.id} className="space-y-2">
-                                <label className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider ml-1">
-                                    {setting.label}
-                                </label>
-                                
-                                {isHost ? (
-                                    <div className="relative">
-                                        {setting.type === 'number' && (
-                                            <Input
-                                                type="number"
-                                                value={String(gameSettings[setting.id] ?? setting.default)}
-                                                onChange={(e) => handleSettingChange(setting.id, e.target.value === '' ? setting.default : Number(e.target.value))}
-                                                className="bg-[#0F172A] border-none text-[#F8FAFC] rounded-xl h-12"
-                                            />
-                                        )}
-                                        {setting.type === 'text' && (
-                                            <Input
-                                                type="text"
-                                                value={String(gameSettings[setting.id] ?? setting.default)}
-                                                onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-                                                className="bg-[#0F172A] border-none text-[#F8FAFC] rounded-xl h-12"
-                                            />
-                                        )}
-                                        {setting.type === 'select' && setting.options && (
-                                            <Select
-                                                value={String(gameSettings[setting.id] ?? setting.default)}
-                                                onValueChange={(v) => handleSettingChange(setting.id, v)}
-                                            >
-                                                <SelectTrigger className="bg-[#0F172A] border-none text-[#F8FAFC] rounded-xl h-12">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-[#1E293B] border-[#334155] text-[#F8FAFC]">
-                                                    {setting.options.map((opt) => (
-                                                        <SelectItem 
-                                                            key={opt.value} 
-                                                            value={opt.value} 
-                                                            disabled={opt.disabled}
-                                                            className={`focus:bg-[#334155] ${opt.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
-                                                        >
-                                                            {opt.label} {opt.disabled && '(Bientôt)'}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-                                        {setting.type === 'multiselect' && setting.options && (
-                                            <div className="flex flex-wrap gap-2 bg-[#0F172A] p-2 rounded-xl border border-[#334155] min-h-[48px]">
-                                                {setting.options.map((opt) => {
-                                                    const currentVal = gameSettings[setting.id];
-                                                    const current = Array.isArray(currentVal) ? currentVal : (setting.default as any[]);
-                                                    const isSelected = Array.isArray(current) && current.includes(Number(opt.value));
-                                                    
-                                                    return (
-                                                        <button
-                                                            key={opt.value}
-                                                            disabled={opt.disabled}
-                                                            onClick={() => {
-                                                                if (opt.disabled) return;
-                                                                const val = Number(opt.value);
-                                                                let newVal;
-                                                                if (isSelected) {
-                                                                    newVal = current.filter((x: any) => x !== val);
-                                                                    if (newVal.length === 0) newVal = [1];
-                                                                } else {
-                                                                    newVal = [...current, val];
-                                                                }
-                                                                handleSettingChange(setting.id, newVal);
-                                                            }}
-                                                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                                                                opt.disabled
-                                                                ? 'opacity-40 cursor-not-allowed'
-                                                                : isSelected 
-                                                                    ? 'bg-[#3B82F6] text-white shadow-[2px_2px_0px_0px_#020617]' 
-                                                                    : 'bg-[#334155] text-[#94A3B8] hover:bg-[#475569] hover:text-white'
-                                                            }`}
-                                                        >
-                                                            {opt.label}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="h-12 flex items-center px-4 bg-[#0F172A] border border-[#334155] rounded-xl text-[#F8FAFC] font-medium">
-                                        {setting.type === 'select' && setting.options 
-                                            ? setting.options.find(o => o.value === String(gameSettings[setting.id] ?? setting.default))?.label 
-                                            : setting.type === 'multiselect'
-                                                ? (Array.isArray(gameSettings[setting.id]) ? (gameSettings[setting.id] as unknown as any[]).join(', ') : String(setting.default))
-                                                : (gameSettings[setting.id] ?? setting.default)
-                                        }
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {selectedGame.settings.map((setting) => (
+                                <div key={setting.id} className="space-y-2">
+                                    <label className="text-xs font-bold text-tx-secondary uppercase tracking-widest ml-1">
+                                        {setting.label}
+                                    </label>
+                                    
+                                    {isHost ? (
+                                        <div className="relative">
+                                            {setting.type === 'number' && (
+                                                <input
+                                                    type="number"
+                                                    value={String(gameSettings[setting.id] ?? setting.default)}
+                                                    onChange={(e) => handleSettingChange(setting.id, e.target.value === '' ? setting.default : Number(e.target.value))}
+                                                    className="w-full h-12 bg-brand-inner border-2 border-brand-border text-tx-base rounded-lg px-4 focus:outline-none focus:border-tx-base transition-colors"
+                                                />
+                                            )}
+                                            {setting.type === 'text' && (
+                                                <input
+                                                    type="text"
+                                                    value={String(gameSettings[setting.id] ?? setting.default)}
+                                                    onChange={(e) => handleSettingChange(setting.id, e.target.value)}
+                                                    className="w-full h-12 bg-brand-inner border-2 border-brand-border text-tx-base rounded-lg px-4 focus:outline-none focus:border-tx-base transition-colors"
+                                                />
+                                            )}
+                                            {setting.type === 'select' && setting.options && (
+                                                <Select
+                                                    value={String(gameSettings[setting.id] ?? setting.default)}
+                                                    onValueChange={(v) => handleSettingChange(setting.id, v)}
+                                                >
+                                                    <SelectTrigger className="w-full h-12 bg-brand-inner border-2 border-brand-border text-tx-base rounded-lg px-4 focus:ring-0 focus:border-tx-base font-bold">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="bg-brand-card border-4 border-brand-border rounded-xl shadow-brutal text-tx-base font-bold">
+                                                        {setting.options.map((opt) => (
+                                                            <SelectItem 
+                                                                key={opt.value} 
+                                                                value={opt.value} 
+                                                                disabled={opt.disabled}
+                                                                className={cn(
+                                                                    "focus:bg-brand-inner cursor-pointer rounded-lg mx-1 my-1",
+                                                                    opt.disabled && "opacity-40 cursor-not-allowed"
+                                                                )}
+                                                            >
+                                                                {opt.label} {opt.disabled && '(Bientôt)'}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                            {setting.type === 'multiselect' && setting.options && (
+                                                <div className="flex flex-wrap gap-2 bg-brand-inner p-2 rounded-lg border-2 border-brand-border min-h-[48px]">
+                                                    {setting.options.map((opt) => {
+                                                        const currentVal = gameSettings[setting.id];
+                                                        const current = Array.isArray(currentVal) ? currentVal : (setting.default as any[]);
+                                                        const isSelected = Array.isArray(current) && current.includes(Number(opt.value));
+                                                        
+                                                        return (
+                                                            <button
+                                                                key={opt.value}
+                                                                disabled={opt.disabled}
+                                                                onClick={() => {
+                                                                    if (opt.disabled) return;
+                                                                    const val = Number(opt.value);
+                                                                    let newVal;
+                                                                    if (isSelected) {
+                                                                        newVal = current.filter((x: any) => x !== val);
+                                                                        if (newVal.length === 0) newVal = [1];
+                                                                    } else {
+                                                                        newVal = [...current, val];
+                                                                    }
+                                                                    handleSettingChange(setting.id, newVal);
+                                                                }}
+                                                                className={cn(
+                                                                    "px-3 py-1.5 text-xs font-bold rounded-md border-2 transition-all",
+                                                                    opt.disabled ? "opacity-40 cursor-not-allowed border-brand-border bg-brand-card text-tx-muted" :
+                                                                    isSelected 
+                                                                        ? "border-tx-base bg-tx-base text-brand-bg" 
+                                                                        : "border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base hover:border-tx-base/50"
+                                                                )}
+                                                            >
+                                                                {opt.label}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="h-12 flex items-center px-4 bg-brand-inner border-2 border-brand-border rounded-lg text-tx-base font-bold truncate">
+                                            {setting.type === 'select' && setting.options 
+                                                ? setting.options.find(o => o.value === String(gameSettings[setting.id] ?? setting.default))?.label 
+                                                : setting.type === 'multiselect'
+                                                    ? (Array.isArray(gameSettings[setting.id]) ? (gameSettings[setting.id] as unknown as any[]).join(', ') : String(setting.default))
+                                                    : (gameSettings[setting.id] ?? setting.default)
+                                            }
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
                     {isHost && (
-                        <div className="mt-8 pt-6 border-t border-[#334155]">
-                            <Button
+                        <div className="mt-6 pt-6 border-t-2 border-brand-border shrink-0">
+                            <button
                                 onClick={startGame}
-                                variant="purple"
-                                className="w-full h-14 text-lg font-bold rounded-xl"
+                                className="w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base flex items-center justify-center gap-3"
                             >
-                                <Play className="w-5 h-5 mr-2 fill-current" /> Lancer la partie
-                            </Button>
+                                <Play className="w-5 h-5 fill-current" />
+                                LANCER LA PARTIE
+                            </button>
                         </div>
                     )}
                 </div>
@@ -1212,47 +1190,49 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           </div>
 
           {/* RIGHT: Players List */}
-          <div className="lg:col-span-4 h-full">
-            <div className="bg-[#1E293B] border border-[#334155] rounded-3xl p-6 h-full min-h-[400px] flex flex-col shadow-[0_4px_0_0px_#020617]">
-                <div className="flex items-center justify-between mb-6">
+          <div className="lg:col-span-4 h-full flex flex-col">
+            <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 h-[400px] lg:h-full flex flex-col shadow-brutal">
+                <div className="flex items-center justify-between mb-6 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="p-3 rounded-xl bg-green-500/20 text-green-400">
+                        <div className="p-2 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base">
                             <Users className="h-6 w-6" />
                         </div>
-                        <h2 className="text-xl font-bold text-[#F8FAFC]">Joueurs</h2>
+                        <h2 className="font-display text-2xl font-bold">Joueurs</h2>
                     </div>
-                    <span className="bg-[#334155] px-3 py-1 rounded-full text-sm font-bold text-[#F8FAFC]">
+                    <span className="bg-brand-inner border-2 border-brand-border px-3 py-1 rounded-lg text-sm font-black">
                         {players.length}
                     </span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
                     {players.map((player) => (
                         <div 
                             key={player.id} 
-                            className="group flex items-center justify-between p-3 rounded-xl bg-[#0F172A] border border-[#334155] hover:bg-[#334155] transition-all hover:translate-x-1"
+                            className="group flex items-center justify-between p-3 rounded-xl border-2 border-brand-border bg-brand-inner hover:border-tx-base transition-all"
                         >
                             <div className="flex items-center gap-3 overflow-hidden">
-                                <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-black shadow-lg ${
+                                <div className={cn(
+                                    "h-10 w-10 rounded-md border-2 flex items-center justify-center text-sm font-display font-black shrink-0",
                                     player.isHost 
-                                    ? 'bg-gradient-to-br from-[#3B82F6] to-[#6366F1] text-white' 
-                                    : 'bg-[#334155] text-[#94A3B8] group-hover:text-white'
-                                }`}>
+                                    ? "border-tx-base bg-brand-card text-tx-base shadow-brutal" 
+                                    : "border-brand-border bg-brand-card text-tx-secondary group-hover:text-tx-base"
+                                )}>
                                     {player.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex flex-col truncate">
-                                    <span className={`font-bold truncate ${player.isHost ? 'text-[#F8FAFC]' : 'text-[#94A3B8] group-hover:text-white'}`}>
+                                    <span className={cn(
+                                        "font-bold truncate",
+                                        player.isHost ? "text-tx-base" : "text-tx-secondary group-hover:text-tx-base"
+                                    )}>
                                         {player.name}
                                     </span>
                                     {player.isHost && (
-                                        <span className="text-[10px] uppercase tracking-wider font-bold text-[#3B82F6]">
+                                        <span className="text-[10px] uppercase tracking-widest font-black text-tx-base opacity-70">
                                             Hôte
                                         </span>
                                     )}
                                 </div>
                             </div>
-                            
-                            {/* Status Indicator - Supprimé le petit point vert */}
                         </div>
                     ))}
                 </div>
