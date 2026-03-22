@@ -37,3 +37,63 @@ h4 {
   background: rgba(124, 58, 237, 0.5);
   border-radius: 9999px;
 }
+
+/* WIKIRACING STYLES */
+.wiki-content {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  font-size: 1.1rem;
+}
+
+.wiki-content h1, .wiki-content h2, .wiki-content h3 {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  border-bottom: 2px solid #262635;
+  padding-bottom: 0.2em;
+}
+
+.wiki-content a {
+  color: #06B6D4;
+  text-decoration: underline;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.wiki-content a:hover {
+  color: #FFD000;
+}
+
+/* Hide unneeded Wikipedia elements */
+.wiki-content .mw-editsection,
+.wiki-content .reflist,
+.wiki-content .reference,
+.wiki-content .navbox,
+.wiki-content [role="navigation"],
+.wiki-content .infobox,
+.wiki-content .metadata,
+.wiki-content .noprint,
+.wiki-content .portal,
+.wiki-content .magnify,
+.wiki-content .bandeau-portail,
+.wiki-content .bandeau-categorie,
+.wiki-content .homonymie,
+.wiki-content #toc,
+.wiki-content .thumb,
+.wiki-content .gallery {
+  display: none !important;
+}
+
+.wiki-content ul, .wiki-content ol {
+  padding-left: 2rem;
+  margin-bottom: 1rem;
+}
+
+.wiki-content li {
+  margin-bottom: 0.25rem;
+}
+
+.wiki-content p {
+  margin-bottom: 1rem;
+}

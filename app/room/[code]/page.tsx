@@ -266,6 +266,36 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
       },
     ],
   },
+  {
+    id: 'wikiracing',
+    name: 'WikiRacing',
+    description: 'Reliez deux pages Wikipédia le plus vite possible.',
+    icon: Target, // Using Target temporarily, can change to Link/Book later
+    color: 'from-blue-500 to-cyan-500',
+    settings: [
+      { id: 'rounds', label: 'Manches', type: 'number', default: 3 },
+      { 
+        id: 'difficulty', 
+        label: 'Difficulté du trajet', 
+        type: 'select', 
+        default: 'easy',
+        options: [
+          { value: 'easy', label: 'Facile (Concepts liés)' },
+          { value: 'hard', label: 'Difficile (Concepts éloignés)' },
+        ]
+      },
+      { 
+        id: 'winCondition', 
+        label: 'Condition de victoire', 
+        type: 'select', 
+        default: 'speed',
+        options: [
+          { value: 'speed', label: 'Vitesse (Moins de temps)' },
+          { value: 'optimization', label: 'Optimisation (Moins de clics)' },
+        ]
+      },
+    ],
+  },
 ];
 
 export default function RoomPage({ params }: { params: { code: string } }) {
@@ -527,13 +557,22 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           .eq('room_id', room.id);
 
         if (currentPlayers) {
-          setPlayers(currentPlayers.map(p => ({
+          const mappedInitialPlayers = currentPlayers.map(p => ({
             id: p.id,
             name: p.name,
             isHost: p.is_host,
             score: p.score || 0,
             last_seen_at: p.last_seen_at
-          })));
+          }));
+
+          // Sort so host is always first
+          mappedInitialPlayers.sort((a, b) => {
+            if (a.isHost) return -1;
+            if (b.isHost) return 1;
+            return a.name.localeCompare(b.name);
+          });
+
+          setPlayers(mappedInitialPlayers);
         }
 
         setIsLoading(false);
@@ -625,13 +664,22 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 return;
             }
 
-            setPlayers(currentPlayers.map(p => ({
+            const mappedPlayers = currentPlayers.map(p => ({
               id: p.id,
               name: p.name,
               isHost: p.is_host,
               score: p.score || 0,
               last_seen_at: p.last_seen_at
-            })));
+            }));
+
+            // Sort so host is always first
+            mappedPlayers.sort((a, b) => {
+              if (a.isHost) return -1;
+              if (b.isHost) return 1;
+              return a.name.localeCompare(b.name);
+            });
+
+            setPlayers(mappedPlayers);
           }
         }
       )
@@ -788,7 +836,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         'budgetguessr': 1,
         'rentguessr': 1,
         'logoguessr': 1,
-        'jaugeguessr': 2
+        'jaugeguessr': 2,
+        'wikiracing': 1
     };
 
     const minRequired = minPlayersMap[selectedGameId] || 1;
