@@ -1,17 +1,2002 @@
 [
-  { "left": "Pire film", "right": "Meilleur film" },
-  { "left": "Le plus ennuyeux", "right": "Le plus excitant" },
-  { "left": "Froid", "right": "Chaud" },
-  { "left": "Inutile", "right": "Indispensable" },
-  { "left": "Doux", "right": "Piquant" },
-  { "left": "Pire odeur", "right": "Meilleure odeur" },
-  { "left": "Ridicule", "right": "Classe" },
-  { "left": "Pire plat", "right": "Meilleur plat" },
-  { "left": "Pire métier", "right": "Meilleur métier" },
-  { "left": "Le plus moche", "right": "Le plus beau" },
-  { "left": "Le plus stupide", "right": "Le plus intelligent" },
-  { "left": "Le moins cher", "right": "Le plus cher" },
-  { "left": "Le plus lent", "right": "Le plus rapide" },
-  { "left": "Le plus faible", "right": "Le plus fort" },
-  { "left": "Le plus triste", "right": "Le plus joyeux" }
+  {
+    "left": "Habitude de pauvre",
+    "right": "Habitude de riche"
+  },
+  {
+    "left": "Gênant en soirée",
+    "right": "Âme de la soirée"
+  },
+  {
+    "left": "Pire métier",
+    "right": "Meilleur métier"
+  },
+  {
+    "left": "Cringe absolu",
+    "right": "Stylé au max"
+  },
+  {
+    "left": "Pire film",
+    "right": "Meilleur film"
+  },
+  {
+    "left": "Jeu vidéo tryhard",
+    "right": "Jeu vidéo chill"
+  },
+  {
+    "left": "Totalement illégal",
+    "right": "Totalement légal"
+  },
+  {
+    "left": "Objet inutile en survie",
+    "right": "Objet indispensable en survie"
+  },
+  {
+    "left": "Pire youtubeur",
+    "right": "Meilleur youtubeur"
+  },
+  {
+    "left": "Red flag évident",
+    "right": "Green flag absolu"
+  },
+  {
+    "left": "Repas de misère",
+    "right": "Repas de palace"
+  },
+  {
+    "left": "Ami toxique",
+    "right": "Meilleur ami possible"
+  },
+  {
+    "left": "Pire cadeau d'anniversaire",
+    "right": "Meilleur cadeau d'anniversaire"
+  },
+  {
+    "left": "Totalement inacceptable en société",
+    "right": "Totalement normal en société"
+  },
+  {
+    "left": "Pire réseau social",
+    "right": "Meilleur réseau social"
+  },
+  {
+    "left": "Personnage de film le plus inutile",
+    "right": "Personnage de film le plus badass"
+  },
+  {
+    "left": "Pire superpower",
+    "right": "Meilleur superpower"
+  },
+  {
+    "left": "Activité de loser solitaire",
+    "right": "Activité de winner social"
+  },
+  {
+    "left": "Pire date de Saint-Valentin",
+    "right": "Meilleure date de Saint-Valentin"
+  },
+  {
+    "left": "Excuse de flemmard",
+    "right": "Raison légitime"
+  },
+  {
+    "left": "Son le plus agaçant",
+    "right": "Son le plus relaxant"
+  },
+  {
+    "left": "Pire voisin imaginable",
+    "right": "Voisin idéal"
+  },
+  {
+    "left": "Phrase qui tue l'ambiance",
+    "right": "Phrase qui lance la soirée"
+  },
+  {
+    "left": "Pire application mobile",
+    "right": "Meilleure application mobile"
+  },
+  {
+    "left": "Personnage de dessin animé le plus cringe",
+    "right": "Personnage de dessin animé le plus iconic"
+  },
+  {
+    "left": "Pire façon de se réveiller",
+    "right": "Meilleure façon de se réveiller"
+  },
+  {
+    "left": "Alimentation de gamer no-life",
+    "right": "Alimentation de sportif pro"
+  },
+  {
+    "left": "Pire excuse pour pas aller au sport",
+    "right": "Meilleure motivation pour aller au sport"
+  },
+  {
+    "left": "Objet de chambre le plus bizarre",
+    "right": "Objet de chambre le plus utile"
+  },
+  {
+    "left": "Pire emoji dans un message sérieux",
+    "right": "Emoji parfait dans un message sérieux"
+  },
+  {
+    "left": "Pire type de contenu TikTok",
+    "right": "Meilleur type de contenu TikTok"
+  },
+  {
+    "left": "NPC absolu",
+    "right": "Main character energy"
+  },
+  {
+    "left": "Pire personnage de jeu de rôle",
+    "right": "Meilleur personnage de jeu de rôle"
+  },
+  {
+    "left": "Pire film de Noël",
+    "right": "Meilleur film de Noël"
+  },
+  {
+    "left": "Pire pizza",
+    "right": "Pizza parfaite"
+  },
+  {
+    "left": "Pire chanteur de karaoké",
+    "right": "Meilleur chanteur de karaoké"
+  },
+  {
+    "left": "Chose la plus overrated",
+    "right": "Chose la plus underrated"
+  },
+  {
+    "left": "Pire façon de finir une relation",
+    "right": "Meilleure façon de finir une relation"
+  },
+  {
+    "left": "Pire pet peeve",
+    "right": "Habitude adorable"
+  },
+  {
+    "left": "Pire genre de film",
+    "right": "Meilleur genre de film"
+  },
+  {
+    "left": "Pire queue / file d'attente",
+    "right": "Queue qui vaut vraiment le coup"
+  },
+  {
+    "left": "Pire pouvoir de super-vilain",
+    "right": "Pouvoir de super-vilain le plus terrifiant"
+  },
+  {
+    "left": "Pire façon de dépenser son premier salaire",
+    "right": "Meilleure façon de dépenser son premier salaire"
+  },
+  {
+    "left": "Pire tatouage",
+    "right": "Tatouage le plus stylé"
+  },
+  {
+    "left": "Pire pseudo de gamer",
+    "right": "Meilleur pseudo de gamer"
+  },
+  {
+    "left": "Pire sport à regarder",
+    "right": "Meilleur sport à regarder"
+  },
+  {
+    "left": "Pire fin de série TV",
+    "right": "Meilleure fin de série TV"
+  },
+  {
+    "left": "Pire soundcheck de concert",
+    "right": "Meilleur banger de concert"
+  },
+  {
+    "left": "Pire mème de 2010",
+    "right": "Mème le plus intemporel"
+  },
+  {
+    "left": "Pire façon de gagner de l'argent sur Internet",
+    "right": "Meilleure façon de gagner de l'argent sur Internet"
+  },
+  {
+    "left": "Comportement le plus passif-agressif",
+    "right": "Comportement le plus assertif"
+  },
+  {
+    "left": "Pire coloc imaginable",
+    "right": "Coloc idéale"
+  },
+  {
+    "left": "Pire façon de cuisiner des pâtes",
+    "right": "Façon parfaite de cuisiner des pâtes"
+  },
+  {
+    "left": "Pire réponse à un texto",
+    "right": "Réponse parfaite à un texto"
+  },
+  {
+    "left": "Pire power-up dans un jeu",
+    "right": "Meilleur power-up dans un jeu"
+  },
+  {
+    "left": "Pire chanson de générique",
+    "right": "Meilleur générique de série"
+  },
+  {
+    "left": "Pire façon de s'habiller pour un entretien",
+    "right": "Tenue parfaite pour un entretien"
+  },
+  {
+    "left": "Pire boss de jeu vidéo",
+    "right": "Boss de jeu vidéo le plus iconique"
+  },
+  {
+    "left": "Pire raison de faire une dispute de couple",
+    "right": "Raison légitime de dispute de couple"
+  },
+  {
+    "left": "Pire compétence inutile",
+    "right": "Compétence secrète la plus badass"
+  },
+  {
+    "left": "Pire façon de passer un dimanche",
+    "right": "Dimanche parfait"
+  },
+  {
+    "left": "Pire animal de compagnie exotique",
+    "right": "Animal de compagnie exotique le plus stylé"
+  },
+  {
+    "left": "Pire manière de faire la queue au supermarché",
+    "right": "Client idéal au supermarché"
+  },
+  {
+    "left": "Pire trait de personnalité sur un CV",
+    "right": "Meilleur trait de personnalité sur un CV"
+  },
+  {
+    "left": "Pire slogan publicitaire",
+    "right": "Slogan publicitaire le plus mémorable"
+  },
+  {
+    "left": "Pire façon de commencer une présentation",
+    "right": "Meilleure façon de commencer une présentation"
+  },
+  {
+    "left": "Pire lieu de premier rendez-vous",
+    "right": "Lieu parfait pour un premier rendez-vous"
+  },
+  {
+    "left": "Pire réplique de film",
+    "right": "Réplique de film la plus culte"
+  },
+  {
+    "left": "Pire genre musical",
+    "right": "Genre musical le plus banger"
+  },
+  {
+    "left": "Pire façon de se venger",
+    "right": "Vengeance parfaite et propre"
+  },
+  {
+    "left": "Pire excuse pour arriver en retard",
+    "right": "Excuse pour retard la plus crédible"
+  },
+  {
+    "left": "Pire façon de demander une augmentation",
+    "right": "Technique parfaite pour avoir une augmentation"
+  },
+  {
+    "left": "Chose la plus inutile à apprendre à l'école",
+    "right": "Chose la plus utile à apprendre à l'école"
+  },
+  {
+    "left": "Pire Pokémon de la première génération",
+    "right": "Pokémon le plus iconique"
+  },
+  {
+    "left": "Pire way de flex",
+    "right": "Flex le plus discret et stylé"
+  },
+  {
+    "left": "Pire interaction avec un bot de service client",
+    "right": "Service client parfait"
+  },
+  {
+    "left": "Pire combinaison alimentaire",
+    "right": "Accord parfait de saveurs"
+  },
+  {
+    "left": "Pire façon de gérer le stress",
+    "right": "Meilleure façon de gérer le stress"
+  },
+  {
+    "left": "Pire inventeur de l'histoire",
+    "right": "Inventeur le plus révolutionnaire"
+  },
+  {
+    "left": "Pire façon d'apprendre une langue",
+    "right": "Méthode parfaite pour apprendre une langue"
+  },
+  {
+    "left": "Pire cover de chanson célèbre",
+    "right": "Cover qui dépasse l'original"
+  },
+  {
+    "left": "Pire façon de perdre un ami",
+    "right": "Façon de garder un ami pour la vie"
+  },
+  {
+    "left": "Pire design de logo",
+    "right": "Logo le plus iconic de tous les temps"
+  },
+  {
+    "left": "Pire upgrade inutile sur un téléphone",
+    "right": "Feature de téléphone qui change vraiment la vie"
+  },
+  {
+    "left": "Pire façon de célébrer une victoire",
+    "right": "Célébration de victoire la plus épique"
+  },
+  {
+    "left": "Pire tradition familiale",
+    "right": "Tradition familiale la plus wholesome"
+  },
+  {
+    "left": "Pire type de pub sur YouTube",
+    "right": "Pub tellement bonne qu'on la regarde en entier"
+  },
+  {
+    "left": "Pire mode vestimentaire des années 2000",
+    "right": "Mode des années 2000 qui devrait revenir"
+  },
+  {
+    "left": "Pire façon de passer le temps dans un train",
+    "right": "Meilleure façon de passer le temps dans un train"
+  },
+  {
+    "left": "Pire catchphrase de personnage fictif",
+    "right": "Catchphrase la plus culte"
+  },
+  {
+    "left": "Pire façon de s'endormir",
+    "right": "Routine parfaite pour s'endormir"
+  },
+  {
+    "left": "Pire comportement en salle de cinéma",
+    "right": "Spectateur de cinéma idéal"
+  },
+  {
+    "left": "Personnage fictif le plus useless",
+    "right": "Personnage fictif le plus OP"
+  },
+  {
+    "left": "Pire façon de finir un dîner de famille",
+    "right": "Dîner de famille parfait"
+  },
+  {
+    "left": "Pire goût de chips",
+    "right": "Meilleur goût de chips"
+  },
+  {
+    "left": "Pire sport inventé",
+    "right": "Sport le plus hype du moment"
+  },
+  {
+    "left": "Pire façon de se faire des amis en ligne",
+    "right": "Meilleure façon de se faire des amis en ligne"
+  },
+  {
+    "left": "Pire moyen de transport",
+    "right": "Meilleur moyen de transport"
+  },
+  {
+    "left": "Pire technologie de l'histoire",
+    "right": "Technologie qui a changé le monde"
+  },
+  {
+    "left": "Pire façon de rater un examen",
+    "right": "Technique de révision la plus efficace"
+  },
+  {
+    "left": "Pire cadeau pour un gamer",
+    "right": "Meilleur cadeau pour un gamer"
+  },
+  {
+    "left": "Pire façon de troller en jeu",
+    "right": "Troll marrant qui ne nuit à personne"
+  },
+  {
+    "left": "Pire sorte de notification",
+    "right": "Notification qui fait plaisir"
+  },
+  {
+    "left": "Pire façon d'utiliser ses vacances",
+    "right": "Vacances parfaites"
+  },
+  {
+    "left": "Pire conseil donné sur Reddit",
+    "right": "Meilleur conseil trouvé sur Reddit"
+  },
+  {
+    "left": "Pire animal à avoir comme mascotte d'équipe",
+    "right": "Meilleure mascotte d'équipe sportive"
+  },
+  {
+    "left": "Pire soundtrack de jeu vidéo",
+    "right": "Soundtrack de jeu vidéo la plus légendaire"
+  },
+  {
+    "left": "Pire façon de commencer un podcast",
+    "right": "Meilleure accroche de podcast"
+  },
+  {
+    "left": "Pire mot de passe possible",
+    "right": "Mot de passe parfaitement sécurisé"
+  },
+  {
+    "left": "Pire prise de position sur Internet",
+    "right": "Opinion chaude qui lance un vrai débat"
+  },
+  {
+    "left": "Pire façon de gérer un ghosting",
+    "right": "Réaction parfaite face au ghosting"
+  },
+  {
+    "left": "Pire truc que l'IA pourrait remplacer",
+    "right": "Truc que l'IA ne remplacera jamais"
+  },
+  {
+    "left": "Pire façon de demander à quelqu'un en soirée ce qu'il fait dans la vie",
+    "right": "Question parfaite pour briser la glace"
+  },
+  {
+    "left": "Pire manière de finir un email pro",
+    "right": "Meilleure formule de politesse d'email"
+  },
+  {
+    "left": "Pire fin de jeu vidéo",
+    "right": "Fin de jeu vidéo la plus épique"
+  },
+  {
+    "left": "Pire sport à pratiquer sous la pluie",
+    "right": "Sport parfait sous la pluie"
+  },
+  {
+    "left": "Pire genre de personnes à avoir en groupe de projet",
+    "right": "Coéquipier idéal"
+  },
+  {
+    "left": "Pire chose à dire lors d'un silence gêné",
+    "right": "Phrase parfaite pour relancer une conversation"
+  },
+  {
+    "left": "Pire film de superhéros",
+    "right": "Meilleur film de superhéros"
+  },
+  {
+    "left": "Pire chose que quelqu'un peut faire avec sa fortune",
+    "right": "Meilleure chose à faire avec une fortune"
+  },
+  {
+    "left": "Pire comportement de streamer",
+    "right": "Streamer parfait"
+  },
+  {
+    "left": "Pire type de followers sur les réseaux",
+    "right": "Communauté parfaite sur les réseaux"
+  },
+  {
+    "left": "Pire personnage de série à inviter à dîner",
+    "right": "Meilleur personnage de série à inviter à dîner"
+  },
+  {
+    "left": "Pire façon d'utiliser ChatGPT",
+    "right": "Meilleure façon d'utiliser ChatGPT"
+  },
+  {
+    "left": "Pire type de commentaire sur YouTube",
+    "right": "Commentaire YouTube parfait"
+  },
+  {
+    "left": "Pire endroit pour tomber en panne de téléphone",
+    "right": "Situation où l'on n'a pas besoin de son téléphone"
+  },
+  {
+    "left": "Pire façon de gérer une panne de courant",
+    "right": "Survivaliste ultime"
+  },
+  {
+    "left": "Pire animation de la décennie",
+    "right": "Anime le plus culte"
+  },
+  {
+    "left": "Pire way de skip une pub",
+    "right": "Pub si bonne qu'on la regarde jusqu'au bout"
+  },
+  {
+    "left": "Pire façon de draguer sur les applis",
+    "right": "Openers parfait sur Tinder"
+  },
+  {
+    "left": "Pire feature de Discord",
+    "right": "Meilleure feature de Discord"
+  },
+  {
+    "left": "Pire chose à faire à 3h du matin",
+    "right": "Meilleure chose à faire à 3h du matin"
+  },
+  {
+    "left": "Pire raison d'aller sur Wikipédia",
+    "right": "Meilleur rabbit hole Wikipedia"
+  },
+  {
+    "left": "Pire utilisation des stories Instagram",
+    "right": "Utilisation parfaite des stories"
+  },
+  {
+    "left": "Pire jeu mobile",
+    "right": "Meilleur jeu mobile"
+  },
+  {
+    "left": "Pire niveau de difficulté dans un jeu",
+    "right": "Difficulté parfaite pour s'amuser"
+  },
+  {
+    "left": "Pire bug de jeu vidéo",
+    "right": "Bug de jeu vidéo devenu légendaire"
+  },
+  {
+    "left": "Pire façon de stream en live",
+    "right": "Meilleure ambiance de stream"
+  },
+  {
+    "left": "Pire repas avant une longue session de gaming",
+    "right": "Repas parfait avant une session de gaming"
+  },
+  {
+    "left": "Pire cheat code de l'histoire",
+    "right": "Cheat code le plus légendaire"
+  },
+  {
+    "left": "Pire façon de rage-quit",
+    "right": "Rage-quit le plus classe"
+  },
+  {
+    "left": "Pire type de joueur en multijoueur",
+    "right": "Coéquipier rêvé en multi"
+  },
+  {
+    "left": "Pire map de FPS",
+    "right": "Map de FPS la plus culte"
+  },
+  {
+    "left": "Pire early access sorti trop tôt",
+    "right": "Early access qui valait le coup"
+  },
+  {
+    "left": "Pire DLC de l'histoire",
+    "right": "DLC qui vaut vraiment son prix"
+  },
+  {
+    "left": "Pire crossover de pop culture",
+    "right": "Crossover pop culture qu'on a jamais eu mais qui serait incroyable"
+  },
+  {
+    "left": "Pire reboot / remake",
+    "right": "Reboot qui dépasse l'original"
+  },
+  {
+    "left": "Pire mème qui vieillit mal",
+    "right": "Mème éternel"
+  },
+  {
+    "left": "Pire catchphrase de streamer",
+    "right": "Catchphrase de streamer devenue culte"
+  },
+  {
+    "left": "Pire saison d'une bonne série",
+    "right": "Saison de série parfaite"
+  },
+  {
+    "left": "Pire personnage de manga",
+    "right": "Personnage de manga le plus iconique"
+  },
+  {
+    "left": "Pire spin-off inutile",
+    "right": "Spin-off meilleur que l'original"
+  },
+  {
+    "left": "Pire fan-fiction possible",
+    "right": "Fan-fiction qui mériterait d'être canonique"
+  },
+  {
+    "left": "Pire collab de marques",
+    "right": "Collab de marques la plus stylée"
+  },
+  {
+    "left": "Pire speedrun imaginable",
+    "right": "Speedrun le plus impressionnant"
+  },
+  {
+    "left": "Pire way de flex son setup gamer",
+    "right": "Setup gamer tellement stylé qu'on le respecte"
+  },
+  {
+    "left": "Pire hot take gaming",
+    "right": "Hot take gaming qui est 100% vrai"
+  },
+  {
+    "left": "Pire aspect de la culture des NFTs",
+    "right": "Concept de NFT qui aurait pu être cool"
+  },
+  {
+    "left": "Pire façon de faire une pub pour son serveur Discord",
+    "right": "Meilleure façon de faire grandir un serveur Discord"
+  },
+  {
+    "left": "Pire façon de finir un thread Twitter",
+    "right": "Thread Twitter parfait"
+  },
+  {
+    "left": "Pire type de contenu sur Twitch",
+    "right": "Meilleur type de contenu sur Twitch"
+  },
+  {
+    "left": "Pire tendance gaming de l'année",
+    "right": "Tendance gaming qui a tout changé"
+  },
+  {
+    "left": "Pire way d'expliquer un jeu à un débutant",
+    "right": "Meilleure façon d'initier quelqu'un au gaming"
+  },
+  {
+    "left": "Pire Easter egg de jeu vidéo",
+    "right": "Easter egg le plus fou jamais découvert"
+  },
+  {
+    "left": "Pire personnage jouable",
+    "right": "Personnage jouable le plus OP et stylé"
+  },
+  {
+    "left": "Pire fin de jeu vidéo ever",
+    "right": "Fin de jeu vidéo qui t'a fait pleurer"
+  },
+  {
+    "left": "Objet complètement absurde à emporter sur une île déserte",
+    "right": "Objet parfait pour survivre sur une île déserte"
+  },
+  {
+    "left": "Pouvoir inutile si t'es le seul humain sur Terre",
+    "right": "Pouvoir qui te rend dieu si t'es le seul humain sur Terre"
+  },
+  {
+    "left": "Pire loi absurde à imposer à la planète",
+    "right": "Loi absurde qui améliorerait vraiment le monde"
+  },
+  {
+    "left": "Pire dilemme moral impossible",
+    "right": "Dilemme moral avec une réponse évidente"
+  },
+  {
+    "left": "Pire avantage dans un jeu de survie",
+    "right": "Avantage ultime dans un jeu de survie"
+  },
+  {
+    "left": "Pire qualité pour un dictateur bienveillant",
+    "right": "Qualité essentielle pour un dictateur bienveillant"
+  },
+  {
+    "left": "Chose la plus inutile si la civilisation s'effondre",
+    "right": "Compétence la plus précieuse après l'effondrement de la civilisation"
+  },
+  {
+    "left": "Pire super-pouvoir si tout le monde l'avait",
+    "right": "Super-pouvoir qui reste utile même si tout le monde l'a"
+  },
+  {
+    "left": "Pire animal à avoir dans son équipe de survie zombie",
+    "right": "Meilleur animal dans une apocalypse zombie"
+  },
+  {
+    "left": "Pire invention si elle tombait dans de mauvaises mains",
+    "right": "Invention la plus sûre à démocratiser"
+  },
+  {
+    "left": "Pire moment pour avoir le hoquet",
+    "right": "Moment où avoir le hoquet est totalement acceptable"
+  },
+  {
+    "left": "Pire façon de mourir dans un film d'horreur",
+    "right": "Mort la plus stylée dans un film d'horreur"
+  },
+  {
+    "left": "Pire plan pour cambrioler une banque",
+    "right": "Plan parfait pour cambrioler une banque (fiction)"
+  },
+  {
+    "left": "Pire façon de trahir ses alliés dans un jeu de société",
+    "right": "Trahison de génie dans un jeu de société"
+  },
+  {
+    "left": "Pire alliance à faire dans un jeu de trônes fictif",
+    "right": "Alliance parfaite pour prendre le pouvoir"
+  },
+  {
+    "left": "Pire décision stratégique dans un jeu de stratégie",
+    "right": "Coup de génie stratégique qui change la partie"
+  },
+  {
+    "left": "Pire façon de négocier avec des aliens",
+    "right": "Meilleure façon de se faire des amis extraterrestres"
+  },
+  {
+    "left": "Pire façon d'utiliser la magie si tu en avais",
+    "right": "Utilisation parfaite d'un pouvoir magique au quotidien"
+  },
+  {
+    "left": "Pire timeline alternative de l'histoire",
+    "right": "Timeline alternative où le monde serait meilleur"
+  },
+  {
+    "left": "Pire façon de prouver que tu es un humain à un robot",
+    "right": "Meilleure façon de passer un test Turing"
+  },
+  {
+    "left": "Pire façon de dépenser un million d'euros en 24h",
+    "right": "Meilleure façon de dépenser un million d'euros en 24h"
+  },
+  {
+    "left": "Pire façon d'utiliser le voyage dans le temps",
+    "right": "Utilisation parfaite du voyage dans le temps"
+  },
+  {
+    "left": "Pire dilemme du tramway (trolley problem)",
+    "right": "Version du trolley problem avec une réponse claire"
+  },
+  {
+    "left": "Pire choix dans le jeu 'Tu dois choisir'",
+    "right": "Choix évident dans un dilemme 'Tu dois choisir'"
+  },
+  {
+    "left": "Pire façon de devenir immortel",
+    "right": "Meilleure forme d'immortalité"
+  },
+  {
+    "left": "Pire règle à imposer en colocation",
+    "right": "Règle de coloc parfaite"
+  },
+  {
+    "left": "Pire stratégie dans Among Us",
+    "right": "Technique parfaite pour gagner à Among Us"
+  },
+  {
+    "left": "Pire façon d'être le sus dans Among Us",
+    "right": "Façon la plus stylée de gagner comme imposteur"
+  },
+  {
+    "left": "Pire cadeau à offrir à quelqu'un qu'on n'aime pas",
+    "right": "Cadeau parfait pour quelqu'un qu'on n'aime pas"
+  },
+  {
+    "left": "Pire façon d'avouer un mensonge",
+    "right": "Façon parfaite de révéler une vérité gênante"
+  },
+  {
+    "left": "Pire compétition absurde à organiser",
+    "right": "Compétition absurde qui serait un vrai banger"
+  },
+  {
+    "left": "Pire monde fictif où vivre",
+    "right": "Meilleur monde fictif où s'installer"
+  },
+  {
+    "left": "Pire maison hantée à explorer",
+    "right": "Maison hantée qu'on explorerait quand même"
+  },
+  {
+    "left": "Pire façon de survivre à l'apocalypse",
+    "right": "Plan de survie parfait pour l'apocalypse"
+  },
+  {
+    "left": "Pire façon d'utiliser la télépathie",
+    "right": "Utilisation parfaite de la télépathie"
+  },
+  {
+    "left": "Pire talent de magicien de rue",
+    "right": "Tour de magie de rue le plus impressionnant"
+  },
+  {
+    "left": "Pire règle de Squid Game possible",
+    "right": "Règle de Squid Game qui rendrait le jeu juste"
+  },
+  {
+    "left": "Pire stratégie dans Monopoly",
+    "right": "Stratégie parfaite pour gagner à Monopoly"
+  },
+  {
+    "left": "Pire façon de démarrer une révolution",
+    "right": "Meilleure façon de changer le monde pacifiquement"
+  },
+  {
+    "left": "Pire façon de confesser un crime à un ami",
+    "right": "Façon parfaite de se vider le cœur à un ami"
+  },
+  {
+    "left": "Pire manière de gérer une erreur en pleine présentation",
+    "right": "Façon parfaite de se sortir d'un imprévu en présentation"
+  },
+  {
+    "left": "Pire façon de sortir d'un ascenseur gêné",
+    "right": "Façon parfaite de gérer un silence dans un ascenseur"
+  },
+  {
+    "left": "Pire façon de se remettre d'une boulette en public",
+    "right": "Façon parfaite de transformer une boulette en win"
+  },
+  {
+    "left": "Pire façon de casser une mauvaise nouvelle",
+    "right": "Façon parfaite de donner une mauvaise nouvelle"
+  },
+  {
+    "left": "Pire façon de sortir d'une conversation ennuyeuse",
+    "right": "Façon parfaite de finir une conversation ennuyeuse avec classe"
+  },
+  {
+    "left": "Pire façon de demander un service à quelqu'un",
+    "right": "Façon parfaite de demander une faveur"
+  },
+  {
+    "left": "Pire façon de gérer une commande de pizza ratée",
+    "right": "Façon parfaite de gérer une pizza ratée"
+  },
+  {
+    "left": "Pire façon de se faire remarquer au travail",
+    "right": "Façon parfaite de se faire remarquer positivement"
+  },
+  {
+    "left": "Pire façon de lancer un débat en soirée",
+    "right": "Meilleure question pour lancer un vrai débat"
+  },
+  {
+    "left": "Pire réaction à une blague nulle",
+    "right": "Meilleure réaction à une blague nulle"
+  },
+  {
+    "left": "Pire façon d'expliquer Internet à ta grand-mère",
+    "right": "Façon parfaite d'expliquer Internet à ta grand-mère"
+  },
+  {
+    "left": "Pire façon de gérer un ami qui spoil tout",
+    "right": "Façon parfaite de gérer un spoileur"
+  },
+  {
+    "left": "Pire réaction à un spoil",
+    "right": "Réaction parfaite à un spoil"
+  },
+  {
+    "left": "Pire façon de rater une surprise-partie",
+    "right": "Façon parfaite d'organiser une surprise-partie"
+  },
+  {
+    "left": "Pire façon d'annoncer qu'on est végétarien en soirée",
+    "right": "Façon parfaite d'annoncer ses restrictions alimentaires"
+  },
+  {
+    "left": "Pire façon de recadrer quelqu'un poliment",
+    "right": "Façon parfaite de dire à quelqu'un qu'il a tort"
+  },
+  {
+    "left": "Pire façon de gérer un ami qui arrive toujours en retard",
+    "right": "Façon parfaite de gérer un chroniquement en retard"
+  },
+  {
+    "left": "Pire façon d'expliquer un mème à quelqu'un qui ne comprend pas",
+    "right": "Façon parfaite d'expliquer un mème"
+  },
+  {
+    "left": "Pire manière de finir une amitié",
+    "right": "Façon parfaite de mettre fin à une amitié toxique"
+  },
+  {
+    "left": "Pire façon de gérer un désaccord sur Netflix",
+    "right": "Façon parfaite de choisir quoi regarder en couple"
+  },
+  {
+    "left": "Pire façon d'envoyer un audio vocal incohérent",
+    "right": "Message vocal parfaitement articulé"
+  },
+  {
+    "left": "Pire moment pour envoyer un message vocal de 10 minutes",
+    "right": "Moment idéal pour envoyer un long vocal"
+  },
+  {
+    "left": "Pire façon de répondre à un message deux semaines plus tard",
+    "right": "Réponse parfaite après avoir mis du temps à répondre"
+  },
+  {
+    "left": "Pire façon d'utiliser les emojis dans un contexte pro",
+    "right": "Emoji parfait dans un email professionnel"
+  },
+  {
+    "left": "Pire façon d'utiliser le statut \"vu\" à mauvais escient",
+    "right": "Façon parfaite de gérer le vu sans réponse"
+  },
+  {
+    "left": "Pire façon de gérer une réunion Zoom",
+    "right": "Réunion Zoom parfaitement menée"
+  },
+  {
+    "left": "Pire excuse pour ne pas allumer sa caméra en visio",
+    "right": "Vraie bonne raison de garder la caméra éteinte"
+  },
+  {
+    "left": "Pire façon de gérer un doublon de message group",
+    "right": "Façon parfaite de gérer les notifs de groupe"
+  },
+  {
+    "left": "Pire façon de quitter un groupe WhatsApp",
+    "right": "Façon parfaite de quitter un groupe silencieusement"
+  },
+  {
+    "left": "Pire façon de faire un screenshot d'une conversation et de se faire prendre",
+    "right": "Façon parfaite de partager un screenshot sans dommages"
+  },
+  {
+    "left": "Pire façon d'être left on read",
+    "right": "Façon parfaite de gérer un ghosting numérique"
+  },
+  {
+    "left": "Pire façon de liker un vieux post par accident",
+    "right": "Façon de se sortir du fat-finger sur Instagram"
+  },
+  {
+    "left": "Pire type de réponse vocale d'assistant IA",
+    "right": "Meilleure feature d'assistant IA"
+  },
+  {
+    "left": "Pire bot dans un jeu en ligne",
+    "right": "Bot le plus impressionnant de l'histoire du gaming"
+  },
+  {
+    "left": "Pire façon d'utiliser les raccourcis clavier",
+    "right": "Raccourci clavier qui change la vie"
+  },
+  {
+    "left": "Pire mise à jour de jeu qui a tout cassé",
+    "right": "Mise à jour de jeu qui a tout amélioré"
+  },
+  {
+    "left": "Pire meta de jeu compétitif",
+    "right": "Meta de jeu compétitif la plus fun"
+  },
+  {
+    "left": "Pire nerf d'un personnage adoré",
+    "right": "Buff de personnage le plus satisfaisant"
+  },
+  {
+    "left": "Pire excuse de joueur qui perd",
+    "right": "Analyse parfaite après une défaite"
+  },
+  {
+    "left": "Pire façon de flex son rank",
+    "right": "Façon parfaite de montrer son niveau sans être toxique"
+  },
+  {
+    "left": "Pire duo en jeu de combat",
+    "right": "Duo parfait en jeu de combat"
+  },
+  {
+    "left": "Pire personnage dans un Battle Royale",
+    "right": "Build parfait dans un Battle Royale"
+  },
+  {
+    "left": "Pire stratégie de rush dans un RTS",
+    "right": "Stratégie de rush parfaitement exécutée"
+  },
+  {
+    "left": "Pire invocation dans un MOBA",
+    "right": "Champion parfait pour solo-carry dans un MOBA"
+  },
+  {
+    "left": "Pire loot dans un RPG",
+    "right": "Meilleur drop de loot dans un RPG"
+  },
+  {
+    "left": "Pire quête de RPG",
+    "right": "Quête de RPG la plus mémorable"
+  },
+  {
+    "left": "Pire jeu de sport qui essaie d'être réaliste",
+    "right": "Jeu de sport qui capture parfaitement l'ambiance"
+  },
+  {
+    "left": "Pire simulation de vie",
+    "right": "Simulateur de vie parfait"
+  },
+  {
+    "left": "Pire fin de run roguelike",
+    "right": "Run roguelike parfait"
+  },
+  {
+    "left": "Pire deck dans un jeu de cartes",
+    "right": "Deck imbattable dans un jeu de cartes"
+  },
+  {
+    "left": "Pire utilisation d'une mécanique de jeu",
+    "right": "Utilisation de génie d'une mécanique de jeu"
+  },
+  {
+    "left": "Pire type de jeu indé raté",
+    "right": "Jeu indé qui dépasse tous les AAA"
+  },
+  {
+    "left": "Pire façon de finir à 1 PV dans un souls-like",
+    "right": "Façon parfaite de survivre à un boss de souls-like"
+  },
+  {
+    "left": "Pire façon de gaspiller une ultime dans un jeu",
+    "right": "Utilisation parfaite d'une ultime qui gagne la partie"
+  },
+  {
+    "left": "Pire façon de passer ses nuits à grind",
+    "right": "Session de grind parfaitement optimisée"
+  },
+  {
+    "left": "Pire stratégie de tower defense",
+    "right": "Placement de tour parfait dans un tower defense"
+  },
+  {
+    "left": "Pire ending de visual novel",
+    "right": "True ending de visual novel le plus émouvant"
+  },
+  {
+    "left": "Pire gacha pull",
+    "right": "Gacha pull légendaire"
+  },
+  {
+    "left": "Pire jeu de rythme au monde",
+    "right": "Jeu de rythme le plus addictif"
+  },
+  {
+    "left": "Pire plateforme de cloud gaming",
+    "right": "Meilleure plateforme pour jouer sans console"
+  },
+  {
+    "left": "Pire façon de perdre toutes ses heures de jeu",
+    "right": "Façon parfaite de sauvegarder sa progression"
+  },
+  {
+    "left": "Pire façon de commenter un match esport",
+    "right": "Meilleur commentateur esport de l'histoire"
+  },
+  {
+    "left": "Pire façon de se chauffer avant un tournoi",
+    "right": "Routine parfaite avant un tournoi"
+  },
+  {
+    "left": "Pire sponsor pour une équipe esport",
+    "right": "Sponsor parfait pour une équipe esport"
+  },
+  {
+    "left": "Pire réseau de joueurs professionnels toxiques",
+    "right": "Culture de joueur pro la plus respectueuse"
+  },
+  {
+    "left": "Pire jeu pour faire des tournois entre amis",
+    "right": "Meilleur jeu pour un tournoi entre amis"
+  },
+  {
+    "left": "Pire règle maison inventée pour un jeu de société",
+    "right": "Règle maison géniale qui améliore tout"
+  },
+  {
+    "left": "Pire façon de tricher au Uno",
+    "right": "Technique parfaite pour gagner au Uno sans tricher"
+  },
+  {
+    "left": "Pire façon de perdre au Puissance 4",
+    "right": "Stratégie imbattable au Puissance 4"
+  },
+  {
+    "left": "Pire jeu de plateau qui dure trop longtemps",
+    "right": "Jeu de plateau parfait pour une soirée"
+  },
+  {
+    "left": "Pire façon de sabrer une bouteille de champagne",
+    "right": "Façon la plus stylée de sabrer le champagne"
+  },
+  {
+    "left": "Pire cocktail inventé",
+    "right": "Cocktail parfait pour une soirée entre amis"
+  },
+  {
+    "left": "Pire déguisement d'Halloween",
+    "right": "Déguisement d'Halloween le plus stylé"
+  },
+  {
+    "left": "Pire hôte de soirée",
+    "right": "Hôte de soirée parfait"
+  },
+  {
+    "left": "Pire jeu à faire lors d'une soirée",
+    "right": "Jeu parfait pour animer une soirée"
+  },
+  {
+    "left": "Pire musique de fond en soirée",
+    "right": "Playlist parfaite pour une soirée"
+  },
+  {
+    "left": "Pire façon de se débarrasser d'un invité qui ne veut pas partir",
+    "right": "Façon parfaite de finir une soirée en beauté"
+  },
+  {
+    "left": "Pire façon de rater un brunch",
+    "right": "Brunch parfait du dimanche"
+  },
+  {
+    "left": "Pire façon de gérer un restau avec des amis indécis",
+    "right": "Façon parfaite de choisir un restaurant"
+  },
+  {
+    "left": "Pire façon de goûter un vin sans rien y connaître",
+    "right": "Comment faire genre de connaître le vin"
+  },
+  {
+    "left": "Pire façon de boire un café le matin",
+    "right": "Rituel café matinal parfait"
+  },
+  {
+    "left": "Pire façon de commander en livraison",
+    "right": "Commande en livraison parfaite"
+  },
+  {
+    "left": "Pire façon de rater un repas de meal prep",
+    "right": "Meal prep parfait pour la semaine"
+  },
+  {
+    "left": "Pire comfort food",
+    "right": "Meilleur comfort food"
+  },
+  {
+    "left": "Pire combinaison de fast food",
+    "right": "Commande fast food parfaite"
+  },
+  {
+    "left": "Pire plat à manger en réunion zoom",
+    "right": "Plat parfait devant un écran"
+  },
+  {
+    "left": "Pire aliment à manger au cinéma",
+    "right": "Snack parfait au cinéma"
+  },
+  {
+    "left": "Pire façon de manger des sushi",
+    "right": "Façon parfaite de commander des sushi"
+  },
+  {
+    "left": "Pire façon de rater une crêpe",
+    "right": "Crêpe parfaite"
+  },
+  {
+    "left": "Pire façon de brunir une banane",
+    "right": "Recette parfaite pour utiliser des bananes trop mûres"
+  },
+  {
+    "left": "Pire façon de faire du café froid",
+    "right": "Cold brew parfait"
+  },
+  {
+    "left": "Pire façon d'utiliser une fondue",
+    "right": "Fondue parfaite entre amis"
+  },
+  {
+    "left": "Pire façon de rater un barbecue",
+    "right": "Barbecue parfait en été"
+  },
+  {
+    "left": "Pire façon de choisir un film en famille",
+    "right": "Façon parfaite de choisir un film tout le monde soit content"
+  },
+  {
+    "left": "Pire série à binge le week-end",
+    "right": "Meilleure série à binge en une nuit"
+  },
+  {
+    "left": "Pire façon de commenter une série en cours de visionnage",
+    "right": "Compagnon de visionnage parfait"
+  },
+  {
+    "left": "Pire final de série culte",
+    "right": "Fin de série qui t'a laissé sans voix"
+  },
+  {
+    "left": "Pire saison \"de trop\" d'une série",
+    "right": "Série qui aurait pu continuer encore longtemps"
+  },
+  {
+    "left": "Pire adaptation en film d'une série adorée",
+    "right": "Adaptation qui a rendu honneur à l'original"
+  },
+  {
+    "left": "Pire acteur de casting inattendu",
+    "right": "Casting surprise qui a totalement sauvé le film"
+  },
+  {
+    "left": "Pire sequel de film culte",
+    "right": "Sequel meilleur que l'original"
+  },
+  {
+    "left": "Pire prequel inutile",
+    "right": "Prequel qui éclaire brillamment l'original"
+  },
+  {
+    "left": "Pire univers étendu qui part en vrille",
+    "right": "Univers étendu parfaitement construit"
+  },
+  {
+    "left": "Pire villain de cinéma",
+    "right": "Villain le plus iconique de l'histoire du cinéma"
+  },
+  {
+    "left": "Pire film indé incompréhensible",
+    "right": "Film indé qui t'a changé la vie"
+  },
+  {
+    "left": "Pire doublage français d'un film",
+    "right": "Doublage français qui vaut l'original"
+  },
+  {
+    "left": "Pire réplique à sortir après un film émouvant",
+    "right": "Commentaire parfait après un film bouleversant"
+  },
+  {
+    "left": "Pire fan-base de franchise",
+    "right": "Fan-base la plus soudée et bienveillante"
+  },
+  {
+    "left": "Pire album d'artiste culte",
+    "right": "Album parfait de bout en bout"
+  },
+  {
+    "left": "Pire chanson à mettre dans une playlist de sport",
+    "right": "Chanson parfaite pour se motiver au sport"
+  },
+  {
+    "left": "Pire concert auquel tu pourrais assister",
+    "right": "Concert rêvé"
+  },
+  {
+    "left": "Pire collab musicale",
+    "right": "Collab musicale qui a tout déchiré"
+  },
+  {
+    "left": "Pire featuring raté",
+    "right": "Featuring qui vole la vedette à l'artiste principal"
+  },
+  {
+    "left": "Pire artiste qui fait du cinéma",
+    "right": "Artiste musical devenu excellent acteur"
+  },
+  {
+    "left": "Pire transition d'artiste pop vers le rap",
+    "right": "Reconversion artistique la plus réussie"
+  },
+  {
+    "left": "Pire son viral TikTok",
+    "right": "Son TikTok qui vit dans ta tête en permanence"
+  },
+  {
+    "left": "Pire façon de rater une chorégraphie TikTok",
+    "right": "Chorégraphie TikTok parfaitement exécutée"
+  },
+  {
+    "left": "Pire tendance musicale qui a duré trop longtemps",
+    "right": "Genre musical émergent qui mérite d'exploser"
+  },
+  {
+    "left": "Pire clip musical",
+    "right": "Clip musical visuellement incroyable"
+  },
+  {
+    "left": "Pire façon de découvrir de la musique",
+    "right": "Meilleure façon de découvrir de nouveaux artistes"
+  },
+  {
+    "left": "Pire playlist algorithmique Spotify",
+    "right": "Playlist qui capture parfaitement ton mood"
+  },
+  {
+    "left": "Pire façon de chanter en voiture",
+    "right": "Session de karaoké en voiture parfaite"
+  },
+  {
+    "left": "Pire chanson d'amour de tous les temps",
+    "right": "Chanson d'amour la plus émouvante"
+  },
+  {
+    "left": "Pire remix qui détruit l'original",
+    "right": "Remix qui dépasse l'original"
+  },
+  {
+    "left": "Pire set de DJ lors d'un festival",
+    "right": "Set de festival qui fait la légende"
+  },
+  {
+    "left": "Pire façon de préparer ses affaires la veille d'un voyage",
+    "right": "Façon parfaite de faire sa valise"
+  },
+  {
+    "left": "Pire touriste imaginable",
+    "right": "Voyageur parfait et respectueux"
+  },
+  {
+    "left": "Pire destination de vacances pour une personne introvertie",
+    "right": "Destination idéale pour un introverti"
+  },
+  {
+    "left": "Pire activity en vacances tout compris",
+    "right": "Meilleure activité en club vacances"
+  },
+  {
+    "left": "Pire façon de rater son avion",
+    "right": "Technique parfaite pour être à l'aéroport sans stress"
+  },
+  {
+    "left": "Pire voisin de siège en avion",
+    "right": "Voisin de siège parfait en avion"
+  },
+  {
+    "left": "Pire façon de se perdre dans une ville inconnue",
+    "right": "Façon parfaite de se perdre et découvrir"
+  },
+  {
+    "left": "Pire photo de voyage sur Instagram",
+    "right": "Photo de voyage qui fait vraiment rêver"
+  },
+  {
+    "left": "Pire souvenir de vacances",
+    "right": "Souvenir de voyage parfait"
+  },
+  {
+    "left": "Pire façon de commander à l'étranger sans parler la langue",
+    "right": "Façon parfaite de commander à l'étranger sans parler la langue"
+  },
+  {
+    "left": "Pire road trip mal planifié",
+    "right": "Road trip parfaitement planifié"
+  },
+  {
+    "left": "Pire guide touristique",
+    "right": "Guide touristique parfait"
+  },
+  {
+    "left": "Pire façon de gérer le jet lag",
+    "right": "Technique parfaite contre le jet lag"
+  },
+  {
+    "left": "Pire expérience à l'hôtel",
+    "right": "Expérience d'hôtel parfaite"
+  },
+  {
+    "left": "Pire Airbnb",
+    "right": "Airbnb parfait pour une escapade"
+  },
+  {
+    "left": "Pire façon de ramener un souvenir de voyage",
+    "right": "Souvenir de voyage qui fait toujours plaisir"
+  },
+  {
+    "left": "Pire façon de rater ses vacances pour cause de météo",
+    "right": "Façon parfaite de profiter de vacances pluvieuses"
+  },
+  {
+    "left": "Pire façon de gérer la douane",
+    "right": "Passage en douane sans aucun stress"
+  },
+  {
+    "left": "Pire vêtement à emporter dans un pays chaud",
+    "right": "Tenue parfaite pour un pays tropical"
+  },
+  {
+    "left": "Pire façon de gérer un retard de vol",
+    "right": "Façon parfaite de tuer le temps à l'aéroport"
+  },
+  {
+    "left": "Pire app de voyage",
+    "right": "Meilleure app pour voyager malin"
+  },
+  {
+    "left": "Pire façon de gérer la peur de l'avion",
+    "right": "Technique parfaite pour surmonter la peur de l'avion"
+  },
+  {
+    "left": "Pire combinaison tenue sport",
+    "right": "Outfit de sport parfaitement coordonné"
+  },
+  {
+    "left": "Pire sport à faire le matin",
+    "right": "Meilleure activité physique du matin"
+  },
+  {
+    "left": "Pire façon de se blesser en faisant du sport",
+    "right": "Façon parfaite de se réchauffer avant le sport"
+  },
+  {
+    "left": "Pire équipement de sport",
+    "right": "Équipement de sport qui change tout"
+  },
+  {
+    "left": "Pire routine de récupération sportive",
+    "right": "Récupération parfaite après une séance"
+  },
+  {
+    "left": "Pire coach sportif imaginable",
+    "right": "Coach sportif parfait"
+  },
+  {
+    "left": "Pire façon de se motiver à aller à la salle",
+    "right": "Motivation parfaite pour ne jamais rater une séance"
+  },
+  {
+    "left": "Pire erreur de débutant en salle de sport",
+    "right": "Habitude parfaite de sportif confirmé"
+  },
+  {
+    "left": "Pire façon de se nourrir autour d'une compétition sportive",
+    "right": "Nutrition parfaite autour d'une compétition"
+  },
+  {
+    "left": "Pire façon de regarder le sport à la télé",
+    "right": "Expérience parfaite pour regarder le sport à la maison"
+  },
+  {
+    "left": "Pire façon de crier dans un stade",
+    "right": "Supporter parfait dans un stade"
+  },
+  {
+    "left": "Pire façon de gérer une défaite de ton équipe préférée",
+    "right": "Façon parfaite de digérer une défaite sportive"
+  },
+  {
+    "left": "Pire façon de débuter en course à pied",
+    "right": "Programme parfait pour commencer la course à pied"
+  },
+  {
+    "left": "Pire façon de finir un marathon",
+    "right": "Traversée parfaite d'un marathon"
+  },
+  {
+    "left": "Pire façon de gérer la pression d'un tournoi",
+    "right": "Façon parfaite de gérer la pression compétitive"
+  },
+  {
+    "left": "Pire façon de choisir sa discipline sportive",
+    "right": "Façon parfaite de trouver le sport fait pour toi"
+  },
+  {
+    "left": "Pire façon de gérer un coéquipier toxique dans une équipe sportive",
+    "right": "Façon parfaite de gérer un coéquipier difficile"
+  },
+  {
+    "left": "Pire salle de sport",
+    "right": "Salle de sport parfaite"
+  },
+  {
+    "left": "Pire tricherie dans une compétition sportive",
+    "right": "Stratégie légale la plus maline dans le sport"
+  },
+  {
+    "left": "Pire façon de perdre une mise en sport",
+    "right": "Pari sportif parfaitement réfléchi"
+  },
+  {
+    "left": "Pire sport impossible à regarder sans s'endormir",
+    "right": "Sport tellement hype qu'on ne peut pas décrocher"
+  },
+  {
+    "left": "Pire façon de gérer un burnout professionnel",
+    "right": "Façon parfaite de se sortir d'un burnout"
+  },
+  {
+    "left": "Pire façon de procrastiner",
+    "right": "Technique de productivité qui change vraiment la vie"
+  },
+  {
+    "left": "Pire organisation de journée de télétravail",
+    "right": "Journée de télétravail parfaitement structurée"
+  },
+  {
+    "left": "Pire façon de gérer un conflit au bureau",
+    "right": "Façon parfaite de gérer un désaccord professionnel"
+  },
+  {
+    "left": "Pire collègue de bureau",
+    "right": "Collègue de bureau idéal"
+  },
+  {
+    "left": "Pire façon de passer un entretien d'embauche",
+    "right": "Entretien d'embauche parfaitement mené"
+  },
+  {
+    "left": "Pire premier jour dans un nouveau job",
+    "right": "Premier jour parfait dans un nouveau job"
+  },
+  {
+    "left": "Pire façon de gérer sa charge de travail",
+    "right": "Façon parfaite de gérer ses priorités pro"
+  },
+  {
+    "left": "Pire façon de finir une semaine de travail",
+    "right": "Façon parfaite de clôturer sa semaine de boulot"
+  },
+  {
+    "left": "Pire façon de déconnecter après le travail",
+    "right": "Routine parfaite pour décompresser après le boulot"
+  },
+  {
+    "left": "Pire façon de gérer un chef toxique",
+    "right": "Façon parfaite de gérer un mauvais management"
+  },
+  {
+    "left": "Pire réunion de travail inutile",
+    "right": "Réunion de travail incroyablement productive"
+  },
+  {
+    "left": "Pire façon de gérer un projet en retard",
+    "right": "Façon parfaite de rattraper un projet en retard"
+  },
+  {
+    "left": "Pire fail entrepreneurial",
+    "right": "Pivot entrepreneurial le plus brillant"
+  },
+  {
+    "left": "Pire startup idea ever",
+    "right": "Idée de startup simple et géniale"
+  },
+  {
+    "left": "Pire façon de pitcher son idée à des investisseurs",
+    "right": "Pitch d'investissement parfait"
+  },
+  {
+    "left": "Pire façon de gérer sa marque personnelle en ligne",
+    "right": "Personal branding parfaitement maîtrisé"
+  },
+  {
+    "left": "Pire façon de trouver un stage",
+    "right": "Stratégie parfaite pour décrocher un stage de rêve"
+  },
+  {
+    "left": "Pire façon de rédiger un CV",
+    "right": "CV parfaitement optimisé"
+  },
+  {
+    "left": "Pire lettre de motivation",
+    "right": "Lettre de motivation qui se démarque vraiment"
+  },
+  {
+    "left": "Pire façon de négocier son salaire",
+    "right": "Négociation salariale parfaitement préparée"
+  },
+  {
+    "left": "Pire façon de gérer sa réputation sur LinkedIn",
+    "right": "Profil LinkedIn parfaitement optimisé"
+  },
+  {
+    "left": "Pire post LinkedIn inspirationnel",
+    "right": "Post LinkedIn qui apporte vraiment de la valeur"
+  },
+  {
+    "left": "Pire façon de quitter un emploi",
+    "right": "Façon parfaite de démissionner avec élégance"
+  },
+  {
+    "left": "Pire façon de gérer ses finances en tant qu'étudiant",
+    "right": "Façon parfaite de gérer ses finances étudiantes"
+  },
+  {
+    "left": "Pire investissement de débutant",
+    "right": "Premier investissement parfaitement calculé"
+  },
+  {
+    "left": "Pire façon de dépenser son bonus de fin d'année",
+    "right": "Façon parfaite d'investir son bonus"
+  },
+  {
+    "left": "Pire façon de gérer sa retraite anticipée",
+    "right": "Stratégie FIRE parfaitement exécutée"
+  },
+  {
+    "left": "Pire façon de gérer une dette",
+    "right": "Façon parfaite de se sortir d'une dette"
+  },
+  {
+    "left": "Pire façon d'économiser",
+    "right": "Hack d'économie facile qui change vraiment la vie"
+  },
+  {
+    "left": "Pire erreur de gestion de budget",
+    "right": "Budget mensuel parfaitement équilibré"
+  },
+  {
+    "left": "Pire façon de faire ses impôts",
+    "right": "Façon parfaite de gérer ses impôts"
+  },
+  {
+    "left": "Pire façon de gérer un prêt immobilier",
+    "right": "Façon parfaite de négocier son crédit immobilier"
+  },
+  {
+    "left": "Pire façon de faire une bonne action",
+    "right": "Façon parfaite d'aider quelqu'un sans attente de retour"
+  },
+  {
+    "left": "Pire façon de s'excuser",
+    "right": "Excuse parfaite et sincère"
+  },
+  {
+    "left": "Pire façon de gérer sa jalousie",
+    "right": "Façon saine de gérer la jalousie"
+  },
+  {
+    "left": "Pire façon de gérer une critique",
+    "right": "Façon parfaite de recevoir une critique constructive"
+  },
+  {
+    "left": "Pire façon de se vanter",
+    "right": "Façon parfaite de partager ses succès sans ego"
+  },
+  {
+    "left": "Pire façon de gérer l'échec",
+    "right": "Façon parfaite de rebondir après un échec"
+  },
+  {
+    "left": "Pire façon de s'auto-saboter",
+    "right": "Façon parfaite de sortir de sa zone de confort"
+  },
+  {
+    "left": "Pire façon de gérer l'anxiété sociale",
+    "right": "Technique parfaite pour gérer l'anxiété sociale"
+  },
+  {
+    "left": "Pire façon de se comparer aux autres",
+    "right": "Façon saine de s'inspirer des autres"
+  },
+  {
+    "left": "Pire façon de gérer sa confiance en soi",
+    "right": "Façon parfaite de construire sa confiance"
+  },
+  {
+    "left": "Pire façon de gérer la solitude",
+    "right": "Façon parfaite de profiter de la solitude"
+  },
+  {
+    "left": "Pire routine du matin",
+    "right": "Routine matinale parfaite"
+  },
+  {
+    "left": "Pire routine du soir",
+    "right": "Routine du soir parfaite pour bien dormir"
+  },
+  {
+    "left": "Pire façon de gérer une insomnie",
+    "right": "Technique parfaite pour s'endormir en 5 minutes"
+  },
+  {
+    "left": "Pire façon de méditer",
+    "right": "Méditation parfaite pour les nuls"
+  },
+  {
+    "left": "Pire façon de gérer une mauvaise journée",
+    "right": "Façon parfaite de retourner une mauvaise journée"
+  },
+  {
+    "left": "Pire façon de se faire du bien",
+    "right": "Self-care parfait qui ne coûte rien"
+  },
+  {
+    "left": "Pire façon de gérer une relation toxique",
+    "right": "Façon parfaite de se sortir d'une relation toxique"
+  },
+  {
+    "left": "Pire façon de gérer un deuil",
+    "right": "Façon parfaite de traverser un deuil"
+  },
+  {
+    "left": "Pire façon de parler de ses problèmes psy",
+    "right": "Façon parfaite de chercher de l'aide sans honte"
+  },
+  {
+    "left": "Pire façon de gérer le FOMO",
+    "right": "Façon parfaite de vivre sans FOMO"
+  },
+  {
+    "left": "Pire façon de doomscroller",
+    "right": "Façon parfaite de consommer l'info sans devenir fou"
+  },
+  {
+    "left": "Pire façon de gérer une dépendance aux réseaux sociaux",
+    "right": "Détox numérique parfaitement réalisé"
+  },
+  {
+    "left": "Pire façon d'éteindre son téléphone la nuit",
+    "right": "Rapport parfait à son téléphone la nuit"
+  },
+  {
+    "left": "Pire façon de gérer sa productivité",
+    "right": "Méthode de productivité parfaite"
+  },
+  {
+    "left": "Pire application de méditation",
+    "right": "Meilleure application de bien-être"
+  },
+  {
+    "left": "Pire conseil bien-être donné sur Instagram",
+    "right": "Conseil bien-être qui a vraiment changé des vies"
+  },
+  {
+    "left": "Pire influenceur wellness",
+    "right": "Profil wellness qui inspire vraiment"
+  },
+  {
+    "left": "Pire façon de faire du développement personnel",
+    "right": "Façon parfaite de progresser vraiment"
+  },
+  {
+    "left": "Pire livre de développement personnel",
+    "right": "Livre de dev perso qui a vraiment changé ta vie"
+  },
+  {
+    "left": "Pire coach de vie imaginable",
+    "right": "Coach de vie qui change vraiment les choses"
+  },
+  {
+    "left": "Pire Ted Talk",
+    "right": "Ted Talk qui te fait voir le monde différemment"
+  },
+  {
+    "left": "Pire façon de débattre sur Internet",
+    "right": "Façon parfaite d'argumenter sans être toxique"
+  },
+  {
+    "left": "Pire façon de gérer un débat politique sur les réseaux",
+    "right": "Façon parfaite de discuter de politique en ligne"
+  },
+  {
+    "left": "Pire façon de se faire embrigader par une idéologie",
+    "right": "Façon parfaite de développer son esprit critique"
+  },
+  {
+    "left": "Pire façon de gérer une fake news",
+    "right": "Façon parfaite de vérifier une information"
+  },
+  {
+    "left": "Pire façon de comploter sur Internet",
+    "right": "Façon parfaite de remettre en question une théorie"
+  },
+  {
+    "left": "Pire hashtag lancé pour une cause",
+    "right": "Hashtag activiste qui a vraiment changé les choses"
+  },
+  {
+    "left": "Pire façon de faire du cancel culture",
+    "right": "Façon parfaite de tenir quelqu'un responsable"
+  },
+  {
+    "left": "Pire façon de gérer une controverse publique",
+    "right": "Façon parfaite de gérer une crise de réputation"
+  },
+  {
+    "left": "Pire manière de se défendre sur Twitter",
+    "right": "Façon parfaite de répondre à une critique publique"
+  },
+  {
+    "left": "Pire façon de faire une annonce importante sur les réseaux",
+    "right": "Façon parfaite de faire une annonce sur les réseaux"
+  },
+  {
+    "left": "Pire façon de gérer un bad buzz",
+    "right": "Gestion parfaite d'un bad buzz"
+  },
+  {
+    "left": "Pire façon de faire de l'ironie sur Internet",
+    "right": "Ironie parfaitement exécutée sur les réseaux"
+  },
+  {
+    "left": "Pire façon de gérer les trolls",
+    "right": "Façon parfaite de gérer les trolls"
+  },
+  {
+    "left": "Pire façon d'être woke sans le comprendre",
+    "right": "Façon parfaite d'être progressiste sans être condescendant"
+  },
+  {
+    "left": "Pire façon de gérer sa réputation après un dérapage public",
+    "right": "Comeback parfait après une erreur publique"
+  },
+  {
+    "left": "Pire contenu éducatif sur YouTube",
+    "right": "Meilleure chaîne YouTube éducative"
+  },
+  {
+    "left": "Pire façon d'apprendre à coder",
+    "right": "Meilleure façon d'apprendre à coder seul"
+  },
+  {
+    "left": "Pire stack technique pour un projet perso",
+    "right": "Stack technique parfaite pour un side project"
+  },
+  {
+    "left": "Pire design d'interface",
+    "right": "UI la plus propre et intuitive"
+  },
+  {
+    "left": "Pire nom de variable dans un code",
+    "right": "Convention de nommage parfaite"
+  },
+  {
+    "left": "Pire commentaire dans un code",
+    "right": "Documentation de code parfaite"
+  },
+  {
+    "left": "Pire façon de déboguer",
+    "right": "Technique de debug parfaitement efficace"
+  },
+  {
+    "left": "Pire merge conflict",
+    "right": "Gestion parfaite des conflits Git"
+  },
+  {
+    "left": "Pire façon de lancer un side project",
+    "right": "Façon parfaite de lancer son premier side project"
+  },
+  {
+    "left": "Pire façon de gérer son portfolio de dev",
+    "right": "Portfolio de développeur parfaitement optimisé"
+  },
+  {
+    "left": "Pire façon de montrer ses compétences techniques en entretien",
+    "right": "Façon parfaite de briller dans un entretien technique"
+  },
+  {
+    "left": "Pire configuration de PC gamer",
+    "right": "Setup PC gamer parfaitement optimisé"
+  },
+  {
+    "left": "Pire façon de gérer son câble management",
+    "right": "Cable management parfaitement propre"
+  },
+  {
+    "left": "Pire périphérique de bureau",
+    "right": "Périphérique de bureau qui change la vie"
+  },
+  {
+    "left": "Pire micro pour streamer",
+    "right": "Meilleur micro qualité-prix pour commencer"
+  },
+  {
+    "left": "Pire webcam de streaming",
+    "right": "Meilleure webcam pour streamer proprement"
+  },
+  {
+    "left": "Pire casque gaming",
+    "right": "Casque gaming parfait pour l'immersion"
+  },
+  {
+    "left": "Pire chaise de gaming",
+    "right": "Chaise parfaite pour les longues sessions"
+  },
+  {
+    "left": "Pire tapis de souris",
+    "right": "Tapis de souris qui change vraiment l'aiming"
+  },
+  {
+    "left": "Pire souris gaming",
+    "right": "Souris gaming parfaitement adaptée"
+  },
+  {
+    "left": "Pire clavier mécanique pour les switches",
+    "right": "Clavier mécanique avec les switches parfaits"
+  },
+  {
+    "left": "Pire écran gaming",
+    "right": "Écran gaming qui change vraiment l'expérience"
+  },
+  {
+    "left": "Pire connexion Internet pour jouer",
+    "right": "Configuration réseau parfaite pour le jeu en ligne"
+  },
+  {
+    "left": "Pire façon de gérer la chaleur d'un PC",
+    "right": "Cooling system parfaitement optimisé"
+  },
+  {
+    "left": "Pire overclocking raté",
+    "right": "Overclocking parfaitement stable"
+  },
+  {
+    "left": "Pire OS pour gaming",
+    "right": "Configuration OS parfaite pour maximiser les perfs"
+  },
+  {
+    "left": "Pire façon de faire des sauvegardes",
+    "right": "Système de backup parfaitement fiable"
+  },
+  {
+    "left": "Pire façon de gérer son stockage",
+    "right": "Organisation parfaite de son espace de stockage"
+  },
+  {
+    "left": "Pire façon de gérer sa sécurité en ligne",
+    "right": "Hygiène numérique parfaitement maîtrisée"
+  },
+  {
+    "left": "Pire façon de gérer ses mots de passe",
+    "right": "Gestionnaire de mots de passe parfaitement utilisé"
+  },
+  {
+    "left": "Pire façon de gérer sa vie privée sur Internet",
+    "right": "Façon parfaite de protéger ses données en ligne"
+  },
+  {
+    "left": "Pire façon d'installer un VPN",
+    "right": "Façon parfaite d'utiliser un VPN intelligemment"
+  },
+  {
+    "left": "Pire extension de navigateur",
+    "right": "Extension de navigateur qui change vraiment la vie"
+  },
+  {
+    "left": "Pire moteur de recherche alternatif",
+    "right": "Meilleur moteur de recherche pour la vie privée"
+  },
+  {
+    "left": "Pire façon d'organiser ses onglets de navigateur",
+    "right": "Façon parfaite de gérer ses onglets"
+  },
+  {
+    "left": "Pire façon d'utiliser les signets",
+    "right": "Système de bookmarks parfaitement organisé"
+  },
+  {
+    "left": "Pire façon de gérer ses emails",
+    "right": "Inbox zero parfaitement maîtrisé"
+  },
+  {
+    "left": "Pire façon d'utiliser les dossiers sur son PC",
+    "right": "Organisation de fichiers parfaitement logique"
+  },
+  {
+    "left": "Pire façon de nommer ses fichiers",
+    "right": "Convention de nommage de fichiers parfaite"
+  },
+  {
+    "left": "Pire façon de synchroniser ses appareils",
+    "right": "Écosystème tech parfaitement synchronisé"
+  },
+  {
+    "left": "Pire façon d'utiliser son téléphone en conduisant",
+    "right": "Façon parfaite d'utiliser son téléphone en voiture sans danger"
+  },
+  {
+    "left": "Pire façon de gérer les mises à jour de son téléphone",
+    "right": "Façon parfaite de gérer les updates"
+  },
+  {
+    "left": "Pire façon de nettoyer son téléphone",
+    "right": "Optimisation parfaite du stockage téléphone"
+  },
+  {
+    "left": "Pire fond d'écran de téléphone",
+    "right": "Setup d'écran d'accueil parfaitement minimaliste"
+  },
+  {
+    "left": "Pire façon de gérer la batterie de son téléphone",
+    "right": "Façon parfaite de préserver sa batterie"
+  },
+  {
+    "left": "Pire façon de prendre une photo au téléphone",
+    "right": "Technique photographique parfaite au smartphone"
+  }
 ]
