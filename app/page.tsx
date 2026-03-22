@@ -40,6 +40,35 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
   const [logoVisible, setLogoVisible] = useState(true);
   const [demoGameIndex, setDemoGameIndex] = useState(1);
+  const [easterEggActive, setEasterEggActive] = useState(false);
+  const [keyBuffer, setKeyBuffer] = useState('');
+
+  // Load state on mount
+  useEffect(() => {
+    const savedName = sessionStorage.getItem('playerName');
+    if (savedName) setName(savedName);
+  }, []);
+
+  // Easter Egg Listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      setKeyBuffer((prev) => {
+        const newBuffer = (prev + e.key).slice(-5).toLowerCase();
+        if (newBuffer === 'arsac') {
+          setEasterEggActive(true);
+        }
+        return newBuffer;
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Auto-slide effect (resets when currentStep changes via arrows)
   useEffect(() => {
@@ -86,7 +115,24 @@ export default function Home() {
   const goNext = () => setCurrentStep((prev) => (prev + 1) % STEPS.length);
 
   return (
-    <main className="bg-transparent min-h-screen flex flex-col justify-between md:overflow-hidden">
+    <main className="bg-transparent min-h-screen flex flex-col justify-between md:overflow-hidden relative">
+      {/* EASTER EGG */}
+      {easterEggActive && (
+        <div 
+          className="fixed inset-0 z-[100] cursor-pointer"
+          onClick={() => setEasterEggActive(false)}
+        >
+          <div className="absolute bottom-4 left-4 animate-in slide-in-from-bottom-full duration-500 fade-in">
+            <img 
+              src="/easteregg.png" 
+              alt="Easter Egg" 
+              className="w-48 h-auto drop-shadow-2xl"
+              draggable={false}
+            />
+          </div>
+        </div>
+      )}
+
       <style jsx global>{`
         @keyframes ih-rise {
           0% { transform: scaleY(0); opacity: 0; }
