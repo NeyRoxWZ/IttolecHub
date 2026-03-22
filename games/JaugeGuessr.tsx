@@ -196,6 +196,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
             const nextGuiderIndex = (currentGuiderIndex + 1) % players.length;
             const nextGuiderId = players[nextGuiderIndex]?.id;
 
+            await supabase.from('game_moves').delete().eq('room_id', roomId);
             await supabase.from('game_sessions').update({
                 current_round: nextRoundNum,
                 round_data: {
@@ -251,17 +252,30 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
 
     const handlePointerUp = (e: React.PointerEvent) => {
         setIsDragging(false);
-        e.currentTarget.releasePointerCapture(e.pointerId);
+        try {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch (err) {
+            // Ignore if pointer capture was already released
+        }
     };
 
     const updateAngleFromEvent = (e: React.PointerEvent) => {
         if (!svgRef.current) return;
-        const rect = svgRef.current.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.bottom; // Bottom of the SVG is the center of the arc
         
-        const dx = e.clientX - centerX;
-        const dy = centerY - e.clientY; // Invert Y so up is positive
+        const svg = svgRef.current;
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        
+        // Transform screen coordinates to SVG coordinates
+        const ctm = svg.getScreenCTM();
+        if (!ctm) return;
+        
+        const svgP = pt.matrixTransform(ctm.inverse());
+        
+        // In the viewBox="0 0 200 110", the center of the arc is exactly at (100, 100)
+        const dx = svgP.x - 100;
+        const dy = 100 - svgP.y; // Up is positive
         
         let angle = Math.atan2(dy, dx) * 180 / Math.PI;
         // Convert to 0 (left) to 180 (right)
@@ -345,27 +359,27 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
 
             {/* PLAYING PHASES */}
             {(currentPhase === 'writing_clue' || currentPhase === 'guessing' || currentPhase === 'round_results') && (
-                <div className="flex flex-col items-center w-full max-w-4xl gap-8 p-4 flex-1 mt-4">
+                <div className="flex flex-col items-center w-full max-w-3xl gap-4 p-2 flex-1 mt-2">
                     
                     {/* Header Info */}
-                    <div className="text-center w-full bg-brand-card p-6 rounded-[32px] border-4 border-brand-border shadow-brutal">
+                    <div className="text-center w-full bg-brand-card p-4 rounded-2xl border-4 border-brand-border shadow-brutal">
                         {currentPhase === 'writing_clue' && (
-                            <h3 className="font-display text-2xl font-black text-tx-base uppercase tracking-wider">
+                            <h3 className="font-display text-xl md:text-2xl font-black text-tx-base uppercase tracking-wider">
                                 {isGuider ? "C'est à vous de faire deviner !" : `${players.find(p => p.id === guiderId)?.name} réfléchit à un indice...`}
                             </h3>
                         )}
                         {currentPhase === 'guessing' && (
-                            <div className="space-y-4">
-                                <span className="text-sm font-bold text-tx-secondary uppercase tracking-widest">L'indice est :</span>
-                                <div className="font-display text-4xl md:text-5xl font-black text-accent-primary bg-brand-inner border-4 border-brand-border py-4 px-8 rounded-2xl inline-block shadow-inner break-all">
+                            <div className="space-y-2">
+                                <span className="text-xs font-bold text-tx-secondary uppercase tracking-widest">L'indice est :</span>
+                                <div className="font-display text-3xl md:text-4xl font-black text-accent-primary bg-brand-inner border-4 border-brand-border py-2 px-6 rounded-2xl inline-block shadow-inner break-all">
                                     {clue}
                                 </div>
                             </div>
                         )}
                         {currentPhase === 'round_results' && (
-                            <div className="space-y-4">
-                                <span className="text-sm font-bold text-tx-secondary uppercase tracking-widest">L'indice était :</span>
-                                <div className="font-display text-4xl font-black text-tx-base bg-brand-inner border-4 border-brand-border py-3 px-6 rounded-2xl inline-block shadow-inner break-all">
+                            <div className="space-y-2">
+                                <span className="text-xs font-bold text-tx-secondary uppercase tracking-widest">L'indice était :</span>
+                                <div className="font-display text-3xl md:text-4xl font-black text-tx-base bg-brand-inner border-4 border-brand-border py-2 px-6 rounded-2xl inline-block shadow-inner break-all">
                                     {clue}
                                 </div>
                             </div>
@@ -373,13 +387,13 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                     </div>
 
                     {/* JAUGE (Arc) */}
-                    <div className="relative w-full max-w-2xl mt-8 px-4 md:px-12">
+                    <div className="relative w-full max-w-xl mt-4 px-4 md:px-8">
                         {/* Words at extremities */}
-                        <div className="absolute top-full left-0 mt-4 text-left max-w-[120px] md:max-w-[180px] -translate-x-4 md:-translate-x-1/4">
-                            <span className="font-display font-black text-lg md:text-2xl text-tx-base leading-tight block">{leftWord}</span>
+                        <div className="absolute top-full left-0 mt-2 text-left max-w-[120px] md:max-w-[160px] -translate-x-2 md:-translate-x-4">
+                            <span className="font-display font-black text-base md:text-xl text-tx-base leading-tight block">{leftWord}</span>
                         </div>
-                        <div className="absolute top-full right-0 mt-4 text-right max-w-[120px] md:max-w-[180px] translate-x-4 md:translate-x-1/4">
-                            <span className="font-display font-black text-lg md:text-2xl text-tx-base leading-tight block">{rightWord}</span>
+                        <div className="absolute top-full right-0 mt-2 text-right max-w-[120px] md:max-w-[160px] translate-x-2 md:translate-x-4">
+                            <span className="font-display font-black text-base md:text-xl text-tx-base leading-tight block">{rightWord}</span>
                         </div>
 
                         <svg 
@@ -392,7 +406,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                             onPointerDown={handlePointerDown}
                             onPointerMove={handlePointerMove}
                             onPointerUp={handlePointerUp}
-                            onPointerLeave={handlePointerUp}
+                            onPointerCancel={handlePointerUp}
                             style={{ touchAction: 'none' }}
                         >
                             {/* Background Arc */}
@@ -464,7 +478,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                     </div>
 
                     {/* Interactions */}
-                    <div className="mt-16 md:mt-24 w-full max-w-md pb-12">
+                    <div className="mt-12 md:mt-16 w-full max-w-md pb-4">
                         {currentPhase === 'writing_clue' && isGuider && (
                             <div className="space-y-6 animate-in slide-in-from-bottom-4">
                                 <button
@@ -494,7 +508,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                     <button 
                                         onClick={submitClue}
                                         disabled={!clueInput.trim()}
-                                        className="h-16 px-8 bg-accent-success hover:bg-tx-base text-brand-bg font-display font-black tracking-wider rounded-2xl shadow-brutal border-4 border-brand-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="h-16 px-8 bg-accent-success hover:bg-tx-base text-brand-bg font-display font-black tracking-wider rounded-2xl shadow-brutal border-4 border-brand-border transition-colors disabled:bg-brand-inner disabled:text-tx-muted disabled:cursor-not-allowed"
                                     >
                                         <Send className="w-6 h-6" />
                                     </button>
