@@ -4,8 +4,8 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
 import VoteToLobby from './components/VoteToLobby';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+
+
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { CheckCircle, Trophy, Send, Loader2, Image } from 'lucide-react';
@@ -130,7 +130,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   // Return to Lobby Broadcast
   useEffect(() => {
     if (lastEvent && lastEvent.type === 'return_to_lobby') {
-        router.push(`/room/${roomCode}`);
+        router.push(`/room/${roomCode}?return=true`);
     }
   }, [lastEvent, roomCode, router]);
 
@@ -562,7 +562,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
       await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
       
       if (broadcast) await broadcast('return_to_lobby', {});
-      router.push(`/room/${roomCode}`);
+      router.push(`/room/${roomCode}?return=true`);
   };
 
   const cleanupForVote = async () => {

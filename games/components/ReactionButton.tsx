@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Smile, Heart, ThumbsUp, PartyPopper, Flame, Frown } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/Popover';
 
 const REACTIONS = [
@@ -27,23 +27,26 @@ interface Reaction {
 export default function ReactionButton({ roomId }: { roomId: string }) {
   const [floatingReactions, setFloatingReactions] = useState<Reaction[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [channel, setChannel] = useState<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (!roomId) return;
 
-    const channel = supabase.channel(`room_${roomId}_reactions`)
+    const newChannel = supabase.channel(`room_${roomId}_reactions`)
       .on('broadcast', { event: 'reaction' }, (payload) => {
         addFloatingReaction(payload.payload.emoji);
       })
       .subscribe();
 
+    setChannel(newChannel);
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(newChannel);
     };
   }, [roomId]);
 
   const addFloatingReaction = (emoji: string) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = Math.random().toString(36).substring(2, 9);
     // Random position horizontally (10% to 90%)
     const x = 10 + Math.random() * 80;
     
@@ -56,17 +59,17 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
   };
 
   const sendReaction = async (emoji: string) => {
-    setIsOpen(false); // Close popover immediately
-
     // Optimistic local show
     addFloatingReaction(emoji);
     
     // Broadcast to others
-    await supabase.channel(`room_${roomId}_reactions`).send({
-      type: 'broadcast',
-      event: 'reaction',
-      payload: { emoji }
-    });
+    if (channel) {
+      await channel.send({
+        type: 'broadcast',
+        event: 'reaction',
+        payload: { emoji }
+      });
+    }
   };
 
   return (
@@ -91,21 +94,24 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
       {/* Trigger Button */}
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="rounded-full w-12 h-12 backdrop-blur-md shadow-lg transition-all bg-[#1E293B]/80 border-[#334155] text-[#F8FAFC] hover:bg-[#334155]"
+          <button 
+            className="flex items-center justify-center rounded-2xl w-14 h-14 transition-all bg-brand-inner border-4 border-brand-border text-tx-base shadow-brutal hover:bg-tx-base hover:text-brand-bg active:translate-y-1 active:shadow-none"
           >
-            <Smile className="w-6 h-6" />
-          </Button>
+            <Smile className="w-8 h-8" />
+          </button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-2 bg-[#1E293B] border-[#334155] rounded-2xl" side="top" align="center">
+        <PopoverContent 
+            className="w-auto p-3 bg-brand-card border-4 border-brand-border rounded-3xl shadow-brutal mb-2" 
+            side="top" 
+            align="end"
+            onInteractOutside={() => setIsOpen(false)}
+        >
           <div className="grid grid-cols-4 gap-2">
             {REACTIONS.map((r) => (
               <button
                 key={r.label}
                 onClick={() => sendReaction(r.emoji)}
-                className="text-2xl p-2 hover:bg-[#334155] rounded-xl transition-transform active:scale-90"
+                className="text-3xl p-3 bg-brand-inner border-2 border-brand-border hover:bg-tx-base rounded-2xl transition-transform active:scale-90 active:shadow-none shadow-sm"
               >
                 {r.emoji}
               </button>

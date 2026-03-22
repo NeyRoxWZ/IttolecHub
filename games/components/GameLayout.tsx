@@ -40,43 +40,37 @@ export default function GameLayout({
   const roomId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop()?.split('?')[0] : '';
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-[#F8FAFC] font-sans selection:bg-indigo-500/30 overflow-hidden flex flex-col">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#3B82F6]/10 rounded-full blur-[120px] animate-pulse-slow" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-[#6366F1]/10 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
-      </div>
-
+    <div className="min-h-screen bg-transparent text-tx-base font-sans selection:bg-accent-primary/30 overflow-hidden flex flex-col">
       {/* REACTION BUTTON (Fixed Bottom Right) */}
       <div className="fixed bottom-6 right-6 z-[90]">
           <ReactionButton roomId={roomId || ''} />
       </div>
 
       {/* HEADER FIXE */}
-      <header className="relative z-50 bg-[#1E293B]/80 backdrop-blur-md border-b border-[#334155] px-4 py-3 shadow-lg">
+      <header className="relative z-50 bg-brand-card/90 backdrop-blur-md border-b-4 border-brand-border px-4 py-3 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
             {/* Left: Game Title & Round */}
             <div className="flex flex-col">
-                <h1 className="text-lg md:text-xl font-bold text-[#F8FAFC] tracking-tight leading-none">
+                <h1 className="text-lg md:text-2xl font-display font-black text-tx-base tracking-tight leading-none uppercase">
                     {gameTitle}
                 </h1>
-                <span className="text-xs md:text-sm text-[#94A3B8] font-medium">
+                <span className="text-xs md:text-sm text-tx-secondary font-bold uppercase tracking-widest mt-1">
                     Manche {roundCount}/{maxRounds}
                 </span>
             </div>
 
             {/* Center: Timer (Visual) */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex flex-col items-center gap-1 w-1/3 max-w-md">
-                 <div className="flex items-center gap-2 text-xl font-mono font-bold tabular-nums text-[#F8FAFC]">
-                    <Clock className="w-5 h-5 text-[#3B82F6]" />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex flex-col items-center gap-1.5 w-1/3 max-w-md">
+                 <div className="flex items-center gap-2 text-2xl font-display font-black tabular-nums text-tx-base">
+                    <Clock className="w-6 h-6 text-accent-primary" />
                     {timer}
                  </div>
                  {/* Progress Bar */}
-                 <div className="w-full h-1.5 bg-[#334155] rounded-full overflow-hidden">
+                 <div className="w-full h-3 bg-brand-inner border-2 border-brand-border rounded-full overflow-hidden">
                     <div 
                         className={cn(
-                            "h-full transition-all duration-1000 ease-linear rounded-full",
-                            timeLeft < 10 ? "bg-red-500" : "bg-[#3B82F6]"
+                            "h-full transition-all duration-1000 ease-linear",
+                            timeLeft < 10 ? "bg-accent-secondary" : "bg-accent-primary"
                         )}
                         style={{ width: `${Math.min(100, (timeLeft / 30) * 100)}%` }} // Fallback base 30s if max unknown
                     />
@@ -84,9 +78,9 @@ export default function GameLayout({
             </div>
 
             {/* Right: Timer (Mobile) or Extra Info */}
-            <div className="flex items-center gap-3">
-              <div className="md:hidden flex items-center gap-2 font-mono font-bold text-lg">
-                  <Clock className="w-4 h-4 text-[#3B82F6]" />
+            <div className="flex items-center gap-4">
+              <div className="md:hidden flex items-center gap-2 font-display font-black text-xl bg-brand-inner px-3 py-1 rounded-xl border-2 border-brand-border">
+                  <Clock className="w-5 h-5 text-accent-primary" />
                   {timer}
               </div>
               {/* Vote to Lobby button - desktop only in header */}

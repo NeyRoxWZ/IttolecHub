@@ -50,7 +50,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   // Broadcast Listener for Lobby Return
   useEffect(() => {
     if (lastEvent && lastEvent.type === 'return_to_lobby') {
-        router.push(`/room/${roomCode}`);
+        router.push(`/room/${roomCode}?return=true`);
     }
   }, [lastEvent, roomCode, router]);
   
@@ -580,7 +580,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
           // Broadcast return to lobby
           if (broadcast) await broadcast('return_to_lobby', {});
           
-          router.push(`/room/${roomCode}`);
+          router.push(`/room/${roomCode}?return=true`);
           return;
       }
 

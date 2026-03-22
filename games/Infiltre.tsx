@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+
+
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
 import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Skull, Loader2, Send, Check, Crown, Home, ThumbsUp, ThumbsDown, HelpCircle, Search } from 'lucide-react';
@@ -50,7 +50,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
   // Broadcast Listener for Lobby Return
   useEffect(() => {
     if (lastEvent && lastEvent.type === 'return_to_lobby') {
-        router.push(`/room/${roomCode}`);
+        router.push(`/room/${roomCode}?return=true`);
     }
   }, [lastEvent, roomCode, router]);
   
@@ -563,7 +563,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
           // Broadcast return to lobby
           if (broadcast) await broadcast('return_to_lobby', {});
           
-          router.push(`/room/${roomCode}`);
+          router.push(`/room/${roomCode}?return=true`);
           return;
       }
 

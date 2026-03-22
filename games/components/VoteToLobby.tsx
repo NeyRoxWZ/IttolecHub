@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 interface VoteToLobbyProps {
   roomId: string;
@@ -41,7 +42,7 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode, gameT
         });
       })
       .on('broadcast', { event: 'return_to_lobby' }, () => {
-        router.push(`/room/${roomCode}`);
+        router.push(`/room/${roomCode}?return=true`);
       })
       .subscribe();
 
@@ -86,7 +87,7 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode, gameT
           payload: {}
         });
         
-        router.push(`/room/${roomCode}`);
+        router.push(`/room/${roomCode}?return=true`);
       };
       
       handleAllVoted();
@@ -104,14 +105,19 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode, gameT
         <button
           onClick={handleVote}
           disabled={hasVoted}
-          className="h-9 flex items-center gap-2 bg-[#1E293B] border border-[#334155] px-3 rounded-lg cursor-pointer hover:bg-[#334155] hover:border-[#475569] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className={cn(
+              "h-10 flex items-center gap-2 px-4 rounded-xl border-2 transition-all font-bold uppercase tracking-widest",
+              hasVoted 
+              ? "bg-brand-inner text-tx-muted border-brand-border cursor-not-allowed" 
+              : "bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-sm active:translate-y-0.5 active:shadow-none"
+          )}
         >
           {hasVoted ? (
-            <div className="w-2 h-2 rounded-full bg-green-400" />
+            <div className="w-2 h-2 rounded-full bg-accent-success animate-pulse" />
           ) : (
-            <LogOut className="w-4 h-4 text-[#94A3B8]" />
+            <LogOut className="w-4 h-4" />
           )}
-          <span className="text-sm font-medium text-[#F8FAFC]">
+          <span className="text-sm">
             {votes.length}/{requiredVotes}
           </span>
         </button>
@@ -122,15 +128,20 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode, gameT
         <button
           onClick={handleVote}
           disabled={hasVoted}
-          className="h-12 w-12 flex items-center justify-center bg-[#1E293B]/80 backdrop-blur-md border-2 border-[#334155] rounded-full cursor-pointer hover:bg-[#334155] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          className={cn(
+              "h-14 w-14 flex items-center justify-center rounded-2xl border-4 transition-all shadow-brutal",
+              hasVoted 
+              ? "bg-brand-inner text-tx-muted border-brand-border" 
+              : "bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg active:translate-y-1 active:shadow-none"
+          )}
         >
           {hasVoted ? (
-            <div className="w-3 h-3 rounded-full bg-green-400" />
+            <div className="w-3 h-3 rounded-full bg-accent-success animate-pulse" />
           ) : (
-            <LogOut className="w-6 h-6 text-[#F8FAFC]" />
+            <LogOut className="w-6 h-6" />
           )}
         </button>
-        <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs font-bold text-[#F8FAFC] whitespace-nowrap">
+        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-black text-tx-base bg-brand-inner px-2 py-0.5 rounded-md border-2 border-brand-border whitespace-nowrap shadow-sm">
           {votes.length}/{requiredVotes}
         </div>
       </div>

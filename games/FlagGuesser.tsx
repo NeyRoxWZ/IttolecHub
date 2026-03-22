@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+
+
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
 import VoteToLobby from './components/VoteToLobby';
@@ -64,7 +64,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
   // Return to Lobby Broadcast
   useEffect(() => {
     if (lastEvent && lastEvent.type === 'return_to_lobby') {
-        router.push(`/room/${roomCode}`);
+        router.push(`/room/${roomCode}?return=true`);
     }
   }, [lastEvent, roomCode, router]);
 
@@ -321,7 +321,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
       await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
       
       if (broadcast) await broadcast('return_to_lobby', {});
-      router.push(`/room/${roomCode}`);
+      router.push(`/room/${roomCode}?return=true`);
   };
 
   const cleanupForVote = async () => {

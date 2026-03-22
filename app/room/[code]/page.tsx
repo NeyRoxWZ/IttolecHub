@@ -409,7 +409,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         const room = roomData;
 
         // Redirection immédiate si la partie est déjà en cours
-        if (room.status === 'in_game' || room.status === 'started') {
+        if ((room.status === 'in_game' || room.status === 'started') && searchParams.get('return') !== 'true') {
             const paramsUrl = new URLSearchParams();
             if (room.settings) {
                 Object.entries(room.settings).forEach(([k, v]) => {
