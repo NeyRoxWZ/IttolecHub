@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap, Shield, EyeOff, Settings, Play, LogOut, CheckCircle, Home, QrCode, Eye, Monitor, Share2, X } from 'lucide-react';
+import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap, Shield, EyeOff, Settings, Play, LogOut, CheckCircle, Home, QrCode, Eye, Monitor, Share2, X, Target } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import QRCodeStyling from 'qr-code-styling';
@@ -243,6 +243,28 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
       { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
     ],
     comingSoon: true
+  },
+  {
+    id: 'jaugeguessr',
+    name: 'JaugeGuessr',
+    description: 'Ciblez la bonne intensité.',
+    icon: Target,
+    color: 'from-purple-500 to-indigo-500',
+    settings: [
+      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
+      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 45 },
+      { 
+        id: 'difficulty', 
+        label: 'Difficulté', 
+        type: 'select', 
+        default: 'normal',
+        options: [
+          { value: 'easy', label: 'Facile (Zones larges)' },
+          { value: 'normal', label: 'Normal' },
+          { value: 'hard', label: 'Difficile (Zones fines)' },
+        ]
+      },
+    ],
   },
 ];
 
@@ -765,7 +787,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         'drawguessr': 2,
         'budgetguessr': 1,
         'rentguessr': 1,
-        'logoguessr': 1
+        'logoguessr': 1,
+        'jaugeguessr': 2
     };
 
     const minRequired = minPlayersMap[selectedGameId] || 1;

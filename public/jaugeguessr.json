@@ -1,0 +1,17 @@
+[
+  { "left": "Pire film", "right": "Meilleur film" },
+  { "left": "Le plus ennuyeux", "right": "Le plus excitant" },
+  { "left": "Froid", "right": "Chaud" },
+  { "left": "Inutile", "right": "Indispensable" },
+  { "left": "Doux", "right": "Piquant" },
+  { "left": "Pire odeur", "right": "Meilleure odeur" },
+  { "left": "Ridicule", "right": "Classe" },
+  { "left": "Pire plat", "right": "Meilleur plat" },
+  { "left": "Pire métier", "right": "Meilleur métier" },
+  { "left": "Le plus moche", "right": "Le plus beau" },
+  { "left": "Le plus stupide", "right": "Le plus intelligent" },
+  { "left": "Le moins cher", "right": "Le plus cher" },
+  { "left": "Le plus lent", "right": "Le plus rapide" },
+  { "left": "Le plus faible", "right": "Le plus fort" },
+  { "left": "Le plus triste", "right": "Le plus joyeux" }
+]
