@@ -55,7 +55,7 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
     // Remove after animation
     setTimeout(() => {
       setFloatingReactions(prev => prev.filter(r => r.id !== id));
-    }, 2000);
+    }, 2500);
   };
 
   const sendReaction = async (emoji: string) => {

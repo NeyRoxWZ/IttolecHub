@@ -40,7 +40,7 @@ export default function GameLayout({
   const roomId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop()?.split('?')[0] : '';
 
   return (
-    <div className="min-h-screen bg-transparent text-tx-base font-sans selection:bg-accent-primary/30 overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-transparent text-tx-base font-sans selection:bg-accent-primary/30 flex flex-col">
       {/* REACTION BUTTON (Fixed Bottom Right) */}
       <div className="fixed bottom-6 right-6 z-[90]">
           <ReactionButton roomId={roomId || ''} />

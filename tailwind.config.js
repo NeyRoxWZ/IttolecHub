@@ -46,6 +46,16 @@ module.exports = {
         'brutal-dark': '4px 4px 0px #000000',
         card: '0 4px 24px rgba(0,0,0,0.4)',
       },
+      keyframes: {
+        'float-up': {
+          '0%': { transform: 'translateY(0) scale(0.5)', opacity: '0' },
+          '10%': { transform: 'translateY(-50px) scale(1.2)', opacity: '1' },
+          '100%': { transform: 'translateY(-400px) scale(1)', opacity: '0' },
+        },
+      },
+      animation: {
+        'float-up': 'float-up 2.5s ease-out forwards',
+      },
     },
   },
   plugins: [],

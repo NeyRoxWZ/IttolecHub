@@ -58,9 +58,9 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
     // --- SIZES FOR DIFFICULTY ---
     const getTargetSizes = () => {
         switch (difficulty) {
-            case 'easy': return { bullseye: 16, adjacent: 30 };
-            case 'hard': return { bullseye: 4, adjacent: 12 };
-            default: return { bullseye: 8, adjacent: 20 };
+            case 'easy': return { bullseye: 12, adjacent: 24 };
+            case 'hard': return { bullseye: 3, adjacent: 8 };
+            default: return { bullseye: 6, adjacent: 16 };
         }
     };
     const sizes = getTargetSizes();
@@ -464,7 +464,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                     </div>
 
                     {/* Interactions */}
-                    <div className="mt-24 md:mt-32 w-full max-w-md">
+                    <div className="mt-16 md:mt-24 w-full max-w-md pb-12">
                         {currentPhase === 'writing_clue' && isGuider && (
                             <div className="space-y-6 animate-in slide-in-from-bottom-4">
                                 <button
