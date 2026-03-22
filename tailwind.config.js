@@ -11,22 +11,22 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          bg: '#0F0F1A',
-          card: '#1A1A2E',
-          inner: '#22223B',
-          border: 'rgba(255,255,255,0.08)',
+          bg: '#13131A',
+          grid: '#262635',
+          card: '#1E1E28',
+          border: '#000000',
+          inner: '#13131A', // Utilisons le fond principal pour l'intérieur
         },
         accent: {
-          primary: '#7C3AED',
-          'primary-h': '#6D28D9',
-          secondary: '#06B6D4',
-          success: '#10B981',
-          danger: '#EF4444',
+          primary: '#FFD000', // BOUTON_FOND
+          secondary: '#FF2A55', // NOTIF_ERREUR
+          success: '#00FF94', // NOTIF_SUCCES
+          info: '#E0E0E0', // NOTIF_INFO
         },
         tx: {
-          base: '#F8F8FF',
-          secondary: '#94A3B8',
-          muted: '#4B5563',
+          base: '#FFFFFF',
+          secondary: '#A0A0B0',
+          muted: 'rgba(160,160,176,0.6)',
         },
       },
       borderRadius: {
@@ -41,9 +41,9 @@ module.exports = {
         body: ['Inter', 'sans-serif'],
       },
       boxShadow: {
-        brutal: '4px 4px 0px #7C3AED',
-        'brutal-cyan': '4px 4px 0px #06B6D4',
-        'brutal-dark': '4px 4px 0px rgba(0,0,0,0.6)',
+        brutal: '4px 4px 0px #000000', // CARTE_OMBRE / BOUTON_OMBRE
+        'brutal-cyan': '4px 4px 0px #00FF94', // Using success for now
+        'brutal-dark': '4px 4px 0px #000000',
         card: '0 4px 24px rgba(0,0,0,0.4)',
       },
     },

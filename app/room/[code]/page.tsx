@@ -900,7 +900,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             </div>
 
             <div className="flex items-center gap-3">
-                {isHost && !isPrivateMode && (
+                {!isPrivateMode && (
                     <button 
                         onClick={() => setShowJoinOverlay(true)}
                         className="hidden sm:flex items-center gap-2 h-12 px-4 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-base hover:border-tx-base shadow-brutal transition-all"
@@ -919,52 +919,11 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         : "border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base"
                     )}
                     title={isPrivateMode ? "Désactiver le mode privé" : "Activer le mode privé (masque les codes)"}
+                    disabled={!isHost}
                 >
                     {isPrivateMode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     <span className="hidden lg:inline">{isPrivateMode ? 'Privé' : 'Public'}</span>
                 </button>
-
-                {!isPrivateMode && (
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <button className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors">
-                                <Share2 className="w-5 h-5" />
-                            </button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal">
-                            <div className="flex flex-col items-center justify-center w-full">
-                                <h2 className="font-display text-2xl font-black mb-6">Partager le salon</h2>
-                                
-                                <div className="p-4 bg-white border-4 border-brand-border rounded-2xl shadow-brutal">
-                                    <QRCode 
-                                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
-                                        size={220}
-                                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                                        viewBox={`0 0 256 256`}
-                                    />
-                                </div>
-                                
-                                <div className="mt-8 w-full space-y-3">
-                                    <p className="text-sm font-bold text-tx-secondary text-center uppercase tracking-widest">Ou partagez le lien</p>
-                                    <div className="flex items-center gap-2 bg-brand-inner border-2 border-brand-border rounded-xl p-2">
-                                        <span className="flex-1 text-xs text-tx-secondary truncate font-mono px-2">
-                                            {typeof window !== 'undefined' ? window.location.origin : ''}/room/{params.code}?source=qrcode
-                                        </span>
-                                        <button 
-                                            onClick={() => {
-                                                navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`);
-                                                toast.success('Lien copié !');
-                                            }}
-                                            className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border-2 border-brand-border bg-brand-card text-tx-base hover:border-tx-base transition-colors"
-                                        >
-                                            <Copy className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                )}
 
                 <div 
                     className="h-12 flex items-center gap-3 bg-brand-inner border-2 border-brand-border px-4 rounded-xl cursor-pointer hover:border-tx-base transition-all group"

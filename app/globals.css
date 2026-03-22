@@ -6,8 +6,12 @@
 
 html,
 body {
-  background-color: #0F0F1A;
-  color: #F8F8FF;
+  background-color: #13131A;
+  background-image: linear-gradient(rgba(38, 38, 53, 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(38, 38, 53, 0.15) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-attachment: fixed;
+  color: #FFFFFF;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
