@@ -279,8 +279,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       qrRef.current.innerHTML = ''; // Clear previous
       
       const qrCode = new QRCodeStyling({
-        width: 280,
-        height: 280,
+        width: 320,
+        height: 320,
         data: `${window.location.origin}/room/${params.code}?source=qrcode`,
         image: "/logo-site.png",
         imageOptions: {
@@ -943,7 +943,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         "flex items-center gap-2 h-12 px-4 rounded-xl border-2 transition-all font-bold",
                         isPrivateMode 
                         ? "border-tx-base bg-tx-base text-brand-bg shadow-brutal" 
-                        : "border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base"
+                        : "border-brand-border bg-brand-inner text-tx-base hover:border-tx-base shadow-brutal"
                     )}
                     title={isPrivateMode ? "Désactiver le mode privé" : "Activer le mode privé (masque les codes)"}
                     disabled={!isHost}
@@ -953,7 +953,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 </button>
 
                 <div 
-                    className="h-12 flex items-center gap-3 bg-brand-inner border-2 border-brand-border px-4 rounded-xl cursor-pointer hover:border-tx-base transition-all group"
+                    className="h-12 flex items-center gap-3 bg-brand-inner border-2 border-brand-border px-4 rounded-xl cursor-pointer hover:border-tx-base shadow-brutal transition-all group"
                     onClick={() => {
                         navigator.clipboard.writeText(params.code);
                         toast.success('Code copié !');
@@ -961,10 +961,10 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     title={isPrivateMode ? "Code masqué (cliquez pour copier)" : "Copier le code"}
                 >
                     <span className="hidden sm:inline text-xs text-tx-secondary uppercase tracking-widest font-bold">Code</span>
-                    <span className="font-mono text-lg font-black tracking-widest text-tx-base group-hover:text-tx-secondary transition-colors">
+                    <span className="font-mono text-lg font-black tracking-widest text-tx-base transition-colors">
                         {isPrivateMode ? '••••••' : params.code}
                     </span>
-                    {copied ? <CheckCircle className="h-5 w-5 text-tx-base" /> : <Copy className="h-5 w-5 text-tx-secondary group-hover:text-tx-base" />}
+                    {copied ? <CheckCircle className="h-5 w-5 text-tx-base" /> : <Copy className="h-5 w-5 text-tx-base group-hover:scale-110 transition-transform" />}
                 </div>
             </div>
         </header>
