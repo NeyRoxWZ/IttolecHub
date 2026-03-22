@@ -282,7 +282,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       const qrCode = new QRCodeStyling({
         width: 320,
         height: 320,
-        data: `${window.location.origin}/room/${params.code}?source=qrcode`,
+        data: `https://itollechub.vercel.app/room/${params.code}?source=qrcode`,
         image: "/logo-site.png",
         imageOptions: {
           hideBackgroundDots: true,
@@ -337,14 +337,14 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     // Check for QR Code join or stored session
     const storedName = sessionStorage.getItem('playerName');
     const searchParams = new URLSearchParams(window.location.search);
-    const isQrJoin = searchParams.get('source') === 'qrcode';
+    const isSharedJoin = searchParams.get('source') === 'qrcode' || searchParams.get('source') === 'link';
     
     if (!storedName) {
-        if (isQrJoin) {
+        if (isSharedJoin) {
             setShowPseudoModal(true);
             return;
         } else {
-            // Normal redirect if no session and not QR
+            // Normal redirect if no session and not a shared link
             router.push('/');
             return;
         }
@@ -636,6 +636,17 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               if (newRoom.settings.isPrivate !== undefined) {
                   setIsPrivateMode(newRoom.settings.isPrivate);
               }
+
+              // Check if user is banned (real-time kick)
+              const storedName = sessionStorage.getItem('playerName');
+              const storedPlayerId = sessionStorage.getItem('playerId');
+              if (newRoom.settings.banned && Array.isArray(newRoom.settings.banned)) {
+                  if ((storedName && newRoom.settings.banned.includes(storedName)) || (storedPlayerId && newRoom.settings.banned.includes(storedPlayerId))) {
+                      setIsKicked(true);
+                      setTimeout(() => router.push('/'), 3000);
+                      return;
+                  }
+              }
           }
 
           // Room fermée
@@ -827,24 +838,19 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const kickPlayer = async (playerIdToKick: string, playerName: string) => {
     if (!isHost || !roomId) return;
     
-    // 1. We must ban their actual IP or session ID, not just their display name.
-    // For this app, we'll ban their specific `playerId` so even if they change their name, 
-    // their browser session is still banned.
     const currentBanned = Array.isArray(gameSettings.banned) ? gameSettings.banned : [];
-    
-    // Add BOTH name and playerId to the banned list to be safe
     const newBanned = [...currentBanned, playerName, playerIdToKick];
     const newSettings = { ...gameSettings, banned: newBanned };
-    
-    // Delete player from DB
-    await supabase.from('players').delete().eq('id', playerIdToKick);
     
     // Update local state immediately so we don't have to wait for F5
     setPlayers(prev => prev.filter(p => p.id !== playerIdToKick));
     
-    // Update room settings
+    // Update room settings FIRST so the kicked player gets the real-time update
     setGameSettings(newSettings);
     await supabase.from('rooms').update({ settings: newSettings }).eq('id', roomId);
+    
+    // Then delete player from DB
+    await supabase.from('players').delete().eq('id', playerIdToKick);
     
     toast.success(`${playerName} a été exclu.`);
   };
@@ -886,7 +892,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   if (showPseudoModal) {
       return (
           <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4">
-              <div className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal animate-in zoom-in duration-300">
+              <div className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal animate-in fade-in zoom-in duration-300">
                   <div className="flex justify-center mb-6">
                       <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl">
                           <Users className="w-12 h-12 text-tx-base" />
@@ -975,11 +981,11 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                   <p className="text-sm font-bold text-tx-secondary text-center uppercase tracking-widest">Lien de partage</p>
                   <div className="flex items-center gap-3 bg-brand-card border-4 border-brand-border rounded-2xl p-2 shadow-brutal">
                       <span className="flex-1 text-sm text-tx-secondary truncate font-mono px-3">
-                          {typeof window !== 'undefined' ? window.location.origin : ''}/room/{params.code}?source=qrcode
+                          {typeof window !== 'undefined' ? `https://itollechub.vercel.app/room/${params.code}?source=link` : ''}
                       </span>
                       <button 
                           onClick={() => {
-                              navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`);
+                              navigator.clipboard.writeText(`https://itollechub.vercel.app/room/${params.code}?source=link`);
                               toast.success('Lien copié !');
                           }}
                           className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
@@ -1148,7 +1154,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         </div>
                         {!isHost && (
                             <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-brand-inner border-2 border-brand-border text-tx-secondary">
-                                Sync. avec l&apos;hôte
+                                Paramètres synchronisés
                             </span>
                         )}
                     </div>

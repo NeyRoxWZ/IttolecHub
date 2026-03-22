@@ -7,6 +7,7 @@ import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
 import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Skull, Loader2, Send, Check, Crown, Home, ThumbsUp, ThumbsDown, HelpCircle, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import VoteToLobby from './components/VoteToLobby';
@@ -646,85 +647,103 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in">
                {players.length < 4 ? (
-                 <>
-                    <User className="w-16 h-16 text-gray-600 animate-pulse" />
-                    <p className="text-2xl font-medium text-gray-400">En attente de joueurs ({players.length}/4+)...</p>
-                 </>
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center">
+                     <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl mb-4">
+                         <User className="w-12 h-12 text-tx-secondary animate-pulse" />
+                     </div>
+                     <p className="font-display text-2xl font-bold text-tx-base text-center">En attente de joueurs</p>
+                     <p className="text-tx-secondary mt-2 font-bold">{players.length} / 4 minimum</p>
+                 </div>
                ) : (
-                 <>
-                    <Loader2 className="w-16 h-16 animate-spin text-red-500" />
-                    <p className="text-2xl font-medium animate-pulse text-red-200">Démarrage de la mission...</p>
-                 </>
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center">
+                    <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl mb-4">
+                        <Loader2 className="w-12 h-12 animate-spin text-accent-primary" />
+                    </div>
+                    <p className="font-display text-2xl font-bold text-tx-base text-center animate-pulse">Démarrage de la mission...</p>
+                 </div>
                )}
             </div>
         )}
 
         {/* PHASE: ROLES */}
-        {currentPhase === 'roles' && myRole && (
-            <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
-                <div className="bg-[#0F172A]/80 p-8 rounded-3xl border border-[#334155] text-center w-full shadow-2xl relative overflow-hidden">
-                    {amIReady && (
-                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in">
-                            <Check className="w-20 h-20 text-green-500 mb-4" />
-                            <h3 className="text-3xl font-bold text-[#F8FAFC]">Vous êtes prêt !</h3>
-                            <p className="text-gray-400 mt-2">En attente des autres...</p>
+        {currentPhase === 'roles' && (
+            myRole ? (
+                <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full shadow-brutal relative overflow-hidden">
+                        {amIReady && (
+                            <div className="absolute inset-0 bg-brand-bg/90 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in">
+                                <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl shadow-brutal mb-4">
+                                    <Check className="w-16 h-16 text-accent-success" />
+                                </div>
+                                <h3 className="font-display text-3xl font-black text-tx-base">Vous êtes prêt !</h3>
+                                <p className="text-tx-secondary font-bold mt-2">En attente des autres...</p>
+                            </div>
+                        )}
+
+                        <h3 className="font-display text-2xl font-black text-tx-secondary mb-8 uppercase tracking-widest">Votre Identité</h3>
+                        
+                        <div className="flex flex-col items-center gap-6 mb-8 min-h-[200px] justify-center">
+                            {showRole ? (
+                                <div className="animate-in zoom-in duration-200 flex flex-col items-center">
+                                    <div className={cn(
+                                        "font-display text-4xl font-black mb-6 px-6 py-2 rounded-xl border-4 border-brand-border bg-brand-inner shadow-brutal",
+                                        myRole === 'MASTER' ? 'text-accent-primary' : myRole === 'INFILTRE' ? 'text-accent-secondary' : 'text-[#06B6D4]'
+                                    )}>
+                                        {myRole === 'MASTER' ? 'MAÎTRE DU JEU' : myRole === 'INFILTRE' ? 'INFILTRÉ' : 'CITOYEN'}
+                                    </div>
+                                    <div className="bg-brand-inner px-8 py-6 rounded-2xl border-4 border-brand-border shadow-brutal w-full">
+                                        <span className="block text-xs font-bold text-tx-secondary uppercase tracking-widest mb-2">Mot Secret</span>
+                                        <span className="font-display text-4xl font-black text-tx-base break-words">
+                                            {myRole === 'CITIZEN' ? '???' : secretWord}
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-tx-secondary flex flex-col items-center animate-in fade-in">
+                                    <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-3xl shadow-brutal mb-6">
+                                        <EyeOff className="w-16 h-16 opacity-50" />
+                                    </div>
+                                    <p className="font-bold text-lg uppercase tracking-widest">Maintenez pour révéler</p>
+                                </div>
+                            )}
                         </div>
-                    )}
 
-                    <h3 className="text-2xl font-bold text-gray-400 mb-8">Votre Identité</h3>
-                    
-                    <div className="flex flex-col items-center gap-6 mb-8 min-h-[200px] justify-center">
-                        {showRole ? (
-                            <div className="animate-in zoom-in duration-200 flex flex-col items-center">
-                                <div className={`text-4xl font-black mb-4 ${myRole === 'MASTER' ? 'text-yellow-400' : myRole === 'INFILTRE' ? 'text-red-500' : 'text-blue-400'}`}>
-                                    {myRole === 'MASTER' ? 'MAÎTRE DU JEU' : myRole === 'INFILTRE' ? 'INFILTRÉ' : 'CITOYEN'}
+                        <button
+                            className="w-full bg-brand-inner border-4 border-brand-border rounded-2xl p-4 mb-6 transition-all hover:bg-tx-base hover:text-brand-bg group select-none touch-none shadow-brutal active:translate-y-1 active:shadow-none"
+                            onMouseDown={() => setShowRole(true)}
+                            onMouseUp={() => setShowRole(false)}
+                            onMouseLeave={() => setShowRole(false)}
+                            onTouchStart={() => setShowRole(true)}
+                            onTouchEnd={() => setShowRole(false)}
+                        >
+                            <Eye className="w-8 h-8 mx-auto text-tx-secondary group-hover:text-brand-bg transition-colors" />
+                        </button>
+
+                        <button 
+                            onClick={sendReady} 
+                            className={cn(
+                                "w-full h-16 font-display text-xl font-black tracking-wider rounded-2xl border-4 border-brand-border transition-all relative z-30 shadow-brutal",
+                                amIReady 
+                                ? "bg-accent-success text-brand-bg" 
+                                : "bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary"
+                            )}
+                        >
+                            {amIReady ? (
+                                <div className="flex items-center justify-center gap-2">
+                                    <Check className="w-6 h-6" /> PRÊT (Annuler)
                                 </div>
-                                <div className="bg-[#334155] px-8 py-4 rounded-xl border border-[#475569]">
-                                    <span className="block text-sm text-[#94A3B8] uppercase tracking-widest mb-1">Mot Secret</span>
-                                    <span className="text-3xl font-bold text-[#F8FAFC]">
-                                        {myRole === 'CITIZEN' ? '???' : secretWord}
-                                    </span>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="text-gray-500 flex flex-col items-center animate-in fade-in">
-                                <EyeOff className="w-16 h-16 mb-4 opacity-50" />
-                                <p className="text-lg">Maintenez pour révéler</p>
-                            </div>
-                        )}
+                            ) : (
+                                "JE SUIS PRÊT"
+                            )}
+                        </button>
                     </div>
-
-                    <button
-                        className="w-full bg-[#334155] hover:bg-[#475569] active:bg-[#475569] border border-[#475569] rounded-xl p-4 mb-4 transition-colors select-none touch-none"
-                        onMouseDown={() => setShowRole(true)}
-                        onMouseUp={() => setShowRole(false)}
-                        onMouseLeave={() => setShowRole(false)}
-                        onTouchStart={() => setShowRole(true)}
-                        onTouchEnd={() => setShowRole(false)}
-                    >
-                        <Eye className="w-6 h-6 mx-auto text-gray-300" />
-                    </button>
-
-                    <Button 
-                        size="lg" 
-                        onClick={sendReady} 
-                        // disabled={!!amIReady} // Allow toggling ready
-                        className={`w-full h-16 text-xl font-bold rounded-xl shadow-lg transition-all relative z-30 ${
-                            amIReady 
-                            ? 'bg-green-600 hover:bg-green-500 shadow-green-600/20' 
-                            : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'
-                        }`}
-                    >
-                        {amIReady ? (
-                            <>
-                                <Check className="w-6 h-6 mr-2" /> PRÊT (Annuler)
-                            </>
-                        ) : (
-                            "JE SUIS PRÊT"
-                        )}
-                    </Button>
                 </div>
-            </div>
+            ) : (
+                <div className="flex flex-col items-center justify-center flex-1 w-full p-4">
+                    <Loader2 className="w-16 h-16 animate-spin text-accent-primary mb-4" />
+                    <p className="font-display text-xl font-bold text-tx-base animate-pulse">Distribution des rôles en cours...</p>
+                </div>
+            )
         )}
 
         {/* PHASE: PLAYING */}
@@ -732,9 +751,9 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
             <div className="flex flex-col w-full h-full relative">
                 {/* TOP ZONE: ROLE/WORD */}
                 <div className="flex justify-center w-full mb-6 px-4">
-                    <div className="bg-slate-900/90 backdrop-blur border border-white/10 rounded-full px-6 py-2 flex items-center gap-4 shadow-lg select-none touch-none">
-                        <span className="text-gray-400 text-sm font-bold uppercase">Votre Mot</span>
-                        <div className="w-px h-4 bg-white/20" />
+                    <div className="bg-brand-card border-4 border-brand-border rounded-2xl px-6 py-3 flex items-center gap-4 shadow-brutal select-none touch-none">
+                        <span className="text-tx-secondary text-xs font-bold uppercase tracking-widest">Votre Mot</span>
+                        <div className="w-1 h-6 bg-brand-border rounded-full" />
                         <div 
                             className="cursor-pointer flex items-center gap-2"
                             onMouseDown={() => setShowRole(true)}
@@ -744,8 +763,11 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                             onTouchEnd={() => setShowRole(false)}
                         >
                             {showRole ? (
-                                <span className="font-bold text-white animate-in fade-in">
-                                    <span className={myRole === 'MASTER' ? 'text-yellow-400 mr-2' : myRole === 'INFILTRE' ? 'text-red-500 mr-2' : 'text-blue-400 mr-2'}>
+                                <span className="font-display font-black text-tx-base animate-in fade-in">
+                                    <span className={cn(
+                                        "mr-3 px-2 py-0.5 rounded border-2 border-brand-border bg-brand-inner",
+                                        myRole === 'MASTER' ? 'text-accent-primary' : myRole === 'INFILTRE' ? 'text-accent-secondary' : 'text-[#06B6D4]'
+                                    )}>
                                         {myRole === 'MASTER' ? 'MAÎTRE' : myRole === 'INFILTRE' ? 'INFILTRÉ' : 'CITOYEN'}
                                     </span>
                                     {myRole === 'CITIZEN' ? '???' : secretWord}
@@ -764,9 +786,9 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                 <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-32 md:pb-4 w-full max-w-4xl mx-auto">
                     <div className="space-y-4">
                         {questions.length === 0 && (
-                            <div className="text-center text-gray-500 mt-10">
+                            <div className="text-center text-tx-secondary mt-10">
                                 <HelpCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p>Posez des questions pour trouver le mot !</p>
+                                <p className="font-bold">Posez des questions pour trouver le mot !</p>
                             </div>
                         )}
                         {questions.map((q: any) => {
@@ -796,23 +818,28 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                             }
 
                             return (
-                                <div key={q.id} className={`bg-slate-900/50 border ${likelySecret ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-white/5'} rounded-xl p-4 animate-in slide-in-from-bottom-2 relative`}>
+                                <div key={q.id} className={cn(
+                                    "border-4 rounded-2xl p-4 animate-in slide-in-from-bottom-2 relative shadow-brutal",
+                                    likelySecret ? "border-accent-primary bg-brand-card" : "border-brand-border bg-brand-inner"
+                                )}>
                                     {likelySecret && !q.answer && (
-                                        <div className="absolute top-2 right-2 flex items-center gap-1 text-yellow-500 text-xs font-bold animate-pulse bg-yellow-500/10 px-2 py-1 rounded-full">
+                                        <div className="absolute top-2 right-2 flex items-center gap-1 text-accent-primary text-xs font-black uppercase tracking-widest animate-pulse bg-brand-bg px-3 py-1 rounded-lg border-2 border-accent-primary">
                                             <Crown className="w-3 h-3" /> Mot trouvé ?
                                         </div>
                                     )}
                                     <div className="flex justify-between items-start mb-2">
-                                        <span className="font-bold text-blue-300">{asker?.name}</span>
-                                        <span className="text-xs text-gray-500">{new Date(q.timestamp).toLocaleTimeString()}</span>
+                                        <span className="font-bold text-[#06B6D4]">{asker?.name}</span>
+                                        <span className="text-xs text-tx-secondary font-bold">{new Date(q.timestamp).toLocaleTimeString()}</span>
                                     </div>
-                                    <p className="text-lg text-white mb-3">{q.text}</p>
+                                    <p className="text-lg text-tx-base mb-4 font-bold">{q.text}</p>
                                     
                                     {/* ANSWER AREA */}
                                     {q.answer ? (
-                                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold 
-                                            ${q.answer === 'OUI' ? 'bg-green-500/20 text-green-400' : 
-                                              q.answer === 'NON' ? 'bg-red-500/20 text-red-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                                        <div className={cn(
+                                            "inline-flex items-center px-4 py-2 rounded-xl text-sm font-black tracking-wider uppercase border-2 shadow-sm",
+                                            q.answer === 'OUI' ? 'bg-accent-success border-accent-success text-brand-bg' : 
+                                            q.answer === 'NON' ? 'bg-accent-secondary border-accent-secondary text-brand-bg' : 'bg-brand-bg border-brand-border text-tx-secondary'
+                                        )}>
                                             {q.answer === 'OUI' ? <ThumbsUp className="w-4 h-4 mr-2" /> : 
                                              q.answer === 'NON' ? <ThumbsDown className="w-4 h-4 mr-2" /> : <HelpCircle className="w-4 h-4 mr-2" />}
                                             {q.answer.replace('_', ' ')}
@@ -823,37 +850,33 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                                 <div className="flex gap-2 w-full">
                                                     {confirmingWinnerId === q.playerId ? (
                                                         <div className="flex gap-2 w-full animate-in fade-in">
-                                                            <Button 
-                                                                size="sm" 
+                                                            <button 
                                                                 onClick={() => triggerWordFound(q.playerId)} 
-                                                                className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold"
+                                                                className="flex-1 h-10 rounded-lg font-display font-black text-sm tracking-wider border-2 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-bg hover:text-accent-success"
                                                             >
                                                                 Confirmer
-                                                            </Button>
-                                                            <Button 
-                                                                size="sm" 
+                                                            </button>
+                                                            <button 
                                                                 onClick={() => setConfirmingWinnerId(null)} 
-                                                                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white"
+                                                                className="flex-1 h-10 rounded-lg font-display font-black text-sm tracking-wider border-2 border-brand-border bg-brand-bg text-tx-secondary hover:text-tx-base"
                                                             >
                                                                 Annuler
-                                                            </Button>
+                                                            </button>
                                                         </div>
                                                     ) : (
                                                         <>
-                                                            <Button 
-                                                                size="sm" 
+                                                            <button 
                                                                 onClick={() => setConfirmingWinnerId(q.playerId)} 
-                                                                className="flex-[2] bg-yellow-500 text-black hover:bg-yellow-400 font-bold animate-pulse"
+                                                                className="flex-[2] h-10 rounded-lg font-display font-black text-sm tracking-wider border-2 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-bg hover:text-accent-primary animate-pulse flex items-center justify-center gap-2"
                                                             >
-                                                                <Crown className="w-4 h-4 mr-2" /> Valider que {asker?.name} a trouvé !
-                                                            </Button>
-                                                            <Button 
-                                                                size="sm" 
+                                                                <Crown className="w-4 h-4" /> Valider ({asker?.name})
+                                                            </button>
+                                                            <button 
                                                                 onClick={() => answerQuestion(q.id, 'NON')} 
-                                                                className="flex-1 bg-red-600/80 hover:bg-red-600 text-white font-bold text-xs"
+                                                                className="flex-1 h-10 rounded-lg font-display font-black text-xs tracking-wider border-2 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-bg hover:text-accent-secondary"
                                                             >
-                                                                Non, pas trouvé
-                                                            </Button>
+                                                                Non
+                                                            </button>
                                                         </>
                                                     )}
                                                 </div>
@@ -861,14 +884,14 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                             {/* Hide regular buttons if we are in confirmation mode for this specific question */}
                                             {likelySecret && confirmingWinnerId === q.playerId ? null : (
                                                 <div className="flex gap-2">
-                                                    <Button size="sm" onClick={() => answerQuestion(q.id, 'OUI')} className="bg-green-600 hover:bg-green-500 text-white flex-1">Oui</Button>
-                                                    <Button size="sm" onClick={() => answerQuestion(q.id, 'NON')} className="bg-red-600 hover:bg-red-500 text-white flex-1">Non</Button>
-                                                    <Button size="sm" onClick={() => answerQuestion(q.id, 'NE_SAIS_PAS')} className="bg-gray-600 hover:bg-gray-500 text-white flex-1">Je ne sais pas</Button>
+                                                    <button onClick={() => answerQuestion(q.id, 'OUI')} className="h-10 flex-1 rounded-lg font-display font-black text-sm tracking-wider border-2 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-bg hover:text-accent-success">Oui</button>
+                                                    <button onClick={() => answerQuestion(q.id, 'NON')} className="h-10 flex-1 rounded-lg font-display font-black text-sm tracking-wider border-2 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-bg hover:text-accent-secondary">Non</button>
+                                                    <button onClick={() => answerQuestion(q.id, 'NE_SAIS_PAS')} className="h-10 flex-1 rounded-lg font-display font-black text-sm tracking-wider border-2 border-brand-border bg-brand-bg text-tx-secondary hover:text-tx-base">?</button>
                                                 </div>
                                             )}
                                         </div>
                                     ) : (
-                                        <span className="text-sm text-gray-500 italic">En attente du Maître...</span>
+                                        <span className="text-sm text-tx-secondary font-bold italic">En attente du Maître...</span>
                                     )}
                                 </div>
                             );
@@ -878,41 +901,40 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
                 {/* BOTTOM INPUT (Fixed Mobile) */}
                 {!isMaster && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/90 backdrop-blur-lg border-t border-white/10 z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4">
-                        <div className="max-w-2xl mx-auto flex gap-2">
-                            <Input 
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-brand-bg/95 backdrop-blur-lg border-t-4 border-brand-border z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4">
+                        <div className="max-w-3xl mx-auto flex gap-3">
+                            <input 
                                 placeholder="Posez une question..." 
                                 value={userQuestion}
                                 onChange={e => setUserQuestion(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && sendQuestion()}
-                                className="h-14 bg-slate-900 border-white/20 text-lg md:h-12"
+                                className="flex-1 h-14 bg-brand-inner border-4 border-brand-border rounded-2xl px-6 text-lg font-bold text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors shadow-brutal"
                             />
-                            <Button 
+                            <button 
                                 onClick={sendQuestion} 
                                 disabled={!userQuestion.trim()}
-                                className="h-14 px-8 bg-indigo-600 hover:bg-indigo-500 font-bold md:h-12"
+                                className="h-14 w-16 bg-accent-primary border-4 border-brand-border rounded-2xl flex items-center justify-center text-brand-bg hover:bg-tx-base transition-colors shadow-brutal disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <Send className="w-5 h-5" />
-                            </Button>
+                                <Send className="w-6 h-6" />
+                            </button>
                         </div>
                     </div>
                 )}
 
                 {/* MASTER CONTROLS */}
                 {isMaster && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/90 backdrop-blur-lg border-t border-white/10 z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4 text-center">
-                        <p className="text-gray-400 mb-2">Quelqu'un a trouvé le mot ?</p>
-                        <div className="flex flex-wrap justify-center gap-2">
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-brand-bg/95 backdrop-blur-lg border-t-4 border-brand-border z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4 text-center">
+                        <p className="text-tx-secondary font-bold mb-2 uppercase tracking-widest text-sm">Quelqu'un a trouvé le mot ?</p>
+                        <div className="flex flex-wrap justify-center gap-3">
                             {players.filter(p => p.id !== playerId).map(p => (
-                                <Button 
+                                <button 
                                     key={p.id}
                                     onClick={() => triggerWordFound(p.id)}
-                                    variant="outline"
-                                    className="border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10"
+                                    className="h-12 px-4 rounded-xl border-2 border-brand-border bg-brand-inner text-accent-primary font-bold hover:border-accent-primary shadow-sm flex items-center"
                                 >
                                     <Crown className="w-4 h-4 mr-2" />
-                                    {p.name} a trouvé
-                                </Button>
+                                    {p.name}
+                                </button>
                             ))}
                         </div>
                     </div>
@@ -924,10 +946,10 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         {(currentPhase === 'voting_finder' || currentPhase === 'voting_infiltre') && (
             <div className="flex flex-col w-full h-full relative">
                 <div className="text-center mb-6">
-                    <h2 className="text-3xl font-bold text-white mb-2">
+                    <h2 className="font-display text-4xl font-black text-tx-base mb-2 uppercase tracking-widest">
                         {currentPhase === 'voting_finder' ? "Qui est l'Infiltré ?" : "Dernière chance !"}
                     </h2>
-                    <p className="text-gray-400">
+                    <p className="text-tx-secondary font-bold text-lg">
                         {currentPhase === 'voting_finder' 
                             ? `Le mot a été trouvé par ${players.find(p => p.id === finderId)?.name}. Est-ce l'Infiltré ?`
                             : "Le précédent vote a échoué. Trouvez l'Infiltré pour gagner !"}
@@ -937,7 +959,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                 {/* VOTING COLUMNS */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4 w-full">
                     <div className="flex justify-center w-full">
-                        <div className="flex flex-wrap justify-center gap-4 w-full max-w-7xl">
+                        <div className="flex flex-wrap justify-center gap-6 w-full max-w-7xl">
                             {alivePlayers.filter(pid => {
                                 const role = roles[pid];
                                 // Exclude Master from being a target in both voting phases
@@ -949,40 +971,44 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                 const hasVotedForThis = votesForThisPlayer.some((v: any) => v.voter_id === playerId);
                                 
                                 return (
-                                    <div key={pid} className="flex flex-col bg-slate-900/50 border border-white/5 rounded-xl overflow-hidden h-[300px] relative w-full md:w-[31%] lg:w-[23%]">
-                                        <div className="p-4 text-center border-b border-white/5 bg-slate-900/80">
-                                            <div className="font-bold text-xl text-white">{p?.name}</div>
+                                    <div key={pid} className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[24px] overflow-hidden h-[300px] relative w-full md:w-[31%] lg:w-[23%] shadow-brutal">
+                                        <div className="p-4 text-center border-b-4 border-brand-border bg-brand-inner">
+                                            <div className="font-display font-black text-xl text-tx-base">{p?.name}</div>
                                             {pid === finderId && currentPhase === 'voting_finder' && (
-                                                <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full mt-1 inline-block">A trouvé le mot</span>
+                                                <span className="text-[10px] bg-accent-primary text-brand-bg px-2 py-1 rounded-md mt-2 inline-block font-black uppercase tracking-widest shadow-sm">A trouvé le mot</span>
                                             )}
                                         </div>
 
                                         {/* Votes Display */}
-                                        <div className="flex-1 p-4 flex flex-wrap content-start gap-2 justify-center">
+                                        <div className="flex-1 p-4 flex flex-wrap content-start gap-2 justify-center bg-brand-bg/50">
                                             {votesForThisPlayer.map((v: any) => {
                                                 const voterName = players.find(pl => pl.id === v.voter_id)?.name;
                                                 return (
-                                                    <span key={v.id} className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300 flex items-center">
-                                                        🗳 {voterName}
+                                                    <span key={v.id} className="text-[10px] font-bold bg-brand-inner border-2 border-brand-border px-2 py-1 rounded-md text-tx-base shadow-sm">
+                                                        {voterName}
                                                     </span>
                                                 );
                                             })}
                                         </div>
 
                                         {/* Vote Button */}
-                                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-900 to-transparent pt-6">
+                                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-brand-card border-t-4 border-brand-border">
                                             {!isMaster && (
-                                                <Button 
+                                                <button 
                                                     onClick={() => sendVote(pid)}
-                                                    className={`w-full font-bold ${hasVotedForThis ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
-                                                    disabled={pid === playerId} // Can't vote for self? Rules don't specify, but usually yes.
+                                                    className={cn(
+                                                        "w-full h-12 rounded-xl font-display font-black tracking-wider transition-colors border-2 border-brand-border flex items-center justify-center shadow-brutal",
+                                                        pid === playerId ? "opacity-50 cursor-not-allowed bg-brand-inner text-tx-muted" :
+                                                        hasVotedForThis ? "bg-accent-success text-brand-bg" : "bg-accent-secondary text-brand-bg hover:bg-brand-inner hover:text-accent-secondary"
+                                                    )}
+                                                    disabled={pid === playerId}
                                                 >
-                                                    {hasVotedForThis ? <Check className="w-4 h-4 mr-2" /> : <Skull className="w-4 h-4 mr-2" />}
+                                                    {hasVotedForThis ? <Check className="w-5 h-5 mr-2" /> : <Skull className="w-5 h-5 mr-2" />}
                                                     {hasVotedForThis ? 'Voté' : 'Accuser'}
-                                                </Button>
+                                                </button>
                                             )}
                                             {isMaster && (
-                                                <div className="text-center text-xs text-gray-500 italic pb-2">
+                                                <div className="text-center text-xs text-tx-secondary font-bold italic pb-2">
                                                     Le Maître observe le vote...
                                                 </div>
                                             )}
@@ -999,23 +1025,24 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         {/* PHASE: RESULTS */}
         {currentPhase === 'results' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4">
-                <div className="bg-slate-900 p-8 rounded-3xl border border-white/10 text-center w-full relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-red-500" />
+                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                    <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
+                        <Crown className="w-16 h-16 text-accent-primary" />
+                    </div>
                     
-                    <Crown className="w-20 h-20 text-yellow-400 mx-auto mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                    
-                    <h2 className="text-4xl font-black text-white mb-2 uppercase tracking-tight">
+                    <h2 className="font-display text-4xl font-black text-tx-base mb-2 uppercase tracking-widest">
                         Victoire {game.winner === 'CITIZENS' ? 'des Citoyens' : game.winner === 'INFILTRE' ? "de l'Infiltré" : 'de Personne'} !
                     </h2>
                     
-                    <div className="grid gap-2 mt-8 text-left max-h-[300px] overflow-y-auto custom-scrollbar bg-black/20 p-4 rounded-xl">
+                    <div className="grid gap-3 mt-8 text-left max-h-[300px] overflow-y-auto custom-scrollbar p-4 bg-brand-bg/50 rounded-2xl border-4 border-brand-border shadow-inner">
                         {players.map(p => (
-                            <div key={p.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                                <span className="font-bold text-white">{p.name}</span>
-                                <span className={`font-mono text-sm font-bold ${
-                                    roles[p.id] === 'MASTER' ? 'text-yellow-400' : 
-                                    roles[p.id] === 'INFILTRE' ? 'text-red-500' : 'text-blue-400'
-                                }`}>
+                            <div key={p.id} className="flex justify-between items-center p-4 bg-brand-inner border-2 border-brand-border rounded-xl shadow-sm">
+                                <span className="font-display font-black text-lg text-tx-base">{p.name}</span>
+                                <span className={cn(
+                                    "font-black text-sm uppercase tracking-widest px-3 py-1 rounded-md border-2 border-brand-border",
+                                    roles[p.id] === 'MASTER' ? 'bg-accent-primary text-brand-bg' : 
+                                    roles[p.id] === 'INFILTRE' ? 'bg-accent-secondary text-brand-bg' : 'bg-[#06B6D4] text-brand-bg'
+                                )}>
                                     {roles[p.id] === 'MASTER' ? 'MAÎTRE' : roles[p.id] === 'INFILTRE' ? 'INFILTRÉ' : 'CITOYEN'}
                                 </span>
                             </div>
@@ -1023,13 +1050,19 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                     </div>
 
                     {isHost && (
-                        <Button onClick={nextGameRound} variant="primary" className="mt-8 w-full h-14 text-lg font-bold rounded-xl">
-                            {currentRoundNumber >= rounds ? "Revenir au salon" : "Manche Suivante"}
-                        </Button>
+                        <button 
+                            onClick={nextGameRound} 
+                            className="mt-8 w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success shadow-brutal"
+                        >
+                            {currentRoundNumber >= rounds ? "REVENIR AU SALON" : "MANCHE SUIVANTE"}
+                        </button>
                     )}
-                    <Button variant="ghost" onClick={() => router.push('/')} className="mt-4 text-[#94A3B8] hover:text-[#F8FAFC]">
-                        <Home className="w-4 h-4 mr-2" /> Retour au menu
-                    </Button>
+                    <button 
+                        onClick={() => router.push('/')} 
+                        className="mt-6 w-full h-14 rounded-2xl font-display font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base shadow-brutal flex items-center justify-center gap-3"
+                    >
+                        <Home className="w-5 h-5" /> RETOUR AU MENU
+                    </button>
                 </div>
             </div>
         )}

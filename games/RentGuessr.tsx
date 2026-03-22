@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { Euro, TrendingUp, TrendingDown, Clock, MapPin, Home, Bed, Layout, Building2, Trophy, ArrowLeft, ArrowRight, Layers } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Euro, TrendingUp, TrendingDown, Clock, MapPin, Home, Bed, Layout, Building2, Trophy, ArrowLeft, ArrowRight, Layers, Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { vibrate, HAPTIC } from '@/lib/haptic';
@@ -349,44 +350,45 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
           voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} />}
       >
           {currentPhase === 'setup' && (
-              <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500">
-                  <div className="relative">
-                      <Home className="w-24 h-24 text-indigo-400" />
-                  </div>
-                  
-                  <div className="text-center space-y-4 max-w-lg">
-                      <h2 className="text-4xl font-black text-[#F8FAFC] uppercase tracking-wider drop-shadow-lg">
-                          Rent <span className="text-indigo-400">Guessr</span>
-                      </h2>
-                      <p className="text-[#94A3B8] text-lg">
-                          Devinez le loyer mensuel de biens immobiliers à travers la France. Plus vous êtes proche, plus vous gagnez de points !
-                      </p>
-                  </div>
-                  
-                  {isHost ? (
-                      <Button 
-                          onClick={startRound} 
-                          size="lg" 
-                          className="w-full max-w-xs h-16 text-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-black uppercase tracking-wider rounded-xl shadow-[0_4px_0_0px_#020617] transition-all hover:scale-105"
-                      >
-                          Commencer la partie
-                      </Button>
-                  ) : (
-                       <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full border border-[#475569]">
-                          <Clock className="w-5 h-5 animate-spin text-indigo-400" />
-                          <span className="text-slate-300 font-medium">En attente de l'hôte...</span>
+              <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
+                  <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+                      <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
+                          <Home className="w-16 h-16 text-accent-primary" />
                       </div>
-                  )}
+                      
+                      <div className="text-center space-y-2 mb-8">
+                          <h2 className="font-display text-4xl font-black text-tx-base uppercase tracking-wider">
+                              Rent <span className="text-accent-primary">Guessr</span>
+                          </h2>
+                          <p className="text-tx-secondary font-bold">
+                              Devinez le loyer mensuel de biens immobiliers.
+                          </p>
+                      </div>
+                      
+                      {isHost ? (
+                          <button 
+                              onClick={startRound} 
+                              className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
+                          >
+                              COMMENCER LA PARTIE
+                          </button>
+                      ) : (
+                           <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
+                              <Clock className="w-6 h-6 animate-spin text-accent-primary" />
+                              <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                          </div>
+                      )}
+                  </div>
               </div>
           )}
 
           {/* Playing Phase */}
           {currentPhase === 'playing' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full w-full">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full w-full p-4">
                   {/* Left: Property Details & Map */}
                   <div className="space-y-4">
                       {/* Photo */}
-                      <div className="relative aspect-video rounded-2xl overflow-hidden shadow-lg border-2 border-slate-200 dark:border-slate-700 group bg-slate-900">
+                      <div className="relative aspect-video rounded-[32px] overflow-hidden shadow-brutal border-4 border-brand-border group bg-brand-inner">
                           {currentProperty ? (
                               <>
                                   <img 
@@ -403,72 +405,72 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                                                   e.stopPropagation();
                                                   setCurrentPhotoIndex(prev => prev === 0 ? currentProperty.photos_url.length - 1 : prev - 1);
                                               }}
-                                              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors z-10"
+                                              className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-brand-bg/80 text-tx-base border-2 border-brand-border rounded-xl hover:bg-brand-inner transition-colors z-10 shadow-brutal active:translate-y-1 active:shadow-none"
                                           >
-                                              <ArrowLeft className="w-5 h-5" />
+                                              <ArrowLeft className="w-6 h-6" />
                                           </button>
                                           <button 
                                               onClick={(e) => {
                                                   e.stopPropagation();
                                                   setCurrentPhotoIndex(prev => prev === currentProperty.photos_url.length - 1 ? 0 : prev + 1);
                                               }}
-                                              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors z-10"
+                                              className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-brand-bg/80 text-tx-base border-2 border-brand-border rounded-xl hover:bg-brand-inner transition-colors z-10 shadow-brutal active:translate-y-1 active:shadow-none"
                                           >
-                                              <ArrowRight className="w-5 h-5" />
+                                              <ArrowRight className="w-6 h-6" />
                                           </button>
-                                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-2 py-1 rounded-full text-xs font-mono">
+                                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-brand-bg/80 text-tx-base border-2 border-brand-border px-4 py-1.5 rounded-xl font-bold font-mono shadow-brutal">
                                               {currentPhotoIndex + 1} / {currentProperty.photos_url.length}
                                           </div>
                                       </>
                                   )}
                               </>
                           ) : (
-                              <div className="w-full h-full bg-slate-200 flex items-center justify-center">
-                                  <Home className="w-12 h-12 text-slate-400" />
+                              <div className="w-full h-full flex items-center justify-center">
+                                  <Home className="w-16 h-16 text-tx-muted" />
                               </div>
                           )}
-                          <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 z-10">
-                              <MapPin className="w-4 h-4 text-red-400" />
+                          <div className="absolute top-4 left-4 bg-brand-bg/90 border-2 border-brand-border text-tx-base px-4 py-2 rounded-xl font-black uppercase tracking-widest flex items-center gap-2 z-10 shadow-brutal">
+                              <MapPin className="w-5 h-5 text-accent-secondary" />
                               {currentProperty?.district ? `${currentProperty.district}, ` : ''}{currentProperty?.city} ({currentProperty?.postal_code})
                           </div>
                       </div>
 
                       {/* Description (if available) */}
                       {currentProperty?.description && (
-                        <div className="text-xs text-slate-400 italic line-clamp-2 px-1">
+                        <div className="text-sm text-tx-secondary italic line-clamp-2 px-2 font-bold">
                           "{currentProperty.description.replace(/<[^>]*>?/gm, '')}"
                         </div>
                       )}
 
                       {/* Details Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          <div className="bg-[#1E293B] p-3 rounded-xl border border-[#334155] flex flex-col items-center justify-center text-center backdrop-blur-sm">
-                              <Layout className="w-5 h-5 text-indigo-500 mb-1" />
-                              <span className="text-xs text-slate-400 uppercase font-bold">Surface</span>
-                              <span className="font-bold text-slate-100">{currentProperty?.surface_m2} m²</span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                          <div className="bg-brand-card p-4 rounded-2xl border-4 border-brand-border shadow-brutal flex flex-col items-center justify-center text-center">
+                              <Layout className="w-6 h-6 text-[#06B6D4] mb-2" />
+                              <span className="text-xs text-tx-secondary uppercase font-bold tracking-widest">Surface</span>
+                              <span className="font-display font-black text-tx-base text-lg">{currentProperty?.surface_m2} m²</span>
                           </div>
-                          <div className="bg-[#1E293B] p-3 rounded-xl border border-[#334155] flex flex-col items-center justify-center text-center backdrop-blur-sm">
-                              <Building2 className="w-5 h-5 text-purple-500 mb-1" />
-                              <span className="text-xs text-slate-400 uppercase font-bold">Pièces</span>
-                              <span className="font-bold text-slate-100">{currentProperty?.nb_rooms}</span>
+                          <div className="bg-brand-card p-4 rounded-2xl border-4 border-brand-border shadow-brutal flex flex-col items-center justify-center text-center">
+                              <Building2 className="w-6 h-6 text-accent-primary mb-2" />
+                              <span className="text-xs text-tx-secondary uppercase font-bold tracking-widest">Pièces</span>
+                              <span className="font-display font-black text-tx-base text-lg">{currentProperty?.nb_rooms}</span>
                           </div>
-                          <div className="bg-[#1E293B] p-3 rounded-xl border border-[#334155] flex flex-col items-center justify-center text-center backdrop-blur-sm">
-                              <Bed className="w-5 h-5 text-pink-500 mb-1" />
-                              <span className="text-xs text-slate-400 uppercase font-bold">Chambres</span>
-                              <span className="font-bold text-slate-100">{currentProperty?.nb_bedrooms}</span>
+                          <div className="bg-brand-card p-4 rounded-2xl border-4 border-brand-border shadow-brutal flex flex-col items-center justify-center text-center">
+                              <Bed className="w-6 h-6 text-accent-secondary mb-2" />
+                              <span className="text-xs text-tx-secondary uppercase font-bold tracking-widest">Chambres</span>
+                              <span className="font-display font-black text-tx-base text-lg">{currentProperty?.nb_bedrooms}</span>
                           </div>
-                          <div className="bg-[#1E293B] p-3 rounded-xl border border-[#334155] flex flex-col items-center justify-center text-center backdrop-blur-sm">
+                          <div className="bg-brand-card p-4 rounded-2xl border-4 border-brand-border shadow-brutal flex flex-col items-center justify-center text-center">
                               {currentProperty?.floor !== null && currentProperty?.floor !== undefined ? (
                                   <>
-                                      <Layers className="w-5 h-5 text-yellow-500 mb-1" />
-                                      <span className="text-xs text-slate-400 uppercase font-bold">Étage</span>
-                                      <span className="font-bold text-slate-100">{currentProperty.floor === 0 ? 'RDC' : currentProperty.floor}</span>
+                                      <Layers className="w-6 h-6 text-[#FFD000] mb-2" />
+                                      <span className="text-xs text-tx-secondary uppercase font-bold tracking-widest">Étage</span>
+                                      <span className="font-display font-black text-tx-base text-lg">{currentProperty.floor === 0 ? 'RDC' : currentProperty.floor}</span>
                                   </>
                               ) : (
                                   <>
-                                      <Home className="w-5 h-5 text-green-500 mb-1" />
-                                      <span className="text-xs text-slate-400 uppercase font-bold">Type</span>
-                                      <span className="font-bold text-slate-100 truncate w-full">{currentProperty?.property_type}</span>
+                                      <Home className="w-6 h-6 text-accent-success mb-2" />
+                                      <span className="text-xs text-tx-secondary uppercase font-bold tracking-widest">Type</span>
+                                      <span className="font-display font-black text-tx-base text-lg truncate w-full">{currentProperty?.property_type}</span>
                                   </>
                               )}
                           </div>
@@ -476,9 +478,9 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                   </div>
 
                   {/* Right: Map & Input */}
-                  <div className="flex flex-col gap-4 h-full">
+                  <div className="flex flex-col gap-6 h-full">
                       {/* Map */}
-                      <div className="flex-1 min-h-[250px] relative rounded-2xl overflow-hidden shadow-lg border-2 border-slate-200 dark:border-slate-700">
+                      <div className="flex-1 min-h-[250px] relative rounded-[32px] overflow-hidden shadow-brutal border-4 border-brand-border bg-brand-inner">
                           {currentProperty && (
                               <LeafletMap 
                                   latitude={currentProperty.latitude} 
@@ -489,14 +491,14 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                       </div>
 
                       {/* Input Area */}
-                      <Card className="p-6 bg-[#0F172A] text-[#F8FAFC] border-[#334155]">
-                          <label className="block text-sm font-medium text-slate-400 mb-2 uppercase tracking-wider">
+                      <div className="p-6 bg-brand-card border-4 border-brand-border rounded-[32px] shadow-brutal">
+                          <label className="block text-sm font-black text-tx-secondary mb-4 uppercase tracking-widest">
                               Votre estimation (Loyer Mensuel)
                           </label>
-                          <div className="flex gap-3 items-stretch">
+                          <div className="flex gap-3">
                               <div className="relative flex-1">
-                                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                                      <Euro className="w-5 h-5" />
+                                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-tx-secondary pointer-events-none">
+                                      <Euro className="w-6 h-6" />
                                   </div>
                                   <input
                                       type="number"
@@ -504,43 +506,44 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                                       onChange={(e) => setUserGuess(e.target.value)}
                                       disabled={hasGuessed}
                                       placeholder="Ex: 1200"
-                                      className="w-full pl-10 h-14 text-xl font-bold bg-[#334155] border border-[#475569] rounded-xl text-[#F8FAFC] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] transition-all appearance-none"
+                                      className="w-full pl-12 h-16 text-2xl font-bold bg-brand-inner border-4 border-brand-border rounded-2xl text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors shadow-brutal disabled:opacity-50"
                                       onKeyDown={(e) => e.key === 'Enter' && handleGuess()}
                                   />
                               </div>
                               <button 
                                   onClick={handleGuess} 
                                   disabled={hasGuessed || !userGuess}
-                                  className={`h-14 px-6 text-lg font-bold rounded-xl transition-all flex items-center justify-center min-w-[100px] active:scale-95 ${
+                                  className={cn(
+                                      "h-16 px-8 text-xl font-display font-black tracking-wider rounded-2xl transition-all flex items-center justify-center border-4 border-brand-border shadow-brutal disabled:opacity-50 disabled:cursor-not-allowed",
                                       hasGuessed 
-                                      ? 'bg-green-600 cursor-default opacity-100' 
-                                      : 'bg-[#6366F1] hover:bg-[#4F46E5] text-white shadow-[0_4px_0_0px_#020617]'
-                                  }`}
+                                      ? "bg-brand-inner text-tx-muted" 
+                                      : "bg-accent-success text-brand-bg hover:bg-tx-base"
+                                  )}
                               >
-                                  {hasGuessed ? 'Envoyé' : 'Valider'}
+                                  {hasGuessed ? 'ENVOYÉ' : 'VALIDER'}
                               </button>
                           </div>
                           {hasGuessed && (
-                              <p className="mt-3 text-center text-sm text-green-400 font-medium animate-pulse">
-                                  Estimation enregistrée ! Attente des autres joueurs...
+                              <p className="mt-4 text-center text-sm text-tx-secondary font-bold uppercase tracking-widest animate-pulse">
+                                  Estimation enregistrée ! En attente des autres...
                               </p>
                           )}
-                      </Card>
+                      </div>
                   </div>
               </div>
           )}
 
           {/* Round Results Phase */}
           {currentPhase === 'round_results' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full w-full">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full w-full p-4">
                   {/* Result Card */}
-                  <div className="flex flex-col items-center justify-center space-y-6 bg-[#0F172A] text-[#F8FAFC] p-8 rounded-3xl shadow-2xl border border-[#334155]">
-                      <div className="text-center space-y-2">
-                          <h3 className="text-xl text-slate-400 font-medium">Le loyer réel était de</h3>
-                          <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 animate-in zoom-in duration-500">
+                  <div className="flex flex-col items-center justify-center space-y-8 bg-brand-card text-tx-base p-10 rounded-[32px] shadow-brutal border-4 border-brand-border">
+                      <div className="text-center space-y-4">
+                          <h3 className="text-xl text-tx-secondary font-black uppercase tracking-widest">Le loyer réel était de</h3>
+                          <div className="font-display text-6xl font-black text-accent-success animate-in zoom-in duration-500 bg-brand-inner px-8 py-4 rounded-3xl border-4 border-brand-border shadow-brutal">
                               {currentProperty?.price_per_month} €
                           </div>
-                          <div className="text-sm text-slate-500">par mois</div>
+                          <div className="text-sm text-tx-muted font-bold uppercase tracking-widest">par mois</div>
                       </div>
 
                       {/* Winner of the round */}
@@ -555,13 +558,13 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                           const diff = Math.abs(roundWinner.last_guess - (currentProperty?.price_per_month || 0));
                           
                           return (
-                              <div className="bg-white/10 p-4 rounded-xl w-full text-center border border-white/10">
-                                  <div className="flex items-center justify-center gap-2 mb-1">
-                                      <Trophy className="w-5 h-5 text-yellow-400" />
-                                      <span className="font-bold text-yellow-400">Meilleure estimation</span>
+                              <div className="bg-brand-inner p-6 rounded-2xl w-full text-center border-4 border-brand-border shadow-brutal transform rotate-1">
+                                  <div className="flex items-center justify-center gap-3 mb-2">
+                                      <Trophy className="w-6 h-6 text-[#FFD000]" />
+                                      <span className="font-black text-[#FFD000] uppercase tracking-widest">Meilleure estimation</span>
                                   </div>
-                                  <div className="text-2xl font-bold">{playerInfo?.name || 'Inconnu'}</div>
-                                  <div className="text-slate-300">
+                                  <div className="font-display text-3xl font-black text-tx-base mb-1">{playerInfo?.name || 'Inconnu'}</div>
+                                  <div className="text-tx-secondary font-bold">
                                       {roundWinner.last_guess} € (écart de {diff} €)
                                   </div>
                               </div>
@@ -571,9 +574,9 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
 
                   {/* Player Guesses List */}
                   <div className="space-y-4 overflow-y-auto custom-scrollbar pr-2 max-h-[60vh]">
-                      <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                          <TrendingUp className="w-5 h-5 text-indigo-500" />
-                          Estimations des joueurs
+                      <h3 className="font-display font-black text-2xl text-tx-base flex items-center gap-3 mb-6 uppercase tracking-wider">
+                          <TrendingUp className="w-8 h-8 text-accent-primary" />
+                          Estimations
                       </h3>
                       
                       {gamePlayers
@@ -587,23 +590,26 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                               const isPositive = diff > 0;
                               
                               return (
-                                  <div key={p.player_id} className="bg-[#1E293B] p-4 rounded-xl border border-[#334155] flex items-center justify-between shadow-sm backdrop-blur-sm">
-                                      <div className="flex items-center gap-3">
-                                          <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center font-bold text-indigo-400">
-                                              {playerInfo?.name.charAt(0)}
+                                  <div key={p.player_id} className="bg-brand-card p-4 rounded-2xl border-4 border-brand-border flex items-center justify-between shadow-brutal mb-4">
+                                      <div className="flex items-center gap-4">
+                                          <div className="w-12 h-12 rounded-xl bg-brand-inner border-2 border-brand-border flex items-center justify-center font-display font-black text-xl text-tx-base">
+                                              {playerInfo?.name.charAt(0).toUpperCase()}
                                           </div>
                                           <div>
-                                              <div className="font-bold text-slate-100">{playerInfo?.name}</div>
-                                              <div className="text-xs text-slate-400 flex items-center gap-1">
+                                              <div className="font-display font-black text-lg text-tx-base">{playerInfo?.name}</div>
+                                              <div className="text-sm font-bold text-tx-secondary flex items-center gap-2">
                                                   {guess} €
-                                                  <span className={isPositive ? 'text-red-400' : 'text-blue-400'}>
-                                                      ({isPositive ? '+' : ''}{diff} €)
+                                                  <span className={cn(
+                                                      "px-2 py-0.5 rounded-md text-xs border-2",
+                                                      isPositive ? 'bg-accent-secondary/20 text-accent-secondary border-accent-secondary' : 'bg-[#06B6D4]/20 text-[#06B6D4] border-[#06B6D4]'
+                                                  )}>
+                                                      {isPositive ? '+' : ''}{diff} €
                                                   </span>
                                               </div>
                                           </div>
                                       </div>
                                       <div className="text-right">
-                                          <div className="font-black text-xl text-indigo-400">
+                                          <div className="font-display font-black text-2xl text-accent-primary bg-brand-inner px-3 py-1 rounded-xl border-2 border-brand-border">
                                               {p.score} pts
                                           </div>
                                       </div>
@@ -617,63 +623,68 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
           {/* Podium Phase */}
           {currentPhase === 'podium' && (
               <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                  <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                  <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
-                  
-                  <div className="w-full space-y-4 mb-8">
-                      {gamePlayers
-                          .map((gp: any) => ({
-                              ...gp,
-                              name: players.find((p: any) => p.id === gp.player_id)?.name || 'Inconnu'
-                          }))
-                          .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
-                          .map((p: any, i: number) => (
-                          <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
-                              i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                              i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
-                              i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
-                          }`}>
-                              {/* Badges */}
-                              {i === 0 && (
-                                  <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform rotate-12">
-                                      Expert Immobilier
-                                  </div>
-                              )}
-                              
-                              <div className="flex items-center gap-4">
-                                  <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
-                                      i === 0 ? 'bg-yellow-500 text-black' : 
-                                      i === 1 ? 'bg-slate-400 text-slate-900' :
-                                      i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
-                                  }`}>{i + 1}</span>
+                  <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                      <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
+                          <Trophy className="w-16 h-16 text-accent-primary" />
+                      </div>
+                      <h2 className="font-display text-4xl font-black text-tx-base mb-8 uppercase tracking-widest">Classement Final</h2>
+                      
+                      <div className="w-full space-y-4 mb-8">
+                          {gamePlayers
+                              .map((gp: any) => ({
+                                  ...gp,
+                                  name: players.find((p: any) => p.id === gp.player_id)?.name || 'Inconnu'
+                              }))
+                              .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
+                              .map((p: any, i: number) => (
+                              <div key={p.id} className={cn(
+                                  "relative flex items-center justify-between p-4 rounded-2xl border-4 border-brand-border shadow-brutal",
+                                  i === 0 ? "bg-accent-primary text-brand-bg transform scale-105 z-10" : "bg-brand-inner text-tx-base"
+                              )}>
+                                  {/* Badges */}
+                                  {i === 0 && (
+                                      <div className="absolute -top-4 -right-4 bg-[#FFD000] text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
+                                          Expert Immobilier
+                                      </div>
+                                  )}
                                   
-                                  <div className="flex flex-col">
-                                      <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
-                                      {/* Fake Stat for Demo */}
-                                      <span className="text-xs text-slate-400 font-medium">
-                                          {i === 0 ? '🤑 Le Juste Prix' : '📉 Négociateur'}
+                                  <div className="flex items-center gap-4">
+                                      <span className={cn(
+                                          "w-12 h-12 flex items-center justify-center rounded-xl font-display font-black text-2xl border-2 border-brand-border",
+                                          i === 0 ? "bg-[#FFD000] text-brand-bg" : "bg-brand-bg text-tx-base"
+                                      )}>
+                                          {i + 1}
                                       </span>
+                                      
+                                      <div className="flex flex-col text-left">
+                                          <span className="text-xl font-display font-black">{p.name}</span>
+                                          <span className={cn(
+                                              "text-xs font-bold uppercase tracking-widest",
+                                              i === 0 ? "text-brand-bg/80" : "text-tx-secondary"
+                                          )}>
+                                              {i === 0 ? '🤑 Le Juste Prix' : '📉 Négociateur'}
+                                          </span>
+                                      </div>
                                   </div>
-                              </div>
-                              <span className="text-3xl font-mono font-black text-indigo-400">{p.score}</span>
-                          </div>
-                      ))}
+                               <span className={cn(
+                                   "text-3xl font-display font-black",
+                                   i === 0 ? "text-brand-bg" : "text-accent-primary"
+                               )}>{p.score}</span>
+                           </div>
+                       ))}
+                   </div>
+                   
+                   {isHost && (
+                       <button 
+                           onClick={returnToLobby} 
+                           className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg shadow-brutal"
+                       >
+                           RETOUR AU SALON
+                       </button>
+                   )}
                   </div>
-                  
-                  <div className="flex gap-4">
-                      {isHost && (
-                          <Button onClick={returnToLobby} size="lg" className="bg-slate-700 hover:bg-slate-600 font-bold">
-                              Retour au salon
-                          </Button>
-                      )}
-                      {!isHost && (
-                          <Button onClick={() => router.push(`/room/${roomCode}`)} size="lg" variant="outline" className="border-[#334155] text-[#F8FAFC]">
-                              Quitter la partie
-                          </Button>
-                      )}
-                  </div>
-              </div>
-          )}
-      </GameLayout>
-  );
-}
+               </div>
+           )}
+       </GameLayout>
+   );
+ }

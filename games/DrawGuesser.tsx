@@ -8,6 +8,7 @@ import GameLayout from './components/GameLayout';
 import VoteToLobby from './components/VoteToLobby';
 import { Trophy, Clock, PenTool, CheckCircle, Eraser, Eye, EyeOff, Trash2, Home, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 
@@ -910,57 +911,58 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
         
         {/* PHASE: SETUP */}
         {currentPhase === 'setup' && (
-            <div className="flex flex-col items-center justify-center flex-1 gap-8 animate-in fade-in">
-               <div className="relative">
-                   <PenTool className="w-24 h-24 text-pink-400 animate-pulse" />
-               </div>
-               
-               <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-bold text-[#F8FAFC]">Prêt à dessiner ?</h2>
-                   <p className="text-gray-400">
-                       Rounds : <span className="text-blue-400 font-bold">{totalRounds}</span> • 
-                       Temps : <span className="text-purple-400 font-bold">{settings.time || 90}s</span>
-                   </p>
-               </div>
-
-               {isHost ? (
-                   <Button 
-                       size="lg" 
-                       onClick={startNewGame}
-                        className="h-16 px-12 text-xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 shadow-[0_4px_0_0px_#020617] border border-[#334155] rounded-xl"
-                   >
-                       Lancer la partie
-                   </Button>
-               ) : (
-                    <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full border border-[#475569]">
-                        <Loader2 className="w-5 h-5 animate-spin text-[#94A3B8]" />
-                        <span className="text-[#F8FAFC]">En attente de l'artiste...</span>
+            <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
+               <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+                   <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform rotate-3">
+                       <PenTool className="w-16 h-16 text-accent-secondary" />
                    </div>
-               )}
+                   
+                   <div className="text-center space-y-2 mb-8">
+                        <h2 className="font-display text-4xl font-black text-tx-base uppercase tracking-wider">Prêt à dessiner ?</h2>
+                       <p className="text-tx-secondary font-bold">
+                           Rounds : <span className="text-accent-secondary font-black uppercase tracking-widest">{totalRounds}</span> • 
+                           Temps : <span className="text-[#06B6D4] font-black uppercase tracking-widest">{settings.time || 90}s</span>
+                       </p>
+                   </div>
+
+                   {isHost ? (
+                       <button 
+                           onClick={startNewGame}
+                           className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-inner hover:text-accent-secondary shadow-brutal"
+                       >
+                           LANCER LA PARTIE
+                       </button>
+                   ) : (
+                        <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
+                            <Loader2 className="w-6 h-6 animate-spin text-accent-secondary" />
+                            <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                       </div>
+                   )}
+               </div>
             </div>
         )}
 
         {/* PHASE: PLAYING / RESULTS */}
         {(currentPhase === 'playing' || currentPhase === 'round_results') && (
-            <div className="flex flex-col w-full h-full gap-4">
+            <div className="flex flex-col w-full h-full gap-4 p-4">
                 
                 {/* TOP: Word Reveal Card */}
                 <div className="flex-shrink-0">
                     {isDrawer && currentPhase === 'playing' && (
-                        <div className="bg-[#0F172A] p-4 rounded-2xl border border-[#334155] shadow-lg word-reveal-container">
-                            <div className="flex flex-col items-center gap-3">
+                        <div className="bg-brand-card p-6 rounded-[32px] border-4 border-brand-border shadow-brutal word-reveal-container">
+                            <div className="flex flex-col items-center gap-4">
                                 <div className="word-display w-full">
-                                    <div className="bg-[#334155] px-6 py-3 rounded-xl border border-[#475569] w-full">
-                                        <span className="block text-xs text-[#94A3B8] uppercase tracking-widest text-center">Mot à dessiner</span>
-                                        <span className="text-2xl font-bold text-[#F8FAFC] block text-center">{currentWord?.word}</span>
+                                    <div className="bg-brand-inner px-8 py-4 rounded-2xl border-4 border-brand-border w-full shadow-inner">
+                                        <span className="block text-xs text-tx-secondary font-bold uppercase tracking-widest text-center mb-1">Mot à dessiner</span>
+                                        <span className="font-display text-3xl font-black text-tx-base block text-center uppercase tracking-wider">{currentWord?.word}</span>
                                     </div>
                                 </div>
-                                <p className="word-hint text-[#94A3B8] text-sm">Maintenir le bouton pour voir le mot</p>
+                                <p className="word-hint text-tx-secondary font-bold uppercase tracking-widest text-sm text-center">Maintenir le bouton pour voir le mot</p>
                                 <button
                                     type="button"
-                                    className="w-full bg-[#334155] hover:bg-[#475569] active:bg-[#475569] border border-[#475569] rounded-xl py-3 transition-colors select-none touch-none"
+                                    className="w-full bg-brand-inner hover:bg-tx-base active:bg-tx-base border-4 border-brand-border rounded-2xl py-4 transition-colors select-none touch-none shadow-brutal active:translate-y-1 active:shadow-none group"
                                 >
-                                    <Eye className="w-6 h-6 mx-auto text-[#F8FAFC]" />
+                                    <Eye className="w-8 h-8 mx-auto text-tx-base group-hover:text-brand-bg group-active:text-brand-bg transition-colors" />
                                 </button>
                             </div>
                             <style jsx>{`
@@ -977,21 +979,21 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                         </div>
                     )}
                     {!isDrawer && currentPhase === 'playing' && (
-                        <div className="bg-[#0F172A] px-6 py-3 rounded-2xl border border-[#334155] shadow-lg flex items-center justify-center gap-3">
-                            <PenTool className="w-5 h-5 text-pink-400" />
-                            <span className="text-[#F8FAFC] font-bold">{getDrawerName()} dessine</span>
+                        <div className="bg-brand-card px-8 py-4 rounded-2xl border-4 border-brand-border shadow-brutal flex items-center justify-center gap-4">
+                            <PenTool className="w-6 h-6 text-accent-secondary animate-bounce" />
+                            <span className="font-display font-black text-xl text-tx-base uppercase tracking-wider">{getDrawerName()} dessine</span>
                         </div>
                     )}
                     {currentPhase === 'round_results' && (
-                        <div className="bg-[#334155] px-6 py-3 rounded-2xl border border-[#475569] shadow-[0_4px_0_0px_#020617]">
-                            <span className="block text-xs text-[#94A3B8] uppercase tracking-widest text-center">Le mot était</span>
-                            <span className="text-xl font-bold text-[#F8FAFC] block text-center">{currentWord?.word}</span>
+                        <div className="bg-brand-card px-10 py-6 rounded-[32px] border-4 border-brand-border shadow-brutal flex flex-col items-center justify-center">
+                            <span className="block text-sm text-tx-secondary font-bold uppercase tracking-widest text-center mb-2">Le mot était</span>
+                            <span className="font-display text-4xl font-black text-accent-secondary block text-center uppercase tracking-wider">{currentWord?.word}</span>
                         </div>
                     )}
                 </div>
 
                 {/* MIDDLE: Canvas */}
-                <div className="flex-1 bg-[#1E293B] rounded-xl shadow-lg overflow-hidden relative touch-none border-2 border-[#334155] min-h-[200px]">
+                <div className="flex-1 bg-white rounded-[32px] shadow-brutal overflow-hidden relative touch-none border-4 border-brand-border min-h-[300px]">
                     <canvas
                         ref={canvasRef}
                         onMouseDown={startDrawing}
@@ -1006,36 +1008,45 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                     
                     {/* TOOLBAR (Drawer Only) */}
                     {isDrawer && currentPhase === 'playing' && (
-                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#0F172A]/95 backdrop-blur px-3 py-2 rounded-xl flex items-center gap-3 shadow-lg border border-[#334155] max-w-[95%] overflow-x-auto">
-                            <div className="flex gap-1.5 flex-wrap justify-center max-w-[180px]">
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-brand-bg/95 backdrop-blur-md px-6 py-3 rounded-2xl flex items-center gap-4 shadow-brutal border-4 border-brand-border max-w-[95%] overflow-x-auto">
+                            <div className="flex gap-2 flex-wrap justify-center min-w-[120px]">
                                 {COLORS.map(c => (
                                     <button
                                         key={c}
                                         onClick={() => setColor(c)}
-                                        className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 flex-shrink-0 ${color === c ? 'border-white scale-110' : 'border-transparent'}`}
+                                        className={cn(
+                                            "w-8 h-8 rounded-full border-4 transition-transform flex-shrink-0",
+                                            color === c ? 'border-brand-border scale-110 shadow-brutal' : 'border-transparent hover:scale-110'
+                                        )}
                                         style={{ backgroundColor: c }}
                                     />
                                 ))}
                             </div>
-                            <div className="w-px h-6 bg-[#334155]" />
-                            <div className="flex gap-1 items-center">
+                            <div className="w-1 h-8 bg-brand-inner rounded-full" />
+                            <div className="flex gap-2 items-center">
                                 {SIZES.map(s => (
                                     <button
                                         key={s}
                                         onClick={() => setSize(s)}
-                                        className={`rounded-full bg-[#475569] flex items-center justify-center transition-all ${size === s ? 'ring-2 ring-white' : ''}`}
-                                        style={{ width: s + 10, height: s + 10, minWidth: s + 10, minHeight: s + 10 }}
+                                        className={cn(
+                                            "rounded-full bg-brand-inner flex items-center justify-center transition-all border-2 border-brand-border",
+                                            size === s ? 'ring-2 ring-brand-border shadow-sm' : 'hover:bg-brand-card'
+                                        )}
+                                        style={{ width: s + 16, height: s + 16, minWidth: s + 16, minHeight: s + 16 }}
                                     >
-                                        <div className="rounded-full bg-white" style={{ width: s, height: s }} />
+                                        <div className="rounded-full bg-brand-border" style={{ width: s, height: s }} />
                                     </button>
                                 ))}
                             </div>
-                            <div className="w-px h-6 bg-[#334155]" />
-                            <button onClick={() => setColor('#FFFFFF')} className={`p-1.5 rounded hover:bg-[#334155] ${color === '#FFFFFF' ? 'bg-[#475569]' : ''}`}>
-                                <Eraser className="w-4 h-4 text-[#F8FAFC]" />
+                            <div className="w-1 h-8 bg-brand-inner rounded-full" />
+                            <button onClick={() => setColor('#FFFFFF')} className={cn(
+                                "p-2.5 rounded-xl border-2 transition-colors",
+                                color === '#FFFFFF' ? 'bg-brand-card border-brand-border shadow-sm' : 'bg-brand-inner border-transparent hover:border-brand-border'
+                            )}>
+                                <Eraser className="w-5 h-5 text-tx-base" />
                             </button>
-                            <button onClick={clearCanvas} className="p-1.5 rounded hover:bg-red-900/50 text-red-400">
-                                <Trash2 className="w-4 h-4" />
+                            <button onClick={clearCanvas} className="p-2.5 rounded-xl bg-brand-inner border-2 border-transparent hover:border-accent-secondary hover:bg-accent-secondary/10 transition-colors group">
+                                <Trash2 className="w-5 h-5 text-accent-secondary group-hover:scale-110 transition-transform" />
                             </button>
                         </div>
                     )}
@@ -1044,17 +1055,21 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                 {/* BOTTOM: Answer Input (Guesser Only) */}
                 {!isDrawer && currentPhase === 'playing' && !hasGuessed && (
                     <div className="flex-shrink-0 pb-2">
-                        <form onSubmit={(e) => { e.preventDefault(); submitGuess(); }} className="flex gap-2">
-                            <Input 
+                        <form onSubmit={(e) => { e.preventDefault(); submitGuess(); }} className="flex gap-3">
+                            <input 
                                 placeholder="Devinez le mot..." 
                                 value={userGuess}
                                 onChange={e => setUserGuess(e.target.value)}
-                                className="h-12 text-base"
+                                className="flex-1 h-16 text-xl bg-brand-inner border-4 border-brand-border focus:border-tx-base text-tx-base placeholder:text-tx-muted text-center rounded-2xl shadow-brutal outline-none font-bold transition-colors"
                                 autoFocus
                             />
-                            <Button type="submit" variant="primary" className="h-12 px-6">
-                                <Send className="w-5 h-5" />
-                            </Button>
+                            <button 
+                                type="submit" 
+                                disabled={!userGuess.trim()}
+                                className="h-16 w-20 bg-accent-success hover:bg-tx-base text-brand-bg font-black rounded-2xl shadow-brutal border-4 border-brand-border flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Send className="w-6 h-6" />
+                            </button>
                         </form>
                     </div>
                 )}
@@ -1064,47 +1079,60 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
         {/* PHASE: PODIUM */}
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
-                
-                <div className="w-full space-y-4 mb-8">
-                    {sortedPlayers.map((p, i) => (
-                        <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
-                            i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                            i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
-                            i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
-                        }`}>
-                            {/* Badges */}
-                            {i === 0 && (
-                                <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform rotate-12">
-                                    Picasso
-                                </div>
-                            )}
-                            
-                            <div className="flex items-center gap-4">
-                                <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
-                                    i === 0 ? 'bg-yellow-500 text-black' : 
-                                    i === 1 ? 'bg-[#475569] text-[#F8FAFC]' :
-                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
-                                }`}>{i + 1}</span>
+                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                    <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
+                        <Trophy className="w-16 h-16 text-accent-secondary" />
+                    </div>
+                    <h2 className="font-display text-4xl font-black text-tx-base mb-8 uppercase tracking-widest">Classement Final</h2>
+                    
+                    <div className="w-full space-y-4 mb-8">
+                        {sortedPlayers.map((p, i) => (
+                            <div key={p.id} className={cn(
+                                "relative flex items-center justify-between p-4 rounded-2xl border-4 border-brand-border shadow-brutal",
+                                i === 0 ? "bg-accent-secondary text-brand-bg transform scale-105 z-10" : "bg-brand-inner text-tx-base"
+                            )}>
+                                {/* Badges */}
+                                {i === 0 && (
+                                    <div className="absolute -top-4 -right-4 bg-[#FFD000] text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
+                                        Picasso
+                                    </div>
+                                )}
                                 
-                                <div className="flex flex-col">
-                                    <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
-                                    <span className="text-xs text-slate-400 font-medium">
-                                        {i === 0 ? '🎨 Artiste' : '✏️ Gribouilleur'}
+                                <div className="flex items-center gap-4">
+                                    <span className={cn(
+                                        "w-12 h-12 flex items-center justify-center rounded-xl font-display font-black text-2xl border-2 border-brand-border",
+                                        i === 0 ? "bg-[#FFD000] text-brand-bg" : "bg-brand-bg text-tx-base"
+                                    )}>
+                                        {i + 1}
                                     </span>
+                                    
+                                    <div className="flex flex-col text-left">
+                                        <span className="text-xl font-display font-black">{p.name}</span>
+                                        <span className={cn(
+                                            "text-xs font-bold uppercase tracking-widest",
+                                            i === 0 ? "text-brand-bg/80" : "text-tx-secondary"
+                                        )}>
+                                            {i === 0 ? '🎨 Artiste' : '✏️ Gribouilleur'}
+                                        </span>
+                                    </div>
                                 </div>
+                                <span className={cn(
+                                    "text-3xl font-display font-black",
+                                    i === 0 ? "text-brand-bg" : "text-accent-secondary"
+                                )}>{p.score}</span>
                             </div>
-                            <span className="text-3xl font-mono font-black text-pink-400">{p.score}</span>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
 
-                {isHost && (
-                      <Button onClick={returnToLobby} size="lg" variant="secondary" className="font-bold">
-                        Retour au salon
-                    </Button>
-                )}
+                    {isHost && (
+                        <button 
+                            onClick={returnToLobby} 
+                            className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg shadow-brutal"
+                        >
+                            RETOUR AU SALON
+                        </button>
+                    )}
+                </div>
             </div>
         )}
 

@@ -8,6 +8,7 @@ import GameLayout from './components/GameLayout';
 import VoteToLobby from './components/VoteToLobby';
 import { Trophy, Clock, DollarSign, Home, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 
@@ -351,33 +352,34 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
         
         {/* PHASE: SETUP */}
         {currentPhase === 'setup' && (
-            <div className="flex flex-col items-center justify-center flex-1 gap-8 animate-in fade-in">
-               <div className="relative">
-                   <DollarSign className="w-24 h-24 text-green-400 animate-pulse" />
-               </div>
-               
-               <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-bold text-[#F8FAFC]">Hollywood est prêt ?</h2>
-                   <p className="text-gray-400">
-                       Rounds : <span className="text-blue-400 font-bold">{totalRounds}</span> • 
-                       Temps : <span className="text-purple-400 font-bold">{settings.time || 30}s</span>
-                   </p>
-               </div>
-
-               {isHost ? (
-                   <Button 
-                       size="lg" 
-                       onClick={startNewGame}
-                        className="h-16 px-12 text-xl font-bold bg-[#6366F1] hover:bg-[#4F46E5] shadow-[0_4px_0_0px_#020617] border border-[#6366F1] rounded-xl"
-                   >
-                       Lancer la partie
-                   </Button>
-               ) : (
-                    <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full">
-                        <Loader2 className="w-5 h-5 animate-spin text-[#94A3B8]" />
-                        <span className="text-[#F8FAFC]">En attente du producteur...</span>
+            <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
+               <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+                   <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
+                       <DollarSign className="w-16 h-16 text-accent-success" />
                    </div>
-               )}
+                   
+                   <div className="text-center space-y-2 mb-8">
+                        <h2 className="font-display text-4xl font-black text-tx-base uppercase tracking-wider">Hollywood est prêt ?</h2>
+                       <p className="text-tx-secondary font-bold">
+                           Rounds : <span className="text-accent-primary font-black uppercase tracking-widest">{totalRounds}</span> • 
+                           Temps : <span className="text-[#06B6D4] font-black uppercase tracking-widest">{settings.time || 30}s</span>
+                       </p>
+                   </div>
+
+                   {isHost ? (
+                       <button 
+                           onClick={startNewGame}
+                           className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success shadow-brutal"
+                       >
+                           LANCER LA PARTIE
+                       </button>
+                   ) : (
+                        <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
+                            <Loader2 className="w-6 h-6 animate-spin text-accent-success" />
+                            <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                       </div>
+                   )}
+               </div>
             </div>
         )}
 
@@ -386,37 +388,37 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
             <div className="flex flex-col items-center w-full max-w-4xl gap-6 pt-4 px-4">
                 
                 {/* MOVIE CARD */}
-                <div className="flex flex-col md:flex-row bg-[#1E293B] rounded-2xl overflow-hidden shadow-2xl w-full">
+                <div className="flex flex-col md:flex-row bg-brand-card rounded-[32px] overflow-hidden shadow-brutal border-4 border-brand-border w-full p-4 gap-6">
                     {/* Poster */}
-                    <div className="w-full md:w-1/3 aspect-[2/3] relative bg-black">
+                    <div className="w-full md:w-1/3 aspect-[2/3] relative bg-brand-inner rounded-2xl overflow-hidden border-4 border-brand-border shadow-inner">
                         {currentMovie.poster_path ? (
                             <img src={currentMovie.poster_path} alt={currentMovie.title} className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[#94A3B8]">Pas d'affiche</div>
+                            <div className="w-full h-full flex items-center justify-center text-tx-muted font-bold uppercase tracking-widest">Pas d'affiche</div>
                         )}
                     </div>
                     
                     {/* Info */}
-                    <div className="w-full md:w-2/3 p-6 flex flex-col justify-between">
+                    <div className="w-full md:w-2/3 flex flex-col justify-between p-2">
                         <div>
-                            <h2 className="text-3xl md:text-4xl font-bold text-[#F8FAFC] mb-2">{currentMovie.title}</h2>
+                            <h2 className="font-display text-3xl md:text-5xl font-black text-tx-base mb-4 uppercase tracking-wider leading-tight">{currentMovie.title}</h2>
                             <div className="flex flex-wrap gap-2 mb-4">
-                                <span className="bg-[#334155] px-3 py-1 rounded-full text-sm font-bold text-[#F8FAFC]">{currentMovie.release_date}</span>
+                                <span className="bg-brand-inner border-2 border-brand-border px-4 py-1.5 rounded-xl text-sm font-black uppercase tracking-widest text-tx-base">{currentMovie.release_date}</span>
                                 {currentMovie.genres && currentMovie.genres.map((g: string) => (
-                                    <span key={g} className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-sm">{g}</span>
+                                    <span key={g} className="bg-accent-primary/20 border-2 border-accent-primary text-accent-primary px-4 py-1.5 rounded-xl text-sm font-black uppercase tracking-widest">{g}</span>
                                 ))}
                             </div>
                         </div>
 
                         {/* BUDGET REVEAL */}
-                        <div className="mt-8">
-                            <h3 className="text-gray-400 text-sm uppercase tracking-wider font-bold mb-2">Budget de production</h3>
+                        <div className="mt-8 bg-brand-inner border-4 border-brand-border p-6 rounded-2xl shadow-brutal">
+                            <h3 className="text-tx-secondary text-sm font-black uppercase tracking-widest mb-2">Budget de production</h3>
                             {currentPhase === 'round_results' ? (
-                                <div className="text-4xl md:text-5xl font-black text-green-400 animate-in zoom-in">
+                                <div className="font-display text-4xl md:text-5xl font-black text-accent-success animate-in zoom-in">
                                     {formatCurrency(currentMovie.budget)}
                                 </div>
                             ) : (
-                                <div className="text-4xl md:text-5xl font-black text-[#334155] bg-[#334155] select-none blur-md rounded-lg w-3/4">
+                                <div className="font-display text-4xl md:text-5xl font-black text-tx-muted bg-brand-bg/50 select-none blur-[10px] rounded-xl px-4 py-2 inline-block">
                                     $999,999,999
                                 </div>
                             )}
@@ -428,31 +430,31 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                 {currentPhase === 'playing' && (
                     <div className="w-full max-w-xl animate-in slide-in-from-bottom-4">
                         {hasGuessed ? (
-                            <div className="bg-blue-600/20 border border-blue-500/50 text-blue-300 p-4 rounded-xl text-center font-bold text-xl shadow-lg flex items-center justify-center gap-3">
-                                <DollarSign className="w-6 h-6" />
+                            <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl font-display text-xl font-black uppercase tracking-wider shadow-brutal flex items-center justify-center gap-3 text-tx-base">
+                                <DollarSign className="w-6 h-6 text-accent-success" />
                                 Budget estimé ! Attente des autres...
                             </div>
                         ) : (
-                            <div className="flex gap-2">
+                            <div className="flex gap-3">
                                 <div className="relative flex-1">
-                                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                    <Input 
-                                        type="text" // text to allow formatting if we wanted, but let's stick to raw number for simplicity
+                                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-tx-secondary w-6 h-6" />
+                                    <input 
+                                        type="text"
                                         placeholder="Ex: 150000000" 
                                         value={userGuess}
                                         onChange={e => setUserGuess(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && submitGuess()}
-                                        className="h-16 pl-10 text-2xl font-bold bg-[#334155] border-[#3B82F6] text-[#F8FAFC] placeholder:text-[#94A3B8] tracking-widest"
+                                        className="w-full h-16 pl-14 pr-4 text-2xl font-bold bg-brand-inner border-4 border-brand-border focus:border-tx-base text-tx-base placeholder:text-tx-muted rounded-2xl shadow-brutal outline-none transition-colors"
                                         autoFocus
                                     />
                                 </div>
-                                <Button 
+                                <button 
                                     onClick={submitGuess}
                                     disabled={!userGuess.trim()}
-                                    className="h-16 px-8 bg-green-600 hover:bg-green-500 font-bold text-lg"
+                                    className="h-16 px-8 bg-accent-success hover:bg-tx-base text-brand-bg font-display font-black tracking-wider rounded-2xl shadow-brutal border-4 border-brand-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Valider
-                                </Button>
+                                    VALIDER
+                                </button>
                             </div>
                         )}
                     </div>
@@ -467,17 +469,19 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                             const isWinner = diff < 15;
                             
                             return (
-                                <div key={p.id} className={`p-4 rounded-xl border flex items-center justify-between ${
-                                    isWinner ? 'bg-green-500/10 border-green-500/50' : 'bg-[#1E293B] border-[#334155]'
-                                }`}>
+                                <div key={p.id} className={cn(
+                                    "p-4 rounded-2xl border-4 border-brand-border flex items-center justify-between shadow-brutal",
+                                    isWinner ? "bg-accent-success/20 border-accent-success" : "bg-brand-inner"
+                                )}>
                                     <div className="flex flex-col">
-                                        <span className="font-bold text-[#F8FAFC]">{p.name}</span>
-                                        <span className="text-sm text-gray-400">Écart: {diff.toFixed(1)}%</span>
+                                        <span className="font-display font-black text-lg text-tx-base">{p.name}</span>
+                                        <span className="text-sm font-bold text-tx-secondary uppercase tracking-widest">Écart: {diff.toFixed(1)}%</span>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-mono font-bold text-xl text-[#F8FAFC]">{formatCurrency(p.last_guess)}</div>
-                                        {/* Show points earned logic needed? Or just total score? */}
-                                        {/* Ideally show +Points. We can infer it or store it. */}
+                                        <div className={cn(
+                                            "font-display font-black text-xl",
+                                            isWinner ? "text-accent-success" : "text-tx-base"
+                                        )}>{formatCurrency(p.last_guess)}</div>
                                     </div>
                                 </div>
                             );
@@ -490,47 +494,60 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
         {/* PHASE: PODIUM */}
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
-                
-                <div className="w-full space-y-4 mb-8">
-                    {sortedPlayers.map((p, i) => (
-                        <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
-                            i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                            i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
-                            i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
-                        }`}>
-                            {/* Badges */}
-                            {i === 0 && (
-                                <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform rotate-12">
-                                    Producteur
-                                </div>
-                            )}
-                            
-                            <div className="flex items-center gap-4">
-                                <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
-                                    i === 0 ? 'bg-yellow-500 text-black' : 
-                                    i === 1 ? 'bg-[#475569] text-[#F8FAFC]' :
-                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
-                                }`}>{i + 1}</span>
+                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                    <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
+                        <Trophy className="w-16 h-16 text-accent-success" />
+                    </div>
+                    <h2 className="font-display text-4xl font-black text-tx-base mb-8 uppercase tracking-widest">Classement Final</h2>
+                    
+                    <div className="w-full space-y-4 mb-8">
+                        {sortedPlayers.map((p, i) => (
+                            <div key={p.id} className={cn(
+                                "relative flex items-center justify-between p-4 rounded-2xl border-4 border-brand-border shadow-brutal",
+                                i === 0 ? "bg-accent-success text-brand-bg transform scale-105 z-10" : "bg-brand-inner text-tx-base"
+                            )}>
+                                {/* Badges */}
+                                {i === 0 && (
+                                    <div className="absolute -top-4 -right-4 bg-accent-primary text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
+                                        Producteur
+                                    </div>
+                                )}
                                 
-                                <div className="flex flex-col">
-                                    <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
-                                    <span className="text-xs text-[#94A3B8] font-medium">
-                                        {i === 0 ? '💰 Banquier' : '📉 Économe'}
+                                <div className="flex items-center gap-4">
+                                    <span className={cn(
+                                        "w-12 h-12 flex items-center justify-center rounded-xl font-display font-black text-2xl border-2 border-brand-border",
+                                        i === 0 ? "bg-accent-primary text-brand-bg" : "bg-brand-bg text-tx-base"
+                                    )}>
+                                        {i + 1}
                                     </span>
+                                    
+                                    <div className="flex flex-col text-left">
+                                        <span className="text-xl font-display font-black">{p.name}</span>
+                                        <span className={cn(
+                                            "text-xs font-bold uppercase tracking-widest",
+                                            i === 0 ? "text-brand-bg/80" : "text-tx-secondary"
+                                        )}>
+                                            {i === 0 ? '💰 Banquier' : '📉 Économe'}
+                                        </span>
+                                    </div>
                                 </div>
+                                <span className={cn(
+                                    "text-3xl font-display font-black",
+                                    i === 0 ? "text-brand-bg" : "text-accent-success"
+                                )}>{p.score}</span>
                             </div>
-                            <span className="text-3xl font-mono font-black text-green-400">{p.score}</span>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
 
-                {isHost && (
-                    <Button onClick={returnToLobby} size="lg" variant="secondary" className="font-bold">
-                        Retour au salon
-                    </Button>
-                )}
+                    {isHost && (
+                        <button 
+                            onClick={returnToLobby} 
+                            className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg shadow-brutal"
+                        >
+                            RETOUR AU SALON
+                        </button>
+                    )}
+                </div>
             </div>
         )}
       </div>

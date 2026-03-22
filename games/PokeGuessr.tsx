@@ -7,6 +7,7 @@ import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
 import { Trophy, Clock, CheckCircle, XCircle, Zap, Loader2, Home, Send, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import Fuse from 'fuse.js';
@@ -442,44 +443,42 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
     >
         {/* SETUP */}
         {currentPhase === 'setup' && (
-            <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500">
-                <div className="relative">
-                    <Zap className="w-24 h-24 text-yellow-400" />
-                </div>
-                
-                <div className="text-center space-y-4 max-w-lg">
-                    <h2 className="text-4xl font-black text-[#F8FAFC] uppercase tracking-wider drop-shadow-lg">
-                        Quel est ce <span className="text-yellow-400">Pokémon</span> ?
+            <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full max-w-lg text-center">
+                    <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-6">
+                        <Zap className="w-16 h-16 text-[#FFD000]" />
+                    </div>
+                    
+                    <h2 className="font-display text-4xl font-black text-tx-base uppercase tracking-wider mb-4">
+                        Quel est ce <span className="text-[#FFD000]">Pokémon</span> ?
                     </h2>
-                    <p className="text-[#94A3B8] text-lg">
+                    <p className="text-tx-secondary font-bold text-lg mb-8">
                         Devinez le nom du Pokémon à partir de sa silhouette ou de son image !
                     </p>
-                </div>
 
-                {isHost ? (
-                    <Button 
-                        onClick={startNewGame} 
-                        size="lg" 
-                        className="w-full max-w-xs h-16 text-xl bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(234,179,8,0.3)] transition-all hover:scale-105"
-                    >
-                        Lancer la partie
-                    </Button>
-                ) : (
-                   <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full border border-[#475569]">
-                       <Loader2 className="w-5 h-5 animate-spin text-yellow-400" />
-                       <span className="text-[#F8FAFC] font-medium">En attente du dresseur...</span>
-                   </div>
-                )}
+                    {isHost ? (
+                        <button 
+                            onClick={startNewGame} 
+                            className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
+                        >
+                            LANCER LA PARTIE
+                        </button>
+                    ) : (
+                        <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
+                            <Loader2 className="w-6 h-6 animate-spin text-accent-primary" />
+                            <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                        </div>
+                    )}
+                </div>
             </div>
         )}
 
         {/* PLAYING / RESULTS */}
         {(currentPhase === 'playing' || currentPhase === 'round_results') && currentPokemon && (
-            <div className="flex flex-col items-center justify-center w-full h-full gap-8">
+            <div className="flex flex-col items-center justify-center w-full h-full gap-8 p-4">
                 
                 {/* POKEMON IMAGE */}
-                <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center transition-all duration-700 min-h-[16rem]">
-                    {/* Using standard img tag to avoid Next.js domain config issues */}
+                <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center transition-all duration-700 min-h-[16rem] bg-brand-inner border-4 border-brand-border rounded-3xl shadow-brutal p-8">
                     <img 
                        key={currentPokemon.id || currentRound}
                        src={currentPokemon.imageUrl} 
@@ -496,39 +495,44 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
 
                 {/* REVEAL NAME (RESULTS) */}
                 {currentPhase === 'round_results' && (
-                    <div className="flex flex-col items-center animate-in zoom-in">
-                        <h2 className="text-4xl sm:text-5xl font-black text-yellow-500 uppercase tracking-wider mb-2 drop-shadow-md">
+                    <div className="flex flex-col items-center animate-in zoom-in bg-brand-card border-4 border-brand-border px-10 py-6 rounded-3xl shadow-brutal transform rotate-2">
+                        <h2 className="font-display text-4xl sm:text-5xl font-black text-[#FFD000] uppercase tracking-wider mb-2">
                             {currentPokemon.names['fr'] || currentPokemon.names['en']}
                         </h2>
-                        <span className="text-[#94A3B8] text-lg font-mono">{currentPokemon.names['en']}</span>
+                        <span className="text-tx-secondary font-bold text-lg font-mono uppercase tracking-widest bg-brand-inner px-4 py-1 rounded-lg border-2 border-brand-border">
+                            {currentPokemon.names['en']}
+                        </span>
                     </div>
                 )}
 
                 {/* INPUT AREA */}
                 {currentPhase === 'playing' && (
-                    <div className="w-full max-w-md animate-in slide-in-from-bottom-4 px-4">
+                    <div className="w-full max-w-md animate-in slide-in-from-bottom-4 relative z-50">
                         {hasGuessed ? (
-                            <div className={`p-6 rounded-2xl text-center font-bold text-2xl shadow-xl flex items-center justify-center gap-3 transform transition-all hover:scale-105 ${isCorrect ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                            <div className={cn(
+                                "p-6 rounded-2xl font-display text-2xl font-black uppercase tracking-wider shadow-brutal flex items-center justify-center gap-3 border-4 border-brand-border",
+                                isCorrect ? "bg-accent-success text-brand-bg" : "bg-accent-secondary text-brand-bg"
+                            )}>
                                 {isCorrect ? <CheckCircle className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}
                                 {isCorrect ? 'Attrapé !' : 'Raté...'}
                             </div>
                         ) : (
-                            <div className="flex gap-2">
-                                <Input 
+                            <div className="flex gap-3">
+                                <input 
                                     placeholder="Quel est ce Pokémon ?" 
                                     value={userAnswer}
                                     onChange={e => setUserAnswer(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && submitGuess()}
-                                    className="h-16 text-xl bg-[#334155] border-[#3B82F6]/30 focus:border-[#3B82F6] text-[#F8FAFC] placeholder:text-[#94A3B8] text-center rounded-xl shadow-[0_4px_0_0px_#020617]"
+                                    className="flex-1 h-16 text-xl bg-brand-inner border-4 border-brand-border focus:border-tx-base text-tx-base placeholder:text-tx-muted text-center rounded-2xl shadow-brutal outline-none font-bold transition-colors"
                                     autoFocus
                                 />
-                                <Button 
+                                <button 
                                     onClick={submitGuess}
                                     disabled={!userAnswer.trim()}
-                                    className="h-16 px-6 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-500/20"
+                                    className="h-16 w-20 bg-[#FFD000] hover:bg-tx-base text-brand-bg font-black rounded-2xl shadow-brutal border-4 border-brand-border flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Send className="w-6 h-6" />
-                                </Button>
+                                </button>
                             </div>
                         )}
                     </div>
@@ -536,31 +540,30 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                 
                 {/* RESULTS LIST */}
                 {currentPhase === 'round_results' && (
-                    <div className="w-full max-w-3xl grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 px-4 overflow-y-auto max-h-[30vh] custom-scrollbar">
+                    <div className="w-full max-w-3xl grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 overflow-y-auto max-h-[30vh] custom-scrollbar p-2">
                         {gamePlayers
                             .filter((p: any) => p.has_guessed)
                             .sort((a: any, b: any) => (b.is_correct === a.is_correct) ? 0 : b.is_correct ? 1 : -1)
                             .map((p: any) => {
                             const playerInfo = players.find(pl => pl.id === p.player_id);
                             return (
-                                <div key={p.player_id} className={`p-4 rounded-xl border flex items-center justify-between shadow-sm ${
-                                    p.is_correct 
-                                    ? 'bg-green-500/10 border-green-500/50 dark:bg-green-900/30' 
-                                    : 'bg-red-500/10 border-red-500/50 dark:bg-red-900/30'
-                                }`}>
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                                            p.is_correct ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                                        }`}>
-                                            {playerInfo?.name.charAt(0)}
+                                <div key={p.player_id} className={cn(
+                                    "p-4 rounded-2xl border-4 border-brand-border flex items-center justify-between shadow-brutal bg-brand-card",
+                                )}>
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn(
+                                            "w-12 h-12 rounded-xl flex items-center justify-center font-display font-black text-xl border-2 border-brand-border",
+                                            p.is_correct ? "bg-accent-success text-brand-bg" : "bg-accent-secondary text-brand-bg"
+                                        )}>
+                                            {playerInfo?.name.charAt(0).toUpperCase()}
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-[#F8FAFC]">{playerInfo?.name}</span>
-                                            <span className="text-xs text-[#94A3B8]">{p.last_guess || '-'}</span>
+                                            <span className="font-display font-black text-lg text-tx-base">{playerInfo?.name}</span>
+                                            <span className="text-sm font-bold text-tx-secondary uppercase tracking-widest">{p.last_guess || '-'}</span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {p.is_correct ? <CheckCircle className="text-green-500 w-5 h-5" /> : <XCircle className="text-red-500 w-5 h-5" />}
+                                        {p.is_correct ? <CheckCircle className="text-accent-success w-6 h-6" /> : <XCircle className="text-accent-secondary w-6 h-6" />}
                                     </div>
                                 </div>
                             );
@@ -573,48 +576,60 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
         {/* PODIUM */}
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
-                
-                <div className="w-full space-y-4 mb-8">
-                    {players.sort((a, b) => b.score - a.score).map((p, i) => (
-                        <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
-                            i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                            i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
-                            i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
-                        }`}>
-                            {/* Badges */}
-                            {i === 0 && (
-                                <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform rotate-12">
-                                    Maître Pokémon
-                                </div>
-                            )}
-                            
-                            <div className="flex items-center gap-4">
-                                <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
-                                    i === 0 ? 'bg-yellow-500 text-black' : 
-                                    i === 1 ? 'bg-[#475569] text-[#F8FAFC]' :
-                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
-                                }`}>{i + 1}</span>
+                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                    <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
+                        <Trophy className="w-16 h-16 text-[#FFD000]" />
+                    </div>
+                    <h2 className="font-display text-4xl font-black text-tx-base mb-8 uppercase tracking-widest">Classement Final</h2>
+                    
+                    <div className="w-full space-y-4 mb-8">
+                        {players.sort((a, b) => b.score - a.score).map((p, i) => (
+                            <div key={p.id} className={cn(
+                                "relative flex items-center justify-between p-4 rounded-2xl border-4 border-brand-border shadow-brutal",
+                                i === 0 ? "bg-accent-primary text-brand-bg transform scale-105 z-10" : "bg-brand-inner text-tx-base"
+                            )}>
+                                {/* Badges */}
+                                {i === 0 && (
+                                    <div className="absolute -top-4 -right-4 bg-[#FFD000] text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
+                                        Maître Pokémon
+                                    </div>
+                                )}
                                 
-                                <div className="flex flex-col">
-                                    <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
-                                    {/* Fake Stat for Demo */}
-                                    <span className="text-xs text-[#94A3B8] font-medium">
-                                        {i === 0 ? '⚡ Le plus rapide' : '🎯 Précision mortelle'}
+                                <div className="flex items-center gap-4">
+                                    <span className={cn(
+                                        "w-12 h-12 flex items-center justify-center rounded-xl font-display font-black text-2xl border-2 border-brand-border",
+                                        i === 0 ? "bg-[#FFD000] text-brand-bg" : "bg-brand-bg text-tx-base"
+                                    )}>
+                                        {i + 1}
                                     </span>
+                                    
+                                    <div className="flex flex-col text-left">
+                                        <span className="text-xl font-display font-black">{p.name}</span>
+                                        <span className={cn(
+                                            "text-xs font-bold uppercase tracking-widest",
+                                            i === 0 ? "text-brand-bg/80" : "text-tx-secondary"
+                                        )}>
+                                            {i === 0 ? '⚡ Le plus rapide' : '🎯 Précision mortelle'}
+                                        </span>
+                                    </div>
                                 </div>
+                                <span className={cn(
+                                    "text-3xl font-display font-black",
+                                    i === 0 ? "text-brand-bg" : "text-[#FFD000]"
+                                )}>{p.score}</span>
                             </div>
-                            <span className="text-3xl font-mono font-black text-yellow-400">{p.score}</span>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
+                    
+                    {isHost && (
+                        <button 
+                            onClick={returnToLobby} 
+                            className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg shadow-brutal"
+                        >
+                            RETOUR AU SALON
+                        </button>
+                    )}
                 </div>
-                
-                {isHost && (
-                    <Button onClick={returnToLobby} size="lg" variant="secondary" className="font-bold">
-                        Retour au salon
-                    </Button>
-                )}
             </div>
         )}
     </GameLayout>

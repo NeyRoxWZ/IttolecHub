@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
 import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Skull, Loader2, Send, Check, Crown, Home, Play } from 'lucide-react';
@@ -10,6 +8,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import VoteToLobby from './components/VoteToLobby';
+import { cn } from '@/lib/utils';
 
 type Role = 'CIVIL' | 'UNDERCOVER' | 'MR_WHITE';
 type Phase = 'setup' | 'roles' | 'clues' | 'discussion' | 'vote' | 'mrwhite_guess' | 'results' | 'game_over';
@@ -366,7 +365,10 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     try {
         const res = await fetch(`/api/games/undercover?count=${rounds}`);
         const words = await res.json();
-        if (!words || words.length === 0) return;
+        if (!words || words.length === 0) {
+            toast.error("Erreur: Impossible de charger les mots.");
+            return;
+        }
 
         if (resetAllPlayersReady) await resetAllPlayersReady();
 
@@ -374,23 +376,36 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         const { newRoles } = assignRoles(players, mrWhiteEnabled, undercoverCount);
 
         // SQL Initialization
-        await supabase.from('undercover_games').upsert({
+        const { error: gameError } = await supabase.from('undercover_games').upsert({
             room_id: roomId,
+            round_id: String(currentRoundNumber || 1),
             phase: 'roles',
             civil_word: firstPair.civilWord,
             undercover_word: firstPair.undercoverWord,
             current_speaker_id: null,
-            current_clue_round: 1,
-            created_at: new Date().toISOString()
+            current_clue_round: 1
         }, { onConflict: 'room_id' });
+
+        if (gameError) {
+            console.error("GAME ERROR", gameError);
+            toast.error("Erreur lors de la création de la partie.");
+        }
 
         const playerInserts = players.map(p => ({
             room_id: roomId,
+            round_id: String(currentRoundNumber || 1),
             player_id: p.id,
             role: newRoles[p.id],
             is_alive: true
         }));
-        await supabase.from('undercover_players').upsert(playerInserts, { onConflict: 'room_id,player_id' });
+        
+        await supabase.from('undercover_players').delete().eq('room_id', roomId);
+        const { error: playersError } = await supabase.from('undercover_players').insert(playerInserts);
+
+        if (playersError) {
+            console.error("PLAYERS ERROR", playersError);
+            toast.error("Erreur lors de l'attribution des rôles.");
+        }
 
         await supabase.from('undercover_clues').delete().eq('room_id', roomId);
         await supabase.from('undercover_votes').delete().eq('room_id', roomId);
@@ -581,6 +596,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
           // Reset everything for next round
           await supabase.from('undercover_games').update({
+              round_id: String(nextRoundNum),
               phase: 'roles',
               civil_word: nextPair.civilWord,
               undercover_word: nextPair.undercoverWord,
@@ -600,11 +616,13 @@ export default function Undercover({ roomCode }: UndercoverProps) {
           // Reset players state (alive, etc.)
           const playerInserts = players.map(p => ({
               room_id: roomId,
+              round_id: String(nextRoundNum),
               player_id: p.id,
               role: newRoles[p.id],
               is_alive: true // Make everyone alive again
           }));
-          await supabase.from('undercover_players').upsert(playerInserts, { onConflict: 'room_id,player_id' });
+          await supabase.from('undercover_players').delete().eq('room_id', roomId);
+          await supabase.from('undercover_players').insert(playerInserts);
           
           await updateRoundData({
               current_round: nextRoundNum,
@@ -636,6 +654,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     // Direct SQL Insert
     await supabase.from('undercover_clues').insert({
         room_id: roomId,
+        round_id: String(currentRoundNumber || 1),
         player_id: playerId,
         text: userClue,
         round_number: currentClueRound
@@ -660,6 +679,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         // Insert new vote
         await supabase.from('undercover_votes').insert({
             room_id: roomId,
+            round_id: String(currentRoundNumber || 1),
             voter_id: playerId,
             target_id: targetId
         });
@@ -695,103 +715,122 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in">
                {players.length < 3 ? (
-                 <>
-                     <User className="w-16 h-16 text-gray-600 animate-pulse" />
-                     <p className="text-2xl font-medium text-gray-400">En attente de joueurs ({players.length}/3)...</p>
-                 </>
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center">
+                     <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl mb-4">
+                         <User className="w-12 h-12 text-tx-secondary animate-pulse" />
+                     </div>
+                     <p className="font-display text-2xl font-bold text-tx-base text-center">En attente de joueurs</p>
+                     <p className="text-tx-secondary mt-2 font-bold">{players.length} / 3 minimum</p>
+                 </div>
                ) : (
-                 <>
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center">
                     {isHost ? (
                         <>
-                            <Play className="w-16 h-16 text-green-500" />
-                            <p className="text-2xl font-medium text-green-400">Prêt à lancer la partie !</p>
-                            <Button 
+                            <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl mb-4">
+                                <Play className="w-12 h-12 text-accent-success" />
+                            </div>
+                            <p className="font-display text-2xl font-bold text-tx-base text-center mb-6">Prêt à lancer la partie !</p>
+                            <button 
                                 onClick={startNewGame}
-                                size="lg"
-                                className="mt-4 bg-green-600 hover:bg-green-500 text-white text-xl font-bold px-8 py-4 rounded-xl"
+                                className="w-full h-14 rounded-xl font-display font-black tracking-wider transition-colors border-2 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-bg hover:text-accent-success shadow-brutal"
                             >
                                 DÉMARRER LA PARTIE
-                            </Button>
+                            </button>
                         </>
                     ) : (
                         <>
-                            <Loader2 className="w-16 h-16 animate-spin text-red-500" />
-                            <p className="text-2xl font-medium animate-pulse text-red-200">En attente de l'hôte...</p>
+                            <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl mb-4">
+                                <Loader2 className="w-12 h-12 animate-spin text-accent-primary" />
+                            </div>
+                            <p className="font-display text-2xl font-bold text-tx-base text-center animate-pulse">En attente de l&apos;hôte...</p>
                         </>
                     )}
-                 </>
+                 </div>
                )}
             </div>
         )}
 
         {/* PHASE: ROLES */}
-        {currentPhase === 'roles' && myRole && (
-            <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
-                <div className="bg-[#0F172A]/80 p-8 rounded-3xl border border-[#334155] text-center w-full shadow-2xl relative overflow-hidden">
-                    {amIReady && (
-                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in">
-                            <Check className="w-20 h-20 text-green-500 mb-4" />
-                            <h3 className="text-3xl font-bold text-[#F8FAFC]">Vous êtes prêt !</h3>
-                            <p className="text-gray-400 mt-2">En attente des autres...</p>
-                        </div>
-                    )}
-
-                    <h3 className="text-2xl font-bold text-gray-400 mb-8">Votre Identité</h3>
-                    
-                    <div className="flex flex-col items-center gap-6 mb-8 min-h-[200px] justify-center">
-                        {showRole ? (
-                            <div className="animate-in zoom-in duration-200 flex flex-col items-center">
-                                {playersKnowRole && (
-                                    <div className={`text-4xl font-black mb-4 ${myRole === 'CIVIL' ? 'text-blue-400' : myRole === 'UNDERCOVER' ? 'text-red-500' : 'text-[#F8FAFC]}'}`}>
-                                        {myRole}
-                                    </div>
-                                )}
-                                <div className="bg-[#334155] px-8 py-4 rounded-xl border border-[#475569]">
-                                    <span className="block text-sm text-[#94A3B8] uppercase tracking-widest mb-1">Mot Secret</span>
-                                    <span className="text-3xl font-bold text-[#F8FAFC]">
-                                        {myRole === 'MR_WHITE' ? '???' : myRole === 'UNDERCOVER' ? undercoverWord : civilWord}
-                                    </span>
+        {currentPhase === 'roles' && (
+            myRole ? (
+                <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full shadow-brutal relative overflow-hidden">
+                        {amIReady && (
+                            <div className="absolute inset-0 bg-brand-bg/90 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in">
+                                <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl shadow-brutal mb-4">
+                                    <Check className="w-16 h-16 text-accent-success" />
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="text-gray-500 flex flex-col items-center animate-in fade-in">
-                                <EyeOff className="w-16 h-16 mb-4 opacity-50" />
-                                <p className="text-lg">Maintenez pour révéler</p>
+                                <h3 className="font-display text-3xl font-black text-tx-base">Vous êtes prêt !</h3>
+                                <p className="text-tx-secondary font-bold mt-2">En attente des autres...</p>
                             </div>
                         )}
+
+                        <h3 className="font-display text-2xl font-black text-tx-secondary mb-8 uppercase tracking-widest">Votre Identité</h3>
+                        
+                        <div className="flex flex-col items-center gap-6 mb-8 min-h-[200px] justify-center">
+                            {showRole ? (
+                                <div className="animate-in zoom-in duration-200 flex flex-col items-center">
+                                    {playersKnowRole && (
+                                        <div className={cn(
+                                            "font-display text-4xl font-black mb-6 px-6 py-2 rounded-xl border-4 border-brand-border bg-brand-inner shadow-brutal",
+                                            myRole === 'CIVIL' ? 'text-[#06B6D4]' : myRole === 'UNDERCOVER' ? 'text-accent-secondary' : 'text-tx-base'
+                                        )}>
+                                            {myRole}
+                                        </div>
+                                    )}
+                                    <div className="bg-brand-inner px-8 py-6 rounded-2xl border-4 border-brand-border shadow-brutal w-full">
+                                        <span className="block text-xs font-bold text-tx-secondary uppercase tracking-widest mb-2">Mot Secret</span>
+                                        <span className="font-display text-4xl font-black text-tx-base break-words">
+                                            {myRole === 'MR_WHITE' ? '???' : myRole === 'UNDERCOVER' ? undercoverWord : civilWord}
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-tx-secondary flex flex-col items-center animate-in fade-in">
+                                    <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-3xl shadow-brutal mb-6">
+                                        <EyeOff className="w-16 h-16 opacity-50" />
+                                    </div>
+                                    <p className="font-bold text-lg uppercase tracking-widest">Maintenez pour révéler</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <button
+                            className="w-full bg-brand-inner border-4 border-brand-border rounded-2xl p-4 mb-6 transition-all hover:bg-tx-base hover:text-brand-bg group select-none touch-none shadow-brutal active:translate-y-1 active:shadow-none"
+                            onMouseDown={() => setShowRole(true)}
+                            onMouseUp={() => setShowRole(false)}
+                            onMouseLeave={() => setShowRole(false)}
+                            onTouchStart={() => setShowRole(true)}
+                            onTouchEnd={() => setShowRole(false)}
+                        >
+                            <Eye className="w-8 h-8 mx-auto text-tx-secondary group-hover:text-brand-bg transition-colors" />
+                        </button>
+
+                        <button 
+                            onClick={sendReady} 
+                            className={cn(
+                                "w-full h-16 font-display text-xl font-black tracking-wider rounded-2xl border-4 border-brand-border transition-all relative z-30 shadow-brutal",
+                                amIReady 
+                                ? "bg-accent-success text-brand-bg" 
+                                : "bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary"
+                            )}
+                        >
+                            {amIReady ? (
+                                <div className="flex items-center justify-center gap-2">
+                                    <Check className="w-6 h-6" /> PRÊT (Annuler)
+                                </div>
+                            ) : (
+                                "JE SUIS PRÊT"
+                            )}
+                        </button>
                     </div>
-
-                    <button
-                        className="w-full bg-[#334155] hover:bg-[#475569] active:bg-[#475569] border border-[#475569] rounded-xl p-4 mb-4 transition-colors select-none touch-none"
-                        onMouseDown={() => setShowRole(true)}
-                        onMouseUp={() => setShowRole(false)}
-                        onMouseLeave={() => setShowRole(false)}
-                        onTouchStart={() => setShowRole(true)}
-                        onTouchEnd={() => setShowRole(false)}
-                    >
-                        <Eye className="w-6 h-6 mx-auto text-gray-300" />
-                    </button>
-
-                    <Button 
-                        size="lg" 
-                        onClick={sendReady} 
-                        // disabled={!!amIReady}
-                        className={`w-full h-16 text-xl font-bold rounded-xl shadow-lg transition-all relative z-30 ${
-                            amIReady 
-                            ? 'bg-green-600 hover:bg-green-500 shadow-green-600/20' 
-                            : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'
-                        }`}
-                    >
-                        {amIReady ? (
-                            <>
-                                <Check className="w-6 h-6 mr-2" /> PRÊT (Annuler)
-                            </>
-                        ) : (
-                            "JE SUIS PRÊT"
-                        )}
-                    </Button>
                 </div>
-            </div>
+            ) : (
+                <div className="flex flex-col items-center justify-center flex-1 w-full p-4">
+                    <Loader2 className="w-16 h-16 animate-spin text-accent-primary mb-4" />
+                    <p className="font-display text-xl font-bold text-tx-base animate-pulse">Distribution des rôles en cours...</p>
+                </div>
+            )
         )}
 
         {/* PHASE: CLUES / DISCUSSION / VOTE */}
@@ -800,9 +839,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                 
                 {/* TOP ZONE: ROLE/WORD */}
                 <div className="flex justify-center w-full mb-6 px-4">
-                    <div className="bg-slate-900/90 backdrop-blur border border-white/10 rounded-full px-6 py-2 flex items-center gap-4 shadow-lg select-none touch-none">
-                        <span className="text-gray-400 text-sm font-bold uppercase">Votre Mot</span>
-                        <div className="w-px h-4 bg-white/20" />
+                    <div className="bg-brand-card border-4 border-brand-border rounded-2xl px-6 py-3 flex items-center gap-4 shadow-brutal select-none touch-none">
+                        <span className="text-tx-secondary text-xs font-bold uppercase tracking-widest">Votre Mot</span>
+                        <div className="w-1 h-6 bg-brand-border rounded-full" />
                         <div 
                             className="cursor-pointer flex items-center gap-2"
                             onMouseDown={() => setShowRole(true)}
@@ -812,14 +851,17 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                             onTouchEnd={() => setShowRole(false)}
                         >
                             {showRole ? (
-                                <span className="font-bold text-white animate-in fade-in">
-                                    {playersKnowRole && <span className={myRole === 'CIVIL' ? 'text-blue-400 mr-2' : myRole === 'UNDERCOVER' ? 'text-red-500 mr-2' : 'text-white mr-2'}>{myRole}</span>}
+                                <span className="font-display font-black text-tx-base animate-in fade-in">
+                                    {playersKnowRole && <span className={cn(
+                                        "mr-3 px-2 py-0.5 rounded border-2 border-brand-border bg-brand-inner",
+                                        myRole === 'CIVIL' ? 'text-[#06B6D4]' : myRole === 'UNDERCOVER' ? 'text-accent-secondary' : 'text-tx-base'
+                                    )}>{myRole}</span>}
                                     {myRole === 'MR_WHITE' ? '???' : myRole === 'UNDERCOVER' ? undercoverWord : civilWord}
                                 </span>
                             ) : (
-                                <div className="flex items-center gap-2 text-gray-500">
+                                <div className="flex items-center gap-2 text-tx-muted font-bold uppercase text-sm">
                                     <Eye className="w-4 h-4" />
-                                    <span className="text-sm">Maintenir</span>
+                                    <span>Maintenir</span>
                                 </div>
                             )}
                         </div>
@@ -829,7 +871,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                 {/* MIDDLE: COLUMNS */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-24 md:pb-4 w-full">
                     <div className="flex justify-center w-full">
-                        <div className="flex flex-wrap justify-center gap-4 w-full max-w-7xl">
+                        <div className="flex flex-wrap justify-center gap-6 w-full max-w-7xl">
                             {alivePlayers.map(pid => {
                                 const p = players.find(pl => pl.id === pid);
                                 const pClues = clues.filter(c => c.playerId === pid);
@@ -838,41 +880,46 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                 const hasVotedForThis = votesForThisPlayer.some((v: any) => v.voter_id === playerId);
                                 
                                 return (
-                                    <div key={pid} className="flex flex-col bg-slate-900/50 border border-white/5 rounded-xl overflow-hidden h-[400px] md:h-[500px] relative w-full md:w-[31%] lg:w-[23%]">
+                                    <div key={pid} className={cn(
+                                        "flex flex-col bg-brand-card border-4 rounded-[24px] overflow-hidden h-[400px] md:h-[450px] relative w-full md:w-[31%] lg:w-[23%] shadow-brutal transition-all",
+                                        isSpeaking ? "border-accent-primary" : "border-brand-border"
+                                    )}>
                                         {/* Sticky Header */}
-                                        <div className={`p-3 text-center border-b border-white/5 sticky top-0 z-10 backdrop-blur-md ${isSpeaking ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-slate-900/80'}`}>
-                                            <div className={`font-bold truncate ${isSpeaking ? 'text-yellow-400' : 'text-white'}`}>
+                                        <div className={cn(
+                                            "p-4 text-center border-b-4 border-brand-border sticky top-0 z-10",
+                                            isSpeaking ? "bg-accent-primary text-brand-bg" : "bg-brand-inner text-tx-base"
+                                        )}>
+                                            <div className="font-display font-black text-xl truncate">
                                                 {p?.name}
                                             </div>
-                                            {isSpeaking && <div className="text-[10px] text-yellow-500 font-black uppercase tracking-wider animate-pulse mt-1">En train d'écrire...</div>}
+                                            {isSpeaking && <div className="text-[10px] font-black uppercase tracking-widest animate-pulse mt-1 opacity-80">En train d'écrire...</div>}
                                             
                                             {/* Votes Received Display */}
                                             {currentPhase === 'vote' && (
-                                                <div className="mt-2 min-h-[20px]">
+                                                <div className="mt-3 min-h-[24px]">
                                                     {votesForThisPlayer.length > 0 ? (
-                                                        <div className="flex flex-wrap justify-center gap-1">
-                                                            <span className="text-xs text-gray-400 mr-1">🗳</span>
+                                                        <div className="flex flex-wrap justify-center gap-2">
                                                             {votesForThisPlayer.map((v: any) => {
                                                                 const voterName = players.find(pl => pl.id === v.voter_id)?.name;
                                                                 return (
-                                                                    <span key={v.id} className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-300">
+                                                                    <span key={v.id} className="text-[10px] font-bold bg-brand-bg border-2 border-brand-border px-2 py-1 rounded-md text-tx-base shadow-sm">
                                                                         {voterName}
                                                                     </span>
                                                                 );
                                                             })}
                                                         </div>
                                                     ) : (
-                                                        <div className="h-5"></div> // Placeholder
+                                                        <div className="h-6"></div> // Placeholder
                                                     )}
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Scrollable Content */}
-                                        <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar pb-16">
+                                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar pb-20 bg-brand-bg/50">
                                             {pClues.map((c, idx) => (
-                                                <div key={idx} className="bg-white/5 p-3 rounded-lg text-sm text-gray-200 animate-in slide-in-from-bottom-2">
-                                                    <span className="opacity-50 mr-2 text-xs">#{idx + 1}</span>
+                                                <div key={idx} className="bg-brand-inner border-2 border-brand-border p-3 rounded-xl text-sm font-bold text-tx-base shadow-brutal animate-in slide-in-from-bottom-2">
+                                                    <span className="opacity-50 mr-2 text-xs font-black text-tx-secondary">#{idx + 1}</span>
                                                     {c.text}
                                                 </div>
                                             ))}
@@ -880,15 +927,19 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
                                         {/* Vote Button (Absolute Bottom of Column) */}
                                         {currentPhase === 'vote' && (
-                                            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-900 to-transparent pt-6">
-                                                <Button 
+                                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-brand-card border-t-4 border-brand-border">
+                                                <button 
                                                     onClick={() => sendVoteAction(pid)}
-                                                    className={`w-full font-bold ${hasVotedForThis ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+                                                    className={cn(
+                                                        "w-full h-12 rounded-xl font-display font-black tracking-wider transition-colors border-2 border-brand-border flex items-center justify-center shadow-brutal",
+                                                        pid === playerId ? "opacity-50 cursor-not-allowed bg-brand-inner text-tx-muted" :
+                                                        hasVotedForThis ? "bg-accent-success text-brand-bg" : "bg-accent-secondary text-brand-bg hover:bg-brand-inner hover:text-accent-secondary"
+                                                    )}
                                                     disabled={pid === playerId}
                                                 >
-                                                    {hasVotedForThis ? <Check className="w-4 h-4 mr-2" /> : <Skull className="w-4 h-4 mr-2" />}
+                                                    {hasVotedForThis ? <Check className="w-5 h-5 mr-2" /> : <Skull className="w-5 h-5 mr-2" />}
                                                     {hasVotedForThis ? 'Voté' : 'Voter'}
-                                                </Button>
+                                                </button>
                                             </div>
                                         )}
                                     </div>
@@ -900,51 +951,54 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
                 {/* SKIP VOTE BUTTON (Static below columns) */}
                 {currentPhase === 'clues' && isAlive && (
-                    <div className="flex justify-center w-full py-4">
-                        <Button 
+                    <div className="flex justify-center w-full py-4 z-20">
+                        <button 
                             onClick={toggleSkipVote}
-                            className={`rounded-full shadow-lg font-bold transition-all px-6 py-6 text-lg ${skipVotes.includes(playerId || '') ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-700 hover:bg-slate-600'}`}
+                            className={cn(
+                                "rounded-2xl border-4 border-brand-border shadow-brutal font-display font-black tracking-wider transition-all px-8 py-4 text-lg flex items-center",
+                                skipVotes.includes(playerId || '') ? "bg-accent-success text-brand-bg" : "bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg"
+                            )}
                         >
                             {skipVotes.includes(playerId || '') ? (
                                 <>
-                                    <Check className="w-5 h-5 mr-2" /> Prêt à voter ({skipVotes.length}/{Math.floor(alivePlayers.length / 2) + 1})
+                                    <Check className="w-6 h-6 mr-3" /> Prêt à voter ({skipVotes.length}/{Math.floor(alivePlayers.length / 2) + 1})
                                 </>
                             ) : (
                                 <>
                                     Passer au vote ({skipVotes.length}/{Math.floor(alivePlayers.length / 2) + 1})
                                 </>
                             )}
-                        </Button>
+                        </button>
                     </div>
                 )}
 
                 {/* BOTTOM: INPUT (Desktop & Mobile Fixed) */}
                 {isMyTurn && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/90 backdrop-blur-lg border-t border-white/10 z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4">
-                        <div className="max-w-2xl mx-auto flex gap-2">
-                            <Input 
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-brand-bg/95 backdrop-blur-lg border-t-4 border-brand-border z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4">
+                        <div className="max-w-3xl mx-auto flex gap-3">
+                            <input 
                                 placeholder="Donnez votre indice (1 mot)..." 
                                 value={userClue}
                                 onChange={e => setUserClue(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && sendClue()}
-                                className="w-full bg-[#334155] border border-[#334155] text-lg md:h-12"
+                                className="flex-1 h-14 bg-brand-inner border-4 border-brand-border rounded-2xl px-6 text-lg font-bold text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors shadow-brutal"
                                 autoFocus
                             />
-                            <Button 
+                            <button 
                                 onClick={sendClue} 
                                 disabled={!userClue.trim()}
-                                className="h-14 px-8 bg-indigo-600 hover:bg-indigo-500 font-bold md:h-12"
+                                className="h-14 w-16 bg-accent-primary border-4 border-brand-border rounded-2xl flex items-center justify-center text-brand-bg hover:bg-tx-base transition-colors shadow-brutal disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <Send className="w-5 h-5" />
-                            </Button>
+                                <Send className="w-6 h-6" />
+                            </button>
                         </div>
                     </div>
                 )}
                 
                 {/* PHASE: DISCUSSION / VOTE INFO */}
                 {currentPhase === 'discussion' && (
-                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-2 rounded-full font-bold shadow-lg animate-bounce z-40">
-                        <MessageSquare className="w-4 h-4 inline mr-2" />
+                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-accent-secondary text-brand-bg px-8 py-3 rounded-2xl font-display font-black tracking-wider shadow-brutal border-4 border-brand-border animate-bounce z-40 flex items-center">
+                        <MessageSquare className="w-5 h-5 mr-3" />
                         Débattez !
                     </div>
                 )}
@@ -954,25 +1008,32 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {/* PHASE: MR WHITE GUESS */}
         {currentPhase === 'mrwhite_guess' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
-                <div className="bg-slate-900 p-8 rounded-3xl border border-white/10 text-center w-full">
-                    <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4 animate-pulse" />
-                    <h2 className="text-2xl font-bold text-white mb-2">Mr. White a été trouvé !</h2>
-                    <p className="text-gray-400 mb-6">Il a une chance de gagner s'il trouve le mot des Civils.</p>
+                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full shadow-brutal">
+                    <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
+                        <AlertTriangle className="w-16 h-16 text-accent-primary animate-pulse" />
+                    </div>
+                    <h2 className="font-display text-3xl font-black text-tx-base mb-2">Mr. White a été trouvé !</h2>
+                    <p className="text-tx-secondary font-bold mb-8">Il a une chance de gagner s&apos;il trouve le mot des Civils.</p>
                     
                     {eliminatedPlayerId === playerId ? (
-                        <div className="flex gap-2">
-                            <Input 
+                        <div className="flex flex-col gap-4">
+                            <input 
                                 placeholder="Quel est le mot ?" 
                                 value={mrWhiteGuess}
                                 onChange={e => setMrWhiteGuess(e.target.value)}
-                                className="bg-slate-800 border-white/20"
+                                className="w-full h-14 bg-brand-inner border-4 border-brand-border rounded-2xl px-6 text-lg font-bold text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors shadow-brutal text-center"
                             />
-                            <Button onClick={sendMrWhiteGuess} className="bg-yellow-500 text-black hover:bg-yellow-400 font-bold">
-                                Tenter
-                            </Button>
+                            <button 
+                                onClick={sendMrWhiteGuess} 
+                                className="w-full h-14 rounded-2xl font-display font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
+                            >
+                                TENTER
+                            </button>
                         </div>
                     ) : (
-                        <p className="text-yellow-500 font-bold animate-pulse">Mr. White réfléchit...</p>
+                        <p className="text-accent-primary font-black uppercase tracking-widest animate-pulse p-4 border-4 border-brand-border rounded-2xl bg-brand-inner shadow-brutal">
+                            Mr. White réfléchit...
+                        </p>
                     )}
                 </div>
             </div>
@@ -981,23 +1042,24 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {/* PHASE: RESULTS */}
         {currentPhase === 'results' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4">
-                <div className="bg-slate-900 p-8 rounded-3xl border border-white/10 text-center w-full relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-red-500" />
+                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                    <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
+                        <Crown className="w-16 h-16 text-accent-primary" />
+                    </div>
                     
-                    <Crown className="w-20 h-20 text-yellow-400 mx-auto mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                    
-                    <h2 className="text-4xl font-black text-white mb-2 uppercase tracking-tight">
+                    <h2 className="font-display text-4xl font-black text-tx-base mb-2 uppercase tracking-widest">
                         Victoire {game.winner === 'CIVILS' ? 'des Civils' : 'des Imposteurs'} !
                     </h2>
                     
-                    <div className="grid gap-2 mt-8 text-left max-h-[300px] overflow-y-auto custom-scrollbar bg-black/20 p-4 rounded-xl">
+                    <div className="grid gap-3 mt-8 text-left max-h-[300px] overflow-y-auto custom-scrollbar p-4 bg-brand-bg/50 rounded-2xl border-4 border-brand-border shadow-inner">
                         {players.map(p => (
-                            <div key={p.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                                <span className="font-bold text-white">{p.name}</span>
-                                <span className={`font-mono text-sm font-bold ${
-                                    roles[p.id] === 'CIVIL' ? 'text-blue-400' : 
-                                    roles[p.id] === 'UNDERCOVER' ? 'text-red-500' : 'text-white'
-                                }`}>
+                            <div key={p.id} className="flex justify-between items-center p-4 bg-brand-inner border-2 border-brand-border rounded-xl shadow-sm">
+                                <span className="font-display font-black text-lg text-tx-base">{p.name}</span>
+                                <span className={cn(
+                                    "font-black text-sm uppercase tracking-widest px-3 py-1 rounded-md border-2 border-brand-border",
+                                    roles[p.id] === 'CIVIL' ? 'bg-[#06B6D4] text-brand-bg' : 
+                                    roles[p.id] === 'UNDERCOVER' ? 'bg-accent-secondary text-brand-bg' : 'bg-tx-base text-brand-bg'
+                                )}>
                                     {roles[p.id]}
                                 </span>
                             </div>
@@ -1005,13 +1067,19 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                     </div>
 
                     {isHost && (
-                        <Button onClick={nextGameRound} variant="primary" className="mt-8 w-full h-14 text-lg font-bold rounded-xl">
-                            {currentRoundNumber >= rounds ? "Revenir au salon" : "Manche Suivante"}
-                        </Button>
+                        <button 
+                            onClick={nextGameRound} 
+                            className="mt-8 w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success shadow-brutal"
+                        >
+                            {currentRoundNumber >= rounds ? "REVENIR AU SALON" : "MANCHE SUIVANTE"}
+                        </button>
                     )}
-                    <Button variant="ghost" onClick={() => router.push('/')} className="mt-4 text-[#94A3B8] hover:text-[#F8FAFC]">
-                        <Home className="w-4 h-4 mr-2" /> Retour au menu
-                    </Button>
+                    <button 
+                        onClick={() => router.push('/')} 
+                        className="mt-6 w-full h-14 rounded-2xl font-display font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base shadow-brutal flex items-center justify-center gap-3"
+                    >
+                        <Home className="w-5 h-5" /> RETOUR AU MENU
+                    </button>
                 </div>
             </div>
         )}

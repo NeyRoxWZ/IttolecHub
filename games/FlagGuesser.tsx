@@ -10,6 +10,7 @@ import { Trophy, CheckCircle, XCircle, Clock, Flag, Loader2, Home, LogOut, Arrow
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 
@@ -379,56 +380,57 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
         
         {/* PHASE: SETUP */}
         {currentPhase === 'setup' && (
-            <div className="flex flex-col items-center justify-center flex-1 gap-8 animate-in fade-in">
-               <div className="relative">
-                   <Globe className="w-24 h-24 text-blue-500 animate-pulse" />
-                   <Flag className="w-12 h-12 text-red-500 absolute -bottom-2 -right-2" />
-               </div>
-               
-               <div className="text-center space-y-2">
-                   <h2 className="text-3xl font-bold text-[#F8FAFC]">Prêt à voyager ?</h2>
-                   <p className="text-gray-400">
-                       Région : <span className="text-blue-400 font-bold uppercase">{region}</span> • 
-                       Mode : <span className="text-purple-400 font-bold uppercase">{mode === 'mcq' ? 'QCM' : 'Texte'}</span>
-                   </p>
-               </div>
-
-               {isHost ? (
-                   <Button 
-                       size="lg" 
-                       onClick={startNewGame}
-                       className="h-16 px-12 text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 shadow-lg shadow-blue-500/20 rounded-xl"
-                   >
-                       <Play className="w-6 h-6 mr-2" /> Lancer la partie
-                   </Button>
-               ) : (
-                   <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full">
-                       <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
-                       <span className="text-gray-300">En attente de l'hôte...</span>
+            <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
+               <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+                   <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform rotate-3">
+                       <Globe className="w-16 h-16 text-[#06B6D4]" />
+                       <Flag className="w-8 h-8 text-accent-secondary absolute -bottom-2 -right-2" />
                    </div>
-               )}
+                   
+                   <div className="text-center space-y-2 mb-8">
+                       <h2 className="font-display text-4xl font-black text-tx-base uppercase tracking-wider">Prêt à voyager ?</h2>
+                       <p className="text-tx-secondary font-bold">
+                           Région : <span className="text-[#06B6D4] font-black uppercase tracking-widest">{region}</span> • 
+                           Mode : <span className="text-accent-primary font-black uppercase tracking-widest">{mode === 'mcq' ? 'QCM' : 'Texte'}</span>
+                       </p>
+                   </div>
+
+                   {isHost ? (
+                       <button 
+                           onClick={startNewGame}
+                           className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal flex items-center justify-center gap-3"
+                       >
+                           <Play className="w-6 h-6" /> LANCER LA PARTIE
+                       </button>
+                   ) : (
+                       <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
+                           <Loader2 className="w-6 h-6 animate-spin text-accent-primary" />
+                           <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                       </div>
+                   )}
+               </div>
             </div>
         )}
 
         {/* PHASE: PLAYING / ROUND_RESULTS */}
         {(currentPhase === 'playing' || currentPhase === 'round_results') && currentFlag && (
-            <div className="flex flex-col items-center w-full max-w-2xl gap-6 pt-4">
+            <div className="flex flex-col items-center w-full max-w-2xl gap-6 pt-4 p-4">
                 
                 {/* FLAG IMAGE */}
-                <div className="relative w-full aspect-[16/9] md:aspect-[2/1] bg-[#0F172A] rounded-2xl overflow-hidden shadow-2xl border border-[#334155]">
+                <div className="relative w-full aspect-[16/9] md:aspect-[2/1] bg-brand-inner rounded-[32px] overflow-hidden shadow-brutal border-4 border-brand-border p-4">
                     <Image 
                         src={currentFlag.flagUrl} 
                         alt="Flag" 
                         fill 
-                        className="object-contain p-4"
+                        className="object-contain p-4 drop-shadow-md"
                         priority
                     />
                     
                     {/* OVERLAY RESULT */}
                     {currentPhase === 'round_results' && (
-                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in z-10">
-                            <h3 className="text-3xl font-black text-[#F8FAFC] mb-2 text-center drop-shadow-lg">{currentFlag.name}</h3>
-                            <p className="text-blue-300 font-bold uppercase tracking-widest">{currentFlag.code}</p>
+                        <div className="absolute inset-0 bg-brand-bg/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in z-10 border-4 border-brand-border rounded-[28px] m-1">
+                            <h3 className="font-display text-4xl font-black text-tx-base mb-2 text-center uppercase tracking-wider">{currentFlag.name}</h3>
+                            <p className="text-tx-secondary font-bold text-lg font-mono uppercase tracking-widest bg-brand-inner px-4 py-1 rounded-lg border-2 border-brand-border">{currentFlag.code}</p>
                         </div>
                     )}
                 </div>
@@ -439,46 +441,47 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                         {mode === 'mcq' ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {currentFlag.options?.map((option: string, idx: number) => (
-                                    <Button
+                                    <button
                                         key={idx}
                                         onClick={() => submitGuess(option)}
                                         disabled={hasAnswered}
-                                        className={`h-16 text-lg font-bold rounded-xl transition-all ${
+                                        className={cn(
+                                            "h-16 font-display text-lg font-black rounded-2xl transition-all border-4 border-brand-border shadow-brutal",
                                             hasAnswered 
                                                 ? userAnswer === option 
-                                                    ? 'bg-[#475569] opacity-50' 
-                                                    : 'bg-[#334155] opacity-30'
-                                                : 'bg-[#334155] hover:bg-[#475569] hover:scale-[1.02]'
-                                        }`}
+                                                    ? 'bg-accent-primary text-brand-bg opacity-100' 
+                                                    : 'bg-brand-inner text-tx-muted opacity-50'
+                                                : 'bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg active:translate-y-1 active:shadow-none'
+                                        )}
                                     >
                                         {option}
-                                    </Button>
+                                    </button>
                                 ))}
                             </div>
                         ) : (
-                            <div className="flex gap-2">
-                                <Input 
+                            <div className="flex gap-3">
+                                <input 
                                     placeholder="Nom du pays..." 
                                     value={userAnswer}
                                     onChange={e => setUserAnswer(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && submitGuess(userAnswer)}
                                     disabled={hasAnswered}
-                                    className="h-14 text-lg bg-[#334155] border-[#334155]"
+                                    className="flex-1 h-16 text-xl bg-brand-inner border-4 border-brand-border focus:border-tx-base text-tx-base placeholder:text-tx-muted text-center rounded-2xl shadow-brutal outline-none font-bold transition-colors disabled:opacity-50"
                                     autoFocus
                                 />
-                                <Button 
+                                <button 
                                     onClick={() => submitGuess(userAnswer)}
                                     disabled={hasAnswered || !userAnswer.trim()}
-                                    className="h-14 px-6 bg-blue-600 hover:bg-blue-500 font-bold"
+                                    className="h-16 w-32 bg-accent-success hover:bg-tx-base text-brand-bg font-display font-black tracking-wider rounded-2xl shadow-brutal border-4 border-brand-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Valider
-                                </Button>
+                                    VALIDER
+                                </button>
                             </div>
                         )}
 
                         {hasAnswered && (
-                            <div className="text-center animate-in fade-in">
-                                <p className="text-gray-400 italic">Réponse enregistrée. Attendez les autres...</p>
+                            <div className="text-center animate-in fade-in bg-brand-inner border-4 border-brand-border p-4 rounded-2xl shadow-brutal">
+                                <p className="font-bold text-tx-secondary uppercase tracking-widest">Réponse enregistrée. En attente des autres...</p>
                             </div>
                         )}
                     </div>
@@ -486,13 +489,10 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
 
                 {/* RESULTS LIST */}
                 {currentPhase === 'round_results' && (
-                    <div className="w-full bg-[#0F172A]/50 rounded-xl border border-[#334155] overflow-hidden max-h-[300px] overflow-y-auto custom-scrollbar">
+                    <div className="w-full bg-brand-card rounded-3xl border-4 border-brand-border overflow-hidden max-h-[300px] overflow-y-auto custom-scrollbar shadow-brutal p-2">
                         {sortedPlayers.map((p, idx) => {
                             const gp = gamePlayers.find((gp: any) => gp.player_id === p.id);
                             const answered = gp?.has_answered;
-                            // Need to check if correct? We don't store "is_correct" in DB, but we can re-verify or assume score increase implies correct?
-                            // Actually, score increase is the only way to know if correct from DB if we don't store bool.
-                            // But we can check `last_answer` against `currentFlag.name`.
                             const isCorrect = gp?.last_answer && (
                                 mode === 'mcq' 
                                 ? gp.last_answer === currentFlag.name 
@@ -500,18 +500,18 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                             );
 
                             return (
-                                <div key={p.id} className="flex items-center justify-between p-3 border-b border-[#334155] last:border-0">
-                                    <div className="flex items-center gap-3">
-                                        <div className="font-bold text-[#F8FAFC]">{p.name}</div>
+                                <div key={p.id} className="flex items-center justify-between p-4 mb-2 last:mb-0 bg-brand-inner border-2 border-brand-border rounded-xl">
+                                    <div className="flex items-center gap-4">
+                                        <div className="font-display font-black text-lg text-tx-base">{p.name}</div>
                                         {answered && (
                                             isCorrect 
-                                            ? <CheckCircle className="w-4 h-4 text-green-500" />
-                                            : <XCircle className="w-4 h-4 text-red-500" />
+                                            ? <CheckCircle className="w-6 h-6 text-accent-success" />
+                                            : <XCircle className="w-6 h-6 text-accent-secondary" />
                                         )}
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        <span className="text-sm text-gray-400">{gp?.last_answer || '-'}</span>
-                                        <span className="font-mono font-bold text-blue-400">{gp?.score} pts</span>
+                                        <span className="text-sm font-bold text-tx-secondary uppercase tracking-widest">{gp?.last_answer || '-'}</span>
+                                        <span className="font-display font-black text-[#06B6D4] bg-brand-bg px-3 py-1 rounded-md border-2 border-brand-border">{gp?.score} pts</span>
                                     </div>
                                 </div>
                             );
@@ -524,47 +524,60 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
         {/* PHASE: PODIUM */}
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
-                
-                <div className="w-full space-y-4 mb-8">
-                    {sortedPlayers.map((p, i) => (
-                        <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
-                            i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                            i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
-                            i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
-                        }`}>
-                            {/* Badges */}
-                            {i === 0 && (
-                                <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform rotate-12">
-                                    Globe Trotter
-                                </div>
-                            )}
-                            
-                            <div className="flex items-center gap-4">
-                                <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
-                                    i === 0 ? 'bg-yellow-500 text-black' : 
-                                    i === 1 ? 'bg-[#475569] text-[#F8FAFC]' :
-                                    i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
-                                }`}>{i + 1}</span>
+                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                    <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
+                        <Trophy className="w-16 h-16 text-[#06B6D4]" />
+                    </div>
+                    <h2 className="font-display text-4xl font-black text-tx-base mb-8 uppercase tracking-widest">Classement Final</h2>
+                    
+                    <div className="w-full space-y-4 mb-8">
+                        {sortedPlayers.map((p, i) => (
+                            <div key={p.id} className={cn(
+                                "relative flex items-center justify-between p-4 rounded-2xl border-4 border-brand-border shadow-brutal",
+                                i === 0 ? "bg-accent-primary text-brand-bg transform scale-105 z-10" : "bg-brand-inner text-tx-base"
+                            )}>
+                                {/* Badges */}
+                                {i === 0 && (
+                                    <div className="absolute -top-4 -right-4 bg-[#06B6D4] text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
+                                        Globe Trotter
+                                    </div>
+                                )}
                                 
-                                <div className="flex flex-col">
-                                    <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
-                                    <span className="text-xs text-[#94A3B8] font-medium">
-                                        {i === 0 ? '🌍 Cartographe' : '🧭 Explorateur'}
+                                <div className="flex items-center gap-4">
+                                    <span className={cn(
+                                        "w-12 h-12 flex items-center justify-center rounded-xl font-display font-black text-2xl border-2 border-brand-border",
+                                        i === 0 ? "bg-[#06B6D4] text-brand-bg" : "bg-brand-bg text-tx-base"
+                                    )}>
+                                        {i + 1}
                                     </span>
+                                    
+                                    <div className="flex flex-col text-left">
+                                        <span className="text-xl font-display font-black">{p.name}</span>
+                                        <span className={cn(
+                                            "text-xs font-bold uppercase tracking-widest",
+                                            i === 0 ? "text-brand-bg/80" : "text-tx-secondary"
+                                        )}>
+                                            {i === 0 ? '🌍 Cartographe' : '🧭 Explorateur'}
+                                        </span>
+                                    </div>
                                 </div>
+                                <span className={cn(
+                                    "text-3xl font-display font-black",
+                                    i === 0 ? "text-brand-bg" : "text-[#06B6D4]"
+                                )}>{p.score}</span>
                             </div>
-                            <span className="text-3xl font-mono font-black text-blue-400">{p.score}</span>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
 
-                {isHost && (
-                    <Button onClick={returnToLobby} size="lg" variant="secondary" className="font-bold">
-                        Retour au salon
-                    </Button>
-                )}
+                    {isHost && (
+                        <button 
+                            onClick={returnToLobby} 
+                            className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg shadow-brutal"
+                        >
+                            RETOUR AU SALON
+                        </button>
+                    )}
+                </div>
             </div>
         )}
 

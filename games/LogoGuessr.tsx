@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { CheckCircle, Trophy, Send, Loader2, Image } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 
@@ -585,42 +586,43 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
       >
           {/* Setup Phase */}
           {currentPhase === 'setup' && (
-              <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500">
-                  <div className="relative">
-                      <Image className="w-24 h-24 text-orange-400" />
-                  </div>
-                  
-                  <div className="text-center space-y-4 max-w-lg">
-                      <h2 className="text-4xl font-black text-[#F8FAFC] uppercase tracking-wider drop-shadow-lg">
-                          Logo <span className="text-orange-400">Guessr</span>
-                      </h2>
-                      <p className="text-[#94A3B8] text-lg">
-                          Les logos apparaîtront progressivement. Soyez le plus rapide à deviner la marque !
-                      </p>
-                  </div>
-                  
-                  {isHost ? (
-                      <Button 
-                          onClick={startRound} 
-                          size="lg" 
-                          className="w-full max-w-xs h-16 text-xl bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-wider rounded-xl shadow-[0_4px_0_0px_#020617] transition-all hover:scale-105"
-                      >
-                          Commencer la partie
-                      </Button>
-                  ) : (
-                      <div className="flex items-center gap-3 bg-[#334155] px-6 py-3 rounded-full border border-[#475569]">
-                          <Loader2 className="w-5 h-5 animate-spin text-orange-400" />
-                          <span className="text-[#F8FAFC] font-medium">En attente de l'hôte...</span>
+              <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
+                  <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+                      <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform rotate-3">
+                          <Image className="w-16 h-16 text-accent-secondary" />
                       </div>
-                  )}
+                      
+                      <div className="text-center space-y-2 mb-8">
+                          <h2 className="font-display text-4xl font-black text-tx-base uppercase tracking-wider">
+                              Logo <span className="text-accent-secondary">Guessr</span>
+                          </h2>
+                          <p className="text-tx-secondary font-bold">
+                              Les logos apparaîtront progressivement. Soyez le plus rapide à deviner la marque !
+                          </p>
+                      </div>
+                      
+                      {isHost ? (
+                          <button 
+                              onClick={startRound} 
+                              className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-inner hover:text-accent-secondary shadow-brutal"
+                          >
+                              COMMENCER LA PARTIE
+                          </button>
+                      ) : (
+                          <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
+                              <Loader2 className="w-6 h-6 animate-spin text-accent-secondary" />
+                              <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                          </div>
+                      )}
+                  </div>
               </div>
           )}
 
           {/* Playing Phase */}
           {currentPhase === 'playing' && (
-              <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto space-y-8">
+              <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto gap-8 p-4">
                   {/* Logo Display */}
-                  <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-[#1E293B] rounded-3xl shadow-2xl flex items-center justify-center p-2 border-4 border-[#334155] overflow-hidden min-h-[16rem]">
+                  <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-brand-inner rounded-[32px] shadow-brutal flex items-center justify-center p-4 border-4 border-brand-border overflow-hidden min-h-[16rem]">
                       {currentLogo && !logoError ? (
                           <div className="relative w-full h-full flex items-center justify-center">
                               {difficulty === 'hard' ? (
@@ -651,10 +653,10 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                           </div>
                       ) : (
                           <div 
-                              className="w-32 h-32 rounded-2xl flex items-center justify-center"
-                              style={{ backgroundColor: currentLogo ? getPlaceholderColor(currentLogo.domain) : '#334155' }}
+                              className="w-32 h-32 rounded-2xl flex items-center justify-center border-4 border-brand-border shadow-inner"
+                              style={{ backgroundColor: currentLogo ? getPlaceholderColor(currentLogo.domain) : '#1E1E28' }}
                           >
-                              <span className="text-4xl font-black text-white">
+                              <span className="font-display text-5xl font-black text-white">
                                   {currentLogo ? getInitials(currentLogo.name) : '?'}
                               </span>
                           </div>
@@ -663,33 +665,36 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
 
                   {/* Input Area */}
                   <div className="w-full space-y-4">
-                      <form onSubmit={(e) => { e.preventDefault(); handleSubmitGuess(); }} className="flex gap-2">
-                          <Input
+                      <form onSubmit={(e) => { e.preventDefault(); handleSubmitGuess(); }} className="flex gap-3">
+                          <input
                               type="text"
                               value={userGuess}
                               onChange={(e) => setUserGuess(e.target.value)}
                               disabled={inputDisabled}
                               placeholder={hasFound ? "Bravo ! Vous avez trouvé." : "Tapez le nom de la marque..."}
-                              className={`h-16 text-2xl font-bold text-center rounded-2xl border-2 transition-all ${
+                              className={cn(
+                                  "flex-1 h-16 text-2xl font-bold text-center rounded-2xl border-4 transition-all shadow-brutal outline-none disabled:opacity-50",
                                   hasFound 
-                                  ? 'bg-green-100 border-green-500 text-green-700 placeholder:text-green-600' 
-                                  : 'bg-[#334155] border-[#475569] text-[#F8FAFC] placeholder:text-[#94A3B8]'
-                              }`}
+                                  ? "bg-accent-success/20 border-accent-success text-accent-success placeholder:text-accent-success" 
+                                  : "bg-brand-inner border-brand-border text-tx-base placeholder:text-tx-muted focus:border-tx-base"
+                              )}
                               autoFocus
                           />
-                          <Button 
+                          <button 
                               type="submit" 
                               disabled={inputDisabled || !userGuess.trim()}
-                              className="h-16 px-6"
-                              variant={hasFound ? "secondary" : "primary"}
+                              className={cn(
+                                  "h-16 w-20 flex items-center justify-center rounded-2xl border-4 border-brand-border shadow-brutal transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                                  hasFound ? "bg-brand-inner text-tx-muted" : "bg-accent-secondary hover:bg-tx-base text-brand-bg"
+                              )}
                           >
                               <Send className="w-6 h-6" />
-                          </Button>
+                          </button>
                       </form>
                       
-                      <div className="text-center text-sm text-[#94A3B8]">
+                      <div className="text-center text-sm font-bold uppercase tracking-widest text-tx-secondary">
                           {hasFound ? (
-                              <span className="text-green-500 font-bold">Marque trouvée !</span>
+                              <span className="text-accent-success">Marque trouvée !</span>
                           ) : (
                               <span>Devinez la marque le plus vite possible !</span>
                           )}
@@ -700,55 +705,55 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
 
           {/* Round Results Phase */}
           {currentPhase === 'round_results' && (
-              <div className="flex flex-col items-center justify-center h-full w-full space-y-8 animate-in zoom-in">
-                  <div className="w-48 h-48 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-2 border-4 border-green-500 overflow-hidden">
+              <div className="flex flex-col items-center justify-center h-full w-full gap-8 animate-in zoom-in p-4">
+                  <div className="w-48 h-48 bg-white rounded-[32px] shadow-brutal flex items-center justify-center p-4 border-4 border-accent-success overflow-hidden transform rotate-2">
                       {currentLogo && !logoError ? (
                           <img 
                               src={currentLogoUrl || getLogoUrl(currentLogo.domain)} 
                               alt="Logo" 
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain drop-shadow-md"
                               onError={() => setLogoError(true)}
                           />
                       ) : (
                           <div 
                               className="w-32 h-32 rounded-2xl flex items-center justify-center"
-                              style={{ backgroundColor: currentLogo ? getPlaceholderColor(currentLogo.domain) : '#334155' }}
+                              style={{ backgroundColor: currentLogo ? getPlaceholderColor(currentLogo.domain) : '#1E1E28' }}
                           >
-                              <span className="text-4xl font-black text-white">
+                              <span className="font-display text-4xl font-black text-white">
                                   {currentLogo ? getInitials(currentLogo.name) : '?'}
                               </span>
                           </div>
                       )}
                   </div>
                   
-                  <div className="text-center space-y-2">
-                      <h2 className="text-4xl font-black text-[#F8FAFC] uppercase tracking-wider">
+                  <div className="text-center bg-brand-card px-10 py-6 rounded-3xl border-4 border-brand-border shadow-brutal">
+                      <h2 className="font-display text-4xl font-black text-tx-base uppercase tracking-wider">
                           {currentLogo?.name}
                       </h2>
                   </div>
 
                   {/* Winners List */}
-                  <div className="w-full max-w-md space-y-2">
-                      <h3 className="text-sm font-bold text-[#94A3B8] uppercase tracking-wider mb-4 text-center">Joueurs ayant trouvé</h3>
+                  <div className="w-full max-w-md gap-3 flex flex-col">
+                      <h3 className="text-sm font-black text-tx-secondary uppercase tracking-widest mb-2 text-center">Joueurs ayant trouvé</h3>
                       {gamePlayers
                           .filter((p: any) => p.has_found)
                           .sort((a: any, b: any) => a.find_time_ms - b.find_time_ms)
                           .map((p: any, index: number) => {
                               const playerInfo = players.find(pl => pl.id === p.player_id);
                               return (
-                                  <div key={p.player_id} className="flex items-center justify-between bg-green-900/20 p-3 rounded-xl border border-green-800">
-                                      <div className="flex items-center gap-3">
-                                          <div className="font-bold text-green-400">#{index + 1}</div>
-                                          <div className="font-bold text-[#F8FAFC]">{playerInfo?.name}</div>
+                                  <div key={p.player_id} className="flex items-center justify-between bg-accent-success/10 p-4 rounded-2xl border-4 border-accent-success shadow-sm">
+                                      <div className="flex items-center gap-4">
+                                          <div className="font-display font-black text-xl text-accent-success">#{index + 1}</div>
+                                          <div className="font-display font-black text-lg text-tx-base">{playerInfo?.name}</div>
                                       </div>
-                                      <div className="text-sm font-mono text-green-400">
+                                      <div className="font-bold font-mono text-accent-success bg-brand-inner px-3 py-1 rounded-md border-2 border-accent-success/50">
                                           {(p.find_time_ms / 1000).toFixed(2)}s
                                       </div>
                                   </div>
                               );
                           })}
                       {gamePlayers.filter((p: any) => p.has_found).length === 0 && (
-                          <div className="text-center text-slate-400 italic">Personne n'a trouvé...</div>
+                          <div className="text-center text-tx-muted font-bold uppercase tracking-widest">Personne n'a trouvé...</div>
                       )}
                   </div>
               </div>
@@ -757,47 +762,60 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           {/* Podium Phase */}
           {currentPhase === 'podium' && (
               <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                  <Trophy className="w-24 h-24 text-yellow-400 mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                  <h2 className="text-4xl font-black text-[#F8FAFC] mb-8">Classement Final</h2>
-                  
-                  <div className="w-full space-y-4 mb-8">
-                      {players.sort((a, b) => b.score - a.score).map((p, i) => (
-                          <div key={p.id} className={`relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
-                              i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)] scale-105 z-10' : 
-                              i === 1 ? 'bg-[#1E293B] border-[#475569]' : 
-                              i === 2 ? 'bg-[#1E293B]/70 border-[#334155]' : 'opacity-60 border-transparent'
-                          }`}>
-                              {/* Badges */}
-                              {i === 0 && (
-                                  <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform rotate-12">
-                                      Expert Marketing
-                                  </div>
-                              )}
-                              
-                              <div className="flex items-center gap-4">
-                                  <span className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-xl ${
-                                      i === 0 ? 'bg-yellow-500 text-black' : 
-                                      i === 1 ? 'bg-[#475569] text-[#F8FAFC]' :
-                                      i === 2 ? 'bg-amber-700 text-amber-100' : 'bg-[#334155] text-[#94A3B8]'
-                                  }`}>{i + 1}</span>
+                  <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                      <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
+                          <Trophy className="w-16 h-16 text-accent-secondary" />
+                      </div>
+                      <h2 className="font-display text-4xl font-black text-tx-base mb-8 uppercase tracking-widest">Classement Final</h2>
+                      
+                      <div className="w-full space-y-4 mb-8">
+                          {players.sort((a, b) => b.score - a.score).map((p, i) => (
+                              <div key={p.id} className={cn(
+                                  "relative flex items-center justify-between p-4 rounded-2xl border-4 border-brand-border shadow-brutal",
+                                  i === 0 ? "bg-accent-secondary text-brand-bg transform scale-105 z-10" : "bg-brand-inner text-tx-base"
+                              )}>
+                                  {/* Badges */}
+                                  {i === 0 && (
+                                      <div className="absolute -top-4 -right-4 bg-[#FFD000] text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
+                                          Expert Marketing
+                                      </div>
+                                  )}
                                   
-                                  <div className="flex flex-col">
-                                      <span className="text-xl font-bold text-[#F8FAFC]">{p.name}</span>
-                                      <span className="text-xs text-slate-400 font-medium">
-                                          {i === 0 ? '🦅 Œil de Lynx' : '📺 Consommateur'}
+                                  <div className="flex items-center gap-4">
+                                      <span className={cn(
+                                          "w-12 h-12 flex items-center justify-center rounded-xl font-display font-black text-2xl border-2 border-brand-border",
+                                          i === 0 ? "bg-[#FFD000] text-brand-bg" : "bg-brand-bg text-tx-base"
+                                      )}>
+                                          {i + 1}
                                       </span>
+                                      
+                                      <div className="flex flex-col text-left">
+                                          <span className="text-xl font-display font-black">{p.name}</span>
+                                          <span className={cn(
+                                              "text-xs font-bold uppercase tracking-widest",
+                                              i === 0 ? "text-brand-bg/80" : "text-tx-secondary"
+                                          )}>
+                                              {i === 0 ? '🦅 Œil de Lynx' : '📺 Consommateur'}
+                                          </span>
+                                      </div>
                                   </div>
+                                  <span className={cn(
+                                      "text-3xl font-display font-black",
+                                      i === 0 ? "text-brand-bg" : "text-accent-secondary"
+                                  )}>{p.score}</span>
                               </div>
-                              <span className="text-3xl font-mono font-black text-orange-400">{p.score}</span>
-                          </div>
-                      ))}
+                          ))}
+                      </div>
+                      
+                      {isHost && (
+                          <button 
+                              onClick={returnToLobby} 
+                              className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg shadow-brutal"
+                          >
+                              RETOUR AU SALON
+                          </button>
+                      )}
                   </div>
-                  
-                  {isHost && (
-                      <Button onClick={returnToLobby} size="lg" variant="secondary" className="font-bold">
-                          Retour au salon
-                      </Button>
-                  )}
               </div>
           )}
       </GameLayout>
