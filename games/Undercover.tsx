@@ -415,14 +415,31 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     const alive: string[] = [];
     let available = [...shuffled];
     
+    // Safety check: ensure at least 2 Civils for a valid game
+    const maxSpecials = Math.max(1, allPlayers.length - 2); 
+    
+    let specialsAdded = 0;
+    
+    // Assign Undercovers
     for (let i = 0; i < ucCount; i++) {
+        if (specialsAdded >= maxSpecials) break;
         const undercover = available.pop();
-        if (undercover) newRoles[undercover.id] = 'UNDERCOVER';
+        if (undercover) {
+            newRoles[undercover.id] = 'UNDERCOVER';
+            specialsAdded++;
+        }
     }
-    if (includeMrWhite && available.length > 0) {
+    
+    // Assign Mr White
+    if (includeMrWhite && specialsAdded < maxSpecials) {
         const mrWhite = available.pop();
-        if (mrWhite) newRoles[mrWhite.id] = 'MR_WHITE';
+        if (mrWhite) {
+            newRoles[mrWhite.id] = 'MR_WHITE';
+            specialsAdded++;
+        }
     }
+    
+    // Assign Civils
     available.forEach(p => newRoles[p.id] = 'CIVIL');
     shuffled.forEach(p => alive.push(p.id));
     return { newRoles, alive };

@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap, Shield, EyeOff, Settings, Play, LogOut, CheckCircle, Home, QrCode, Eye, Monitor, Share2 } from 'lucide-react';
+import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap, Shield, EyeOff, Settings, Play, LogOut, CheckCircle, Home, QrCode, Eye, Monitor, Share2, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import QRCodeStyling from 'qr-code-styling';
@@ -252,7 +252,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [playerName, setPlayerName] = useState('');
   const [isHost, setIsHost] = useState(false);
   const [selectedGameId, setSelectedGameId] = useState<string>('__placeholder__');
-  const [gameSettings, setGameSettings] = useState<Record<string, string | number>>({});
+  const [gameSettings, setGameSettings] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isCodeVisible, setIsCodeVisible] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -431,6 +431,11 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           if (room.settings.isPrivate !== undefined) {
               setIsPrivateMode(room.settings.isPrivate);
           }
+          if (room.settings.banned && Array.isArray(room.settings.banned) && room.settings.banned.includes(storedName)) {
+              toast.error("Vous avez été exclu de ce salon.");
+              router.push('/');
+              return;
+          }
         }
 
         // 2. Vérifier/Créer le joueur dans la BDD
@@ -530,21 +535,25 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     // 2. Inactivity Check (every 60s)
     const checkActivity = async () => {
         if (isHostRef.current) {
-            // Host cleans up inactive players (> 2 min)
-            const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-            await supabase.from('players').delete().eq('room_id', roomId).lt('last_seen_at', twoMinAgo);
+            // Host cleans up inactive players (> 5 min)
+            const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+            await supabase.from('players').delete().eq('room_id', roomId).lt('last_seen_at', fiveMinAgo);
+            
+            // Si le host est le seul restant et qu'il est inactif ? Le host envoie des heartbeats.
+            // Mais on peut revérifier le compte total de joueurs
+            const { count } = await supabase.from('players').select('*', { count: 'exact', head: true }).eq('room_id', roomId);
+            if (count === 0) {
+                await supabase.from('rooms').delete().eq('id', roomId);
+            }
         } else {
             // Clients check if Host is inactive
             const host = playersRef.current.find(p => p.isHost);
             if (host && host.last_seen_at) {
                 const lastSeen = new Date(host.last_seen_at).getTime();
-                // If host inactive > 2m30s
-                if (Date.now() - lastSeen > 150000) {
-                     // Check current status first to avoid spam
-                     const { data: currentRoom } = await supabase.from('rooms').select('status').eq('id', roomId).maybeSingle();
-                     if (currentRoom && currentRoom.status !== 'closed') {
-                         await supabase.from('rooms').update({ status: 'closed' }).eq('id', roomId);
-                     }
+                // If host inactive > 5m30s
+                if (Date.now() - lastSeen > 330000) {
+                     // Supprimer la room si l'hôte a disparu
+                     await supabase.from('rooms').delete().eq('id', roomId);
                 }
             }
         }
@@ -578,6 +587,17 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             .eq('room_id', roomId);
 
           if (currentPlayers) {
+            const currentPlayerId = sessionStorage.getItem('playerId');
+            const amIStillHere = currentPlayers.some(p => p.id === currentPlayerId);
+            
+            if (!amIStillHere && currentPlayerId) {
+                // I was kicked or removed
+                toast.error("Vous avez été exclu du salon.");
+                setIsRoomDeleted(true);
+                setTimeout(() => router.push('/'), 2000);
+                return;
+            }
+
             setPlayers(currentPlayers.map(p => ({
               id: p.id,
               name: p.name,
@@ -591,12 +611,18 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*', // Listen to all events for rooms (UPDATE and DELETE)
           schema: 'public',
           table: 'rooms',
           filter: `id=eq.${roomId}`,
         },
         (payload) => {
+          if (payload.eventType === 'DELETE') {
+              setIsRoomDeleted(true);
+              setTimeout(() => router.push('/'), 3000);
+              return;
+          }
+
           const newRoom = payload.new as any;
           // Synchronisation des settings pour les non-hosts
           if (newRoom.game_type) setSelectedGameId(newRoom.game_type);
@@ -714,6 +740,24 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         return;
     }
 
+    // Min players check
+    const minPlayersMap: Record<string, number> = {
+        'pokeguessr': 1,
+        'flagguessr': 1,
+        'infiltre': 4,
+        'undercover': 3,
+        'drawguessr': 2,
+        'budgetguessr': 1,
+        'rentguessr': 1,
+        'logoguessr': 1
+    };
+
+    const minRequired = minPlayersMap[selectedGameId] || 1;
+    if (players.length < minRequired) {
+        toast.error(`Il faut au moins ${minRequired} joueur${minRequired > 1 ? 's' : ''} pour lancer ce jeu.`);
+        return;
+    }
+
     // 1. Create/Update Session FIRST with initial state
     const sessionPayload = {
         room_id: roomId,
@@ -775,10 +819,34 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const kickPlayer = async (playerIdToKick: string, playerName: string) => {
+    if (!isHost || !roomId) return;
+    
+    // Add to banned list in settings
+    const currentBanned = Array.isArray(gameSettings.banned) ? gameSettings.banned : [];
+    const newBanned = [...currentBanned, playerName];
+    const newSettings = { ...gameSettings, banned: newBanned };
+    
+    // Delete player from DB
+    await supabase.from('players').delete().eq('id', playerIdToKick);
+    
+    // Update room settings
+    setGameSettings(newSettings);
+    await supabase.from('rooms').update({ settings: newSettings }).eq('id', roomId);
+    
+    toast.success(`${playerName} a été exclu.`);
+  };
+
   const leaveRoom = async () => {
     // Supprimer le joueur de la DB
     if (roomId && playerName) {
         await supabase.from('players').delete().match({ room_id: roomId, name: playerName });
+        
+        // Check if we were the last player
+        const { count } = await supabase.from('players').select('*', { count: 'exact', head: true }).eq('room_id', roomId);
+        if (count === 0) {
+            await supabase.from('rooms').delete().eq('id', roomId);
+        }
     }
     sessionStorage.removeItem('playerName');
     sessionStorage.removeItem('isHost');
@@ -873,10 +941,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           </button>
 
           <div className="flex flex-col items-center justify-center gap-10 animate-in fade-in zoom-in duration-300">
-              <Image src="/logo-site.png" alt="IttolecHub" width={320} height={192} className="h-24 md:h-32 w-auto select-none" />
-
-              <div className="relative inline-flex items-center justify-center bg-white p-[24px] border-4 border-brand-border rounded-[32px] shadow-brutal">
-                  <div className="rounded-[8px] overflow-hidden" ref={qrRef} />
+              <div className="relative inline-flex items-center justify-center bg-white p-[12px] border-4 border-brand-border rounded-[24px] shadow-brutal">
+                  <div className="rounded-[12px] overflow-hidden" ref={qrRef} />
               </div>
 
               <div className="w-full max-w-md space-y-3">
@@ -1224,6 +1290,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                     )}
                                 </div>
                             </div>
+                            {isHost && !player.isHost && (
+                                <button 
+                                    onClick={() => kickPlayer(player.id, player.name)}
+                                    className="opacity-0 group-hover:opacity-100 p-2 rounded-lg border-2 border-transparent hover:border-accent-secondary hover:bg-accent-secondary/10 text-tx-secondary hover:text-accent-secondary transition-all"
+                                    title="Exclure ce joueur"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>
