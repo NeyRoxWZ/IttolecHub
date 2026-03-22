@@ -262,7 +262,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [showJoinOverlay, setShowJoinOverlay] = useState(false); // Overlay QR Code
   const [showPseudoModal, setShowPseudoModal] = useState(false);
   const [pseudoInput, setPseudoInput] = useState('');
-  
+  const [isKicked, setIsKicked] = useState(false);
+
   // Refs for interval access
   const playersRef = useRef(players);
   const isHostRef = useRef(isHost);
@@ -592,9 +593,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             
             if (!amIStillHere && currentPlayerId) {
                 // I was kicked or removed
-                toast.error("Vous avez été exclu du salon.");
-                setIsRoomDeleted(true);
-                setTimeout(() => router.push('/'), 2000);
+                setIsKicked(true);
+                setTimeout(() => router.push('/'), 3000);
                 return;
             }
 
@@ -830,6 +830,9 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     // Delete player from DB
     await supabase.from('players').delete().eq('id', playerIdToKick);
     
+    // Update local state immediately so we don't have to wait for F5
+    setPlayers(prev => prev.filter(p => p.id !== playerIdToKick));
+    
     // Update room settings
     setGameSettings(newSettings);
     await supabase.from('rooms').update({ settings: newSettings }).eq('id', roomId);
@@ -910,6 +913,20 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               </div>
           </div>
       );
+  }
+
+  if (isKicked) {
+    return (
+      <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4 text-center space-y-6">
+        <div className="w-24 h-24 rounded-2xl bg-brand-inner border-4 border-accent-secondary shadow-brutal flex items-center justify-center animate-bounce">
+            <X className="w-12 h-12 text-accent-secondary" />
+        </div>
+        <h1 className="font-display text-4xl font-black text-tx-base">Vous avez été exclu</h1>
+        <p className="text-tx-secondary text-lg max-w-md">
+          L&apos;hôte vous a exclu de ce salon. Vous allez être redirigé vers l&apos;accueil.
+        </p>
+      </div>
+    );
   }
 
   if (isRoomDeleted) {
