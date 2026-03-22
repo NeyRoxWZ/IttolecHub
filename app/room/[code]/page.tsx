@@ -281,7 +281,6 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       const qrCode = new QRCodeStyling({
         width: 280,
         height: 280,
-        shape: "circle",
         data: `${window.location.origin}/room/${params.code}?source=qrcode`,
         image: "/logo-site.png",
         imageOptions: {
@@ -291,7 +290,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           crossOrigin: "anonymous"
         },
         dotsOptions: {
-          type: "extra-rounded",
+          type: "rounded",
           color: "#000000"
         },
         cornersSquareOptions: {
