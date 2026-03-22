@@ -19,10 +19,10 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.294.0",
     "next": "14.0.4",
+    "qr-code-styling": "^1.9.2",
     "react": "^18",
     "react-dom": "^18",
     "react-leaflet": "^4.2.1",
-    "react-qr-code": "^2.0.18",
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.2.0"
   },

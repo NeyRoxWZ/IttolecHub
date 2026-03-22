@@ -1,16 +1,15 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Card } from '@/components/ui/Card';
+import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Users, Gamepad2, Copy, Globe, DollarSign, PenTool, Zap, Shield, EyeOff, Settings, Play, LogOut, CheckCircle, Home, QrCode, Eye, Monitor, Share2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import QRCode from 'react-qr-code';
+import QRCodeStyling from 'qr-code-styling';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/Dialog';
 import { cn } from '@/lib/utils';
 
@@ -267,11 +266,51 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   // Refs for interval access
   const playersRef = useRef(players);
   const isHostRef = useRef(isHost);
+  const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     playersRef.current = players;
     isHostRef.current = isHost;
   }, [players, isHost]);
+
+  // Handle QR Code styling
+  useEffect(() => {
+    if (showJoinOverlay && qrRef.current && typeof window !== 'undefined') {
+      qrRef.current.innerHTML = ''; // Clear previous
+      
+      const qrCode = new QRCodeStyling({
+        width: 280,
+        height: 280,
+        shape: "circle",
+        data: `${window.location.origin}/room/${params.code}?source=qrcode`,
+        image: "/logo-site.png",
+        imageOptions: {
+          hideBackgroundDots: true,
+          imageSize: 0.35,
+          margin: 6,
+          crossOrigin: "anonymous"
+        },
+        dotsOptions: {
+          type: "extra-rounded",
+          color: "#000000"
+        },
+        cornersSquareOptions: {
+          type: "extra-rounded"
+        },
+        cornersDotOptions: {
+          type: "dot"
+        },
+        backgroundOptions: {
+          color: "#ffffff"
+        },
+        qrOptions: {
+          errorCorrectionLevel: "H"
+        }
+      });
+      
+      qrCode.append(qrRef.current);
+    }
+  }, [showJoinOverlay, params.code]);
 
   const selectedGame = useMemo(() => selectedGameId && selectedGameId !== '__placeholder__' ? gamesList.find(g => g.id === selectedGameId) : undefined, [selectedGameId]);
 
@@ -838,19 +877,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               <Image src="/logo-site.png" alt="IttolecHub" width={320} height={192} className="h-24 md:h-32 w-auto select-none" />
 
               <div className="relative inline-flex items-center justify-center bg-white p-6 border-4 border-brand-border rounded-[32px] shadow-brutal">
-                  <div className="rounded-2xl overflow-hidden">
-                      <QRCode 
-                          value={`${typeof window !== 'undefined' ? window.location.origin : ''}/room/${params.code}?source=qrcode`}
-                          size={280}
-                          level="H"
-                          fgColor="#000000"
-                          bgColor="transparent"
-                      />
-                  </div>
-                  {/* Logo central */}
-                  <div className="absolute flex items-center justify-center w-24 h-16 bg-brand-bg border-4 border-brand-border rounded-xl shadow-brutal overflow-hidden">
-                      <Image src="/logo-site.png" alt="IttolecHub" width={80} height={40} className="object-contain" />
-                  </div>
+                  <div className="rounded-2xl overflow-hidden" ref={qrRef} />
               </div>
 
               <div className="w-full max-w-md space-y-3">
