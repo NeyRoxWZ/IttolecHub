@@ -259,7 +259,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [copied, setCopied] = useState(false);
   const [isRoomDeleted, setIsRoomDeleted] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
-  const [streamerMode, setStreamerMode] = useState(false); // Mode confidentialité persistant
+  const [isPrivateMode, setIsPrivateMode] = useState(false); // Synced via room settings
   const [showJoinOverlay, setShowJoinOverlay] = useState(false); // Overlay QR Code
   const [showPseudoModal, setShowPseudoModal] = useState(false);
   const [pseudoInput, setPseudoInput] = useState('');
@@ -275,25 +275,21 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   const selectedGame = useMemo(() => selectedGameId && selectedGameId !== '__placeholder__' ? gamesList.find(g => g.id === selectedGameId) : undefined, [selectedGameId]);
 
-  // Load Streamer Privacy Mode from LocalStorage
-  useEffect(() => {
-      const stored = localStorage.getItem('ittolechub_streamer_mode');
-      if (stored === 'true') {
-          setStreamerMode(true);
-          setIsCodeVisible(false); // Hide code by default if streamer mode is on
+  const togglePrivateMode = async () => {
+      if (!isHost) return; // Seul l'hôte peut changer ce mode
+      const newState = !isPrivateMode;
+      setIsPrivateMode(newState);
+      
+      if (roomId) {
+          await supabase.from('rooms').update({
+              settings: { ...gameSettings, isPrivate: newState }
+          }).eq('id', roomId);
       }
-  }, []);
-
-  const toggleStreamerMode = () => {
-      const newState = !streamerMode;
-      setStreamerMode(newState);
-      localStorage.setItem('ittolechub_streamer_mode', String(newState));
       
       if (newState) {
-          setIsCodeVisible(false);
-          toast.success("Mode Streamer (Confidentialité) activé");
+          toast.success("Salon en mode privé");
       } else {
-          toast.success("Mode Streamer désactivé");
+          toast.success("Salon en mode public");
       }
   };
 
@@ -394,6 +390,9 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         }
         if (room.settings) {
           setGameSettings(room.settings);
+          if (room.settings.isPrivate !== undefined) {
+              setIsPrivateMode(room.settings.isPrivate);
+          }
         }
 
         // 2. Vérifier/Créer le joueur dans la BDD
@@ -563,7 +562,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           const newRoom = payload.new as any;
           // Synchronisation des settings pour les non-hosts
           if (newRoom.game_type) setSelectedGameId(newRoom.game_type);
-          if (newRoom.settings) setGameSettings(newRoom.settings);
+          if (newRoom.settings) {
+              setGameSettings(newRoom.settings);
+              if (newRoom.settings.isPrivate !== undefined) {
+                  setIsPrivateMode(newRoom.settings.isPrivate);
+              }
+          }
 
           // Room fermée
           if (newRoom.status === 'closed') {
@@ -616,7 +620,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           
           const { error } = await supabase.from('rooms').update({
               game_type: selectedGameId,
-              settings: gameSettings || {} // Ensure not undefined
+              settings: { ...gameSettings, isPrivate: isPrivateMode } // Ensure not undefined
           }).eq('id', roomId);
 
           if (error) {
@@ -631,7 +635,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       
       const timer = setTimeout(updateRoomSettings, 500);
       return () => clearTimeout(timer);
-  }, [selectedGameId, gameSettings, isHost, roomId]);
+  }, [selectedGameId, gameSettings, isHost, roomId, isPrivateMode]);
 
   useEffect(() => {
     if (selectedGameId && selectedGameId !== '__placeholder__') {
@@ -896,31 +900,31 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             </div>
 
             <div className="flex items-center gap-3">
-                {isHost && !streamerMode && (
+                {isHost && !isPrivateMode && (
                     <button 
                         onClick={() => setShowJoinOverlay(true)}
                         className="hidden sm:flex items-center gap-2 h-12 px-4 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-base hover:border-tx-base shadow-brutal transition-all"
                     >
-                        <Monitor className="w-5 h-5" />
-                        <span className="font-bold">Streamer</span>
+                        <QrCode className="w-5 h-5" />
+                        <span className="font-bold">QR Code</span>
                     </button>
                 )}
 
                 <button 
-                    onClick={toggleStreamerMode}
+                    onClick={togglePrivateMode}
                     className={cn(
                         "flex items-center gap-2 h-12 px-4 rounded-xl border-2 transition-all font-bold",
-                        streamerMode 
+                        isPrivateMode 
                         ? "border-tx-base bg-tx-base text-brand-bg shadow-brutal" 
                         : "border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base"
                     )}
-                    title={streamerMode ? "Désactiver le mode confidentialité" : "Activer le mode confidentialité"}
+                    title={isPrivateMode ? "Désactiver le mode privé" : "Activer le mode privé (masque les codes)"}
                 >
-                    {streamerMode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    <span className="hidden lg:inline">{streamerMode ? 'Privé' : 'Public'}</span>
+                    {isPrivateMode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    <span className="hidden lg:inline">{isPrivateMode ? 'Privé' : 'Public'}</span>
                 </button>
 
-                {!streamerMode && (
+                {!isPrivateMode && (
                     <Dialog>
                         <DialogTrigger asChild>
                             <button className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors">
@@ -968,10 +972,11 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                         navigator.clipboard.writeText(params.code);
                         toast.success('Code copié !');
                     }}
+                    title={isPrivateMode ? "Code masqué (cliquez pour copier)" : "Copier le code"}
                 >
                     <span className="hidden sm:inline text-xs text-tx-secondary uppercase tracking-widest font-bold">Code</span>
                     <span className="font-mono text-lg font-black tracking-widest text-tx-base group-hover:text-tx-secondary transition-colors">
-                        {streamerMode ? '••••••' : params.code}
+                        {isPrivateMode ? '••••••' : params.code}
                     </span>
                     {copied ? <CheckCircle className="h-5 w-5 text-tx-base" /> : <Copy className="h-5 w-5 text-tx-secondary group-hover:text-tx-base" />}
                 </div>
