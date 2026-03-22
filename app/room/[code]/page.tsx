@@ -285,8 +285,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         image: "/logo-site.png",
         imageOptions: {
           hideBackgroundDots: true,
-          imageSize: 0.3,
-          margin: 10,
+          imageSize: 0.32,
+          margin: 2,
           crossOrigin: "anonymous"
         },
         dotsOptions: {
@@ -875,8 +875,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           <div className="flex flex-col items-center justify-center gap-10 animate-in fade-in zoom-in duration-300">
               <Image src="/logo-site.png" alt="IttolecHub" width={320} height={192} className="h-24 md:h-32 w-auto select-none" />
 
-              <div className="relative inline-flex items-center justify-center bg-white p-6 border-4 border-brand-border rounded-[32px] shadow-brutal">
-                  <div className="rounded-2xl overflow-hidden" ref={qrRef} />
+              <div className="relative inline-flex items-center justify-center bg-white p-[24px] border-4 border-brand-border rounded-[32px] shadow-brutal">
+                  <div className="rounded-[8px] overflow-hidden" ref={qrRef} />
               </div>
 
               <div className="w-full max-w-md space-y-3">
