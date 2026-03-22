@@ -117,6 +117,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                     });
                     updatedRoundData.phase = 'round_results';
                     updatedRoundData.scores = newScores;
+                    updatedRoundData.round_end_time = Date.now() + 5000; // 5 seconds before next round
                 }
 
                 await updateRoundData(updatedRoundData);
@@ -125,6 +126,24 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
 
         processMoves();
     }, [moves, isHost, roundData, players, sizes]);
+
+    // --- AUTO NEXT ROUND ---
+    useEffect(() => {
+        if (!isHost || currentPhase !== 'round_results' || !roundData.round_end_time) return;
+
+        const timeToWait = roundData.round_end_time - Date.now();
+        
+        if (timeToWait <= 0) {
+            nextRound();
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            nextRound();
+        }, timeToWait);
+
+        return () => clearTimeout(timer);
+    }, [isHost, currentPhase, roundData.round_end_time]);
 
     // --- GAME ACTIONS ---
     const startNewGame = async () => {
@@ -152,7 +171,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                     guider_id: initialGuider,
                     left_word: pairs[0].left,
                     right_word: pairs[0].right,
-                    target_angle: 20 + Math.random() * 140, // Random between 20 and 160
+                    target_angle: Math.floor(Math.random() * 141) + 20, // 20 to 160 integer
                     clue: '',
                     guesses: {},
                     scores: {}
@@ -205,7 +224,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                     guider_id: nextGuiderId,
                     left_word: nextPair.left,
                     right_word: nextPair.right,
-                    target_angle: 20 + Math.random() * 140,
+                    target_angle: Math.floor(Math.random() * 141) + 20, // 20 to 160 integer
                     clue: '',
                     guesses: {}
                 }
@@ -240,6 +259,8 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
 
     const handlePointerDown = (e: React.PointerEvent) => {
         if (currentPhase !== 'guessing' || isGuider || hasGuessed) return;
+        // Don't capture right clicks
+        if (e.button !== 0) return;
         setIsDragging(true);
         updateAngleFromEvent(e);
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -278,7 +299,15 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
         const dy = 100 - svgP.y; // Up is positive
         
         let angle = Math.atan2(dy, dx) * 180 / Math.PI;
-        // Convert to 0 (left) to 180 (right)
+        // atan2 returns angle from -180 to 180.
+        // For our top semi-circle, dy is positive, so angle is 0 to 180.
+        // 0 is right, 180 is left.
+        if (angle < 0) {
+            // If they drag below the center line, clamp to edges
+            angle = dx > 0 ? 0 : 180;
+        }
+        
+        // We want 0 on the left, 180 on the right, so we do 180 - angle.
         angle = 180 - angle;
         
         if (angle < 0) angle = 0;
@@ -362,24 +391,38 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                 <div className="flex flex-col items-center w-full max-w-3xl gap-4 p-2 flex-1 mt-2">
                     
                     {/* Header Info */}
-                    <div className="text-center w-full bg-brand-card p-4 rounded-2xl border-4 border-brand-border shadow-brutal">
+                    <div className="relative text-center w-full bg-brand-card p-4 rounded-2xl border-4 border-brand-border shadow-brutal flex flex-col justify-center min-h-[100px]">
+                        {/* Eye Button for Guider (Small, Top Right) */}
+                        {isGuider && currentPhase === 'writing_clue' && (
+                            <button
+                                className="absolute -top-3 -right-3 bg-brand-inner border-4 border-brand-border rounded-full p-2 transition-all shadow-brutal active:translate-y-1 active:shadow-none z-10 text-tx-secondary hover:text-accent-primary"
+                                onPointerDown={() => setShowTarget(true)}
+                                onPointerUp={() => setShowTarget(false)}
+                                onPointerCancel={() => setShowTarget(false)}
+                                onContextMenu={(e) => e.preventDefault()}
+                                title="Maintenir pour voir la cible"
+                            >
+                                {showTarget ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                            </button>
+                        )}
+
                         {currentPhase === 'writing_clue' && (
-                            <h3 className="font-display text-xl md:text-2xl font-black text-tx-base uppercase tracking-wider">
-                                {isGuider ? "C'est à vous de faire deviner !" : `${players.find(p => p.id === guiderId)?.name} réfléchit à un indice...`}
+                            <h3 className="font-display text-lg md:text-xl font-black text-tx-base uppercase tracking-wider">
+                                {isGuider ? "Fais deviner avec un indice !" : `${players.find(p => p.id === guiderId)?.name} réfléchit...`}
                             </h3>
                         )}
                         {currentPhase === 'guessing' && (
-                            <div className="space-y-2">
-                                <span className="text-xs font-bold text-tx-secondary uppercase tracking-widest">L'indice est :</span>
-                                <div className="font-display text-3xl md:text-4xl font-black text-accent-primary bg-brand-inner border-4 border-brand-border py-2 px-6 rounded-2xl inline-block shadow-inner break-all">
+                            <div className="flex flex-col items-center justify-center">
+                                <span className="text-xs font-bold text-tx-secondary uppercase tracking-widest mb-1">L'indice est :</span>
+                                <div className="font-display text-2xl md:text-3xl font-black text-accent-primary break-words max-w-full">
                                     {clue}
                                 </div>
                             </div>
                         )}
                         {currentPhase === 'round_results' && (
-                            <div className="space-y-2">
-                                <span className="text-xs font-bold text-tx-secondary uppercase tracking-widest">L'indice était :</span>
-                                <div className="font-display text-3xl md:text-4xl font-black text-tx-base bg-brand-inner border-4 border-brand-border py-2 px-6 rounded-2xl inline-block shadow-inner break-all">
+                            <div className="flex flex-col items-center justify-center">
+                                <span className="text-xs font-bold text-tx-secondary uppercase tracking-widest mb-1">L'indice était :</span>
+                                <div className="font-display text-2xl md:text-3xl font-black text-tx-base break-words max-w-full">
                                     {clue}
                                 </div>
                             </div>
@@ -389,11 +432,11 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                     {/* JAUGE (Arc) */}
                     <div className="relative w-full max-w-xl mt-4 px-4 md:px-8">
                         {/* Words at extremities */}
-                        <div className="absolute top-full left-0 mt-2 text-left max-w-[120px] md:max-w-[160px] -translate-x-2 md:-translate-x-4">
-                            <span className="font-display font-black text-base md:text-xl text-tx-base leading-tight block">{leftWord}</span>
+                        <div className="absolute top-full left-0 mt-2 text-left w-1/2 -translate-x-2 md:-translate-x-4 pr-4">
+                            <span className="font-display font-black text-sm md:text-lg text-tx-base leading-tight block break-words">{leftWord}</span>
                         </div>
-                        <div className="absolute top-full right-0 mt-2 text-right max-w-[120px] md:max-w-[160px] translate-x-2 md:translate-x-4">
-                            <span className="font-display font-black text-base md:text-xl text-tx-base leading-tight block">{rightWord}</span>
+                        <div className="absolute top-full right-0 mt-2 text-right w-1/2 translate-x-2 md:translate-x-4 pl-4">
+                            <span className="font-display font-black text-sm md:text-lg text-tx-base leading-tight block break-words">{rightWord}</span>
                         </div>
 
                         <svg 
@@ -446,7 +489,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                     <circle 
                                         cx={polarToCartesian(targetAngle).x} 
                                         cy={polarToCartesian(targetAngle).y} 
-                                        r="2" 
+                                        r="3" 
                                         fill="#000000" 
                                     />
                                 </>
@@ -454,7 +497,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
 
                             {/* User's Needle (during guessing or results) */}
                             {(!isGuider && (currentPhase === 'guessing' || currentPhase === 'round_results')) && (
-                                <g transform={`rotate(${userGuess}, 100, 100)`}>
+                                <g transform={`rotate(${180 - userGuess}, 100, 100)`}>
                                     <line x1="20" y1="100" x2="100" y2="100" stroke="#FF2A55" strokeWidth="4" strokeLinecap="round" />
                                     <circle cx="20" cy="100" r="6" fill="#FF2A55" stroke="#000" strokeWidth="2" />
                                 </g>
@@ -465,7 +508,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                 const guess = guesses[seeker.id];
                                 if (guess === undefined || seeker.id === playerId) return null; // Don't draw own needle twice
                                 return (
-                                    <g key={seeker.id} transform={`rotate(${guess}, 100, 100)`}>
+                                    <g key={seeker.id} transform={`rotate(${180 - guess}, 100, 100)`}>
                                         <line x1="20" y1="100" x2="100" y2="100" stroke="#06B6D4" strokeWidth="3" strokeLinecap="round" opacity="0.8" />
                                         <circle cx="20" cy="100" r="5" fill="#06B6D4" stroke="#000" strokeWidth="1.5" />
                                     </g>
@@ -478,24 +521,9 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                     </div>
 
                     {/* Interactions */}
-                    <div className="mt-12 md:mt-16 w-full max-w-md pb-4">
+                    <div className="mt-16 md:mt-20 w-full max-w-md pb-4">
                         {currentPhase === 'writing_clue' && isGuider && (
                             <div className="space-y-6 animate-in slide-in-from-bottom-4">
-                                <button
-                                    className="w-full bg-brand-inner border-4 border-brand-border rounded-2xl p-6 transition-all group select-none touch-none shadow-brutal active:translate-y-1 active:shadow-none"
-                                    onPointerDown={() => setShowTarget(true)}
-                                    onPointerUp={() => setShowTarget(false)}
-                                    onPointerLeave={() => setShowTarget(false)}
-                                    onContextMenu={(e) => e.preventDefault()}
-                                >
-                                    <div className="flex flex-col items-center gap-3">
-                                        {showTarget ? <Eye className="w-10 h-10 text-accent-primary" /> : <EyeOff className="w-10 h-10 text-tx-secondary" />}
-                                        <span className="font-bold text-tx-base uppercase tracking-widest text-sm">
-                                            {showTarget ? "Relâchez pour cacher" : "Maintenez pour voir la cible"}
-                                        </span>
-                                    </div>
-                                </button>
-
                                 <div className="flex gap-3">
                                     <input
                                         type="text"
@@ -567,12 +595,10 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                 </div>
 
                                 {isHost && (
-                                    <button 
-                                        onClick={nextRound}
-                                        className="w-full h-16 font-display text-xl font-black tracking-wider rounded-2xl transition-all border-4 border-brand-border shadow-brutal bg-accent-success text-brand-bg hover:bg-tx-base flex items-center justify-center gap-3 active:translate-y-1 active:shadow-none"
-                                    >
-                                        {currentRound >= totalRounds ? "VOIR LE CLASSEMENT" : "MANCHE SUIVANTE"} <ArrowRight className="w-6 h-6" />
-                                    </button>
+                                    <div className="mt-4 flex items-center justify-center gap-2 text-tx-secondary font-bold text-sm uppercase tracking-widest">
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Manche suivante imminente...
+                                    </div>
                                 )}
                             </div>
                         )}
