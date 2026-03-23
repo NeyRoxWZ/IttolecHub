@@ -6,7 +6,7 @@ import GameLayout from './components/GameLayout';
 import VoteToLobby from './components/VoteToLobby';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Trophy, Clock, Loader2, ArrowRight, Target, Link as LinkIcon, Search } from 'lucide-react';
+import { Trophy, Clock, Loader2, ArrowRight, Target, Link as LinkIcon, Search, ChevronUp, ChevronDown, X, CornerRightUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
@@ -346,32 +346,23 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
             if (currentPhase !== 'racing' || hasFinished) return;
 
             // Detect Ctrl+F (Windows/Linux) or Cmd+F (Mac) or F3
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' || e.key === 'F3') {
-                // DO NOT preventDefault, let them open the search bar
+            if (((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') || e.key === 'F3') {
+                e.preventDefault(); // Block real search
                 setCheatDetected(true);
-            }
-            
-            // If they press Escape, they might be closing the search bar
-            if (e.key === 'Escape') {
-                setCheatDetected(false);
-            }
-        };
-        
-        // When user clicks anywhere on the document, assume they closed search or are back interacting
-        const handleClick = () => {
-            if (cheatDetected) {
-                setCheatDetected(false);
+                
+                // Penalty of 5 seconds
+                setTimeout(() => {
+                    setCheatDetected(false);
+                }, 5000);
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('mousedown', handleClick);
         
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
-            window.removeEventListener('mousedown', handleClick);
         };
-    }, [currentPhase, hasFinished, cheatDetected]);
+    }, [currentPhase, hasFinished]);
 
     // --- RENDER HELPERS ---
     const sortedPlayers = useMemo(() => {
@@ -474,11 +465,34 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
             {currentPhase === 'racing' && (
                 <div className="flex flex-col w-full h-full relative flex-1">
                     {cheatDetected && (
-                        <div className="fixed inset-0 bg-brand-bg z-[9999] flex flex-col items-center justify-center p-8 text-center" onClick={() => setCheatDetected(false)}>
-                            <div className="bg-brand-inner border-4 border-brand-border p-8 rounded-3xl shadow-brutal mb-6 transform -rotate-3">
-                                <h2 className="font-display text-5xl font-black text-accent-primary uppercase mb-4">On te dérange pas trop ?</h2>
-                                <p className="text-xl font-bold text-tx-base">La recherche est interdite ici, petit malin.</p>
-                                <p className="text-tx-secondary mt-4 uppercase tracking-widest text-sm font-bold">Appuie sur Échap ou clique n'importe où pour reprendre.</p>
+                        <div className="fixed inset-0 bg-brand-bg/95 z-[9999] flex flex-col backdrop-blur-sm">
+                            {/* Fake Search Bar UI at the top right */}
+                            <div className="absolute top-4 right-4 md:right-12 bg-white rounded-lg shadow-xl flex items-center p-1 w-72 animate-in fade-in slide-in-from-top-4 border border-gray-300">
+                                <div className="flex-1 px-3 py-1.5 text-gray-500 text-sm font-sans flex items-center gap-2 border-r border-gray-200">
+                                    <Search className="w-4 h-4 text-gray-400" />
+                                    Rechercher...
+                                </div>
+                                <div className="flex items-center px-1 text-gray-400 gap-1">
+                                    <span className="text-xs mr-2">0/0</span>
+                                    <button className="p-1 hover:bg-gray-100 rounded cursor-not-allowed"><ChevronUp className="w-4 h-4" /></button>
+                                    <button className="p-1 hover:bg-gray-100 rounded cursor-not-allowed border-r border-gray-200 pr-2 mr-1"><ChevronDown className="w-4 h-4" /></button>
+                                    <button className="p-1 hover:bg-red-100 hover:text-red-500 rounded cursor-not-allowed"><X className="w-4 h-4" /></button>
+                                </div>
+                            </div>
+
+                            {/* Arrow pointing to search bar */}
+                            <div className="absolute top-20 right-24 md:right-32 flex flex-col items-end text-accent-primary animate-in zoom-in duration-500 delay-300">
+                                <CornerRightUp className="w-16 h-16 stroke-[3] -scale-x-100 mb-2 transform -rotate-12" />
+                                <h3 className="font-display font-black text-3xl md:text-5xl transform -rotate-6">C'est ça que tu cherches ?</h3>
+                            </div>
+
+                            {/* Main Warning Text */}
+                            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center mt-20">
+                                <div className="bg-brand-inner border-4 border-brand-border p-8 rounded-3xl shadow-brutal mb-6 transform rotate-2">
+                                    <h2 className="font-display text-4xl md:text-5xl font-black text-tx-base uppercase mb-4">La recherche est désactivée.</h2>
+                                    <p className="text-xl font-bold text-tx-secondary uppercase tracking-widest">Pénalité de 5 secondes en cours...</p>
+                                    <Loader2 className="w-12 h-12 animate-spin text-accent-primary mx-auto mt-6" />
+                                </div>
                             </div>
                         </div>
                     )}
