@@ -466,8 +466,8 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                 <div className="flex flex-col w-full h-full relative flex-1">
                     {cheatDetected && (
                         <div className="fixed inset-0 bg-brand-bg/95 z-[9999] flex flex-col backdrop-blur-sm">
-                            {/* Fake Search Bar UI at the top right */}
-                            <div className="absolute top-4 right-4 md:right-12 bg-white rounded-lg shadow-xl flex items-center p-1 w-72 animate-in fade-in slide-in-from-top-4 border border-gray-300">
+                            {/* Fake Search Bar UI at the top right, pushed down below navbar */}
+                            <div className="absolute top-24 md:top-32 right-4 md:right-12 bg-white rounded-lg shadow-xl flex items-center p-1 w-72 animate-in fade-in slide-in-from-top-8 border border-gray-300 z-50">
                                 <div className="flex-1 px-3 py-1.5 text-gray-500 text-sm font-sans flex items-center gap-2 border-r border-gray-200">
                                     <Search className="w-4 h-4 text-gray-400" />
                                     Rechercher...
@@ -480,10 +480,13 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                                 </div>
                             </div>
 
-                            {/* Arrow pointing to search bar */}
-                            <div className="absolute top-20 right-24 md:right-32 flex flex-col items-end text-accent-primary animate-in zoom-in duration-500 delay-300">
-                                <CornerRightUp className="w-16 h-16 stroke-[3] -scale-x-100 mb-2 transform -rotate-12" />
-                                <h3 className="font-display font-black text-3xl md:text-5xl transform -rotate-6">C'est ça que tu cherches ?</h3>
+                            {/* Arrow pointing to search bar - Hand drawn SVG */}
+                            <div className="absolute top-[160px] md:top-[180px] right-32 md:right-48 flex flex-col items-end text-accent-primary animate-in zoom-in duration-500 delay-300">
+                                <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-2 stroke-current transform rotate-12">
+                                    <path d="M15 85C25 70 40 45 80 20" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="animate-[dash_1s_ease-in-out_forwards]"/>
+                                    <path d="M60 15C70 15 80 15 85 20C85 30 80 40 75 45" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                <h3 className="font-display font-black text-xl md:text-2xl transform -rotate-6 tracking-widest uppercase">C'est ça que tu cherches ?</h3>
                             </div>
 
                             {/* Main Warning Text */}
