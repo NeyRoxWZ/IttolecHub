@@ -33,6 +33,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
     const [localClicks, setLocalClicks] = useState(0);
     const [currentTitle, setCurrentTitle] = useState('');
     const [hasFinished, setHasFinished] = useState(false);
+    const [cheatDetected, setCheatDetected] = useState(false);
     
     // Auto-scroll to top on page change
     const contentRef = useRef<HTMLDivElement>(null);
@@ -339,6 +340,27 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
         toast.success("Vous avez atteint la cible !");
     };
 
+    // --- ANTI-CHEAT (CTRL+F / F3) ---
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (currentPhase !== 'racing' || hasFinished) return;
+
+            // Detect Ctrl+F (Windows/Linux) or Cmd+F (Mac) or F3
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' || e.key === 'F3') {
+                e.preventDefault();
+                setCheatDetected(true);
+                
+                // Keep it blocked for 5 seconds to penalize them
+                setTimeout(() => {
+                    setCheatDetected(false);
+                }, 5000);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [currentPhase, hasFinished]);
+
     // --- RENDER HELPERS ---
     const sortedPlayers = useMemo(() => {
         return [...players].map(p => ({
@@ -467,14 +489,24 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                         ref={contentRef}
                         className="flex-1 overflow-y-auto w-full bg-[#1e1e28] relative"
                     >
-                        {isLoadingPage && (
+                        {cheatDetected && (
+                            <div className="absolute inset-0 bg-brand-bg z-50 flex flex-col items-center justify-center p-8 text-center">
+                                <div className="bg-brand-inner border-4 border-brand-border p-8 rounded-3xl shadow-brutal mb-6 transform -rotate-3">
+                                    <h2 className="font-display text-5xl font-black text-accent-primary uppercase mb-4">On te dérange pas trop ?</h2>
+                                    <p className="text-xl font-bold text-tx-base">La recherche (Ctrl+F) est interdite ici, petit malin.</p>
+                                    <p className="text-tx-secondary mt-4 uppercase tracking-widest text-sm font-bold">Pénalité de temps en cours...</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {isLoadingPage && !cheatDetected && (
                             <div className="absolute inset-0 bg-brand-bg/50 backdrop-blur-sm flex flex-col items-center justify-center z-20">
                                 <Loader2 className="w-12 h-12 text-accent-primary animate-spin mb-4" />
                                 <span className="font-display font-black text-tx-base tracking-widest uppercase">Chargement de la page...</span>
                             </div>
                         )}
                         
-                        {hasFinished ? (
+                        {hasFinished && !cheatDetected ? (
                             <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 text-center">
                                 <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-3xl shadow-brutal mb-6 transform rotate-3">
                                     <Trophy className="w-16 h-16 text-[#FFD000]" />
