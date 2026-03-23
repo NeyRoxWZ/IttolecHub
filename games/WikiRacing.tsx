@@ -349,17 +349,29 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' || e.key === 'F3') {
                 // DO NOT preventDefault, let them open the search bar
                 setCheatDetected(true);
-                
-                // Keep it blocked for 5 seconds to penalize them
-                setTimeout(() => {
-                    setCheatDetected(false);
-                }, 5000);
+            }
+            
+            // If they press Escape, they might be closing the search bar
+            if (e.key === 'Escape') {
+                setCheatDetected(false);
+            }
+        };
+        
+        // When user clicks anywhere on the document, assume they closed search or are back interacting
+        const handleClick = () => {
+            if (cheatDetected) {
+                setCheatDetected(false);
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [currentPhase, hasFinished]);
+        window.addEventListener('mousedown', handleClick);
+        
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('mousedown', handleClick);
+        };
+    }, [currentPhase, hasFinished, cheatDetected]);
 
     // --- RENDER HELPERS ---
     const sortedPlayers = useMemo(() => {
@@ -462,11 +474,11 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
             {currentPhase === 'racing' && (
                 <div className="flex flex-col w-full h-full relative flex-1">
                     {cheatDetected && (
-                        <div className="fixed inset-0 bg-brand-bg z-[9999] flex flex-col items-center justify-center p-8 text-center">
+                        <div className="fixed inset-0 bg-brand-bg z-[9999] flex flex-col items-center justify-center p-8 text-center" onClick={() => setCheatDetected(false)}>
                             <div className="bg-brand-inner border-4 border-brand-border p-8 rounded-3xl shadow-brutal mb-6 transform -rotate-3">
                                 <h2 className="font-display text-5xl font-black text-accent-primary uppercase mb-4">On te dérange pas trop ?</h2>
                                 <p className="text-xl font-bold text-tx-base">La recherche est interdite ici, petit malin.</p>
-                                <p className="text-tx-secondary mt-4 uppercase tracking-widest text-sm font-bold">Pénalité de temps en cours...</p>
+                                <p className="text-tx-secondary mt-4 uppercase tracking-widest text-sm font-bold">Appuie sur Échap ou clique n'importe où pour reprendre.</p>
                             </div>
                         </div>
                     )}
