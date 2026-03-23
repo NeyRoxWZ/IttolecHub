@@ -347,7 +347,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
 
             // Detect Ctrl+F (Windows/Linux) or Cmd+F (Mac) or F3
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' || e.key === 'F3') {
-                e.preventDefault();
+                // DO NOT preventDefault, let them open the search bar
                 setCheatDetected(true);
                 
                 // Keep it blocked for 5 seconds to penalize them
@@ -461,6 +461,16 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
             {/* RACING PHASE */}
             {currentPhase === 'racing' && (
                 <div className="flex flex-col w-full h-full relative flex-1">
+                    {cheatDetected && (
+                        <div className="fixed inset-0 bg-brand-bg z-[9999] flex flex-col items-center justify-center p-8 text-center">
+                            <div className="bg-brand-inner border-4 border-brand-border p-8 rounded-3xl shadow-brutal mb-6 transform -rotate-3">
+                                <h2 className="font-display text-5xl font-black text-accent-primary uppercase mb-4">On te dérange pas trop ?</h2>
+                                <p className="text-xl font-bold text-tx-base">La recherche est interdite ici, petit malin.</p>
+                                <p className="text-tx-secondary mt-4 uppercase tracking-widest text-sm font-bold">Pénalité de temps en cours...</p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* HUD - Fixed Top */}
                     <div className="bg-brand-card border-b-4 border-brand-border p-3 md:p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm z-10 sticky top-0">
                         <div className="flex items-center gap-3">
@@ -489,16 +499,6 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                         ref={contentRef}
                         className="flex-1 overflow-y-auto w-full bg-[#1e1e28] relative"
                     >
-                        {cheatDetected && (
-                            <div className="absolute inset-0 bg-brand-bg z-50 flex flex-col items-center justify-center p-8 text-center">
-                                <div className="bg-brand-inner border-4 border-brand-border p-8 rounded-3xl shadow-brutal mb-6 transform -rotate-3">
-                                    <h2 className="font-display text-5xl font-black text-accent-primary uppercase mb-4">On te dérange pas trop ?</h2>
-                                    <p className="text-xl font-bold text-tx-base">La recherche (Ctrl+F) est interdite ici, petit malin.</p>
-                                    <p className="text-tx-secondary mt-4 uppercase tracking-widest text-sm font-bold">Pénalité de temps en cours...</p>
-                                </div>
-                            </div>
-                        )}
-
                         {isLoadingPage && !cheatDetected && (
                             <div className="absolute inset-0 bg-brand-bg/50 backdrop-blur-sm flex flex-col items-center justify-center z-20">
                                 <Loader2 className="w-12 h-12 text-accent-primary animate-spin mb-4" />
