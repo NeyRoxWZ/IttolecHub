@@ -528,7 +528,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                                     En attente des autres joueurs...
                                 </p>
                             </div>
-                        ) : (
+                        ) : !cheatDetected && (
                             <div 
                                 className="wiki-content max-w-4xl mx-auto p-4 md:p-8 text-white"
                                 onClick={handleWikiClick}
