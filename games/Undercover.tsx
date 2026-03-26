@@ -346,12 +346,14 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     managePhases();
   }, [isHost, currentPhase, timeLeft, alivePlayers, voteTime, readyPlayersFromTable, gameState, roomId, game.timer_start_at]);
 
-  // Auto-start
+  // Auto-start (Removed to fix automatic transition to role distribution)
+  /*
   useEffect(() => {
       if (isHost && gameState?.round_data?.phase === 'setup' && players.length >= 3 && currentPhase === 'setup') {
           startNewGame();
       }
   }, [isHost, gameState?.round_data?.phase, players.length, currentPhase]);
+  */
 
   // --- ACTIONS ---
 

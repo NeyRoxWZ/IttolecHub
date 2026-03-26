@@ -219,12 +219,14 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
     managePhases();
   }, [isHost, currentPhase, timeLeft, alivePlayers, guessTime, readyPlayersFromTable, gameState, roomId, game.timer_start_at]);
 
-  // Auto-start
+  // Auto-start (Removed to fix automatic transition to role distribution)
+  /*
   useEffect(() => {
       if (isHost && gameState?.round_data?.phase === 'setup' && players.length >= 4 && currentPhase === 'setup') {
           startNewGame();
       }
   }, [isHost, gameState?.round_data?.phase, players.length, currentPhase]);
+  */
 
   // --- ACTIONS ---
 
@@ -655,11 +657,25 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                      <p className="text-tx-secondary mt-2 font-bold">{players.length} / 4 minimum</p>
                  </div>
                ) : (
-                 <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center">
-                    <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl mb-4">
-                        <Loader2 className="w-12 h-12 animate-spin text-accent-primary" />
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full max-w-md">
+                    <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl mb-6">
+                        <User className="w-12 h-12 text-accent-primary" />
                     </div>
-                    <p className="font-display text-2xl font-bold text-tx-base text-center animate-pulse">Démarrage de la mission...</p>
+                    <p className="font-display text-2xl font-bold text-tx-base text-center mb-8">Prêt à lancer ?</p>
+                    
+                    {isHost ? (
+                        <button 
+                            onClick={startNewGame}
+                            className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
+                        >
+                            LANCER LA PARTIE
+                        </button>
+                    ) : (
+                        <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
+                            <Loader2 className="w-6 h-6 animate-spin text-accent-primary" />
+                            <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                        </div>
+                    )}
                  </div>
                )}
             </div>
