@@ -46,7 +46,7 @@ export default function GameLayout({
           <ReactionButton roomId={roomId || ''} />
       </div>
 
-      {/* HEADER FIXE */}
+      {/* HEADER FIXED */}
       <header className="relative z-50 bg-brand-card/90 backdrop-blur-md border-b-4 border-brand-border px-4 py-3 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
             {/* Left: Game Title & Round */}

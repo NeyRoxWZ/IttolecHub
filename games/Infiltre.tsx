@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 
 import { useGameSync } from '@/hooks/useGameSync';
 import GameLayout from './components/GameLayout';
-import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Skull, Loader2, Send, Check, Crown, Home, ThumbsUp, ThumbsDown, HelpCircle, Search } from 'lucide-react';
+import { User, Eye, EyeOff, MessageSquare, AlertTriangle, Skull, Loader2, Send, Check, Crown, Home, ThumbsUp, ThumbsDown, HelpCircle, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -505,13 +505,9 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
               
               const activeVoters = players.length - 1; // Exclude Master
               if (activeVoters <= 2) {
-                   // If only 2 active players (Finder + 1 Other), and Finder is cleared.
-                   // Then the Other is Infiltrator.
-                   // Citizens Win (because we found him by elimination).
-                   // OR Infiltrator Wins if he wasn't found?
-                   // No, usually elimination means we know.
-                   // Let's say Citizens Win.
-                   await finishGame('CITIZENS');
+                   // S'il ne reste que 2 votants actifs (1 Infiltré + 1 Citoyen), le 2ème vote ne sert à rien.
+                   // Puisque le Finder n'était pas l'Infiltré (ou n'a pas été condamné), c'est l'Infiltré qui gagne direct.
+                   await finishGame('INFILTRE');
               } else {
                   await supabase.from('infiltre_games').update({
                       phase: 'voting_infiltre',
@@ -861,57 +857,58 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                     {/* ANSWER AREA */}
                                     {q.answer ? (
                                         <div className={cn(
-                                            "inline-flex items-center px-4 py-2 rounded-xl text-sm font-black tracking-wider uppercase border-2 shadow-sm",
-                                            q.answer === 'OUI' ? 'bg-accent-success border-accent-success text-brand-bg' : 
-                                            q.answer === 'NON' ? 'bg-accent-secondary border-accent-secondary text-brand-bg' : 'bg-brand-bg border-brand-border text-tx-secondary'
+                                            "inline-flex items-center px-4 py-2 rounded-xl text-sm font-black tracking-wider uppercase border-4 shadow-brutal",
+                                            q.answer === 'OUI' ? 'bg-accent-success border-brand-border text-brand-bg' : 
+                                            q.answer === 'NON' ? 'bg-accent-secondary border-brand-border text-brand-bg' : 'bg-brand-inner border-brand-border text-tx-base'
                                         )}>
                                             {q.answer === 'OUI' ? <ThumbsUp className="w-4 h-4 mr-2" /> : 
                                              q.answer === 'NON' ? <ThumbsDown className="w-4 h-4 mr-2" /> : <HelpCircle className="w-4 h-4 mr-2" />}
                                             {q.answer.replace('_', ' ')}
                                         </div>
                                     ) : isMaster ? (
-                                        <div className="flex flex-col gap-2">
+                                        <div className="flex flex-col gap-3">
                                             {likelySecret && (
-                                                <div className="flex gap-2 w-full">
+                                                <div className="flex flex-col items-center p-3 border-4 border-accent-primary rounded-xl bg-brand-bg shadow-sm">
+                                                    <span className="text-sm font-black uppercase text-accent-primary mb-2 flex items-center gap-2">
+                                                        <Crown className="w-4 h-4" /> Mot potentiellement trouvé !
+                                                    </span>
                                                     {confirmingWinnerId === q.playerId ? (
                                                         <div className="flex gap-2 w-full animate-in fade-in">
                                                             <button 
                                                                 onClick={() => triggerWordFound(q.playerId)} 
-                                                                className="flex-1 h-10 rounded-lg font-display font-black text-sm tracking-wider border-2 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-bg hover:text-accent-success"
+                                                                className="flex-1 h-12 rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-bg hover:text-accent-primary shadow-brutal"
                                                             >
-                                                                Confirmer
+                                                                CONFIRMER
                                                             </button>
                                                             <button 
                                                                 onClick={() => setConfirmingWinnerId(null)} 
-                                                                className="flex-1 h-10 rounded-lg font-display font-black text-sm tracking-wider border-2 border-brand-border bg-brand-bg text-tx-secondary hover:text-tx-base"
+                                                                className="h-12 px-4 rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-brand-bg text-tx-secondary hover:text-tx-base"
                                                             >
-                                                                Annuler
+                                                                <X className="w-5 h-5" />
                                                             </button>
                                                         </div>
                                                     ) : (
-                                                        <>
-                                                            <button 
-                                                                onClick={() => setConfirmingWinnerId(q.playerId)} 
-                                                                className="flex-[2] h-10 rounded-lg font-display font-black text-sm tracking-wider border-2 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-bg hover:text-accent-primary animate-pulse flex items-center justify-center gap-2"
-                                                            >
-                                                                <Crown className="w-4 h-4" /> Valider ({asker?.name})
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => answerQuestion(q.id, 'NON')} 
-                                                                className="flex-1 h-10 rounded-lg font-display font-black text-xs tracking-wider border-2 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-bg hover:text-accent-secondary"
-                                                            >
-                                                                Non
-                                                            </button>
-                                                        </>
+                                                        <button 
+                                                            onClick={() => setConfirmingWinnerId(q.playerId)} 
+                                                            className="w-full h-12 rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-brand-inner text-accent-primary hover:bg-accent-primary hover:text-brand-bg shadow-brutal transition-colors flex items-center justify-center gap-2"
+                                                        >
+                                                            Valider la victoire de {asker?.name}
+                                                        </button>
                                                     )}
                                                 </div>
                                             )}
-                                            {/* Hide regular buttons if we are in confirmation mode for this specific question */}
+                                            {/* Regular buttons */}
                                             {likelySecret && confirmingWinnerId === q.playerId ? null : (
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => answerQuestion(q.id, 'OUI')} className="h-10 flex-1 rounded-lg font-display font-black text-sm tracking-wider border-2 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-bg hover:text-accent-success">Oui</button>
-                                                    <button onClick={() => answerQuestion(q.id, 'NON')} className="h-10 flex-1 rounded-lg font-display font-black text-sm tracking-wider border-2 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-bg hover:text-accent-secondary">Non</button>
-                                                    <button onClick={() => answerQuestion(q.id, 'NE_SAIS_PAS')} className="h-10 flex-1 rounded-lg font-display font-black text-sm tracking-wider border-2 border-brand-border bg-brand-bg text-tx-secondary hover:text-tx-base">?</button>
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    <button onClick={() => answerQuestion(q.id, 'OUI')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-bg hover:text-accent-success shadow-brutal transition-colors">
+                                                        <ThumbsUp className="w-5 h-5 mb-1" /> OUI
+                                                    </button>
+                                                    <button onClick={() => answerQuestion(q.id, 'NON')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-bg hover:text-accent-secondary shadow-brutal transition-colors">
+                                                        <ThumbsDown className="w-5 h-5 mb-1" /> NON
+                                                    </button>
+                                                    <button onClick={() => answerQuestion(q.id, 'NE_SAIS_PAS')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base shadow-brutal transition-colors">
+                                                        <HelpCircle className="w-5 h-5 mb-1" /> NSP
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
@@ -926,7 +923,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
                 {/* BOTTOM INPUT (Fixed Mobile) */}
                 {!isMaster && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-brand-bg/95 backdrop-blur-lg border-t-4 border-brand-border z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4">
+                    <div className="fixed bottom-0 left-0 right-0 p-4 z-50 md:relative md:p-0 md:mt-4">
                         <div className="max-w-3xl mx-auto flex gap-3">
                             <input 
                                 placeholder="Posez une question..." 
@@ -948,7 +945,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
                 {/* MASTER CONTROLS */}
                 {isMaster && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-brand-bg/95 backdrop-blur-lg border-t-4 border-brand-border z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4 text-center">
+                    <div className="fixed bottom-0 left-0 right-0 p-4 z-50 md:relative md:p-0 md:mt-4 text-center">
                         <p className="text-tx-secondary font-bold mb-2 uppercase tracking-widest text-sm">Quelqu'un a trouvé le mot ?</p>
                         <div className="flex flex-wrap justify-center gap-3">
                             {players.filter(p => p.id !== playerId).map(p => (
