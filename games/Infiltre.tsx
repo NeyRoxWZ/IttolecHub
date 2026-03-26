@@ -106,6 +106,15 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
   const [showRole, setShowRole] = useState(false); // For Eye button logic
   const [confirmingWinnerId, setConfirmingWinnerId] = useState<string | null>(null);
 
+  // Reset local state when phase changes to setup or roles
+  useEffect(() => {
+      if (currentPhase === 'setup' || currentPhase === 'roles') {
+          setUserQuestion('');
+          setShowRole(false);
+          setConfirmingWinnerId(null);
+      }
+  }, [currentPhase]);
+
   const isAlive = useMemo(() => {
     // Check if player is alive in DB (if we add elimination)
     // For now, everyone is alive until game end.
@@ -844,7 +853,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                     likelySecret ? "border-accent-primary bg-brand-card" : "border-brand-border bg-brand-inner"
                                 )}>
                                     {likelySecret && !q.answer && (
-                                        <div className="absolute top-2 right-2 flex items-center gap-1 text-accent-primary text-xs font-black uppercase tracking-widest animate-pulse bg-brand-bg px-3 py-1 rounded-lg border-2 border-accent-primary">
+                                        <div className="absolute top-2 right-2 flex items-center gap-1 text-accent-primary text-xs font-black uppercase tracking-widest animate-pulse bg-brand-inner px-3 py-1 rounded-lg border-4 border-accent-primary">
                                             <Crown className="w-3 h-3" /> Mot trouvé ?
                                         </div>
                                     )}
@@ -863,12 +872,12 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                         )}>
                                             {q.answer === 'OUI' ? <ThumbsUp className="w-4 h-4 mr-2" /> : 
                                              q.answer === 'NON' ? <ThumbsDown className="w-4 h-4 mr-2" /> : <HelpCircle className="w-4 h-4 mr-2" />}
-                                            {q.answer.replace('_', ' ')}
+                                            {q.answer === 'NE_SAIS_PAS' ? 'NE SAIT PAS' : q.answer}
                                         </div>
                                     ) : isMaster ? (
                                         <div className="flex flex-col gap-3">
                                             {likelySecret && (
-                                                <div className="flex flex-col items-center p-3 border-4 border-accent-primary rounded-xl bg-brand-bg shadow-sm">
+                                                <div className="flex flex-col items-center p-3 border-4 border-accent-primary rounded-xl bg-brand-inner shadow-sm">
                                                     <span className="text-sm font-black uppercase text-accent-primary mb-2 flex items-center gap-2">
                                                         <Crown className="w-4 h-4" /> Mot potentiellement trouvé !
                                                     </span>
@@ -876,13 +885,13 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                                         <div className="flex gap-2 w-full animate-in fade-in">
                                                             <button 
                                                                 onClick={() => triggerWordFound(q.playerId)} 
-                                                                className="flex-1 h-12 rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-bg hover:text-accent-primary shadow-brutal"
+                                                                className="flex-1 h-12 rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
                                                             >
                                                                 CONFIRMER
                                                             </button>
                                                             <button 
                                                                 onClick={() => setConfirmingWinnerId(null)} 
-                                                                className="h-12 px-4 rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-brand-bg text-tx-secondary hover:text-tx-base"
+                                                                className="h-12 px-4 rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base"
                                                             >
                                                                 <X className="w-5 h-5" />
                                                             </button>
@@ -900,10 +909,10 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                             {/* Regular buttons */}
                                             {likelySecret && confirmingWinnerId === q.playerId ? null : (
                                                 <div className="grid grid-cols-3 gap-3">
-                                                    <button onClick={() => answerQuestion(q.id, 'OUI')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-bg hover:text-accent-success shadow-brutal transition-colors">
+                                                    <button onClick={() => answerQuestion(q.id, 'OUI')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success shadow-brutal transition-colors">
                                                         <ThumbsUp className="w-5 h-5 mb-1" /> OUI
                                                     </button>
-                                                    <button onClick={() => answerQuestion(q.id, 'NON')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-bg hover:text-accent-secondary shadow-brutal transition-colors">
+                                                    <button onClick={() => answerQuestion(q.id, 'NON')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-inner hover:text-accent-secondary shadow-brutal transition-colors">
                                                         <ThumbsDown className="w-5 h-5 mb-1" /> NON
                                                     </button>
                                                     <button onClick={() => answerQuestion(q.id, 'NE_SAIS_PAS')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base shadow-brutal transition-colors">
