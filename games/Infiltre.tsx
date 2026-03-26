@@ -249,9 +249,9 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         // Find Master ID
         const newMasterId = Object.keys(newRoles).find(id => newRoles[id] === 'MASTER');
 
-        // SQL Initialization
-        await supabase.from('infiltre_games').upsert({
+        const { error: gameError } = await supabase.from('infiltre_games').upsert({
             room_id: roomId,
+            round_id: String(currentRoundNumber || 1),
             phase: 'roles',
             secret_word: data.secretWord,
             category: data.category,
@@ -262,13 +262,20 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
             created_at: new Date().toISOString()
         }, { onConflict: 'room_id' });
 
+        if (gameError) console.error("GAME ERROR", gameError);
+
         const playerInserts = players.map(p => ({
             room_id: roomId,
+            round_id: String(currentRoundNumber || 1),
             player_id: p.id,
             role: newRoles[p.id],
             is_alive: true
         }));
-        await supabase.from('infiltre_players').upsert(playerInserts, { onConflict: 'room_id,player_id' });
+        
+        await supabase.from('infiltre_players').delete().eq('room_id', roomId);
+        const { error: playersError } = await supabase.from('infiltre_players').insert(playerInserts);
+
+        if (playersError) console.error("PLAYERS ERROR", playersError);
 
         await supabase.from('infiltre_questions').delete().eq('room_id', roomId);
         await supabase.from('infiltre_votes').delete().eq('room_id', roomId);
@@ -596,11 +603,13 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
           
           const playerInserts = players.map(p => ({
               room_id: roomId,
+              round_id: String(nextRoundNum),
               player_id: p.id,
               role: newRoles[p.id],
               is_alive: true
           }));
-          await supabase.from('infiltre_players').upsert(playerInserts, { onConflict: 'room_id,player_id' });
+          await supabase.from('infiltre_players').delete().eq('room_id', roomId);
+          await supabase.from('infiltre_players').insert(playerInserts);
           
           await updateRoundData({
               current_round: nextRoundNum,
@@ -658,17 +667,17 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                  </div>
                ) : (
                  <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full max-w-md">
-                    <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl mb-6">
-                        <User className="w-12 h-12 text-accent-primary" />
+                    <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
+                        <User className="w-16 h-16 text-accent-primary" />
                     </div>
-                    <p className="font-display text-2xl font-bold text-tx-base text-center mb-8">Prêt à lancer ?</p>
+                    <p className="font-display text-2xl font-black text-tx-base text-center mb-8 uppercase tracking-widest">Prêt à lancer ?</p>
                     
                     {isHost ? (
                         <button 
                             onClick={startNewGame}
                             className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
                         >
-                            LANCER LA PARTIE
+                            COMMENCER LA PARTIE
                         </button>
                     ) : (
                         <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">

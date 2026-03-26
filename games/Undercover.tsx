@@ -725,27 +725,24 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                      <p className="text-tx-secondary mt-2 font-bold">{players.length} / 3 minimum</p>
                  </div>
                ) : (
-                 <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center">
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full max-w-md">
+                    <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
+                        <User className="w-16 h-16 text-accent-primary" />
+                    </div>
+                    <p className="font-display text-2xl font-black text-tx-base text-center mb-8 uppercase tracking-widest">Prêt à lancer ?</p>
+                    
                     {isHost ? (
-                        <>
-                            <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl mb-4">
-                                <Play className="w-12 h-12 text-accent-success" />
-                            </div>
-                            <p className="font-display text-2xl font-bold text-tx-base text-center mb-6">Prêt à lancer la partie !</p>
-                            <button 
-                                onClick={startNewGame}
-                                className="w-full h-14 rounded-xl font-display font-black tracking-wider transition-colors border-2 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-bg hover:text-accent-success shadow-brutal"
-                            >
-                                DÉMARRER LA PARTIE
-                            </button>
-                        </>
+                        <button 
+                            onClick={startNewGame}
+                            className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
+                        >
+                            COMMENCER LA PARTIE
+                        </button>
                     ) : (
-                        <>
-                            <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl mb-4">
-                                <Loader2 className="w-12 h-12 animate-spin text-accent-primary" />
-                            </div>
-                            <p className="font-display text-2xl font-bold text-tx-base text-center animate-pulse">En attente de l&apos;hôte...</p>
-                        </>
+                        <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
+                            <Loader2 className="w-6 h-6 animate-spin text-accent-primary" />
+                            <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                        </div>
                     )}
                  </div>
                )}
