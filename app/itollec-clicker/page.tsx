@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useCloudSave } from '@/hooks/useCloudSave';
-import { CloudSaveIndicator } from '@/components/CloudSaveIndicator';
 import { BUILDINGS, generateAchievements, generateUpgrades, getBuildingCost, type BuildingId } from '@/lib/itollec-clicker/data';
 import { formatShortNumber } from '@/lib/itollec-clicker/format';
 import Link from 'next/link';
@@ -53,9 +52,10 @@ export default function ItollecClickerPage() {
   const upgrades = useMemo(() => generateUpgrades(), []);
   const achievements = useMemo(() => generateAchievements(), []);
 
-  const { data, setData, lastSync, syncStatus, forceSync, isLoaded } = useCloudSave<ItollecClickerSave>(
+  const { data, setData, isLoaded } = useCloudSave<ItollecClickerSave>(
     'itollec-clicker',
-    INITIAL_SAVE
+    INITIAL_SAVE,
+    { silent: true }
   );
 
   const dataRef = useRef(data);
@@ -113,8 +113,8 @@ export default function ItollecClickerPage() {
 
   const clickValue = useMemo(() => {
     const base = 1;
-    const combo = data.comboActive ? 2 : 1;
-    return base * clickMult * combo;
+    const eventMult = data.comboActive ? 2 : 1;
+    return base * clickMult * eventMult;
   }, [clickMult, data.comboActive]);
 
   const unlockedUpgrades = useMemo(() => {
@@ -297,11 +297,10 @@ export default function ItollecClickerPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden sm:block text-right">
-              <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Sauvegarde</div>
+            <div className="text-right">
+              <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin</div>
               <div className="text-sm font-bold text-tx-base">{formatShortNumber(data.coins)} ₶</div>
             </div>
-            <CloudSaveIndicator status={syncStatus} lastSync={lastSync} onForceSync={forceSync} />
           </div>
         </div>
 
@@ -309,12 +308,12 @@ export default function ItollecClickerPage() {
           <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal mb-8">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
-                <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">₶</div>
-                <div className="text-2xl font-display font-black text-tx-base">{formatShortNumber(data.coins)}</div>
+                <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin</div>
+                <div className="text-2xl font-display font-black text-tx-base">{formatShortNumber(data.coins)} ₶</div>
               </div>
               <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
-                <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">PPS</div>
-                <div className="text-2xl font-display font-black text-tx-base">{formatShortNumber(pps)}</div>
+                <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin/s</div>
+                <div className="text-2xl font-display font-black text-tx-base">{formatShortNumber(pps)} ₶/s</div>
               </div>
               <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Clics</div>
@@ -341,6 +340,13 @@ export default function ItollecClickerPage() {
             </div>
 
             <div className="mt-6 flex-1 flex flex-col items-center justify-center">
+              {data.comboActive && (
+                <div className="mb-4 rounded-2xl border-2 border-brand-border bg-brand-inner px-4 py-2 shadow-brutal">
+                  <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary text-center">
+                    Événement : Combo de clic ×2
+                  </div>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={handleClickSeal}
@@ -373,7 +379,7 @@ export default function ItollecClickerPage() {
               </button>
 
               <div className="mt-6 text-xs font-bold tracking-widest uppercase text-tx-secondary text-center">
-                {data.comboActive ? 'Combo actif ×2' : 'Combo : 20 clics en 5s'}
+                Clique pour gagner des FrenlyCoin ₶
               </div>
             </div>
           </div>
@@ -418,14 +424,11 @@ export default function ItollecClickerPage() {
                   Succès
                 </button>
               </div>
-              <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary text-right">
-                <div>PPS</div>
-                <div className="text-tx-base">{formatShortNumber(pps)} ₶/s</div>
-              </div>
+              <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary text-right" />
             </div>
 
             {activePanel === 'buildings' && (
-              <div className="mt-6 space-y-3 overflow-y-auto max-h-[540px] pr-1">
+              <div className="mt-6 space-y-3 overflow-y-auto h-[540px] pr-1">
                 {BUILDINGS.map((b) => {
                   const owned = data.buildingsOwned[b.id] ?? 0;
                   const cost = getBuildingCost(b, owned);
@@ -462,7 +465,7 @@ export default function ItollecClickerPage() {
             )}
 
             {activePanel === 'upgrades' && (
-              <div className="mt-6 space-y-3 overflow-y-auto max-h-[540px] pr-1">
+              <div className="mt-6 space-y-3 overflow-y-auto h-[540px] pr-1">
                 <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                   <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Disponibles</div>
                   <div className="text-sm font-bold text-tx-base mt-1">{unlockedUpgrades.length}</div>
@@ -502,7 +505,7 @@ export default function ItollecClickerPage() {
             )}
 
             {activePanel === 'achievements' && (
-              <div className="mt-6 space-y-3 overflow-y-auto max-h-[540px] pr-1">
+              <div className="mt-6 space-y-3 overflow-y-auto h-[540px] pr-1">
                 <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                   <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Bonus</div>
                   <div className="text-sm font-bold text-tx-base mt-1">
@@ -533,4 +536,3 @@ export default function ItollecClickerPage() {
     </main>
   );
 }
-

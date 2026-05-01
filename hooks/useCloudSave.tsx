@@ -7,7 +7,11 @@ import { toast } from 'sonner';
 
 type SaveData = Record<string, any>;
 
-export function useCloudSave<T extends SaveData>(gameSlug: string, initialData: T) {
+type CloudSaveOptions = {
+  silent?: boolean;
+};
+
+export function useCloudSave<T extends SaveData>(gameSlug: string, initialData: T, options?: CloudSaveOptions) {
   const { user } = useAuth();
   const [data, setData] = useState<T>(initialData);
   const [lastSync, setLastSync] = useState<Date | null>(null);
@@ -87,14 +91,16 @@ export function useCloudSave<T extends SaveData>(gameSlug: string, initialData: 
     
     if (!user) {
       setSyncStatus('local');
-      toast('Mode local. Connecte-toi pour sauvegarder dans le cloud.', {
-        icon: '⚠️',
-        duration: 4000
-      });
+      if (!options?.silent) {
+        toast('Mode local. Connecte-toi pour sauvegarder dans le cloud.', {
+          icon: '⚠️',
+          duration: 4000
+        });
+      }
     } else {
       setSyncStatus('idle');
     }
-  }, [user, gameSlug, initialData]);
+  }, [user, gameSlug, initialData, options?.silent]);
 
   // Chargement initial
   useEffect(() => {
@@ -154,11 +160,11 @@ export function useCloudSave<T extends SaveData>(gameSlug: string, initialData: 
       if (error) throw error;
       setLastSync(new Date(now));
       setSyncStatus('idle');
-      toast.success('Sauvegarde synchronisée');
+      if (!options?.silent) toast.success('Sauvegarde synchronisée');
     } catch (error) {
       console.error('Erreur sync forcée:', error);
       setSyncStatus('error');
-      toast.error('Erreur de synchronisation');
+      if (!options?.silent) toast.error('Erreur de synchronisation');
     }
   };
 
