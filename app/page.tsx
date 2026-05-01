@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, Leaf, LogOut } from 'lucide-react';
+import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, Leaf, LogOut, Menu, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -45,6 +45,7 @@ export default function Home() {
   const [demoGameIndex, setDemoGameIndex] = useState(1);
   const [easterEggActive, setEasterEggActive] = useState(false);
   const [keyBuffer, setKeyBuffer] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
 
   useEffect(() => {
@@ -142,6 +143,22 @@ export default function Home() {
     router.replace(`/?mode=${nextMode}`);
   };
 
+  const goConnexion = () => {
+    const next = `/?mode=${mode}`;
+    try {
+      sessionStorage.setItem('itollec_next_path', next);
+    } catch {}
+    router.push(`/connexion?next=${encodeURIComponent(next)}`);
+  };
+
+  const goCreerCompte = () => {
+    const next = `/?mode=${mode}`;
+    try {
+      sessionStorage.setItem('itollec_next_path', next);
+    } catch {}
+    router.push('/creer-compte');
+  };
+
   return (
     <main className="bg-transparent min-h-screen md:h-screen flex flex-col justify-between md:overflow-hidden relative">
       {/* EASTER EGG */}
@@ -185,6 +202,17 @@ export default function Home() {
 
       <header className="pt-3 md:pt-5 text-center px-6">
         <div className="w-full max-w-5xl mx-auto flex items-center justify-between gap-4 mb-3">
+          <div className="md:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="h-11 w-11 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
+              aria-label="Menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </div>
+
           <div className="flex-1 hidden md:block" />
 
           <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-2 flex gap-2">
@@ -214,7 +242,7 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="flex-1 flex justify-end">
+          <div className="flex-1 hidden md:flex justify-end">
             {user ? (
               <div className="flex items-center gap-2">
                 <button
@@ -237,14 +265,14 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => router.push('/connexion')}
+                  onClick={goConnexion}
                   className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
                 >
                   Connexion
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push('/creer-compte')}
+                  onClick={goCreerCompte}
                   className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
                 >
                   Créer un compte
@@ -269,11 +297,113 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="flex-1 flex items-center pb-8 md:pb-10 pt-1">
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[9999] md:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            className="absolute inset-0 bg-black/60"
+            aria-label="Fermer"
+          />
+          <div className="absolute top-3 left-3 right-3 bg-brand-card border-4 border-brand-border rounded-[32px] p-5 shadow-brutal">
+            <div className="flex items-center justify-between gap-3">
+              <div className="font-display text-2xl font-black tracking-wider uppercase text-tx-base">Menu</div>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="h-11 w-11 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
+                aria-label="Fermer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-2xl border-2 border-brand-border bg-brand-inner p-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleSetMode('multiplayer')}
+                className={cn(
+                  'flex-1 px-3 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                  mode === 'multiplayer'
+                    ? 'bg-brand-card text-tx-base border-brand-border'
+                    : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
+                )}
+              >
+                Multiplayer
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetMode('solo')}
+                className={cn(
+                  'flex-1 px-3 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                  mode === 'solo'
+                    ? 'bg-brand-card text-tx-base border-brand-border'
+                    : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
+                )}
+              >
+                Solo
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {user ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      router.push('/profil');
+                    }}
+                    className="w-full h-12 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                  >
+                    Profil
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full h-12 rounded-lg border-2 border-red-500/40 bg-brand-inner text-red-400 hover:text-red-300 hover:border-red-400 hover:bg-red-500/10 transition-colors font-display font-black tracking-wider uppercase flex items-center justify-center gap-2"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    Déconnexion
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      goConnexion();
+                    }}
+                    className="w-full h-12 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                  >
+                    Connexion
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      goCreerCompte();
+                    }}
+                    className="w-full h-12 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                  >
+                    Créer un compte
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <section className="flex-1 flex items-start md:items-center pb-8 md:pb-10 pt-1">
         <div className="w-full max-w-5xl mx-auto px-6">
           {mode === 'multiplayer' ? (
             <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center">
-              <div className="flex-1 h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+              <div className="flex-1 md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
                 <div className="flex items-center justify-between h-12">
                   <h2 className="font-display text-2xl md:text-3xl leading-none">
                     {activeTab === 'create' ? 'Créer une room' : 'Rejoindre une room'}
@@ -358,7 +488,7 @@ export default function Home() {
                 </form>
               </div>
 
-              <div className="flex-1 h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+              <div className="flex-1 md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
                 <div className="flex items-center h-12">
                   <h2 className="font-display text-2xl md:text-3xl leading-none">Comment jouer</h2>
                 </div>
@@ -468,7 +598,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center">
-              <div className="flex-1 h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+              <div className="flex-1 md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
                 <div className="flex items-center justify-between h-12">
                   <h2 className="font-display text-2xl md:text-3xl leading-none">ItollecClicker</h2>
                   <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
@@ -497,7 +627,7 @@ export default function Home() {
                 </button>
               </div>
 
-              <div className="flex-1 h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+              <div className="flex-1 md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
                 <div className="flex items-center justify-between h-12">
                   <h2 className="font-display text-2xl md:text-3xl leading-none">TerraFarm</h2>
                   <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">

@@ -21,7 +21,7 @@ export default function ProfilPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/connexion');
+      router.push('/connexion?next=%2Fprofil');
     }
   }, [user, loading, router]);
 

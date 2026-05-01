@@ -17,7 +17,7 @@ export type User = {
 type AuthContextType = {
   user: User | null;
   loading: boolean;
-  loginDiscord: () => void;
+  loginDiscord: (nextPath?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   setUserLocally: (user: User) => void;
@@ -114,11 +114,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const loginDiscord = async () => {
+  const loginDiscord = async (nextPath?: string) => {
+    const safeNext = typeof nextPath === 'string' && nextPath.startsWith('/') ? nextPath : '/';
     await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: `${window.location.origin}/`
+        redirectTo: `${window.location.origin}/connexion?next=${encodeURIComponent(safeNext)}`
       }
     });
   };

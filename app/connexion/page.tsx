@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -12,7 +12,40 @@ export default function ConnexionPage() {
   const [passphrase, setPassphrase] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { loginDiscord, setUserLocally } = useAuth();
+  const searchParams = useSearchParams();
+  const { loginDiscord, setUserLocally, user, loading: authLoading } = useAuth();
+
+  const nextPath = useMemo(() => {
+    const fromQuery = searchParams.get('next');
+    if (fromQuery && fromQuery.startsWith('/')) return fromQuery;
+
+    try {
+      const stored = sessionStorage.getItem('itollec_next_path');
+      if (stored && stored.startsWith('/')) return stored;
+    } catch {}
+
+    try {
+      const ref = document.referrer ? new URL(document.referrer) : null;
+      if (ref && ref.origin === window.location.origin) {
+        const p = `${ref.pathname}${ref.search}${ref.hash}`;
+        if (p.startsWith('/')) return p;
+      }
+    } catch {}
+
+    return '/';
+  }, [searchParams]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('itollec_next_path', nextPath);
+    } catch {}
+  }, [nextPath]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    router.replace(nextPath);
+  }, [authLoading, nextPath, router, user]);
 
   const handlePassphraseLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +75,7 @@ export default function ConnexionPage() {
 
       setUserLocally(data.user);
       toast.success('Connecté avec succès !');
-      router.push('/');
+      router.push(nextPath);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -73,7 +106,7 @@ export default function ConnexionPage() {
           <div className="mt-6 space-y-6">
             <button
               type="button"
-              onClick={loginDiscord}
+              onClick={() => loginDiscord(nextPath)}
               className="w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base flex items-center justify-center gap-3"
             >
               <svg width="22" height="22" viewBox="0 0 256 199" aria-hidden="true" className="shrink-0">
