@@ -302,7 +302,7 @@ export default function ProfilPage() {
               <button
                 type="button"
                 onClick={() => router.push('/itollec-clicker')}
-                className="mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                className="mt-6 w-full h-16 rounded-2xl font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-brutal"
               >
                 Jouer
               </button>
@@ -334,7 +334,7 @@ export default function ProfilPage() {
               <button
                 type="button"
                 onClick={() => router.push('/terrafarm')}
-                className="mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                className="mt-6 w-full h-16 rounded-2xl font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-brutal"
               >
                 Jouer
               </button>
