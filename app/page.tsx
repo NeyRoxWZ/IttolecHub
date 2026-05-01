@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, Leaf, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
@@ -35,6 +35,7 @@ const STEPS = [
 
 export default function Home() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<'multiplayer' | 'solo'>('multiplayer');
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -45,6 +46,20 @@ export default function Home() {
   const [easterEggActive, setEasterEggActive] = useState(false);
   const [keyBuffer, setKeyBuffer] = useState('');
   const { user, logout } = useAuth();
+
+  useEffect(() => {
+    const urlMode = searchParams.get('mode');
+    if (urlMode === 'solo' || urlMode === 'multiplayer') {
+      setMode(urlMode);
+      sessionStorage.setItem('itollec_home_mode', urlMode);
+      return;
+    }
+
+    const savedMode = sessionStorage.getItem('itollec_home_mode');
+    if (savedMode === 'solo' || savedMode === 'multiplayer') {
+      setMode(savedMode);
+    }
+  }, [searchParams]);
 
   // Load state on mount
   useEffect(() => {
@@ -121,6 +136,12 @@ export default function Home() {
   const goPrev = () => setCurrentStep((prev) => (prev - 1 + STEPS.length) % STEPS.length);
   const goNext = () => setCurrentStep((prev) => (prev + 1) % STEPS.length);
 
+  const handleSetMode = (nextMode: 'multiplayer' | 'solo') => {
+    setMode(nextMode);
+    sessionStorage.setItem('itollec_home_mode', nextMode);
+    router.replace(`/?mode=${nextMode}`);
+  };
+
   return (
     <main className="bg-transparent min-h-screen flex flex-col justify-between md:overflow-hidden relative">
       {/* EASTER EGG */}
@@ -162,14 +183,14 @@ export default function Home() {
         }
       `}</style>
 
-      <header className="pt-6 md:pt-8 text-center px-6">
-        <div className="w-full max-w-5xl mx-auto flex items-center justify-between gap-4 mb-6">
+      <header className="pt-4 md:pt-6 text-center px-6">
+        <div className="w-full max-w-5xl mx-auto flex items-center justify-between gap-4 mb-4">
           <div className="flex-1 hidden md:block" />
 
           <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-2 flex gap-2">
             <button
               type="button"
-              onClick={() => setMode('multiplayer')}
+              onClick={() => handleSetMode('multiplayer')}
               className={cn(
                 'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
                 mode === 'multiplayer'
@@ -181,7 +202,7 @@ export default function Home() {
             </button>
             <button
               type="button"
-              onClick={() => setMode('solo')}
+              onClick={() => handleSetMode('solo')}
               className={cn(
                 'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
                 mode === 'solo'
@@ -206,7 +227,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={logout}
-                  className="h-11 w-11 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
+                  className="h-11 w-11 rounded-lg border-2 border-red-500/40 bg-brand-inner text-red-400 hover:text-red-300 hover:border-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center"
                   title="Se déconnecter"
                 >
                   <LogOut className="h-5 w-5" />
@@ -248,7 +269,7 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="flex-1 flex items-center pb-12 md:pb-24 pt-4">
+      <section className="flex-1 flex items-center pb-10 md:pb-14 pt-2">
         <div className="w-full max-w-5xl mx-auto px-6">
           {mode === 'multiplayer' ? (
             <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center">
@@ -537,7 +558,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="pb-6 md:pb-8 px-6">
+      <footer className="pb-4 md:pb-6 px-6">
         <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold tracking-widest uppercase text-tx-muted">
           <a href="#" className="hover:text-tx-secondary transition-colors">Conditions</a>
           <a href="#" className="hover:text-tx-secondary transition-colors">Confidentialité</a>

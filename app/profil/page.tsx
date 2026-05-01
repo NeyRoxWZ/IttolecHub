@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 export default function ProfilPage() {
   const { user, loading, logout, refreshUser } = useAuth();
   const router = useRouter();
+  const [mode, setMode] = useState<'multiplayer' | 'solo'>('multiplayer');
   const [editingPseudo, setEditingPseudo] = useState(false);
   const [newPseudo, setNewPseudo] = useState('');
   const [regenerating, setRegenerating] = useState(false);
@@ -24,6 +25,13 @@ export default function ProfilPage() {
       router.push('/connexion');
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    const savedMode = sessionStorage.getItem('itollec_home_mode');
+    if (savedMode === 'solo' || savedMode === 'multiplayer') {
+      setMode(savedMode);
+    }
+  }, []);
 
   if (loading || !user) {
     return <div className="pt-20 text-center">Chargement...</div>;
@@ -90,15 +98,71 @@ export default function ProfilPage() {
   };
 
   return (
-    <main className="min-h-screen bg-transparent px-6 pt-8 pb-12">
+    <main className="min-h-screen bg-transparent px-6 pt-4 md:pt-6 pb-12">
       <div className="w-full max-w-5xl mx-auto">
-        <div className="flex items-center justify-center mb-8">
-          <Link
-            href="/"
-            className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
-          >
-            Retour
-          </Link>
+        <div className="w-full max-w-5xl mx-auto flex items-center justify-between gap-4 mb-6">
+          <div className="flex-1 flex items-center">
+            <Link
+              href="/"
+              className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
+            >
+              Accueil
+            </Link>
+          </div>
+
+          <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.setItem('itollec_home_mode', 'multiplayer');
+                router.push('/?mode=multiplayer');
+              }}
+              className={cn(
+                'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                mode === 'multiplayer'
+                  ? 'bg-brand-card text-tx-base border-brand-border'
+                  : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
+              )}
+            >
+              Multiplayer
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.setItem('itollec_home_mode', 'solo');
+                router.push('/?mode=solo');
+              }}
+              className={cn(
+                'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                mode === 'solo'
+                  ? 'bg-brand-card text-tx-base border-brand-border'
+                  : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
+              )}
+            >
+              Solo
+            </button>
+          </div>
+
+          <div className="flex-1 flex justify-end">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase"
+                title="Profil"
+              >
+                {user.pseudo}
+              </button>
+              <button
+                type="button"
+                onClick={logout}
+                className="h-11 px-4 rounded-lg border-2 border-red-500/40 bg-brand-inner text-red-400 hover:text-red-300 hover:border-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 font-display font-black tracking-wider uppercase"
+                title="Se déconnecter"
+              >
+                <LogOut className="h-5 w-5" />
+                Déconnexion
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
@@ -257,16 +321,7 @@ export default function ProfilPage() {
               )}
             </div>
 
-            <div className="shrink-0 w-full md:w-auto">
-              <button
-                type="button"
-                onClick={logout}
-                className="w-full md:w-auto h-12 px-4 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Déconnexion
-              </button>
-            </div>
+            <div className="shrink-0 w-full md:w-auto" />
           </div>
         </div>
 
