@@ -5,7 +5,8 @@ export function formatShortNumber(value: number): string {
   const abs = Math.abs(value);
 
   if (abs < 1000) {
-    const v = abs % 1 === 0 ? abs.toFixed(0) : abs.toFixed(abs < 10 ? 2 : abs < 100 ? 1 : 0);
+    const decimals = abs % 1 === 0 ? 0 : abs < 10 ? 2 : abs < 100 ? 1 : 0;
+    const v = abs.toLocaleString('fr-FR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
     return `${sign}${v}`;
   }
 
@@ -26,7 +27,21 @@ export function formatShortNumber(value: number): string {
   const unit = [...units].reverse().find((u) => abs >= u.value) ?? units[0];
   const scaled = abs / unit.value;
   const decimals = scaled < 10 ? 2 : scaled < 100 ? 1 : 0;
-  return `${sign}${scaled.toFixed(decimals)}${unit.suffix}`;
+  const v = scaled.toLocaleString('fr-FR', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+    useGrouping: false,
+  });
+  return `${sign}${v}${unit.suffix}`;
+}
+
+export function formatCoins(value: number): string {
+  if (!Number.isFinite(value)) return '0';
+  const abs = Math.abs(value);
+  if (abs < 1_000_000) {
+    return value.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  }
+  return formatShortNumber(value);
 }
 
 export function formatSecondsAgo(lastSync: Date | null): string {
@@ -38,4 +53,3 @@ export function formatSecondsAgo(lastSync: Date | null): string {
   const hours = Math.floor(minutes / 60);
   return `Il y a ${hours}h`;
 }
-

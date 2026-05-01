@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useCloudSave } from '@/hooks/useCloudSave';
 import { BUILDINGS, generateAchievements, generateUpgrades, getBuildingCost, type BuildingId } from '@/lib/itollec-clicker/data';
-import { formatShortNumber } from '@/lib/itollec-clicker/format';
+import { formatCoins, formatShortNumber } from '@/lib/itollec-clicker/format';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
@@ -23,6 +23,8 @@ type DecreeState = {
   expiresAt: number;
   nextSpawnAt: number;
   chainLeft: number;
+  xPct: number;
+  yPct: number;
 };
 
 type ProdBucket = {
@@ -73,7 +75,7 @@ const initialBuildingsOwned = BUILDINGS.reduce((acc, b) => {
 }, {} as Record<BuildingId, number>);
 
 const INITIAL_SAVE: ItollecClickerSave = {
-  version: 2,
+  version: 3,
   coins: 0,
   totalProduced: 0,
   lifetimeProduced: 0,
@@ -92,6 +94,8 @@ const INITIAL_SAVE: ItollecClickerSave = {
     expiresAt: 0,
     nextSpawnAt: Date.now() + 90_000,
     chainLeft: 0,
+    xPct: 0.8,
+    yPct: 0.25,
   },
   prodBuckets: [],
   wrinklers: [],
@@ -169,7 +173,8 @@ export default function ItollecClickerPage() {
 
   const moneyRef = useRef<HTMLDivElement | null>(null);
   const sealRef = useRef<HTMLDivElement | null>(null);
-  const decreeSpotRef = useRef<HTMLDivElement | null>(null);
+  const decreeSpotRef = useRef<HTMLButtonElement | null>(null);
+  const wrinklerSpotRef = useRef<HTMLButtonElement | null>(null);
   const tabsRef = useRef<HTMLDivElement | null>(null);
   const prestigeRef = useRef<HTMLDivElement | null>(null);
   const tutorialCardRef = useRef<HTMLDivElement | null>(null);
@@ -195,6 +200,11 @@ export default function ItollecClickerPage() {
         key: 'decree',
         title: 'Décret Impérial',
         body: 'Il apparaît aléatoirement. Clique dessus pour obtenir un bonus temporaire (Frenzy, Lucky, Click Frenzy…).',
+      },
+      {
+        key: 'wrinklers',
+        title: 'Révolutionnaires',
+        body: 'Ils absorbent une partie de ta production. Clique 3 fois dessus pour les éliminer et récupérer un gros payout.',
       },
       {
         key: 'prestige',
@@ -228,6 +238,7 @@ export default function ItollecClickerPage() {
       if (step?.key === 'seal') return sealRef.current;
       if (step?.key === 'tabs') return tabsRef.current;
       if (step?.key === 'decree') return decreeSpotRef.current;
+      if (step?.key === 'wrinklers') return wrinklerSpotRef.current;
       if (step?.key === 'prestige') return prestigeRef.current;
       return null;
     };
@@ -557,7 +568,7 @@ export default function ItollecClickerPage() {
         const nextTotalProduced = clampNonNegative(prev.totalProduced + producedFromProd);
         const nextLifetimeProduced = clampNonNegative(prev.lifetimeProduced + producedFromProd);
 
-        const activeBuffs = prev.buffs.filter((b) => now < b.startedAt + b.durationMs);
+        const activeBuffs = prev.buffs.filter((b) => epochNow < b.startedAt + b.durationMs);
 
         let decree = prev.decree;
         if (decree.visible && epochNow >= decree.expiresAt) {
@@ -565,7 +576,9 @@ export default function ItollecClickerPage() {
           decree = { ...decree, visible: false, expiresAt: 0, nextSpawnAt };
         }
         if (!decree.visible && epochNow >= decree.nextSpawnAt) {
-          decree = { ...decree, visible: true, expiresAt: epochNow + 13_000 };
+          const xPct = 0.08 + Math.random() * 0.84;
+          const yPct = 0.12 + Math.random() * 0.72;
+          decree = { ...decree, visible: true, expiresAt: epochNow + 13_000, xPct, yPct };
         }
 
         let wrinklers = prev.wrinklers;
@@ -609,11 +622,11 @@ export default function ItollecClickerPage() {
           nextWrinklerAt,
         };
 
-        if (now - lastUiUpdateAt >= 250 || !comboStillActive) {
+        if (epochNow - lastUiUpdateAt >= 250 || !comboStillActive) {
           const nextUnlocked = computeAchievementsUnlocked(nextBase);
           const next = nextUnlocked === nextBase.achievementsUnlocked ? nextBase : { ...nextBase, achievementsUnlocked: nextUnlocked };
-          lastUiUpdateAt = now;
-          lastAchievementScanAtRef.current = now;
+          lastUiUpdateAt = epochNow;
+          lastAchievementScanAtRef.current = epochNow;
           return next;
         }
 
@@ -974,7 +987,7 @@ export default function ItollecClickerPage() {
           <div className="flex items-center gap-3">
             <div className="text-right" ref={moneyRef}>
               <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin</div>
-              <div className="text-sm font-bold text-tx-base">{formatShortNumber(data.coins)} ₶</div>
+              <div className="text-sm font-bold text-tx-base">{formatCoins(data.coins)} ₶</div>
             </div>
           </div>
         </div>
@@ -984,7 +997,7 @@ export default function ItollecClickerPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin</div>
-                <div className="text-2xl font-display font-black text-tx-base">{formatShortNumber(data.coins)} ₶</div>
+                <div className="text-2xl font-display font-black text-tx-base">{formatCoins(data.coins)} ₶</div>
               </div>
               <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin/s</div>
@@ -1158,31 +1171,27 @@ export default function ItollecClickerPage() {
                   </svg>
                 </button>
 
-                <div ref={decreeSpotRef} className="absolute top-4 right-4 h-12 w-12">
-                  <button
-                    type="button"
-                    onClick={data.decree.visible ? clickDecree : undefined}
-                    disabled={!data.decree.visible}
-                    className={cn(
-                      'h-12 w-12 rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal flex items-center justify-center transition-colors',
-                      data.decree.visible
-                        ? 'hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                        : 'opacity-50 cursor-default'
-                    )}
-                    aria-label="Décret Impérial"
-                  >
-                    <svg viewBox="0 0 64 64" className="h-7 w-7 text-accent-secondary" aria-hidden="true">
-                      <circle cx="32" cy="32" r="22" fill="currentColor" fillOpacity="0.15" />
-                      <path
-                        d="M32 14l6 12 14 2-10 10 2 14-12-6-12 6 2-14-10-10 14-2z"
-                        fill="currentColor"
-                        fillOpacity="0.35"
-                      />
-                    </svg>
-                  </button>
-                </div>
+                {tutorialOpen && tutorialSteps[tutorialStep]?.key === 'decree' && !data.decree.visible && (
+                  <div className="absolute top-4 right-4 h-12 w-12">
+                    <button
+                      type="button"
+                      ref={decreeSpotRef}
+                      className="h-12 w-12 rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal flex items-center justify-center"
+                      aria-label="Décret Impérial"
+                    >
+                      <svg viewBox="0 0 64 64" className="h-7 w-7 text-accent-secondary" aria-hidden="true">
+                        <circle cx="32" cy="32" r="22" fill="currentColor" fillOpacity="0.15" />
+                        <path
+                          d="M32 14l6 12 14 2-10 10 2 14-12-6-12 6 2-14-10-10 14-2z"
+                          fill="currentColor"
+                          fillOpacity="0.35"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
 
-                {data.wrinklers.map((w) => {
+                {data.wrinklers.map((w, i) => {
                   const x = Math.cos(w.angleRad) * 170;
                   const y = Math.sin(w.angleRad) * 170;
                   return (
@@ -1190,6 +1199,7 @@ export default function ItollecClickerPage() {
                       key={w.id}
                       type="button"
                       onClick={() => clickWrinkler(w.id)}
+                      ref={i === 0 ? wrinklerSpotRef : undefined}
                       className="absolute left-1/2 top-1/2 h-10 w-10 rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
                       style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
                       aria-label="Révolutionnaire"
@@ -1199,6 +1209,18 @@ export default function ItollecClickerPage() {
                     </button>
                   );
                 })}
+
+                {tutorialOpen && tutorialSteps[tutorialStep]?.key === 'wrinklers' && data.wrinklers.length === 0 && (
+                  <button
+                    type="button"
+                    ref={wrinklerSpotRef}
+                    className="absolute left-1/2 top-1/2 h-10 w-10 rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal flex items-center justify-center"
+                    style={{ transform: 'translate(-50%, -50%) translate(-170px, 120px)' }}
+                    aria-label="Révolutionnaire"
+                  >
+                    <span className="font-display font-black text-tx-base">3</span>
+                  </button>
+                )}
               </div>
 
               <div className="mt-4 min-h-[40px] w-full max-w-[420px]">
@@ -1365,6 +1387,30 @@ export default function ItollecClickerPage() {
           </div>
         </div>
       </div>
+
+      {data.decree.visible && (
+        <button
+          type="button"
+          onClick={clickDecree}
+          ref={decreeSpotRef}
+          className="fixed h-14 w-14 rounded-[28px] border-2 border-brand-border bg-brand-card shadow-brutal flex items-center justify-center hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors z-[9998]"
+          style={{
+            left: `${data.decree.xPct * 100}vw`,
+            top: `${data.decree.yPct * 100}vh`,
+            transform: `translate(-50%, -50%) translate(${Math.sin(Date.now() / 450) * 10}px, ${Math.cos(Date.now() / 520) * 8}px)`,
+          }}
+          aria-label="Décret Impérial"
+        >
+          <svg viewBox="0 0 64 64" className="h-8 w-8 text-accent-secondary" aria-hidden="true">
+            <circle cx="32" cy="32" r="22" fill="currentColor" fillOpacity="0.15" />
+            <path
+              d="M32 14l6 12 14 2-10 10 2 14-12-6-12 6 2-14-10-10 14-2z"
+              fill="currentColor"
+              fillOpacity="0.35"
+            />
+          </svg>
+        </button>
+      )}
 
       {achievementsOpen && (
         <div className="fixed inset-0 z-[9999]">
