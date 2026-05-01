@@ -67,14 +67,17 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   const currentClueRound = game.current_clue_round || 1;
   // Read skip_votes from SQL game state
   const skipVotes = (game.skip_votes as string[]) || []; 
+  const roundStartedAt = Number((gameState?.round_data as any)?.round_started_at || 0);
   
   const clues = useMemo(() => {
-      return undercover?.clues?.map((c: any) => ({
+      const all = undercover?.clues?.map((c: any) => ({
           playerId: c.player_id,
           text: c.text,
           timestamp: new Date(c.created_at).getTime()
       })) || [];
-  }, [undercover?.clues]);
+      if (!roundStartedAt) return all;
+      return all.filter(c => c.timestamp >= roundStartedAt);
+  }, [undercover?.clues, roundStartedAt]);
 
   // Read votes from SQL
   const votes = useMemo(() => {
@@ -108,6 +111,14 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   const [mrWhiteGuess, setMrWhiteGuess] = useState('');
   const [timeLeft, setTimeLeft] = useState(0);
   const [showRole, setShowRole] = useState(false); // For Eye button logic
+  
+  useEffect(() => {
+      if (currentPhase === 'setup' || currentPhase === 'roles') {
+          setUserClue('');
+          setMrWhiteGuess('');
+          setShowRole(false);
+      }
+  }, [currentPhase]);
 
   const isMyTurn = currentPhase === 'clues' && currentSpeakerId === playerId;
   const isAlive = playerId && alivePlayers.includes(playerId);
@@ -415,11 +426,15 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         // Ensure room status is in_game so players are redirected if they are in lobby
         await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
 
-        await updateRoundData({
-            phase: 'roles',
+        await supabase.from('game_sessions').update({
             current_round: 1,
-            notification: { id: Date.now().toString(), message: "Partie lancée ! Révélation des rôles...", type: 'success' }
-        });
+            round_data: {
+                phase: 'roles',
+                current_round: 1,
+                round_started_at: Date.now(),
+                notification: { id: Date.now().toString(), message: "Partie lancée ! Révélation des rôles...", type: 'success' }
+            }
+        }).eq('room_id', roomId);
     } catch (e) {
         console.error(e);
         toast.error("Erreur au démarrage");
@@ -626,10 +641,15 @@ export default function Undercover({ roomCode }: UndercoverProps) {
           await supabase.from('undercover_players').delete().eq('room_id', roomId);
           await supabase.from('undercover_players').insert(playerInserts);
           
-          await updateRoundData({
+          await supabase.from('game_sessions').update({
               current_round: nextRoundNum,
-              notification: { id: Date.now().toString(), message: `Manche ${nextRoundNum} commencée !`, type: 'success' }
-          });
+              round_data: {
+                  ...(gameState?.round_data || {}),
+                  current_round: nextRoundNum,
+                  round_started_at: Date.now(),
+                  notification: { id: Date.now().toString(), message: `Manche ${nextRoundNum} commencée !`, type: 'success' }
+              }
+          }).eq('room_id', roomId);
           
       } catch (e) { console.error(e); }
   };
@@ -973,7 +993,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
                 {/* BOTTOM: INPUT (Desktop & Mobile Fixed) */}
                 {isMyTurn && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-brand-bg/95 backdrop-blur-lg border-t-4 border-brand-border z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4">
+                    <div className="fixed bottom-0 left-0 right-0 p-4 z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4">
                         <div className="max-w-3xl mx-auto flex gap-3">
                             <input 
                                 placeholder="Donnez votre indice (1 mot)..." 
@@ -986,7 +1006,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                             <button 
                                 onClick={sendClue} 
                                 disabled={!userClue.trim()}
-                                className="h-14 w-16 bg-accent-primary border-4 border-brand-border rounded-2xl flex items-center justify-center text-brand-bg hover:bg-tx-base transition-colors shadow-brutal disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="h-14 w-16 bg-accent-primary border-4 border-brand-border rounded-2xl flex items-center justify-center text-brand-bg hover:bg-tx-base transition-colors shadow-brutal disabled:bg-brand-inner disabled:text-tx-muted disabled:cursor-not-allowed"
                             >
                                 <Send className="w-6 h-6" />
                             </button>

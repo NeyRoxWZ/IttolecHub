@@ -64,16 +64,19 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
   const secretWord = game.secret_word;
   const masterId = game.master_id;
   const finderId = game.finder_id;
+  const roundStartedAt = Number((gameState?.round_data as any)?.round_started_at || 0);
   
   const questions = useMemo(() => {
-      return infiltre?.questions?.map((q: any) => ({
+      const all = infiltre?.questions?.map((q: any) => ({
           id: q.id,
           playerId: q.player_id,
           text: q.text,
           answer: q.answer as AnswerType | null,
           timestamp: new Date(q.created_at).getTime()
       })) || [];
-  }, [infiltre?.questions]);
+      if (!roundStartedAt) return all;
+      return all.filter(q => q.timestamp >= roundStartedAt);
+  }, [infiltre?.questions, roundStartedAt]);
 
   // Read votes from SQL
   const votes = useMemo(() => {
@@ -292,11 +295,15 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         // Ensure room status is in_game so players are redirected if they are in lobby
         await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
 
-        await updateRoundData({
-            phase: 'roles',
+        await supabase.from('game_sessions').update({
             current_round: 1,
-            notification: { id: Date.now().toString(), message: "Rôles attribués ! Découvrez votre identité.", type: 'success' }
-        });
+            round_data: {
+                phase: 'roles',
+                current_round: 1,
+                round_started_at: Date.now(),
+                notification: { id: Date.now().toString(), message: "Rôles attribués ! Découvrez votre identité.", type: 'success' }
+            }
+        }).eq('room_id', roomId);
     } catch (e) {
         console.error(e);
         toast.error("Erreur au démarrage");
@@ -616,10 +623,15 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
           await supabase.from('infiltre_players').delete().eq('room_id', roomId);
           await supabase.from('infiltre_players').insert(playerInserts);
           
-          await updateRoundData({
+          await supabase.from('game_sessions').update({
               current_round: nextRoundNum,
-              notification: { id: Date.now().toString(), message: `Manche ${nextRoundNum} commencée !`, type: 'success' }
-          });
+              round_data: {
+                  ...(gameState?.round_data || {}),
+                  current_round: nextRoundNum,
+                  round_started_at: Date.now(),
+                  notification: { id: Date.now().toString(), message: `Manche ${nextRoundNum} commencée !`, type: 'success' }
+              }
+          }).eq('room_id', roomId);
           
       } catch (e) { console.error(e); }
   };
@@ -944,7 +956,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                             <button 
                                 onClick={sendQuestion} 
                                 disabled={!userQuestion.trim()}
-                                className="h-14 w-16 bg-accent-primary border-4 border-brand-border rounded-2xl flex items-center justify-center text-brand-bg hover:bg-tx-base transition-colors shadow-brutal disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="h-14 w-16 bg-accent-primary border-4 border-brand-border rounded-2xl flex items-center justify-center text-brand-bg hover:bg-tx-base transition-colors shadow-brutal disabled:bg-brand-inner disabled:text-tx-muted disabled:cursor-not-allowed"
                             >
                                 <Send className="w-6 h-6" />
                             </button>

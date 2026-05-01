@@ -769,7 +769,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                       <h2 className="font-display text-4xl font-black text-tx-base mb-8 uppercase tracking-widest">Classement Final</h2>
                       
                       <div className="w-full space-y-4 mb-8">
-                          {players.sort((a, b) => b.score - a.score).map((p, i) => (
+                          {[...players].sort((a, b) => (b.score - a.score) || a.name.localeCompare(b.name)).map((p, i) => (
                               <div key={p.id} className={cn(
                                   "relative flex items-center justify-between p-4 rounded-2xl border-4 border-brand-border shadow-brutal",
                                   i === 0 ? "bg-accent-secondary text-brand-bg transform scale-105 z-10" : "bg-brand-inner text-tx-base"

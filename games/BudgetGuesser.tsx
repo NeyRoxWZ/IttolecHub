@@ -327,7 +327,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
               last_guess: gp?.last_guess,
               guess_diff_percent: gp?.guess_diff_percent
           };
-      }).sort((a, b) => b.score - a.score);
+      }).sort((a, b) => (b.score - a.score) || a.name.localeCompare(b.name));
   }, [players, gamePlayers]);
 
   const playersMap = useMemo(() => {

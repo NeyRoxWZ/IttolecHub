@@ -369,7 +369,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
         return [...players].map(p => ({
             ...p,
             score: scores[p.id] || 0
-        })).sort((a, b) => b.score - a.score);
+        })).sort((a, b) => (b.score - a.score) || a.name.localeCompare(b.name));
     }, [players, scores]);
 
     const playersRecord = useMemo(() => {

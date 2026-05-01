@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ToasterProvider } from '@/components/ToasterProvider'
+import { AuthProvider } from '@/hooks/useAuth'
+import { GlobalHeader } from '@/components/GlobalHeader'
 
 export const metadata: Metadata = {
   title: 'ItollecHub - Mini-jeux multijoueurs',
@@ -37,10 +39,15 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-brand-bg text-tx-base font-body antialiased">
-        <ThemeProvider>
-          {children}
-          <ToasterProvider />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <GlobalHeader />
+            <main className="pt-14 min-h-screen">
+              {children}
+            </main>
+            <ToasterProvider />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )

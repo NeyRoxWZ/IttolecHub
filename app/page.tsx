@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Gamepad2, Play, Users, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, Leaf } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 export const viewport = {
   width: 'device-width',
@@ -42,12 +43,17 @@ export default function Home() {
   const [demoGameIndex, setDemoGameIndex] = useState(1);
   const [easterEggActive, setEasterEggActive] = useState(false);
   const [keyBuffer, setKeyBuffer] = useState('');
+  const { user } = useAuth();
 
   // Load state on mount
   useEffect(() => {
-    const savedName = sessionStorage.getItem('playerName');
-    if (savedName) setName(savedName);
-  }, []);
+    if (user) {
+      setName(user.pseudo);
+    } else {
+      const savedName = sessionStorage.getItem('playerName');
+      if (savedName) setName(savedName);
+    }
+  }, [user]);
 
   // Easter Egg Listener
   useEffect(() => {
@@ -126,11 +132,11 @@ export default function Home() {
             onClick={() => setEasterEggActive(false)}
           >
             <img 
-              src="/easteregg.png" 
-              alt="Easter Egg" 
-              className="w-48 h-auto drop-shadow-2xl"
-              draggable={false}
-            />
+                src="/easteregg.png" 
+                alt="Easter Egg" 
+                className="w-48 h-auto drop-shadow-2xl"
+                draggable={false}
+              />
           </div>
         </div>
       )}
@@ -225,7 +231,8 @@ export default function Home() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="PseudoCool"
-                    className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors"
+                    disabled={!!user}
+                    className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors disabled:opacity-50"
                   />
                 </div>
 
@@ -358,6 +365,64 @@ export default function Home() {
 
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* SECTION IDLE GAMES */}
+      <section className="w-full max-w-5xl mx-auto px-6 pb-12 md:pb-24">
+        <h2 className="font-display text-2xl md:text-3xl leading-none mb-8 text-center md:text-left">
+          Nouveau : Les Jeux Idle
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          
+          {/* ItollecClicker */}
+          <div className="bg-brand-surface border-2 border-yellow-600/30 rounded-2xl p-6 hover:border-yellow-500 transition-colors flex flex-col group relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Crown className="w-24 h-24 text-yellow-500" />
+            </div>
+            <div className="relative z-10 flex-1">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/30">
+                  <Crown className="w-6 h-6 text-yellow-500" />
+                </div>
+                <h3 className="font-display font-bold text-2xl text-yellow-500">ItollecClicker</h3>
+              </div>
+              <p className="text-white/70 mb-6 text-sm leading-relaxed">
+                Bâtis ton Empire Napoléonien. Clique pour amasser des Livres Tournois, recrute des paysans, construis des forges impériales et débloque des décrets historiques.
+              </p>
+            </div>
+            <button 
+              onClick={() => router.push('/itollec-clicker')}
+              className="mt-auto w-full h-12 rounded-lg bg-yellow-600/20 text-yellow-500 font-bold border border-yellow-600/50 hover:bg-yellow-600 hover:text-white transition-colors relative z-10"
+            >
+              Jouer à ItollecClicker
+            </button>
+          </div>
+
+          {/* TerraFarm */}
+          <div className="bg-brand-surface border-2 border-green-600/30 rounded-2xl p-6 hover:border-green-500 transition-colors flex flex-col group relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Leaf className="w-24 h-24 text-green-500" />
+            </div>
+            <div className="relative z-10 flex-1">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/30">
+                  <Leaf className="w-6 h-6 text-green-500" />
+                </div>
+                <h3 className="font-display font-bold text-2xl text-green-500">TerraFarm</h3>
+              </div>
+              <p className="text-white/70 mb-6 text-sm leading-relaxed">
+                Gère ta ferme rurale française. Cultive tes champs, élève du bétail et étends ton domaine à travers différentes régions géographiques. Une progression infinie t&apos;attend.
+              </p>
+            </div>
+            <button 
+              onClick={() => router.push('/terrafarm')}
+              className="mt-auto w-full h-12 rounded-lg bg-green-600/20 text-green-500 font-bold border border-green-600/50 hover:bg-green-600 hover:text-white transition-colors relative z-10"
+            >
+              Jouer à TerraFarm
+            </button>
+          </div>
+
         </div>
       </section>
 

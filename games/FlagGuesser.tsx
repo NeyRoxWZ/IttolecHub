@@ -361,7 +361,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
       return [...players].map(p => {
           const gp = gamePlayers.find((gp: any) => gp.player_id === p.id);
           return { ...p, score: gp?.score || 0, last_answer: gp?.last_answer };
-      }).sort((a, b) => b.score - a.score);
+      }).sort((a, b) => (b.score - a.score) || a.name.localeCompare(b.name));
   }, [players, gamePlayers]);
 
   // --- RENDER ---
