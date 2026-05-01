@@ -476,39 +476,25 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
-                  <p className="text-sm text-tx-secondary font-bold leading-relaxed">
-                    Un clicker façon Cookie Clicker : clique pour gagner des ₶, achète des bâtiments, débloque des upgrades et des bonus.
-                  </p>
-                </div>
-
-                <div className="mt-6 flex-1 flex flex-col justify-start">
-                  <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-3">Ce que tu vas faire</div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 bg-brand-inner border-2 border-brand-border rounded-2xl p-4">
-                      <div className="w-10 h-10 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center font-display font-black text-tx-base">
-                        ₶
-                      </div>
-                      <div className="text-sm font-bold text-tx-base">Cliquer, acheter, optimiser</div>
-                    </div>
-                    <div className="flex items-center gap-3 bg-brand-inner border-2 border-brand-border rounded-2xl p-4">
-                      <div className="w-10 h-10 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center font-display font-black text-tx-base">
-                        x
-                      </div>
-                      <div className="text-sm font-bold text-tx-base">Débloquer upgrades & synergies</div>
-                    </div>
+                <div className="mt-6 flex-1 flex flex-col">
+                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2">Description</div>
+                    <p className="text-sm text-tx-secondary font-bold leading-relaxed">
+                      Un clicker façon Cookie Clicker : clique pour gagner des ₶, achète des bâtiments, et empile des bonus pour produire toujours plus.
+                    </p>
                   </div>
                 </div>
 
-                <div className="mt-auto pt-6">
-                  <button
-                    type="button"
-                    onClick={() => router.push('/itollec-clicker')}
-                    className="w-full h-16 rounded-[24px] font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-brutal mb-1"
-                  >
-                    Jouer
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push('/itollec-clicker')}
+                  className={cn(
+                    'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
+                    'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                  )}
+                >
+                  Jouer
+                </button>
               </div>
 
               <div className="flex-1 h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
@@ -519,39 +505,25 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
-                  <p className="text-sm text-tx-secondary font-bold leading-relaxed">
-                    Un idle de gestion de ferme : produis des ƒ, améliore tes structures, subis les saisons/événements et étends ton domaine.
-                  </p>
-                </div>
-
-                <div className="mt-6 flex-1 flex flex-col justify-start">
-                  <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-3">Ce que tu vas faire</div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 bg-brand-inner border-2 border-brand-border rounded-2xl p-4">
-                      <div className="w-10 h-10 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center font-display font-black text-tx-base">
-                        ƒ
-                      </div>
-                      <div className="text-sm font-bold text-tx-base">Produire, vendre, améliorer</div>
-                    </div>
-                    <div className="flex items-center gap-3 bg-brand-inner border-2 border-brand-border rounded-2xl p-4">
-                      <div className="w-10 h-10 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center font-display font-black text-tx-base">
-                        ☀
-                      </div>
-                      <div className="text-sm font-bold text-tx-base">Gérer les saisons & aléas</div>
-                    </div>
+                <div className="mt-6 flex-1 flex flex-col">
+                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2">Description</div>
+                    <p className="text-sm text-tx-secondary font-bold leading-relaxed">
+                      Un idle de ferme : produis des ƒ, améliore tes bâtiments, gère les saisons, et agrandis ton domaine sur le long terme.
+                    </p>
                   </div>
                 </div>
 
-                <div className="mt-auto pt-6">
-                  <button
-                    type="button"
-                    onClick={() => router.push('/terrafarm')}
-                    className="w-full h-16 rounded-[24px] font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-brutal mb-1"
-                  >
-                    Jouer
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push('/terrafarm')}
+                  className={cn(
+                    'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
+                    'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                  )}
+                >
+                  Jouer
+                </button>
               </div>
             </div>
           )}
