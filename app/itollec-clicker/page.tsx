@@ -9,10 +9,47 @@ import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 
+type ActiveBuff = {
+  id: string;
+  name: string;
+  startedAt: number;
+  durationMs: number;
+  prodMult: number;
+  clickMult: number;
+};
+
+type DecreeState = {
+  visible: boolean;
+  expiresAt: number;
+  nextSpawnAt: number;
+  chainLeft: number;
+};
+
+type ProdBucket = {
+  t: number;
+  amount: number;
+};
+
+type Wrinkler = {
+  id: string;
+  angleRad: number;
+  storedAbsorbed: number;
+  clicks: number;
+};
+
+type PrestigeState = {
+  medals: number;
+  spent: number;
+  claimed: number;
+  centJoursLevel: number;
+  sainteHeleneLevel: number;
+};
+
 type ItollecClickerSave = {
   version: number;
   coins: number;
   totalProduced: number;
+  lifetimeProduced: number;
   totalSpent: number;
   clickCount: number;
   buildingsOwned: Record<BuildingId, number>;
@@ -22,6 +59,12 @@ type ItollecClickerSave = {
   comboClicks: number[];
   comboActive: boolean;
   comboLastClickAt: number;
+  buffs: ActiveBuff[];
+  decree: DecreeState;
+  prodBuckets: ProdBucket[];
+  wrinklers: Wrinkler[];
+  nextWrinklerAt: number;
+  prestige: PrestigeState;
 };
 
 const initialBuildingsOwned = BUILDINGS.reduce((acc, b) => {
@@ -30,9 +73,10 @@ const initialBuildingsOwned = BUILDINGS.reduce((acc, b) => {
 }, {} as Record<BuildingId, number>);
 
 const INITIAL_SAVE: ItollecClickerSave = {
-  version: 1,
+  version: 2,
   coins: 0,
   totalProduced: 0,
+  lifetimeProduced: 0,
   totalSpent: 0,
   clickCount: 0,
   buildingsOwned: initialBuildingsOwned,
@@ -42,9 +86,31 @@ const INITIAL_SAVE: ItollecClickerSave = {
   comboClicks: [],
   comboActive: false,
   comboLastClickAt: 0,
+  buffs: [],
+  decree: {
+    visible: false,
+    expiresAt: 0,
+    nextSpawnAt: Date.now() + 90_000,
+    chainLeft: 0,
+  },
+  prodBuckets: [],
+  wrinklers: [],
+  nextWrinklerAt: Date.now() + 45_000,
+  prestige: {
+    medals: 0,
+    spent: 0,
+    claimed: 0,
+    centJoursLevel: 0,
+    sainteHeleneLevel: 0,
+  },
 };
 
 const BASE_FRENLY_PER_SECOND = 0.1;
+const WRINKLER_ABSORB_PCT = 0.05;
+const WRINKLER_BONUS_MULT = 1.21;
+const PROD_BUCKET_MS = 5_000;
+const PROD_BUCKET_WINDOW_MS = 2 * 60 * 60 * 1000;
+const PRESTIGE_MEDAL_BASE = 1_000_000;
 
 function clampNonNegative(n: number): number {
   if (!Number.isFinite(n)) return 0;
@@ -95,6 +161,107 @@ export default function ItollecClickerPage() {
   const [showStats, setShowStats] = useState(false);
   const [achievementsOpen, setAchievementsOpen] = useState(false);
   const [achievementQuery, setAchievementQuery] = useState('');
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [tutorialSpot, setTutorialSpot] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const [miniGameOpen, setMiniGameOpen] = useState<null | 'forge' | 'grandjeu' | 'oracle'>(null);
+
+  const moneyRef = useRef<HTMLDivElement | null>(null);
+  const sealRef = useRef<HTMLDivElement | null>(null);
+  const decreeSpotRef = useRef<HTMLDivElement | null>(null);
+  const tabsRef = useRef<HTMLDivElement | null>(null);
+  const prestigeRef = useRef<HTMLDivElement | null>(null);
+
+  const tutorialSteps = useMemo(
+    () => [
+      {
+        key: 'money',
+        title: 'FrenlyCoin',
+        body: 'Ta monnaie. Elle augmente avec le temps (FrenlyCoin/s) et avec tes clics.',
+      },
+      {
+        key: 'seal',
+        title: 'Grand Sceau',
+        body: 'Clique ici pour gagner des FrenlyCoin ₶. Les upgrades peuvent booster la valeur de clic.',
+      },
+      {
+        key: 'tabs',
+        title: 'Panneaux',
+        body: 'Bâtiments = production. Upgrades = multiplicateurs. Succès = bonus permanent de production.',
+      },
+      {
+        key: 'decree',
+        title: 'Décret Impérial',
+        body: 'Il apparaît aléatoirement. Clique dessus pour obtenir un bonus temporaire (Frenzy, Lucky, Click Frenzy…).',
+      },
+      {
+        key: 'prestige',
+        title: 'Prestige',
+        body: 'Quand tu as des Médailles à réclamer, tu peux Abdiquer pour repartir et acheter des bonus permanents.',
+      },
+    ],
+    []
+  );
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      const done = localStorage.getItem('itollec_clicker_tutorial_done') === '1';
+      if (!done) {
+        setTutorialOpen(true);
+        setTutorialStep(0);
+      }
+    } catch {}
+  }, [isLoaded]);
+
+  useEffect(() => {
+    if (!tutorialOpen) {
+      setTutorialSpot(null);
+      return;
+    }
+
+    const step = tutorialSteps[tutorialStep];
+    const getEl = () => {
+      if (step?.key === 'money') return moneyRef.current;
+      if (step?.key === 'seal') return sealRef.current;
+      if (step?.key === 'tabs') return tabsRef.current;
+      if (step?.key === 'decree') return decreeSpotRef.current;
+      if (step?.key === 'prestige') return prestigeRef.current;
+      return null;
+    };
+
+    const update = () => {
+      const el = getEl();
+      if (!el) {
+        setTutorialSpot(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      setTutorialSpot({ top: r.top, left: r.left, width: r.width, height: r.height });
+    };
+
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [tutorialOpen, tutorialStep, tutorialSteps]);
+
+  useEffect(() => {
+    if (!tutorialOpen) return;
+    const key = tutorialSteps[tutorialStep]?.key;
+    if (key === 'prestige') setShowStats(true);
+  }, [tutorialOpen, tutorialStep, tutorialSteps]);
+
+  const closeTutorial = useCallback(() => {
+    setTutorialOpen(false);
+    setTutorialStep(0);
+    try {
+      localStorage.setItem('itollec_clicker_tutorial_done', '1');
+    } catch {}
+  }, []);
 
   const buildingMultById = useMemo(() => {
     const mult: Record<BuildingId, number> = { ...initialBuildingsOwned };
@@ -111,6 +278,34 @@ export default function ItollecClickerPage() {
     return mult;
   }, [data.upgradesPurchased, upgrades]);
 
+  const buffProdMult = useMemo(() => {
+    return data.buffs.reduce((acc, b) => acc * b.prodMult, 1);
+  }, [data.buffs]);
+
+  const buffClickMult = useMemo(() => {
+    return data.buffs.reduce((acc, b) => acc * b.clickMult, 1);
+  }, [data.buffs]);
+
+  const seasonalProdMult = useMemo(() => {
+    const now = new Date();
+    const month = now.getMonth();
+    const day = now.getDate();
+
+    let mult = 1;
+    const isNoel = month === 11;
+    if (isNoel) mult *= 1.05;
+    const isAusterlitz = month === 11 && day === 2;
+    if (isAusterlitz) mult *= 2;
+    const isCentJours =
+      (month === 2 && day >= 15) || (month > 2 && month < 5) || (month === 5 && day <= 15);
+    if (isCentJours) mult *= 1.02;
+    return mult;
+  }, []);
+
+  const prestigeProdMult = useMemo(() => {
+    return 1 + (data.prestige.centJoursLevel ?? 0) * 0.1;
+  }, [data.prestige.centJoursLevel]);
+
   const globalProdMult = useMemo(() => {
     const purchased = new Set(data.upgradesPurchased);
     let mult = 1;
@@ -119,8 +314,11 @@ export default function ItollecClickerPage() {
       if (u.effect.type === 'global_prod_mult') mult *= u.effect.mult;
     }
     mult *= 1 + data.achievementsUnlocked.length * 0.01;
+    mult *= prestigeProdMult;
+    mult *= seasonalProdMult;
+    mult *= buffProdMult;
     return mult;
-  }, [data.upgradesPurchased, data.achievementsUnlocked.length, upgrades]);
+  }, [buffProdMult, data.achievementsUnlocked.length, data.upgradesPurchased, prestigeProdMult, seasonalProdMult, upgrades]);
 
   const clickMult = useMemo(() => {
     const purchased = new Set(data.upgradesPurchased);
@@ -132,7 +330,7 @@ export default function ItollecClickerPage() {
     return mult;
   }, [data.upgradesPurchased, upgrades]);
 
-  const pps = useMemo(() => {
+  const grossPps = useMemo(() => {
     let total = BASE_FRENLY_PER_SECOND;
     for (const b of BUILDINGS) {
       const owned = data.buildingsOwned[b.id] ?? 0;
@@ -141,11 +339,17 @@ export default function ItollecClickerPage() {
     return total * globalProdMult;
   }, [data.buildingsOwned, buildingMultById, globalProdMult]);
 
+  const netPps = useMemo(() => {
+    const n = data.wrinklers.length;
+    const absorb = Math.min(0.9, n * WRINKLER_ABSORB_PCT);
+    return grossPps * (1 - absorb);
+  }, [data.wrinklers.length, grossPps]);
+
   const clickValue = useMemo(() => {
     const base = 1;
     const eventMult = data.comboActive ? 2 : 1;
-    return base * clickMult * eventMult;
-  }, [clickMult, data.comboActive]);
+    return base * clickMult * buffClickMult * eventMult;
+  }, [buffClickMult, clickMult, data.comboActive]);
 
   const unlockedUpgrades = useMemo(() => {
     const owned = data.buildingsOwned;
@@ -286,7 +490,7 @@ export default function ItollecClickerPage() {
       if (!a) return;
       const reason = getAchievementReason(id);
       const timeoutId = window.setTimeout(() => {
-        toast(a.name, { description: reason, duration: 4500 });
+        toast('Succès débloqué', { description: `${a.name} — ${reason}`, duration: 4500 });
       }, idx * 350);
       toastTimeoutsRef.current.push(timeoutId);
     });
@@ -296,6 +500,18 @@ export default function ItollecClickerPage() {
     return () => {
       for (const t of toastTimeoutsRef.current) window.clearTimeout(t);
     };
+  }, []);
+
+  const createId = useCallback(() => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return crypto.randomUUID();
+    }
+    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }, []);
+
+  const scheduleNextDecreeAt = useCallback((now: number) => {
+    const minutes = 5 + Math.random() * 10;
+    return now + minutes * 60_000;
   }, []);
 
   useEffect(() => {
@@ -308,21 +524,67 @@ export default function ItollecClickerPage() {
       setData((prev) => {
         const dtRaw = Math.max(0, (now - prev.lastTickAt) / 1000);
         const dt = Math.min(dtRaw, 0.25);
-        const newCoinsFromProd = pps * dt;
+        const wrinklerAbsorb = Math.min(0.9, prev.wrinklers.length * WRINKLER_ABSORB_PCT);
+        const producedFromProd = grossPps * (1 - wrinklerAbsorb) * dt;
 
         const comboStillActive = prev.comboActive ? now - prev.comboLastClickAt <= 3000 : false;
-        const shouldUpdate = dt > 0.05 || (!comboStillActive && prev.comboActive);
+        const shouldUpdate = dt > 0.08 || (!comboStillActive && prev.comboActive);
         if (!shouldUpdate) return prev;
 
-        const nextCoins = clampNonNegative(prev.coins + newCoinsFromProd);
-        const nextTotalProduced = clampNonNegative(prev.totalProduced + newCoinsFromProd);
+        const nextCoins = clampNonNegative(prev.coins + producedFromProd);
+        const nextTotalProduced = clampNonNegative(prev.totalProduced + producedFromProd);
+        const nextLifetimeProduced = clampNonNegative(prev.lifetimeProduced + producedFromProd);
+
+        const activeBuffs = prev.buffs.filter((b) => now < b.startedAt + b.durationMs);
+
+        let decree = prev.decree;
+        if (decree.visible && now >= decree.expiresAt) {
+          const nextSpawnAt = decree.chainLeft > 0 ? now + 900 : scheduleNextDecreeAt(now);
+          decree = { ...decree, visible: false, expiresAt: 0, nextSpawnAt };
+        }
+        if (!decree.visible && now >= decree.nextSpawnAt) {
+          decree = { ...decree, visible: true, expiresAt: now + 13_000 };
+        }
+
+        let wrinklers = prev.wrinklers;
+        const canSpawnWrinkler = now >= prev.nextWrinklerAt && wrinklers.length < 12 && maxOwnedBuildingIndex >= 0;
+        let nextWrinklerAt = prev.nextWrinklerAt;
+        if (canSpawnWrinkler) {
+          const w: Wrinkler = { id: createId(), angleRad: Math.random() * Math.PI * 2, storedAbsorbed: 0, clicks: 0 };
+          wrinklers = [...wrinklers, w];
+          nextWrinklerAt = now + (20_000 + Math.random() * 35_000);
+        }
+
+        if (wrinklers.length > 0) {
+          const absorbPer = grossPps * WRINKLER_ABSORB_PCT * dt;
+          wrinklers = wrinklers.map((w) => ({ ...w, storedAbsorbed: w.storedAbsorbed + absorbPer }));
+        }
+
+        let prodBuckets = prev.prodBuckets;
+        if (producedFromProd > 0) {
+          const bucketT = Math.floor(now / PROD_BUCKET_MS) * PROD_BUCKET_MS;
+          const last = prodBuckets[prodBuckets.length - 1];
+          if (last && last.t === bucketT) {
+            prodBuckets = [...prodBuckets.slice(0, -1), { t: last.t, amount: last.amount + producedFromProd }];
+          } else {
+            prodBuckets = [...prodBuckets, { t: bucketT, amount: producedFromProd }];
+          }
+          const cutoff = now - PROD_BUCKET_WINDOW_MS;
+          prodBuckets = prodBuckets.filter((b) => b.t >= cutoff);
+        }
 
         const nextBase: ItollecClickerSave = {
           ...prev,
           coins: nextCoins,
           totalProduced: nextTotalProduced,
+          lifetimeProduced: nextLifetimeProduced,
           lastTickAt: now,
           comboActive: comboStillActive,
+          buffs: activeBuffs,
+          decree,
+          prodBuckets,
+          wrinklers,
+          nextWrinklerAt,
         };
 
         if (now - lastUiUpdateAt >= 250 || !comboStillActive) {
@@ -341,18 +603,19 @@ export default function ItollecClickerPage() {
 
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [computeAchievementsUnlocked, isLoaded, pps, setData]);
+  }, [computeAchievementsUnlocked, createId, grossPps, isLoaded, maxOwnedBuildingIndex, scheduleNextDecreeAt, setData]);
 
   const handleClickSeal = () => {
     const now = Date.now();
     setData((prev) => {
       const clicks = [...prev.comboClicks, now].filter((t) => now - t <= 5000);
       const comboActive = clicks.length >= 20;
-      const gain = (1 * clickMult) * (comboActive ? 2 : 1);
+      const gain = (1 * clickMult * buffClickMult) * (comboActive ? 2 : 1);
       const nextBase: ItollecClickerSave = {
         ...prev,
         coins: clampNonNegative(prev.coins + gain),
         totalProduced: clampNonNegative(prev.totalProduced + gain),
+        lifetimeProduced: clampNonNegative(prev.lifetimeProduced + gain),
         clickCount: prev.clickCount + 1,
         comboClicks: clicks,
         comboActive,
@@ -421,6 +684,232 @@ export default function ItollecClickerPage() {
     });
   };
 
+  const getRecentProduction = useCallback((buckets: ProdBucket[], now: number) => {
+    const cutoff = now - PROD_BUCKET_WINDOW_MS;
+    let sum = 0;
+    for (const b of buckets) {
+      if (b.t >= cutoff) sum += b.amount;
+    }
+    return sum;
+  }, []);
+
+  const addBuff = useCallback(
+    (prev: ItollecClickerSave, buff: Omit<ActiveBuff, 'id'>): ItollecClickerSave => {
+      const b: ActiveBuff = { ...buff, id: createId() };
+      return { ...prev, buffs: [...prev.buffs, b] };
+    },
+    [createId]
+  );
+
+  const clickDecree = () => {
+    const now = Date.now();
+    setData((prev) => {
+      if (!prev.decree.visible) return prev;
+
+      const roll = Math.random();
+
+      const endDecree = (next: ItollecClickerSave, chainLeft: number) => {
+        const nextSpawnAt = chainLeft > 0 ? now + 900 : scheduleNextDecreeAt(now);
+        return {
+          ...next,
+          decree: { ...next.decree, visible: false, expiresAt: 0, nextSpawnAt, chainLeft },
+        };
+      };
+
+      const showDecreeToast = (title: string, description: string) => {
+        toast('Décret Impérial', { description: `${title} — ${description}`, duration: 5000 });
+      };
+
+      if (roll < 0.28) {
+        const next = addBuff(prev, { name: 'Frenzy', startedAt: now, durationMs: 77_000, prodMult: 7, clickMult: 1 });
+        showDecreeToast('Frenzy', 'Production ×7 pendant 77s');
+        return endDecree(next, Math.max(0, prev.decree.chainLeft - 1));
+      }
+
+      if (roll < 0.48) {
+        const next = addBuff(prev, { name: 'Click Frenzy', startedAt: now, durationMs: 13_000, prodMult: 1, clickMult: 777 });
+        showDecreeToast('Click Frenzy', 'Clic ×777 pendant 13s');
+        return endDecree(next, Math.max(0, prev.decree.chainLeft - 1));
+      }
+
+      if (roll < 0.66) {
+        const recent = getRecentProduction(prev.prodBuckets, now);
+        const gain = recent * 0.13;
+        const next: ItollecClickerSave = {
+          ...prev,
+          coins: clampNonNegative(prev.coins + gain),
+          totalProduced: clampNonNegative(prev.totalProduced + gain),
+          lifetimeProduced: clampNonNegative(prev.lifetimeProduced + gain),
+        };
+        showDecreeToast('Lucky!', `+${formatShortNumber(gain)} ₶`);
+        return endDecree(next, Math.max(0, prev.decree.chainLeft - 1));
+      }
+
+      if (roll < 0.80) {
+        const next = addBuff(prev, { name: 'Dragon Harvest', startedAt: now, durationMs: 30_000, prodMult: 2, clickMult: 1 });
+        showDecreeToast('Dragon Harvest', 'Production ×2 pendant 30s');
+        return endDecree(next, Math.max(0, prev.decree.chainLeft - 1));
+      }
+
+      if (roll < 0.92) {
+        const next = addBuff(prev, { name: 'Pledge', startedAt: now, durationMs: 10 * 60_000, prodMult: 1.1, clickMult: 1 });
+        showDecreeToast('Pledge', '+10% pendant 10 min');
+        return endDecree(next, Math.max(0, prev.decree.chainLeft - 1));
+      }
+
+      const extra = 3 + Math.floor(Math.random() * 3);
+      showDecreeToast('Chain', `Déclenche ${extra} décrets`);
+      const chainLeft = extra;
+      return {
+        ...prev,
+        decree: { ...prev.decree, visible: false, expiresAt: 0, chainLeft, nextSpawnAt: now + 900 },
+      };
+    });
+  };
+
+  const clickWrinkler = (wrinklerId: string) => {
+    const now = Date.now();
+    setData((prev) => {
+      const w = prev.wrinklers.find((x) => x.id === wrinklerId);
+      if (!w) return prev;
+      const nextClicks = w.clicks + 1;
+      if (nextClicks < 3) {
+        return { ...prev, wrinklers: prev.wrinklers.map((x) => (x.id === wrinklerId ? { ...x, clicks: nextClicks } : x)) };
+      }
+
+      const payout = w.storedAbsorbed * WRINKLER_BONUS_MULT;
+      toast('Révolutionnaire éliminé', { description: `+${formatShortNumber(payout)} ₶`, duration: 3500 });
+      return {
+        ...prev,
+        coins: clampNonNegative(prev.coins + payout),
+        totalProduced: clampNonNegative(prev.totalProduced + payout),
+        lifetimeProduced: clampNonNegative(prev.lifetimeProduced + payout),
+        wrinklers: prev.wrinklers.filter((x) => x.id !== wrinklerId),
+      };
+    });
+  };
+
+  const prestigeAvailable = useMemo(() => {
+    const totalClaimable = Math.floor(Math.sqrt((data.lifetimeProduced ?? 0) / PRESTIGE_MEDAL_BASE));
+    const claimableNow = Math.max(0, totalClaimable - (data.prestige.claimed ?? 0));
+    const availableMedals = Math.max(0, (data.prestige.medals ?? 0) - (data.prestige.spent ?? 0));
+    return { totalClaimable, claimableNow, availableMedals };
+  }, [data.lifetimeProduced, data.prestige.claimed, data.prestige.medals, data.prestige.spent]);
+
+  const abdicate = () => {
+    const now = Date.now();
+    setData((prev) => {
+      const totalClaimable = Math.floor(Math.sqrt((prev.lifetimeProduced ?? 0) / PRESTIGE_MEDAL_BASE));
+      const gain = Math.max(0, totalClaimable - (prev.prestige.claimed ?? 0));
+      if (gain <= 0) return prev;
+
+      const keepPct = Math.min(0.5, (prev.prestige.sainteHeleneLevel ?? 0) * 0.01);
+      const keepCoins = prev.coins * keepPct;
+
+      toast('Abdication', { description: `+${gain} Médailles Impériales`, duration: 4500 });
+
+      return {
+        ...prev,
+        coins: clampNonNegative(keepCoins),
+        totalProduced: 0,
+        totalSpent: 0,
+        buildingsOwned: initialBuildingsOwned,
+        upgradesPurchased: [],
+        lastTickAt: now,
+        comboClicks: [],
+        comboActive: false,
+        comboLastClickAt: 0,
+        buffs: [],
+        decree: { ...prev.decree, visible: false, expiresAt: 0, chainLeft: 0, nextSpawnAt: now + 90_000 },
+        wrinklers: [],
+        nextWrinklerAt: now + 45_000,
+        prestige: {
+          ...prev.prestige,
+          medals: (prev.prestige.medals ?? 0) + gain,
+          claimed: (prev.prestige.claimed ?? 0) + gain,
+        },
+      };
+    });
+  };
+
+  const buyPrestigeUpgrade = (kind: 'centJours' | 'sainteHelene') => {
+    setData((prev) => {
+      const available = Math.max(0, (prev.prestige.medals ?? 0) - (prev.prestige.spent ?? 0));
+      const cost = kind === 'centJours' ? 1 : 3;
+      if (available < cost) return prev;
+      if (kind === 'sainteHelene' && (prev.prestige.sainteHeleneLevel ?? 0) >= 20) return prev;
+
+      return {
+        ...prev,
+        prestige: {
+          ...prev.prestige,
+          spent: (prev.prestige.spent ?? 0) + cost,
+          centJoursLevel: kind === 'centJours' ? (prev.prestige.centJoursLevel ?? 0) + 1 : (prev.prestige.centJoursLevel ?? 0),
+          sainteHeleneLevel: kind === 'sainteHelene' ? (prev.prestige.sainteHeleneLevel ?? 0) + 1 : (prev.prestige.sainteHeleneLevel ?? 0),
+        },
+      };
+    });
+  };
+
+  const runForge = (choice: 'prod' | 'click') => {
+    const now = Date.now();
+    setData((prev) => {
+      const owned = prev.buildingsOwned.forge ?? 0;
+      if (owned < 15) return prev;
+      const cost = choice === 'prod' ? 500 : 300;
+      if (prev.coins < cost) return prev;
+      const base: ItollecClickerSave = {
+        ...prev,
+        coins: clampNonNegative(prev.coins - cost),
+        totalSpent: clampNonNegative(prev.totalSpent + cost),
+      };
+      const next =
+        choice === 'prod'
+          ? addBuff(base, { name: 'La Forge', startedAt: now, durationMs: 60_000, prodMult: 1.5, clickMult: 1 })
+          : addBuff(base, { name: 'La Forge', startedAt: now, durationMs: 60_000, prodMult: 1, clickMult: 2 });
+
+      toast('Mini-jeu : La Forge', { description: choice === 'prod' ? 'Production +50% (60s)' : 'Clic ×2 (60s)', duration: 4000 });
+      return next;
+    });
+    setMiniGameOpen(null);
+  };
+
+  const runGrandJeu = (choice: 'diplomatie' | 'propagande') => {
+    const now = Date.now();
+    setData((prev) => {
+      const owned = prev.buildingsOwned.strateges ?? 0;
+      if (owned < 15) return prev;
+      const next =
+        choice === 'diplomatie'
+          ? addBuff(prev, { name: 'Le Grand Jeu', startedAt: now, durationMs: 5 * 60_000, prodMult: 1.25, clickMult: 1 })
+          : addBuff(prev, { name: 'Le Grand Jeu', startedAt: now, durationMs: 5 * 60_000, prodMult: 1, clickMult: 3 });
+      toast('Mini-jeu : Le Grand Jeu', { description: choice === 'diplomatie' ? 'Production +25% (5 min)' : 'Clic ×3 (5 min)', duration: 4000 });
+      return next;
+    });
+    setMiniGameOpen(null);
+  };
+
+  const runOracle = () => {
+    const now = Date.now();
+    setData((prev) => {
+      const owned = prev.buildingsOwned.oracle ?? 0;
+      if (owned < 15) return prev;
+      const bet = prev.coins * 0.25;
+      if (bet < 10) return prev;
+      const win = Math.random() < 0.45;
+      const nextCoins = win ? prev.coins + bet * 2 : prev.coins - bet;
+      const next: ItollecClickerSave = {
+        ...prev,
+        coins: clampNonNegative(nextCoins),
+        totalProduced: win ? clampNonNegative(prev.totalProduced + bet * 2) : prev.totalProduced,
+        lifetimeProduced: win ? clampNonNegative(prev.lifetimeProduced + bet * 2) : prev.lifetimeProduced,
+      };
+      toast('Mini-jeu : L’Oracle', { description: win ? `Victoire +${formatShortNumber(bet * 2)} ₶` : `Échec -${formatShortNumber(bet)} ₶`, duration: 4500 });
+      return next;
+    });
+    setMiniGameOpen(null);
+  };
+
   if (!isLoaded) {
     return (
       <main className="min-h-screen bg-transparent px-6 pt-8 pb-12">
@@ -448,10 +937,20 @@ export default function ItollecClickerPage() {
               Stats
               {showStats ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTutorialOpen(true);
+                setTutorialStep(0);
+              }}
+              className="h-11 px-4 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
+            >
+              Tutoriel
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="text-right">
+            <div className="text-right" ref={moneyRef}>
               <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin</div>
               <div className="text-sm font-bold text-tx-base">{formatShortNumber(data.coins)} ₶</div>
             </div>
@@ -467,7 +966,7 @@ export default function ItollecClickerPage() {
               </div>
               <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin/s</div>
-                <div className="text-2xl font-display font-black text-tx-base">{formatRate(pps)} ₶/s</div>
+                <div className="text-2xl font-display font-black text-tx-base">{formatRate(netPps)} ₶/s</div>
               </div>
               <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Clics</div>
@@ -477,6 +976,117 @@ export default function ItollecClickerPage() {
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Succès</div>
                 <div className="text-2xl font-display font-black text-tx-base">
                   {formatShortNumber(data.achievementsUnlocked.length)}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4" ref={prestigeRef}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Prestige</div>
+                    <div className="text-sm font-bold text-tx-base mt-1">
+                      Médailles: {data.prestige.medals} • Dispo: {prestigeAvailable.availableMedals}
+                    </div>
+                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mt-3">
+                      À réclamer: {prestigeAvailable.claimableNow}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={abdicate}
+                    disabled={prestigeAvailable.claimableNow <= 0}
+                    className={cn(
+                      'h-12 px-4 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                      prestigeAvailable.claimableNow > 0
+                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        : 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
+                    )}
+                  >
+                    Abdiquer
+                  </button>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => buyPrestigeUpgrade('centJours')}
+                    disabled={prestigeAvailable.availableMedals < 1}
+                    className={cn(
+                      'h-12 px-4 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 text-left',
+                      prestigeAvailable.availableMedals >= 1
+                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        : 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
+                    )}
+                  >
+                    Cent-Jours +10% (1)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => buyPrestigeUpgrade('sainteHelene')}
+                    disabled={prestigeAvailable.availableMedals < 3 || data.prestige.sainteHeleneLevel >= 20}
+                    className={cn(
+                      'h-12 px-4 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 text-left',
+                      prestigeAvailable.availableMedals >= 3 && data.prestige.sainteHeleneLevel < 20
+                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        : 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
+                    )}
+                  >
+                    Sainte-Hélène +1% (3)
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Événements</div>
+                <div className="text-sm font-bold text-tx-base mt-1">
+                  Décrets actifs: {data.buffs.length} • Révolutionnaires: {data.wrinklers.length}
+                </div>
+                <div className="text-sm text-tx-secondary font-bold mt-3">
+                  Les Décrets Impériaux apparaissent et donnent des bonus temporaires.
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setMiniGameOpen('forge')}
+                    disabled={(data.buildingsOwned.forge ?? 0) < 15}
+                    className={cn(
+                      'h-11 px-3 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                      (data.buildingsOwned.forge ?? 0) >= 15
+                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        : 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
+                    )}
+                  >
+                    Forge
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMiniGameOpen('grandjeu')}
+                    disabled={(data.buildingsOwned.strateges ?? 0) < 15}
+                    className={cn(
+                      'h-11 px-3 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                      (data.buildingsOwned.strateges ?? 0) >= 15
+                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        : 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
+                    )}
+                  >
+                    Grand Jeu
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMiniGameOpen('oracle')}
+                    disabled={(data.buildingsOwned.oracle ?? 0) < 15}
+                    className={cn(
+                      'h-11 px-3 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                      (data.buildingsOwned.oracle ?? 0) >= 15
+                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        : 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
+                    )}
+                  >
+                    Oracle
+                  </button>
                 </div>
               </div>
             </div>
@@ -494,36 +1104,76 @@ export default function ItollecClickerPage() {
             </div>
 
             <div className="mt-6 flex-1 flex flex-col items-center justify-center">
-              <button
-                type="button"
-                onClick={handleClickSeal}
-                className={cn(
-                  'w-full max-w-[420px] aspect-square rounded-[32px] border-4 border-brand-border bg-brand-inner shadow-brutal',
-                  'flex items-center justify-center select-none active:translate-y-[4px] active:shadow-none transition-all'
-                )}
-                aria-label="Cliquer sur le Grand Sceau Impérial"
-              >
-                <svg viewBox="0 0 220 220" className="w-[82%] h-[82%]" aria-hidden="true">
-                  <defs>
-                    <radialGradient id="sealGrad" cx="50%" cy="45%" r="60%">
-                      <stop offset="0%" stopColor="currentColor" stopOpacity="0.08" />
-                      <stop offset="55%" stopColor="currentColor" stopOpacity="0.02" />
-                      <stop offset="100%" stopColor="currentColor" stopOpacity="0.12" />
-                    </radialGradient>
-                  </defs>
-                  <circle cx="110" cy="110" r="92" fill="url(#sealGrad)" stroke="currentColor" strokeOpacity="0.25" strokeWidth="10" className="text-tx-base" />
-                  <circle cx="110" cy="110" r="64" fill="none" stroke="currentColor" strokeOpacity="0.18" strokeWidth="6" className="text-tx-base" />
-                  <path
-                    d="M110 58l16 30 34 6-24 24 6 34-32-16-32 16 6-34-24-24 34-6z"
-                    fill="currentColor"
-                    fillOpacity="0.18"
-                    className="text-tx-base"
-                  />
-                  <text x="110" y="152" textAnchor="middle" className="fill-current text-tx-base" fontSize="16" fontFamily="ui-serif, Georgia">
-                    SCEAU IMPÉRIAL
-                  </text>
-                </svg>
-              </button>
+              <div className="relative w-full max-w-[420px] aspect-square" ref={sealRef}>
+                <button
+                  type="button"
+                  onClick={handleClickSeal}
+                  className={cn(
+                    'absolute inset-0 rounded-[32px] border-4 border-brand-border bg-brand-inner shadow-brutal',
+                    'flex items-center justify-center select-none active:translate-y-[4px] active:shadow-none transition-all'
+                  )}
+                  aria-label="Cliquer sur le Grand Sceau Impérial"
+                >
+                  <svg viewBox="0 0 220 220" className="w-[82%] h-[82%]" aria-hidden="true">
+                    <defs>
+                      <radialGradient id="sealGrad" cx="50%" cy="45%" r="60%">
+                        <stop offset="0%" stopColor="currentColor" stopOpacity="0.08" />
+                        <stop offset="55%" stopColor="currentColor" stopOpacity="0.02" />
+                        <stop offset="100%" stopColor="currentColor" stopOpacity="0.12" />
+                      </radialGradient>
+                    </defs>
+                    <circle cx="110" cy="110" r="92" fill="url(#sealGrad)" stroke="currentColor" strokeOpacity="0.25" strokeWidth="10" className="text-tx-base" />
+                    <circle cx="110" cy="110" r="64" fill="none" stroke="currentColor" strokeOpacity="0.18" strokeWidth="6" className="text-tx-base" />
+                    <path
+                      d="M110 58l16 30 34 6-24 24 6 34-32-16-32 16 6-34-24-24 34-6z"
+                      fill="currentColor"
+                      fillOpacity="0.18"
+                      className="text-tx-base"
+                    />
+                    <text x="110" y="152" textAnchor="middle" className="fill-current text-tx-base" fontSize="16" fontFamily="ui-serif, Georgia">
+                      SCEAU IMPÉRIAL
+                    </text>
+                  </svg>
+                </button>
+
+                <div ref={decreeSpotRef} className="absolute top-4 right-4 h-12 w-12">
+                  {data.decree.visible && (
+                    <button
+                      type="button"
+                      onClick={clickDecree}
+                      className="h-12 w-12 rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal flex items-center justify-center hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                      aria-label="Décret Impérial"
+                    >
+                      <svg viewBox="0 0 64 64" className="h-7 w-7 text-accent-secondary" aria-hidden="true">
+                        <circle cx="32" cy="32" r="22" fill="currentColor" fillOpacity="0.15" />
+                        <path
+                          d="M32 14l6 12 14 2-10 10 2 14-12-6-12 6 2-14-10-10 14-2z"
+                          fill="currentColor"
+                          fillOpacity="0.35"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                {data.wrinklers.map((w) => {
+                  const x = Math.cos(w.angleRad) * 170;
+                  const y = Math.sin(w.angleRad) * 170;
+                  return (
+                    <button
+                      key={w.id}
+                      type="button"
+                      onClick={() => clickWrinkler(w.id)}
+                      className="absolute left-1/2 top-1/2 h-10 w-10 rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
+                      style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
+                      aria-label="Révolutionnaire"
+                      title="Révolutionnaire (3 clics)"
+                    >
+                      <span className="font-display font-black text-tx-base">{Math.max(0, 3 - w.clicks)}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
               <div className="mt-4 min-h-[40px] w-full max-w-[420px]">
                 {data.comboActive ? (
@@ -545,7 +1195,7 @@ export default function ItollecClickerPage() {
 
           <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
             <div className="flex items-center justify-between h-12">
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-2 flex gap-2">
+              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-2 flex gap-2" ref={tabsRef}>
                 <button
                   type="button"
                   onClick={() => setActivePanel('buildings')}
@@ -750,6 +1400,162 @@ export default function ItollecClickerPage() {
                   );
                 })}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {miniGameOpen && (
+        <div className="fixed inset-0 z-[9999]">
+          <button
+            type="button"
+            onClick={() => setMiniGameOpen(null)}
+            className="absolute inset-0 bg-black/60"
+            aria-label="Fermer"
+          />
+          <div className="absolute inset-0 flex items-center justify-center px-6 py-10">
+            <div className="w-full max-w-2xl bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal relative">
+              <div className="flex items-center justify-between gap-4">
+                <div className="font-display text-2xl md:text-3xl font-black tracking-wider uppercase text-tx-base">
+                  {miniGameOpen === 'forge' ? 'La Forge' : miniGameOpen === 'grandjeu' ? 'Le Grand Jeu' : 'L’Oracle'}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMiniGameOpen(null)}
+                  className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
+
+              {miniGameOpen === 'forge' && (
+                <div className="mt-6 space-y-4">
+                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4 text-sm text-tx-secondary font-bold">
+                    Choisis une allocation d’ouvriers. Chaque option coûte des FrenlyCoin et donne un bonus temporaire.
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => runForge('prod')}
+                      className="h-14 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors text-left"
+                    >
+                      Production +50% (500)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => runForge('click')}
+                      className="h-14 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors text-left"
+                    >
+                      Clic ×2 (300)
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {miniGameOpen === 'grandjeu' && (
+                <div className="mt-6 space-y-4">
+                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4 text-sm text-tx-secondary font-bold">
+                    Choisis une stratégie diplomatique. Effet 5 minutes.
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => runGrandJeu('diplomatie')}
+                      className="h-14 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors text-left"
+                    >
+                      Diplomatie +25%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => runGrandJeu('propagande')}
+                      className="h-14 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors text-left"
+                    >
+                      Propagande Clic ×3
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {miniGameOpen === 'oracle' && (
+                <div className="mt-6 space-y-4">
+                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4 text-sm text-tx-secondary font-bold">
+                    Parie 25% de tes FrenlyCoin. Chance de gagner 45%. En cas de victoire : +200% de la mise.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={runOracle}
+                    className="w-full h-14 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                  >
+                    Lancer l’Oracle
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tutorialOpen && tutorialSpot && (
+        <div className="fixed inset-0 z-[99999]">
+          <div
+            className="absolute rounded-[28px] border-2 border-tx-base pointer-events-none"
+            style={{
+              top: Math.max(8, tutorialSpot.top - 8),
+              left: Math.max(8, tutorialSpot.left - 8),
+              width: Math.max(0, tutorialSpot.width + 16),
+              height: Math.max(0, tutorialSpot.height + 16),
+              boxShadow: '0 0 0 9999px rgba(0,0,0,0.72)',
+            }}
+          />
+
+          <div
+            className="absolute left-1/2 -translate-x-1/2 w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal"
+            style={{ top: tutorialSpot.top + tutorialSpot.height + 20 }}
+          >
+            <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
+              Tutoriel {tutorialStep + 1} / {tutorialSteps.length}
+            </div>
+            <div className="mt-2 font-display text-2xl font-black tracking-wider uppercase text-tx-base">
+              {tutorialSteps[tutorialStep]?.title}
+            </div>
+            <div className="mt-3 text-sm text-tx-secondary font-bold leading-relaxed">{tutorialSteps[tutorialStep]?.body}</div>
+
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setTutorialStep((s) => Math.max(0, s - 1))}
+                disabled={tutorialStep === 0}
+                className={cn(
+                  'h-11 px-4 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                  tutorialStep === 0
+                    ? 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
+                    : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                )}
+              >
+                Retour
+              </button>
+
+              <button
+                type="button"
+                onClick={closeTutorial}
+                className="h-11 px-4 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors"
+              >
+                Passer
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (tutorialStep >= tutorialSteps.length - 1) {
+                    closeTutorial();
+                    return;
+                  }
+                  setTutorialStep((s) => Math.min(tutorialSteps.length - 1, s + 1));
+                }}
+                className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+              >
+                {tutorialStep >= tutorialSteps.length - 1 ? 'Terminer' : 'Suivant'}
+              </button>
             </div>
           </div>
         </div>
