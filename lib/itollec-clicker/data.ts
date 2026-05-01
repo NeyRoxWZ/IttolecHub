@@ -168,10 +168,10 @@ export function generateAchievements(): AchievementDef[] {
   const achievements: AchievementDef[] = [];
 
   const prodThresholds: number[] = [];
-  let prod = 1_000;
-  for (let i = 0; i < 70; i++) {
+  let prod = 10;
+  for (let i = 0; i < 90; i++) {
     prodThresholds.push(Math.round(prod));
-    prod *= 2.2;
+    prod *= 1.85;
   }
   for (let i = 0; i < prodThresholds.length; i++) {
     const amount = prodThresholds[i];
@@ -185,10 +185,10 @@ export function generateAchievements(): AchievementDef[] {
   }
 
   const clickThresholds: number[] = [];
-  let clicks = 100;
-  for (let i = 0; i < 50; i++) {
+  let clicks = 10;
+  for (let i = 0; i < 80; i++) {
     clickThresholds.push(Math.round(clicks));
-    clicks *= 1.8;
+    clicks *= 1.55;
   }
   for (let i = 0; i < clickThresholds.length; i++) {
     const count = clickThresholds[i];

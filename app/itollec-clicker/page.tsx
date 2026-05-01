@@ -152,6 +152,16 @@ export default function ItollecClickerPage() {
     });
   }, [data.buildingsOwned, data.clickCount, data.totalProduced, data.upgradesPurchased, upgrades]);
 
+  const visibleBuildings = useMemo(() => {
+    return BUILDINGS.filter((b, index) => {
+      const owned = data.buildingsOwned[b.id] ?? 0;
+      if (owned > 0) return true;
+      if (index === 0) return true;
+      const prev = BUILDINGS[index - 1];
+      return (data.buildingsOwned[prev.id] ?? 0) > 0;
+    });
+  }, [data.buildingsOwned]);
+
   const unlockedAchievements = useMemo(() => {
     const unlocked = new Set(data.achievementsUnlocked);
     return achievements.filter((a) => unlocked.has(a.id));
@@ -241,7 +251,6 @@ export default function ItollecClickerPage() {
       coins: clampNonNegative(current.coins + gain),
       totalProduced: clampNonNegative(current.totalProduced + gain),
       clickCount: current.clickCount + 1,
-      lastTickAt: now,
       comboClicks: combo.clicks,
       comboActive: combo.active,
       comboLastClickAt: combo.lastClickAt,
@@ -261,7 +270,6 @@ export default function ItollecClickerPage() {
       coins: clampNonNegative(current.coins - cost),
       totalSpent: clampNonNegative(current.totalSpent + cost),
       buildingsOwned: { ...current.buildingsOwned, [buildingId]: owned + 1 },
-      lastTickAt: Date.now(),
     });
   };
 
@@ -287,7 +295,6 @@ export default function ItollecClickerPage() {
       coins: clampNonNegative(current.coins - u.cost),
       totalSpent: clampNonNegative(current.totalSpent + u.cost),
       upgradesPurchased: [...current.upgradesPurchased, u.id],
-      lastTickAt: Date.now(),
     });
   };
 
@@ -453,7 +460,7 @@ export default function ItollecClickerPage() {
 
             {activePanel === 'buildings' && (
               <div className="mt-6 space-y-3 overflow-y-auto h-[540px] pr-1">
-                {BUILDINGS.map((b) => {
+                {visibleBuildings.map((b) => {
                   const owned = data.buildingsOwned[b.id] ?? 0;
                   const cost = getBuildingCost(b, owned);
                   const affordable = data.coins >= cost;
