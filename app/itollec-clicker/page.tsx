@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useCloudSave } from '@/hooks/useCloudSave';
 import { BUILDINGS, generateAchievements, generateUpgrades, getBuildingCost, type BuildingId } from '@/lib/itollec-clicker/data';
@@ -62,6 +62,7 @@ function formatRate(value: number): string {
 export default function ItollecClickerPage() {
   const upgrades = useMemo(() => generateUpgrades(), []);
   const achievements = useMemo(() => generateAchievements(), []);
+  const achievementById = useMemo(() => new Map(achievements.map((a) => [a.id, a])), [achievements]);
 
   const { data, setData, isLoaded } = useCloudSave<ItollecClickerSave>(
     'itollec-clicker',
@@ -74,6 +75,8 @@ export default function ItollecClickerPage() {
     dataRef.current = data;
   }, [data]);
 
+  const lastAchievementScanAtRef = useRef(0);
+
   const didInitTickRef = useRef(false);
   useEffect(() => {
     if (!isLoaded) return;
@@ -82,12 +85,14 @@ export default function ItollecClickerPage() {
     const now = Date.now();
     const current = dataRef.current;
     if (Math.abs(now - current.lastTickAt) > 1000) {
-      setData({ ...current, lastTickAt: now });
+      setData((prev) => ({ ...prev, lastTickAt: now }));
     }
   }, [isLoaded, setData]);
 
   const [activePanel, setActivePanel] = useState<'buildings' | 'upgrades' | 'achievements'>('buildings');
   const [showStats, setShowStats] = useState(false);
+  const [achievementsOpen, setAchievementsOpen] = useState(false);
+  const [achievementQuery, setAchievementQuery] = useState('');
 
   const buildingMultById = useMemo(() => {
     const mult: Record<BuildingId, number> = { ...initialBuildingsOwned };
@@ -162,6 +167,47 @@ export default function ItollecClickerPage() {
     });
   }, [data.buildingsOwned]);
 
+  const maxOwnedBuildingIndex = useMemo(() => {
+    let max = -1;
+    for (let i = 0; i < BUILDINGS.length; i++) {
+      const b = BUILDINGS[i];
+      if ((data.buildingsOwned[b.id] ?? 0) > 0) max = i;
+    }
+    return max;
+  }, [data.buildingsOwned]);
+
+  const visibleUpgrades = useMemo(() => {
+    const maxIndex = maxOwnedBuildingIndex;
+    const indexById = new Map<BuildingId, number>(BUILDINGS.map((b, i) => [b.id, i]));
+
+    return unlockedUpgrades.filter((u) => {
+      if (u.unlock.type === 'building_owned') {
+        const idx = indexById.get(u.unlock.buildingId) ?? 0;
+        return idx <= Math.max(0, maxIndex);
+      }
+      if (u.effect.type === 'building_mult') {
+        const idx = indexById.get(u.effect.buildingId) ?? 0;
+        return idx <= Math.max(0, maxIndex);
+      }
+      return true;
+    });
+  }, [maxOwnedBuildingIndex, unlockedUpgrades]);
+
+  const computeAchievementsUnlocked = useCallback((save: ItollecClickerSave): string[] => {
+    const unlocked = new Set(save.achievementsUnlocked);
+    for (const a of achievements) {
+      if (unlocked.has(a.id)) continue;
+      const ok =
+        a.condition.type === 'total_produced'
+          ? save.totalProduced >= a.condition.amount
+          : a.condition.type === 'clicks'
+            ? save.clickCount >= a.condition.count
+            : (save.buildingsOwned[a.condition.buildingId] ?? 0) >= a.condition.count;
+      if (ok) unlocked.add(a.id);
+    }
+    return unlocked.size === save.achievementsUnlocked.length ? save.achievementsUnlocked : Array.from(unlocked);
+  }, [achievements]);
+
   const unlockedAchievements = useMemo(() => {
     const unlocked = new Set(data.achievementsUnlocked);
     return achievements.filter((a) => unlocked.has(a.id));
@@ -172,6 +218,36 @@ export default function ItollecClickerPage() {
     return achievements.filter((a) => !unlocked.has(a.id));
   }, [achievements, data.achievementsUnlocked]);
 
+  const achievementQueryNormalized = useMemo(() => achievementQuery.trim().toLowerCase(), [achievementQuery]);
+
+  const achievementsForModal = useMemo(() => {
+    const unlockedOrder = new Map<string, number>();
+    data.achievementsUnlocked.forEach((id, idx) => unlockedOrder.set(id, idx));
+
+    const matchesQuery = (aId: string) => {
+      if (!achievementQueryNormalized) return true;
+      const a = achievementById.get(aId);
+      if (!a) return false;
+      const hay = `${a.name} ${a.description}`.toLowerCase();
+      return hay.includes(achievementQueryNormalized);
+    };
+
+    const unlockedIds = data.achievementsUnlocked.filter((id) => matchesQuery(id));
+    const lockedIds = achievements
+      .map((a) => a.id)
+      .filter((id) => !unlockedOrder.has(id))
+      .filter((id) => matchesQuery(id));
+
+    unlockedIds.sort((a, b) => (unlockedOrder.get(a) ?? 0) - (unlockedOrder.get(b) ?? 0));
+
+    return {
+      unlockedIds,
+      lockedIds,
+      unlockedCount: data.achievementsUnlocked.length,
+      totalCount: achievements.length,
+    };
+  }, [achievementById, achievementQueryNormalized, achievements, data.achievementsUnlocked]);
+
   useEffect(() => {
     if (!isLoaded) return;
 
@@ -179,21 +255,20 @@ export default function ItollecClickerPage() {
     let lastUiUpdateAt = 0;
 
     const tick = (now: number) => {
-      const current = dataRef.current;
-      const dtRaw = Math.max(0, (now - current.lastTickAt) / 1000);
-      const dt = Math.min(dtRaw, 0.25);
-      const newCoinsFromProd = pps * dt;
+      setData((prev) => {
+        const dtRaw = Math.max(0, (now - prev.lastTickAt) / 1000);
+        const dt = Math.min(dtRaw, 0.25);
+        const newCoinsFromProd = pps * dt;
 
-      const comboStillActive = current.comboActive ? now - current.comboLastClickAt <= 3000 : false;
+        const comboStillActive = prev.comboActive ? now - prev.comboLastClickAt <= 3000 : false;
+        const shouldUpdate = dt > 0.05 || (!comboStillActive && prev.comboActive);
+        if (!shouldUpdate) return prev;
 
-      const shouldUpdate = dt > 0.05 || (!comboStillActive && current.comboActive);
+        const nextCoins = clampNonNegative(prev.coins + newCoinsFromProd);
+        const nextTotalProduced = clampNonNegative(prev.totalProduced + newCoinsFromProd);
 
-      if (shouldUpdate) {
-        const nextCoins = clampNonNegative(current.coins + newCoinsFromProd);
-        const nextTotalProduced = clampNonNegative(current.totalProduced + newCoinsFromProd);
-
-        const next: ItollecClickerSave = {
-          ...current,
+        const nextBase: ItollecClickerSave = {
+          ...prev,
           coins: nextCoins,
           totalProduced: nextTotalProduced,
           lastTickAt: now,
@@ -201,100 +276,98 @@ export default function ItollecClickerPage() {
         };
 
         if (now - lastUiUpdateAt >= 250 || !comboStillActive) {
-          const newlyUnlocked = new Set(next.achievementsUnlocked);
-          for (const a of achievements) {
-            if (newlyUnlocked.has(a.id)) continue;
-            const ok =
-              a.condition.type === 'total_produced'
-                ? next.totalProduced >= a.condition.amount
-                : a.condition.type === 'clicks'
-                  ? next.clickCount >= a.condition.count
-                  : (next.buildingsOwned[a.condition.buildingId] ?? 0) >= a.condition.count;
-
-            if (ok) newlyUnlocked.add(a.id);
-          }
-
-          const nextWithAchievements =
-            newlyUnlocked.size === next.achievementsUnlocked.length
-              ? next
-              : { ...next, achievementsUnlocked: Array.from(newlyUnlocked) };
-
-          setData(nextWithAchievements);
+          const nextUnlocked = computeAchievementsUnlocked(nextBase);
+          const next = nextUnlocked === nextBase.achievementsUnlocked ? nextBase : { ...nextBase, achievementsUnlocked: nextUnlocked };
           lastUiUpdateAt = now;
-        } else {
-          dataRef.current = next;
+          lastAchievementScanAtRef.current = now;
+          return next;
         }
-      }
+
+        return nextBase;
+      });
 
       raf = window.requestAnimationFrame(tick);
     };
 
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [achievements, isLoaded, pps, setData]);
-
-  const registerComboClick = (now: number) => {
-    const current = dataRef.current;
-    const clicks = [...current.comboClicks, now].filter((t) => now - t <= 5000);
-    const active = clicks.length >= 20;
-    return { clicks, active, lastClickAt: now };
-  };
+  }, [computeAchievementsUnlocked, isLoaded, pps, setData]);
 
   const handleClickSeal = () => {
     const now = Date.now();
-    const current = dataRef.current;
-    const combo = registerComboClick(now);
-    const gain = clickValue;
+    setData((prev) => {
+      const clicks = [...prev.comboClicks, now].filter((t) => now - t <= 5000);
+      const comboActive = clicks.length >= 20;
+      const gain = (1 * clickMult) * (comboActive ? 2 : 1);
+      const nextBase: ItollecClickerSave = {
+        ...prev,
+        coins: clampNonNegative(prev.coins + gain),
+        totalProduced: clampNonNegative(prev.totalProduced + gain),
+        clickCount: prev.clickCount + 1,
+        comboClicks: clicks,
+        comboActive,
+        comboLastClickAt: now,
+      };
 
-    setData({
-      ...current,
-      coins: clampNonNegative(current.coins + gain),
-      totalProduced: clampNonNegative(current.totalProduced + gain),
-      clickCount: current.clickCount + 1,
-      comboClicks: combo.clicks,
-      comboActive: combo.active,
-      comboLastClickAt: combo.lastClickAt,
+      const nowScan = Date.now();
+      if (nowScan - lastAchievementScanAtRef.current >= 250) {
+        const nextUnlocked = computeAchievementsUnlocked(nextBase);
+        if (nextUnlocked !== nextBase.achievementsUnlocked) {
+          lastAchievementScanAtRef.current = nowScan;
+          return { ...nextBase, achievementsUnlocked: nextUnlocked };
+        }
+      }
+
+      return nextBase;
     });
   };
 
   const buyBuilding = (buildingId: BuildingId) => {
-    const current = dataRef.current;
-    const def = BUILDINGS.find((b) => b.id === buildingId);
-    if (!def) return;
-    const owned = current.buildingsOwned[buildingId] ?? 0;
-    const cost = getBuildingCost(def, owned);
-    if (current.coins < cost) return;
+    setData((prev) => {
+      const def = BUILDINGS.find((b) => b.id === buildingId);
+      if (!def) return prev;
+      const owned = prev.buildingsOwned[buildingId] ?? 0;
+      const cost = getBuildingCost(def, owned);
+      if (prev.coins < cost) return prev;
 
-    setData({
-      ...current,
-      coins: clampNonNegative(current.coins - cost),
-      totalSpent: clampNonNegative(current.totalSpent + cost),
-      buildingsOwned: { ...current.buildingsOwned, [buildingId]: owned + 1 },
+      const nextBase: ItollecClickerSave = {
+        ...prev,
+        coins: clampNonNegative(prev.coins - cost),
+        totalSpent: clampNonNegative(prev.totalSpent + cost),
+        buildingsOwned: { ...prev.buildingsOwned, [buildingId]: owned + 1 },
+      };
+
+      const nextUnlocked = computeAchievementsUnlocked(nextBase);
+      return nextUnlocked === nextBase.achievementsUnlocked ? nextBase : { ...nextBase, achievementsUnlocked: nextUnlocked };
     });
   };
 
   const buyUpgrade = (upgradeId: string) => {
-    const current = dataRef.current;
-    const u = upgrades.find((x) => x.id === upgradeId);
-    if (!u) return;
-    if (current.upgradesPurchased.includes(u.id)) return;
-    if (current.coins < u.cost) return;
+    setData((prev) => {
+      const u = upgrades.find((x) => x.id === upgradeId);
+      if (!u) return prev;
+      if (prev.upgradesPurchased.includes(u.id)) return prev;
+      if (prev.coins < u.cost) return prev;
 
-    const owned = current.buildingsOwned;
-    const unlocked =
-      u.unlock.type === 'building_owned'
-        ? (owned[u.unlock.buildingId] ?? 0) >= u.unlock.count
-        : u.unlock.type === 'total_produced'
-          ? current.totalProduced >= u.unlock.amount
-          : current.clickCount >= u.unlock.count;
+      const owned = prev.buildingsOwned;
+      const unlocked =
+        u.unlock.type === 'building_owned'
+          ? (owned[u.unlock.buildingId] ?? 0) >= u.unlock.count
+          : u.unlock.type === 'total_produced'
+            ? prev.totalProduced >= u.unlock.amount
+            : prev.clickCount >= u.unlock.count;
 
-    if (!unlocked) return;
+      if (!unlocked) return prev;
 
-    setData({
-      ...current,
-      coins: clampNonNegative(current.coins - u.cost),
-      totalSpent: clampNonNegative(current.totalSpent + u.cost),
-      upgradesPurchased: [...current.upgradesPurchased, u.id],
+      const nextBase: ItollecClickerSave = {
+        ...prev,
+        coins: clampNonNegative(prev.coins - u.cost),
+        totalSpent: clampNonNegative(prev.totalSpent + u.cost),
+        upgradesPurchased: [...prev.upgradesPurchased, u.id],
+      };
+
+      const nextUnlocked = computeAchievementsUnlocked(nextBase);
+      return nextUnlocked === nextBase.achievementsUnlocked ? nextBase : { ...nextBase, achievementsUnlocked: nextUnlocked };
     });
   };
 
@@ -371,13 +444,6 @@ export default function ItollecClickerPage() {
             </div>
 
             <div className="mt-6 flex-1 flex flex-col items-center justify-center">
-              {data.comboActive && (
-                <div className="mb-4 rounded-2xl border-2 border-brand-border bg-brand-inner px-4 py-2 shadow-brutal">
-                  <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary text-center">
-                    Événement : Combo de clic ×2
-                  </div>
-                </div>
-              )}
               <button
                 type="button"
                 onClick={handleClickSeal}
@@ -408,6 +474,18 @@ export default function ItollecClickerPage() {
                   </text>
                 </svg>
               </button>
+
+              <div className="mt-4 min-h-[40px] w-full max-w-[420px]">
+                {data.comboActive ? (
+                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner px-4 py-2 shadow-brutal">
+                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary text-center">
+                      Événement : Combo ×2 (20 clics en 5s)
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-[40px]" />
+                )}
+              </div>
 
               <div className="mt-6 text-xs font-bold tracking-widest uppercase text-tx-secondary text-center">
                 Clique pour gagner des FrenlyCoin ₶
@@ -499,9 +577,9 @@ export default function ItollecClickerPage() {
               <div className="mt-6 space-y-3 overflow-y-auto h-[540px] pr-1">
                 <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                   <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Disponibles</div>
-                  <div className="text-sm font-bold text-tx-base mt-1">{unlockedUpgrades.length}</div>
+                  <div className="text-sm font-bold text-tx-base mt-1">{visibleUpgrades.length}</div>
                 </div>
-                {unlockedUpgrades.slice(0, 60).map((u) => {
+                {visibleUpgrades.slice(0, 60).map((u) => {
                   const affordable = data.coins >= u.cost;
                   return (
                     <button
@@ -527,9 +605,9 @@ export default function ItollecClickerPage() {
                     </button>
                   );
                 })}
-                {unlockedUpgrades.length > 60 && (
+                {visibleUpgrades.length > 60 && (
                   <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary text-center">
-                    +{unlockedUpgrades.length - 60} autres upgrades débloqués
+                    +{visibleUpgrades.length - 60} autres upgrades débloqués
                   </div>
                 )}
               </div>
@@ -549,6 +627,13 @@ export default function ItollecClickerPage() {
                     {unlockedAchievements.length} / {achievements.length}
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setAchievementsOpen(true)}
+                  className="w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                >
+                  Voir la liste
+                </button>
                 {unlockedAchievements.slice(0, 40).map((a) => (
                   <div key={a.id} className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4 shadow-brutal">
                     <div className="font-display font-black tracking-wider uppercase text-tx-base">{a.name}</div>
@@ -564,6 +649,71 @@ export default function ItollecClickerPage() {
           </div>
         </div>
       </div>
+
+      {achievementsOpen && (
+        <div className="fixed inset-0 z-[9999]">
+          <button
+            type="button"
+            onClick={() => setAchievementsOpen(false)}
+            className="absolute inset-0 bg-black/60"
+            aria-label="Fermer"
+          />
+          <div className="absolute inset-0 flex items-center justify-center px-6 py-10">
+            <div className="w-full max-w-3xl bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal relative">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="font-display text-2xl md:text-3xl font-black tracking-wider uppercase text-tx-base">Succès</div>
+                  <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mt-1">
+                    {achievementsForModal.unlockedCount} / {achievementsForModal.totalCount} débloqués
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAchievementsOpen(false)}
+                  className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
+
+              <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2">Rechercher</div>
+                <input
+                  value={achievementQuery}
+                  onChange={(e) => setAchievementQuery(e.target.value)}
+                  className="w-full h-12 rounded-lg border-2 border-brand-border bg-brand-card px-4 text-tx-base font-bold outline-none"
+                  placeholder="Nom ou description…"
+                  aria-label="Rechercher un succès"
+                />
+              </div>
+
+              <div className="mt-6 overflow-y-auto h-[520px] pr-1 space-y-3">
+                {achievementsForModal.unlockedIds.map((id) => {
+                  const a = achievementById.get(id);
+                  if (!a) return null;
+                  return (
+                    <div key={id} className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4 shadow-brutal">
+                      <div className="font-display font-black tracking-wider uppercase text-tx-base">{a.name}</div>
+                      <div className="text-sm text-tx-secondary font-bold mt-2">{a.description}</div>
+                    </div>
+                  );
+                })}
+
+                {achievementsForModal.lockedIds.map((id) => {
+                  const a = achievementById.get(id);
+                  if (!a) return null;
+                  return (
+                    <div key={id} className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4 opacity-50">
+                      <div className="font-display font-black tracking-wider uppercase text-tx-base">{a.name}</div>
+                      <div className="text-sm text-tx-secondary font-bold mt-2">{a.description}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
