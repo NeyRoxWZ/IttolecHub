@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { generatePassphrase } from '@/lib/words';
-import { Copy, RefreshCw } from 'lucide-react';
+import { Copy, RefreshCw, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CreerComptePage() {
@@ -52,8 +52,8 @@ export default function CreerComptePage() {
       }
 
       setUserLocally(data.user);
-      toast.success('Compte créé avec succès !');
-      router.push('/profil');
+      toast.success('Compte créé avec succès ! Tu peux maintenant te connecter.');
+      router.push('/connexion');
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -88,31 +88,39 @@ export default function CreerComptePage() {
         </form>
       ) : (
         <div className="space-y-6">
-          <div className="bg-brand-bg p-4 rounded-lg border border-white/10 text-center">
-            <p className="text-sm text-white/60 mb-4">
-              Voici tes 6 mots secrets. <strong>Ne les perds pas</strong>, ils te serviront de mot de passe !
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 mb-4">
-              {words.map((word, i) => (
-                <span key={i} className="bg-brand-primary/20 text-brand-primary px-3 py-1 rounded-full font-medium">
-                  {word}
-                </span>
-              ))}
-            </div>
-            <div className="flex justify-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleRegenerate}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Changer
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleCopy}>
-                <Copy className="w-4 h-4 mr-2" />
-                Copier
-              </Button>
+          <div className="bg-brand-bg p-4 rounded-lg border border-red-500/30 text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-red-500/5" />
+            <div className="relative z-10">
+              <h3 className="text-red-400 font-bold mb-2 flex items-center justify-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                TRÈS IMPORTANT
+              </h3>
+              <p className="text-sm text-white/80 mb-4">
+                Voici tes 6 mots secrets. <strong>C&apos;est ton SEUL moyen de te connecter.</strong><br/>
+                Si tu les perds, <span className="text-red-400 underline decoration-red-500/50">ton compte et tes sauvegardes seront perdus à tout jamais.</span>
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 mb-4 p-3 bg-brand-surface rounded-lg border border-white/5 shadow-inner">
+                {words.map((word, i) => (
+                  <span key={i} className="bg-brand-primary/20 text-brand-primary px-3 py-1 rounded-full font-medium text-lg">
+                    {word}
+                  </span>
+                ))}
+              </div>
+              <div className="flex justify-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleRegenerate} className="hover:bg-white/5">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Changer
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCopy} className="border-brand-primary/50 text-brand-primary hover:bg-brand-primary/10">
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copier mes mots
+                </Button>
+              </div>
             </div>
           </div>
 
-          <Button onClick={handleRegister} className="w-full" disabled={loading}>
-            {loading ? 'Création...' : "J'ai bien noté mes mots, créer mon compte"}
+          <Button onClick={handleRegister} className="w-full font-bold shadow-lg" disabled={loading}>
+            {loading ? 'Création...' : "J'ai sauvegardé mes mots, créer mon compte"}
           </Button>
         </div>
       )}

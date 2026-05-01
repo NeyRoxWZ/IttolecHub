@@ -44,7 +44,7 @@ export default function ConnexionPage() {
 
       setUserLocally(data.user);
       toast.success('Connecté avec succès !');
-      router.push('/profil');
+      router.push('/');
     } catch (err: any) {
       toast.error(err.message);
     } finally {
