@@ -3,7 +3,6 @@ import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ToasterProvider } from '@/components/ToasterProvider'
 import { AuthProvider } from '@/hooks/useAuth'
-import { GlobalHeader } from '@/components/GlobalHeader'
 
 export const metadata: Metadata = {
   title: 'ItollecHub - Mini-jeux multijoueurs',
@@ -41,10 +40,7 @@ export default function RootLayout({
       <body className="bg-brand-bg text-tx-base font-body antialiased">
         <AuthProvider>
           <ThemeProvider>
-            <GlobalHeader />
-            <main className="pt-14 min-h-screen">
-              {children}
-            </main>
+            {children}
             <ToasterProvider />
           </ThemeProvider>
         </AuthProvider>

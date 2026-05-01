@@ -2,13 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { generatePassphrase } from '@/lib/words';
 import { Copy, RefreshCw, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 export default function CreerComptePage() {
   const [pseudo, setPseudo] = useState('');
@@ -62,68 +61,130 @@ export default function CreerComptePage() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-6 bg-brand-surface rounded-xl shadow-lg border border-white/5">
-      <h1 className="text-2xl font-bold mb-6 text-center text-brand-primary">Créer un compte</h1>
+    <main className="min-h-screen bg-transparent px-6 pt-8 pb-12 flex items-start justify-center">
+      <div className="w-full max-w-5xl mx-auto">
+        <div className="flex items-center justify-center mb-8">
+          <Link
+            href="/"
+            className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
+          >
+            Retour
+          </Link>
+        </div>
+
+        <div className="max-w-xl mx-auto bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
+          <div className="flex items-center justify-between h-12">
+            <h1 className="font-display text-2xl md:text-3xl leading-none">Créer un compte</h1>
+            <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
+              <span className="font-display font-black text-tx-base">ID</span>
+            </div>
+          </div>
       
       {step === 'pseudo' ? (
-        <form onSubmit={handleNext} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Choisis un pseudo unique</label>
-            <Input 
+        <form onSubmit={handleNext} className="mt-6 space-y-6">
+          <div className="space-y-2">
+            <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
+              Choisis un pseudo (unique)
+            </label>
+            <input
               value={pseudo}
               onChange={(e) => setPseudo(e.target.value)}
-              placeholder="Ton pseudo"
+              placeholder="PseudoCool"
+              className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors"
+              autoComplete="username"
               required
             />
           </div>
-          <Button type="submit" className="w-full">
+
+          <button
+            type="submit"
+            className="w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+          >
             Continuer
-          </Button>
-          <div className="mt-4 text-center text-sm text-white/60">
+          </button>
+
+          <div className="text-center text-xs font-bold tracking-widest uppercase text-tx-secondary">
             Déjà un compte ?{' '}
-            <Link href="/connexion" className="text-brand-primary hover:underline">
+            <Link href="/connexion" className="text-tx-base hover:text-accent-primary transition-colors">
               Se connecter
             </Link>
           </div>
         </form>
       ) : (
-        <div className="space-y-6">
-          <div className="bg-brand-bg p-4 rounded-lg border border-red-500/30 text-center relative overflow-hidden">
+        <div className="mt-6 space-y-6">
+          <div className="bg-brand-inner border-4 border-brand-border rounded-[24px] p-6 shadow-brutal relative overflow-hidden">
             <div className="absolute inset-0 bg-red-500/5" />
             <div className="relative z-10">
-              <h3 className="text-red-400 font-bold mb-2 flex items-center justify-center gap-2">
-                <AlertTriangle className="w-5 h-5" />
-                TRÈS IMPORTANT
-              </h3>
-              <p className="text-sm text-white/80 mb-4">
-                Voici tes 6 mots secrets. <strong>C&apos;est ton SEUL moyen de te connecter.</strong><br/>
-                Si tu les perds, <span className="text-red-400 underline decoration-red-500/50">ton compte et tes sauvegardes seront perdus à tout jamais.</span>
-              </p>
-              <div className="flex flex-wrap justify-center gap-2 mb-4 p-3 bg-brand-surface rounded-lg border border-white/5 shadow-inner">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="w-10 h-10 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                </div>
+                <h2 className="font-display font-black text-lg tracking-wider uppercase text-tx-base">Très important</h2>
+              </div>
+
+              <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-4">
+                <p className="text-sm text-tx-secondary font-bold leading-relaxed">
+                  Voici tes 6 mots secrets. <span className="text-tx-base">C&apos;est ton SEUL moyen de te connecter.</span>{' '}
+                  Si tu les perds, <span className="text-red-400 underline decoration-red-500/50">ton compte et tes sauvegardes seront perdus à tout jamais.</span>
+                </p>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {words.map((word, i) => (
-                  <span key={i} className="bg-brand-primary/20 text-brand-primary px-3 py-1 rounded-full font-medium text-lg">
+                  <div
+                    key={i}
+                    className="bg-brand-card border-2 border-brand-border rounded-2xl py-3 px-4 shadow-brutal text-center font-display font-black tracking-wider uppercase text-tx-base"
+                  >
                     {word}
-                  </span>
+                  </div>
                 ))}
               </div>
-              <div className="flex justify-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleRegenerate} className="hover:bg-white/5">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Changer
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleCopy} className="border-brand-primary/50 text-brand-primary hover:bg-brand-primary/10">
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copier mes mots
-                </Button>
+
+              <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={handleRegenerate}
+                  className="flex-1 h-12 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Régénérer
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="flex-1 h-12 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copier
+                </button>
               </div>
             </div>
           </div>
 
-          <Button onClick={handleRegister} className="w-full font-bold shadow-lg" disabled={loading}>
+          <button
+            type="button"
+            onClick={handleRegister}
+            disabled={loading}
+            className={cn(
+              'w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+              'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base',
+              loading && 'opacity-60 cursor-not-allowed hover:bg-brand-inner hover:text-tx-base hover:border-brand-border'
+            )}
+          >
             {loading ? 'Création...' : "J'ai sauvegardé mes mots, créer mon compte"}
-          </Button>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.push('/connexion')}
+            className="w-full h-12 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors"
+          >
+            J&apos;ai déjà un compte
+          </button>
         </div>
       )}
-    </div>
+        </div>
+      </div>
+    </main>
   );
 }

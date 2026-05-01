@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, Leaf } from 'lucide-react';
+import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, Leaf, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,6 +35,7 @@ const STEPS = [
 
 export default function Home() {
   const router = useRouter();
+  const [mode, setMode] = useState<'multiplayer' | 'solo'>('multiplayer');
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
@@ -43,7 +44,7 @@ export default function Home() {
   const [demoGameIndex, setDemoGameIndex] = useState(1);
   const [easterEggActive, setEasterEggActive] = useState(false);
   const [keyBuffer, setKeyBuffer] = useState('');
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   // Load state on mount
   useEffect(() => {
@@ -162,6 +163,76 @@ export default function Home() {
       `}</style>
 
       <header className="pt-6 md:pt-8 text-center px-6">
+        <div className="w-full max-w-5xl mx-auto flex items-center justify-between gap-4 mb-6">
+          <div className="flex-1 hidden md:block" />
+
+          <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMode('multiplayer')}
+              className={cn(
+                'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                mode === 'multiplayer'
+                  ? 'bg-brand-card text-tx-base border-brand-border'
+                  : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
+              )}
+            >
+              Multiplayer
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('solo')}
+              className={cn(
+                'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                mode === 'solo'
+                  ? 'bg-brand-card text-tx-base border-brand-border'
+                  : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
+              )}
+            >
+              Solo
+            </button>
+          </div>
+
+          <div className="flex-1 flex justify-end">
+            {user ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => router.push('/profil')}
+                  className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                >
+                  {user.pseudo}
+                </button>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="h-11 w-11 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
+                  title="Se déconnecter"
+                >
+                  <LogOut className="h-5 w-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => router.push('/connexion')}
+                  className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                >
+                  Connexion
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push('/creer-compte')}
+                  className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                >
+                  Créer un compte
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="flex items-center justify-center">
           {logoVisible && (
             <Image
@@ -179,250 +250,298 @@ export default function Home() {
 
       <section className="flex-1 flex items-center pb-12 md:pb-24 pt-4">
         <div className="w-full max-w-5xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center">
-            
-            {/* LEFT CARD: Créer / Rejoindre */}
-            <div className="flex-1 h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
-              
-              <div className="flex items-center justify-between h-12">
-                <h2 className="font-display text-2xl md:text-3xl leading-none">
-                  {activeTab === 'create' ? 'Créer une room' : 'Rejoindre une room'}
-                </h2>
-                <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
-                  <Users className="h-6 w-6 text-tx-secondary" />
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-2">
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('create')}
-                    className={cn(
-                      'flex-1 h-11 rounded-lg font-display font-bold transition-colors border-2',
-                      activeTab === 'create'
-                        ? 'bg-brand-card text-tx-base border-brand-border'
-                        : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
-                    )}
-                  >
-                    Créer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('join')}
-                    className={cn(
-                      'flex-1 h-11 rounded-lg font-display font-bold transition-colors border-2',
-                      activeTab === 'join'
-                        ? 'bg-brand-card text-tx-base border-brand-border'
-                        : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
-                    )}
-                  >
-                    Rejoindre
-                  </button>
-                </div>
-              </div>
-
-              <form onSubmit={handleAction} className="mt-6 flex-1 flex flex-col relative">
-                <div className="space-y-2 relative z-10">
-                  <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
-                    Ton pseudo
-                  </label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="PseudoCool"
-                    disabled={!!user}
-                    className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors disabled:opacity-50"
-                  />
-                </div>
-
-                <div className={cn(
-                  "space-y-2 absolute top-[84px] left-0 w-full transition-all duration-300",
-                  activeTab === 'join' ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"
-                )}>
-                  <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
-                    Code de salle
-                  </label>
-                  <input
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    placeholder="ABC123"
-                    className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 font-mono tracking-widest text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors"
-                    maxLength={6}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={!canSubmit}
-                  className={cn(
-                    'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
-                    'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base',
-                    !canSubmit && 'opacity-50 cursor-not-allowed hover:bg-brand-inner hover:text-tx-base hover:border-brand-border'
-                  )}
-                >
-                  {activeTab === 'create' ? 'Démarrer' : 'Rejoindre'}
-                </button>
-              </form>
-            </div>
-
-            {/* RIGHT CARD: Comment jouer */}
-            <div className="flex-1 h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
-              
-              <div className="flex items-center h-12">
-                <h2 className="font-display text-2xl md:text-3xl leading-none">Comment jouer</h2>
-              </div>
-
-              <div className="mt-6">
-                <h3 className="font-display font-bold text-xl">{STEPS[currentStep].title}</h3>
-                <p className="text-sm text-tx-secondary mt-1">{STEPS[currentStep].description}</p>
-              </div>
-
-              {/* Minimalist Placeholder Area */}
-              <div className="flex-1 flex items-center justify-center min-h-[160px] w-full mt-4">
-                
-                {currentStep === 0 && (
-                  <div className="font-mono text-6xl md:text-7xl tracking-[0.15em] font-black text-tx-base flex">
-                    {['A', 'B', 'C', '1', '2', '3'].map((char, i) => (
-                      <span key={i} className="ih-anim-type" style={{ animationDelay: `${i * 100}ms` }}>
-                        {char}
-                      </span>
-                    ))}
+          {mode === 'multiplayer' ? (
+            <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center">
+              <div className="flex-1 h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+                <div className="flex items-center justify-between h-12">
+                  <h2 className="font-display text-2xl md:text-3xl leading-none">
+                    {activeTab === 'create' ? 'Créer une room' : 'Rejoindre une room'}
+                  </h2>
+                  <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
+                    <Users className="h-6 w-6 text-tx-secondary" />
                   </div>
-                )}
+                </div>
 
-                {currentStep === 1 && (
-                  <div className="flex flex-col gap-3 w-full max-w-[220px]">
-                    {['PokéGuessr', 'RentGuessr', 'Undercover'].map((game, i) => (
-                      <div key={game} className={cn(
-                        "px-4 py-3 rounded-lg border-2 font-bold text-center transition-all duration-300",
-                        i === demoGameIndex
-                          ? "border-accent-primary bg-brand-inner text-accent-primary scale-105 shadow-brutal"
-                          : "border-brand-border bg-brand-inner text-tx-muted"
-                      )}>
-                        {game}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {currentStep === 2 && (
-                  <div className="flex items-end justify-center gap-6 h-full pb-2">
-                    {/* Left: 2000 */}
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-12 h-10 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center font-bold text-tx-base">N</div>
-                      <div className="w-12 bg-brand-inner border-2 border-brand-border border-b-0 rounded-t-lg ih-anim-rise" style={{ height: '64px', animationDelay: '0ms' }} />
-                      <span className="font-bold text-sm text-tx-secondary">2000</span>
-                    </div>
-                    {/* Middle: 2500 */}
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-12 h-10 rounded-lg border-2 border-accent-primary bg-brand-inner flex items-center justify-center font-bold text-accent-primary">M</div>
-                      <div className="w-12 bg-accent-primary border-2 border-brand-border border-b-0 rounded-t-lg ih-anim-rise" style={{ height: '112px', animationDelay: '200ms' }} />
-                      <span className="font-bold text-sm text-tx-base">2500</span>
-                    </div>
-                    {/* Right: 2300 */}
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-12 h-10 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center font-bold text-tx-base">L</div>
-                      <div className="w-12 bg-brand-inner border-2 border-brand-border border-b-0 rounded-t-lg ih-anim-rise" style={{ height: '96px', animationDelay: '400ms' }} />
-                      <span className="font-bold text-sm text-tx-secondary">2300</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Navigation */}
-              <div className="mt-auto pt-4 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={goPrev}
-                  className="h-10 w-10 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-
-                <div className="flex items-center gap-3">
-                  {STEPS.map((_, i) => (
+                <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-2">
+                  <div className="flex gap-2">
                     <button
-                      key={i}
                       type="button"
-                      onClick={() => setCurrentStep(i)}
+                      onClick={() => setActiveTab('create')}
                       className={cn(
-                        'h-2.5 rounded-full transition-all border-2 border-brand-border',
-                        i === currentStep ? 'w-10 bg-tx-base border-tx-base' : 'w-2.5 bg-brand-inner hover:bg-brand-border'
+                        'flex-1 h-11 rounded-lg font-display font-bold transition-colors border-2',
+                        activeTab === 'create'
+                          ? 'bg-brand-card text-tx-base border-brand-border'
+                          : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
                       )}
+                    >
+                      Créer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('join')}
+                      className={cn(
+                        'flex-1 h-11 rounded-lg font-display font-bold transition-colors border-2',
+                        activeTab === 'join'
+                          ? 'bg-brand-card text-tx-base border-brand-border'
+                          : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
+                      )}
+                    >
+                      Rejoindre
+                    </button>
+                  </div>
+                </div>
+
+                <form onSubmit={handleAction} className="mt-6 flex-1 flex flex-col relative">
+                  <div className="space-y-2 relative z-10">
+                    <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
+                      Ton pseudo
+                    </label>
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="PseudoCool"
+                      disabled={!!user}
+                      className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors disabled:opacity-50"
                     />
-                  ))}
+                  </div>
+
+                  <div
+                    className={cn(
+                      'space-y-2 absolute top-[84px] left-0 w-full transition-all duration-300',
+                      activeTab === 'join' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+                    )}
+                  >
+                    <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
+                      Code de salle
+                    </label>
+                    <input
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.toUpperCase())}
+                      placeholder="ABC123"
+                      className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 font-mono tracking-widest text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors"
+                      maxLength={6}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={!canSubmit}
+                    className={cn(
+                      'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
+                      'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base',
+                      !canSubmit && 'opacity-50 cursor-not-allowed hover:bg-brand-inner hover:text-tx-base hover:border-brand-border'
+                    )}
+                  >
+                    {activeTab === 'create' ? 'Démarrer' : 'Rejoindre'}
+                  </button>
+                </form>
+              </div>
+
+              <div className="flex-1 h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+                <div className="flex items-center h-12">
+                  <h2 className="font-display text-2xl md:text-3xl leading-none">Comment jouer</h2>
+                </div>
+
+                <div className="mt-6">
+                  <h3 className="font-display font-bold text-xl">{STEPS[currentStep].title}</h3>
+                  <p className="text-sm text-tx-secondary mt-1">{STEPS[currentStep].description}</p>
+                </div>
+
+                <div className="flex-1 flex items-center justify-center min-h-[160px] w-full mt-4">
+                  {currentStep === 0 && (
+                    <div className="font-mono text-6xl md:text-7xl tracking-[0.15em] font-black text-tx-base flex">
+                      {['A', 'B', 'C', '1', '2', '3'].map((char, i) => (
+                        <span key={i} className="ih-anim-type" style={{ animationDelay: `${i * 100}ms` }}>
+                          {char}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {currentStep === 1 && (
+                    <div className="flex flex-col gap-3 w-full max-w-[220px]">
+                      {['PokéGuessr', 'RentGuessr', 'Undercover'].map((game, i) => (
+                        <div
+                          key={game}
+                          className={cn(
+                            'px-4 py-3 rounded-lg border-2 font-bold text-center transition-all duration-300',
+                            i === demoGameIndex
+                              ? 'border-accent-primary bg-brand-inner text-accent-primary scale-105 shadow-brutal'
+                              : 'border-brand-border bg-brand-inner text-tx-muted'
+                          )}
+                        >
+                          {game}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {currentStep === 2 && (
+                    <div className="flex items-end justify-center gap-6 h-full pb-2">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-12 h-10 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center font-bold text-tx-base">
+                          N
+                        </div>
+                        <div
+                          className="w-12 bg-brand-inner border-2 border-brand-border border-b-0 rounded-t-lg ih-anim-rise"
+                          style={{ height: '64px', animationDelay: '0ms' }}
+                        />
+                        <span className="font-bold text-sm text-tx-secondary">2000</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-12 h-10 rounded-lg border-2 border-accent-primary bg-brand-inner flex items-center justify-center font-bold text-accent-primary">
+                          M
+                        </div>
+                        <div
+                          className="w-12 bg-accent-primary border-2 border-brand-border border-b-0 rounded-t-lg ih-anim-rise"
+                          style={{ height: '112px', animationDelay: '200ms' }}
+                        />
+                        <span className="font-bold text-sm text-tx-base">2500</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-12 h-10 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center font-bold text-tx-base">
+                          L
+                        </div>
+                        <div
+                          className="w-12 bg-brand-inner border-2 border-brand-border border-b-0 rounded-t-lg ih-anim-rise"
+                          style={{ height: '96px', animationDelay: '400ms' }}
+                        />
+                        <span className="font-bold text-sm text-tx-secondary">2300</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-auto pt-4 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={goPrev}
+                    className="h-10 w-10 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+
+                  <div className="flex items-center gap-3">
+                    {STEPS.map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setCurrentStep(i)}
+                        className={cn(
+                          'h-2.5 rounded-full transition-all border-2 border-brand-border',
+                          i === currentStep ? 'w-10 bg-tx-base border-tx-base' : 'w-2.5 bg-brand-inner hover:bg-brand-border'
+                        )}
+                      />
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    className="h-10 w-10 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center">
+              <div className="flex-1 h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+                <div className="flex items-center justify-between h-12">
+                  <h2 className="font-display text-2xl md:text-3xl leading-none">ItollecClicker</h2>
+                  <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
+                    <Crown className="h-6 w-6 text-accent-secondary" />
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                  <p className="text-sm text-tx-secondary font-bold leading-relaxed">
+                    Empire Napoléonien, clics + production, décrets, succès et prestige.
+                  </p>
+                </div>
+
+                <div className="mt-6 flex-1 flex flex-col justify-center">
+                  <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-3">Ce que tu vas faire</div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 bg-brand-inner border-2 border-brand-border rounded-2xl p-4">
+                      <div className="w-10 h-10 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center font-display font-black text-tx-base">
+                        ₶
+                      </div>
+                      <div className="text-sm font-bold text-tx-base">Cliquer, acheter, optimiser</div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-brand-inner border-2 border-brand-border rounded-2xl p-4">
+                      <div className="w-10 h-10 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center font-display font-black text-tx-base">
+                        x
+                      </div>
+                      <div className="text-sm font-bold text-tx-base">Débloquer upgrades & synergies</div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-brand-inner border-2 border-brand-border rounded-2xl p-4">
+                      <div className="w-10 h-10 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center font-display font-black text-tx-base">
+                        ★
+                      </div>
+                      <div className="text-sm font-bold text-tx-base">Chasser les succès (bonus)</div>
+                    </div>
+                  </div>
                 </div>
 
                 <button
                   type="button"
-                  onClick={goNext}
-                  className="h-10 w-10 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
+                  onClick={() => router.push('/itollec-clicker')}
+                  className="mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
                 >
-                  <ChevronRight className="h-5 w-5" />
+                  Jouer
                 </button>
               </div>
 
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION IDLE GAMES */}
-      <section className="w-full max-w-5xl mx-auto px-6 pb-12 md:pb-24">
-        <h2 className="font-display text-2xl md:text-3xl leading-none mb-8 text-center md:text-left">
-          Nouveau : Les Jeux Idle
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          
-          {/* ItollecClicker */}
-          <div className="bg-brand-surface border-2 border-yellow-600/30 rounded-2xl p-6 hover:border-yellow-500 transition-colors flex flex-col group relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Crown className="w-24 h-24 text-yellow-500" />
-            </div>
-            <div className="relative z-10 flex-1">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/30">
-                  <Crown className="w-6 h-6 text-yellow-500" />
+              <div className="flex-1 h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+                <div className="flex items-center justify-between h-12">
+                  <h2 className="font-display text-2xl md:text-3xl leading-none">TerraFarm</h2>
+                  <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
+                    <Leaf className="h-6 w-6 text-accent-success" />
+                  </div>
                 </div>
-                <h3 className="font-display font-bold text-2xl text-yellow-500">ItollecClicker</h3>
-              </div>
-              <p className="text-white/70 mb-6 text-sm leading-relaxed">
-                Bâtis ton Empire Napoléonien. Clique pour amasser des Livres Tournois, recrute des paysans, construis des forges impériales et débloque des décrets historiques.
-              </p>
-            </div>
-            <button 
-              onClick={() => router.push('/itollec-clicker')}
-              className="mt-auto w-full h-12 rounded-lg bg-yellow-600/20 text-yellow-500 font-bold border border-yellow-600/50 hover:bg-yellow-600 hover:text-white transition-colors relative z-10"
-            >
-              Jouer à ItollecClicker
-            </button>
-          </div>
 
-          {/* TerraFarm */}
-          <div className="bg-brand-surface border-2 border-green-600/30 rounded-2xl p-6 hover:border-green-500 transition-colors flex flex-col group relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Leaf className="w-24 h-24 text-green-500" />
-            </div>
-            <div className="relative z-10 flex-1">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/30">
-                  <Leaf className="w-6 h-6 text-green-500" />
+                <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                  <p className="text-sm text-tx-secondary font-bold leading-relaxed">
+                    Ferme rurale, saisons, événements, et expansion géographique sur la durée.
+                  </p>
                 </div>
-                <h3 className="font-display font-bold text-2xl text-green-500">TerraFarm</h3>
-              </div>
-              <p className="text-white/70 mb-6 text-sm leading-relaxed">
-                Gère ta ferme rurale française. Cultive tes champs, élève du bétail et étends ton domaine à travers différentes régions géographiques. Une progression infinie t&apos;attend.
-              </p>
-            </div>
-            <button 
-              onClick={() => router.push('/terrafarm')}
-              className="mt-auto w-full h-12 rounded-lg bg-green-600/20 text-green-500 font-bold border border-green-600/50 hover:bg-green-600 hover:text-white transition-colors relative z-10"
-            >
-              Jouer à TerraFarm
-            </button>
-          </div>
 
+                <div className="mt-6 flex-1 flex flex-col justify-center">
+                  <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-3">Ce que tu vas faire</div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 bg-brand-inner border-2 border-brand-border rounded-2xl p-4">
+                      <div className="w-10 h-10 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center font-display font-black text-tx-base">
+                        ƒ
+                      </div>
+                      <div className="text-sm font-bold text-tx-base">Produire, vendre, améliorer</div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-brand-inner border-2 border-brand-border rounded-2xl p-4">
+                      <div className="w-10 h-10 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center font-display font-black text-tx-base">
+                        ☀
+                      </div>
+                      <div className="text-sm font-bold text-tx-base">Gérer les saisons & aléas</div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-brand-inner border-2 border-brand-border rounded-2xl p-4">
+                      <div className="w-10 h-10 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center font-display font-black text-tx-base">
+                        ⛰
+                      </div>
+                      <div className="text-sm font-bold text-tx-base">Débloquer des zones</div>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => router.push('/terrafarm')}
+                  className="mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                >
+                  Jouer
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
