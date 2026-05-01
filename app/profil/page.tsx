@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 export default function ProfilPage() {
   const { user, loading, logout, refreshUser } = useAuth();
   const router = useRouter();
-  const [mode, setMode] = useState<'multiplayer' | 'solo'>('multiplayer');
   const [editingPseudo, setEditingPseudo] = useState(false);
   const [newPseudo, setNewPseudo] = useState('');
   const [regenerating, setRegenerating] = useState(false);
@@ -25,13 +24,6 @@ export default function ProfilPage() {
       router.push('/connexion');
     }
   }, [user, loading, router]);
-
-  useEffect(() => {
-    const savedMode = sessionStorage.getItem('itollec_home_mode');
-    if (savedMode === 'solo' || savedMode === 'multiplayer') {
-      setMode(savedMode);
-    }
-  }, []);
 
   if (loading || !user) {
     return <div className="pt-20 text-center">Chargement...</div>;
@@ -110,58 +102,16 @@ export default function ProfilPage() {
             </Link>
           </div>
 
-          <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-2 flex gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                sessionStorage.setItem('itollec_home_mode', 'multiplayer');
-                router.push('/?mode=multiplayer');
-              }}
-              className={cn(
-                'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
-                mode === 'multiplayer'
-                  ? 'bg-brand-card text-tx-base border-brand-border'
-                  : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
-              )}
-            >
-              Multiplayer
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                sessionStorage.setItem('itollec_home_mode', 'solo');
-                router.push('/?mode=solo');
-              }}
-              className={cn(
-                'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
-                mode === 'solo'
-                  ? 'bg-brand-card text-tx-base border-brand-border'
-                  : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
-              )}
-            >
-              Solo
-            </button>
-          </div>
-
           <div className="flex-1 flex justify-end">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase"
-                title="Profil"
-              >
-                {user.pseudo}
-              </button>
-              <button
-                type="button"
-                onClick={logout}
-                className="h-11 px-4 rounded-lg border-2 border-red-500/40 bg-brand-inner text-red-400 hover:text-red-300 hover:border-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 font-display font-black tracking-wider uppercase"
-                title="Se déconnecter"
-              >
-                <LogOut className="h-5 w-5" />
-                Déconnexion
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={logout}
+              className="h-11 px-4 rounded-lg border-2 border-red-500/40 bg-brand-inner text-red-400 hover:text-red-300 hover:border-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 font-display font-black tracking-wider uppercase"
+              title="Se déconnecter"
+            >
+              <LogOut className="h-5 w-5" />
+              Déconnexion
+            </button>
           </div>
         </div>
 

@@ -143,7 +143,7 @@ export default function Home() {
   };
 
   return (
-    <main className="bg-transparent min-h-screen flex flex-col justify-between md:overflow-hidden relative">
+    <main className="bg-transparent min-h-screen md:h-screen flex flex-col justify-between md:overflow-hidden relative">
       {/* EASTER EGG */}
       {easterEggActive && (
         <div 
@@ -183,8 +183,8 @@ export default function Home() {
         }
       `}</style>
 
-      <header className="pt-4 md:pt-6 text-center px-6">
-        <div className="w-full max-w-5xl mx-auto flex items-center justify-between gap-4 mb-4">
+      <header className="pt-3 md:pt-5 text-center px-6">
+        <div className="w-full max-w-5xl mx-auto flex items-center justify-between gap-4 mb-3">
           <div className="flex-1 hidden md:block" />
 
           <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-2 flex gap-2">
@@ -269,7 +269,7 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="flex-1 flex items-center pb-10 md:pb-14 pt-2">
+      <section className="flex-1 flex items-center pb-8 md:pb-10 pt-1">
         <div className="w-full max-w-5xl mx-auto px-6">
           {mode === 'multiplayer' ? (
             <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center">
@@ -504,7 +504,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => router.push('/itollec-clicker')}
-                    className="w-full h-16 rounded-2xl font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-brutal"
+                    className="w-full h-16 rounded-[24px] font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-brutal mb-1"
                   >
                     Jouer
                   </button>
@@ -547,7 +547,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => router.push('/terrafarm')}
-                    className="w-full h-16 rounded-2xl font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-brutal"
+                    className="w-full h-16 rounded-[24px] font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-brutal mb-1"
                   >
                     Jouer
                   </button>
@@ -558,7 +558,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="pb-4 md:pb-6 px-6">
+      <footer className="pb-2 md:pb-3 px-6">
         <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold tracking-widest uppercase text-tx-muted">
           <a href="#" className="hover:text-tx-secondary transition-colors">Conditions</a>
           <a href="#" className="hover:text-tx-secondary transition-colors">Confidentialité</a>
