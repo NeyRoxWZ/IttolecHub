@@ -164,6 +164,7 @@ export default function ItollecClickerPage() {
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
   const [tutorialSpot, setTutorialSpot] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const [tutorialCardTop, setTutorialCardTop] = useState(24);
   const [miniGameOpen, setMiniGameOpen] = useState<null | 'forge' | 'grandjeu' | 'oracle'>(null);
 
   const moneyRef = useRef<HTMLDivElement | null>(null);
@@ -171,6 +172,7 @@ export default function ItollecClickerPage() {
   const decreeSpotRef = useRef<HTMLDivElement | null>(null);
   const tabsRef = useRef<HTMLDivElement | null>(null);
   const prestigeRef = useRef<HTMLDivElement | null>(null);
+  const tutorialCardRef = useRef<HTMLDivElement | null>(null);
 
   const tutorialSteps = useMemo(
     () => [
@@ -254,6 +256,25 @@ export default function ItollecClickerPage() {
     const key = tutorialSteps[tutorialStep]?.key;
     if (key === 'prestige') setShowStats(true);
   }, [tutorialOpen, tutorialStep, tutorialSteps]);
+
+  useEffect(() => {
+    if (!tutorialOpen || !tutorialSpot) return;
+    const vh = window.innerHeight;
+    const cardHeight = tutorialCardRef.current?.getBoundingClientRect().height ?? 280;
+    const padding = 16;
+    const gap = 16;
+
+    const belowTop = tutorialSpot.top + tutorialSpot.height + gap;
+    const aboveTop = tutorialSpot.top - cardHeight - gap;
+
+    let top = belowTop;
+    if (belowTop + cardHeight > vh - padding) {
+      top = aboveTop >= padding ? aboveTop : Math.max(padding, vh - cardHeight - padding);
+    }
+
+    top = Math.max(padding, Math.min(vh - cardHeight - padding, top));
+    setTutorialCardTop(top);
+  }, [tutorialOpen, tutorialSpot, tutorialStep]);
 
   const closeTutorial = useCallback(() => {
     setTutorialOpen(false);
@@ -522,12 +543,13 @@ export default function ItollecClickerPage() {
 
     const tick = (now: number) => {
       setData((prev) => {
-        const dtRaw = Math.max(0, (now - prev.lastTickAt) / 1000);
+        const epochNow = Date.now();
+        const dtRaw = Math.max(0, (epochNow - prev.lastTickAt) / 1000);
         const dt = Math.min(dtRaw, 0.25);
         const wrinklerAbsorb = Math.min(0.9, prev.wrinklers.length * WRINKLER_ABSORB_PCT);
         const producedFromProd = grossPps * (1 - wrinklerAbsorb) * dt;
 
-        const comboStillActive = prev.comboActive ? now - prev.comboLastClickAt <= 3000 : false;
+        const comboStillActive = prev.comboActive ? epochNow - prev.comboLastClickAt <= 3000 : false;
         const shouldUpdate = dt > 0.08 || (!comboStillActive && prev.comboActive);
         if (!shouldUpdate) return prev;
 
@@ -538,21 +560,21 @@ export default function ItollecClickerPage() {
         const activeBuffs = prev.buffs.filter((b) => now < b.startedAt + b.durationMs);
 
         let decree = prev.decree;
-        if (decree.visible && now >= decree.expiresAt) {
-          const nextSpawnAt = decree.chainLeft > 0 ? now + 900 : scheduleNextDecreeAt(now);
+        if (decree.visible && epochNow >= decree.expiresAt) {
+          const nextSpawnAt = decree.chainLeft > 0 ? epochNow + 900 : scheduleNextDecreeAt(epochNow);
           decree = { ...decree, visible: false, expiresAt: 0, nextSpawnAt };
         }
-        if (!decree.visible && now >= decree.nextSpawnAt) {
-          decree = { ...decree, visible: true, expiresAt: now + 13_000 };
+        if (!decree.visible && epochNow >= decree.nextSpawnAt) {
+          decree = { ...decree, visible: true, expiresAt: epochNow + 13_000 };
         }
 
         let wrinklers = prev.wrinklers;
-        const canSpawnWrinkler = now >= prev.nextWrinklerAt && wrinklers.length < 12 && maxOwnedBuildingIndex >= 0;
+        const canSpawnWrinkler = epochNow >= prev.nextWrinklerAt && wrinklers.length < 12 && maxOwnedBuildingIndex >= 0;
         let nextWrinklerAt = prev.nextWrinklerAt;
         if (canSpawnWrinkler) {
           const w: Wrinkler = { id: createId(), angleRad: Math.random() * Math.PI * 2, storedAbsorbed: 0, clicks: 0 };
           wrinklers = [...wrinklers, w];
-          nextWrinklerAt = now + (20_000 + Math.random() * 35_000);
+          nextWrinklerAt = epochNow + (20_000 + Math.random() * 35_000);
         }
 
         if (wrinklers.length > 0) {
@@ -562,14 +584,14 @@ export default function ItollecClickerPage() {
 
         let prodBuckets = prev.prodBuckets;
         if (producedFromProd > 0) {
-          const bucketT = Math.floor(now / PROD_BUCKET_MS) * PROD_BUCKET_MS;
+          const bucketT = Math.floor(epochNow / PROD_BUCKET_MS) * PROD_BUCKET_MS;
           const last = prodBuckets[prodBuckets.length - 1];
           if (last && last.t === bucketT) {
             prodBuckets = [...prodBuckets.slice(0, -1), { t: last.t, amount: last.amount + producedFromProd }];
           } else {
             prodBuckets = [...prodBuckets, { t: bucketT, amount: producedFromProd }];
           }
-          const cutoff = now - PROD_BUCKET_WINDOW_MS;
+          const cutoff = epochNow - PROD_BUCKET_WINDOW_MS;
           prodBuckets = prodBuckets.filter((b) => b.t >= cutoff);
         }
 
@@ -578,7 +600,7 @@ export default function ItollecClickerPage() {
           coins: nextCoins,
           totalProduced: nextTotalProduced,
           lifetimeProduced: nextLifetimeProduced,
-          lastTickAt: now,
+          lastTickAt: epochNow,
           comboActive: comboStillActive,
           buffs: activeBuffs,
           decree,
@@ -1137,23 +1159,27 @@ export default function ItollecClickerPage() {
                 </button>
 
                 <div ref={decreeSpotRef} className="absolute top-4 right-4 h-12 w-12">
-                  {data.decree.visible && (
-                    <button
-                      type="button"
-                      onClick={clickDecree}
-                      className="h-12 w-12 rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal flex items-center justify-center hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
-                      aria-label="Décret Impérial"
-                    >
-                      <svg viewBox="0 0 64 64" className="h-7 w-7 text-accent-secondary" aria-hidden="true">
-                        <circle cx="32" cy="32" r="22" fill="currentColor" fillOpacity="0.15" />
-                        <path
-                          d="M32 14l6 12 14 2-10 10 2 14-12-6-12 6 2-14-10-10 14-2z"
-                          fill="currentColor"
-                          fillOpacity="0.35"
-                        />
-                      </svg>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={data.decree.visible ? clickDecree : undefined}
+                    disabled={!data.decree.visible}
+                    className={cn(
+                      'h-12 w-12 rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal flex items-center justify-center transition-colors',
+                      data.decree.visible
+                        ? 'hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        : 'opacity-50 cursor-default'
+                    )}
+                    aria-label="Décret Impérial"
+                  >
+                    <svg viewBox="0 0 64 64" className="h-7 w-7 text-accent-secondary" aria-hidden="true">
+                      <circle cx="32" cy="32" r="22" fill="currentColor" fillOpacity="0.15" />
+                      <path
+                        d="M32 14l6 12 14 2-10 10 2 14-12-6-12 6 2-14-10-10 14-2z"
+                        fill="currentColor"
+                        fillOpacity="0.35"
+                      />
+                    </svg>
+                  </button>
                 </div>
 
                 {data.wrinklers.map((w) => {
@@ -1509,8 +1535,9 @@ export default function ItollecClickerPage() {
           />
 
           <div
+            ref={tutorialCardRef}
             className="absolute left-1/2 -translate-x-1/2 w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal"
-            style={{ top: tutorialSpot.top + tutorialSpot.height + 20 }}
+            style={{ top: tutorialCardTop }}
           >
             <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
               Tutoriel {tutorialStep + 1} / {tutorialSteps.length}
