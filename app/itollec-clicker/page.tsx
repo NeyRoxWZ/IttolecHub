@@ -43,9 +43,20 @@ const INITIAL_SAVE: ItollecClickerSave = {
   comboLastClickAt: 0,
 };
 
+const BASE_FRENLY_PER_SECOND = 0.1;
+
 function clampNonNegative(n: number): number {
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, n);
+}
+
+function formatRate(value: number): string {
+  if (!Number.isFinite(value)) return '0';
+  const abs = Math.abs(value);
+  if (abs < 1_000_000) {
+    return value.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  }
+  return formatShortNumber(value);
 }
 
 export default function ItollecClickerPage() {
@@ -62,6 +73,18 @@ export default function ItollecClickerPage() {
   useEffect(() => {
     dataRef.current = data;
   }, [data]);
+
+  const didInitTickRef = useRef(false);
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (didInitTickRef.current) return;
+    didInitTickRef.current = true;
+    const now = Date.now();
+    const current = dataRef.current;
+    if (Math.abs(now - current.lastTickAt) > 1000) {
+      setData({ ...current, lastTickAt: now });
+    }
+  }, [isLoaded, setData]);
 
   const [activePanel, setActivePanel] = useState<'buildings' | 'upgrades' | 'achievements'>('buildings');
   const [showStats, setShowStats] = useState(false);
@@ -103,7 +126,7 @@ export default function ItollecClickerPage() {
   }, [data.upgradesPurchased, upgrades]);
 
   const pps = useMemo(() => {
-    let total = 0;
+    let total = BASE_FRENLY_PER_SECOND;
     for (const b of BUILDINGS) {
       const owned = data.buildingsOwned[b.id] ?? 0;
       total += b.basePps * owned * buildingMultById[b.id];
@@ -147,7 +170,8 @@ export default function ItollecClickerPage() {
 
     const tick = (now: number) => {
       const current = dataRef.current;
-      const dt = Math.max(0, (now - current.lastTickAt) / 1000);
+      const dtRaw = Math.max(0, (now - current.lastTickAt) / 1000);
+      const dt = Math.min(dtRaw, 0.25);
       const newCoinsFromProd = pps * dt;
 
       const comboStillActive = current.comboActive ? now - current.comboLastClickAt <= 3000 : false;
@@ -313,7 +337,7 @@ export default function ItollecClickerPage() {
               </div>
               <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin/s</div>
-                <div className="text-2xl font-display font-black text-tx-base">{formatShortNumber(pps)} ₶/s</div>
+                <div className="text-2xl font-display font-black text-tx-base">{formatRate(pps)} ₶/s</div>
               </div>
               <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Clics</div>
