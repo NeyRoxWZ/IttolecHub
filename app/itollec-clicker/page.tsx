@@ -555,13 +555,13 @@ export default function ItollecClickerPage() {
     const tick = (now: number) => {
       setData((prev) => {
         const epochNow = Date.now();
-        const dtRaw = Math.max(0, (epochNow - prev.lastTickAt) / 1000);
-        const dt = Math.min(dtRaw, 0.25);
+        const elapsedMs = Math.max(0, epochNow - prev.lastTickAt);
+        const steps = Math.min(10, Math.floor(elapsedMs / 1000));
         const wrinklerAbsorb = Math.min(0.9, prev.wrinklers.length * WRINKLER_ABSORB_PCT);
-        const producedFromProd = grossPps * (1 - wrinklerAbsorb) * dt;
+        const producedFromProd = grossPps * (1 - wrinklerAbsorb) * steps;
 
         const comboStillActive = prev.comboActive ? epochNow - prev.comboLastClickAt <= 3000 : false;
-        const shouldUpdate = dt > 0.08 || (!comboStillActive && prev.comboActive);
+        const shouldUpdate = steps > 0 || (!comboStillActive && prev.comboActive);
         if (!shouldUpdate) return prev;
 
         const nextCoins = clampNonNegative(prev.coins + producedFromProd);
@@ -590,8 +590,8 @@ export default function ItollecClickerPage() {
           nextWrinklerAt = epochNow + (20_000 + Math.random() * 35_000);
         }
 
-        if (wrinklers.length > 0) {
-          const absorbPer = grossPps * WRINKLER_ABSORB_PCT * dt;
+        if (wrinklers.length > 0 && steps > 0) {
+          const absorbPer = grossPps * WRINKLER_ABSORB_PCT * steps;
           wrinklers = wrinklers.map((w) => ({ ...w, storedAbsorbed: w.storedAbsorbed + absorbPer }));
         }
 
@@ -613,7 +613,7 @@ export default function ItollecClickerPage() {
           coins: nextCoins,
           totalProduced: nextTotalProduced,
           lifetimeProduced: nextLifetimeProduced,
-          lastTickAt: epochNow,
+          lastTickAt: prev.lastTickAt + steps * 1000,
           comboActive: comboStillActive,
           buffs: activeBuffs,
           decree,
