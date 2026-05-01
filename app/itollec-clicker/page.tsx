@@ -7,6 +7,7 @@ import { BUILDINGS, generateAchievements, generateUpgrades, getBuildingCost, typ
 import { formatShortNumber } from '@/lib/itollec-clicker/format';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { toast } from 'sonner';
 
 type ItollecClickerSave = {
   version: number;
@@ -63,6 +64,7 @@ export default function ItollecClickerPage() {
   const upgrades = useMemo(() => generateUpgrades(), []);
   const achievements = useMemo(() => generateAchievements(), []);
   const achievementById = useMemo(() => new Map(achievements.map((a) => [a.id, a])), [achievements]);
+  const buildingNameById = useMemo(() => new Map(BUILDINGS.map((b) => [b.id, b.name])), []);
 
   const { data, setData, isLoaded } = useCloudSave<ItollecClickerSave>(
     'itollec-clicker',
@@ -180,7 +182,7 @@ export default function ItollecClickerPage() {
     const maxIndex = maxOwnedBuildingIndex;
     const indexById = new Map<BuildingId, number>(BUILDINGS.map((b, i) => [b.id, i]));
 
-    return unlockedUpgrades.filter((u) => {
+    const filtered = unlockedUpgrades.filter((u) => {
       if (u.unlock.type === 'building_owned') {
         const idx = indexById.get(u.unlock.buildingId) ?? 0;
         return idx <= Math.max(0, maxIndex);
@@ -191,6 +193,8 @@ export default function ItollecClickerPage() {
       }
       return true;
     });
+
+    return filtered.slice().sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id));
   }, [maxOwnedBuildingIndex, unlockedUpgrades]);
 
   const computeAchievementsUnlocked = useCallback((save: ItollecClickerSave): string[] => {
@@ -207,16 +211,6 @@ export default function ItollecClickerPage() {
     }
     return unlocked.size === save.achievementsUnlocked.length ? save.achievementsUnlocked : Array.from(unlocked);
   }, [achievements]);
-
-  const unlockedAchievements = useMemo(() => {
-    const unlocked = new Set(data.achievementsUnlocked);
-    return achievements.filter((a) => unlocked.has(a.id));
-  }, [achievements, data.achievementsUnlocked]);
-
-  const lockedAchievements = useMemo(() => {
-    const unlocked = new Set(data.achievementsUnlocked);
-    return achievements.filter((a) => !unlocked.has(a.id));
-  }, [achievements, data.achievementsUnlocked]);
 
   const achievementQueryNormalized = useMemo(() => achievementQuery.trim().toLowerCase(), [achievementQuery]);
 
@@ -247,6 +241,62 @@ export default function ItollecClickerPage() {
       totalCount: achievements.length,
     };
   }, [achievementById, achievementQueryNormalized, achievements, data.achievementsUnlocked]);
+
+  const prevAchievementsUnlockedRef = useRef<string[]>([]);
+  const toastTimeoutsRef = useRef<number[]>([]);
+
+  const getAchievementReason = useCallback(
+    (id: string) => {
+      const a = achievementById.get(id);
+      if (!a) return '';
+
+      if (a.condition.type === 'total_produced') {
+        return `Production totale ≥ ${formatShortNumber(a.condition.amount)} ₶`;
+      }
+      if (a.condition.type === 'clicks') {
+        return `Clics ≥ ${a.condition.count.toLocaleString('fr-FR')}`;
+      }
+      const buildingName = buildingNameById.get(a.condition.buildingId) ?? a.condition.buildingId;
+      return `Posséder ${a.condition.count} « ${buildingName} »`;
+    },
+    [achievementById, buildingNameById]
+  );
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const prev = prevAchievementsUnlockedRef.current;
+    const next = data.achievementsUnlocked;
+    if (prev.length === 0 && next.length > 0) {
+      prevAchievementsUnlockedRef.current = next;
+      return;
+    }
+
+    const prevSet = new Set(prev);
+    const newlyUnlocked = next.filter((id) => !prevSet.has(id));
+    prevAchievementsUnlockedRef.current = next;
+
+    if (newlyUnlocked.length === 0) return;
+
+    for (const t of toastTimeoutsRef.current) window.clearTimeout(t);
+    toastTimeoutsRef.current = [];
+
+    newlyUnlocked.forEach((id, idx) => {
+      const a = achievementById.get(id);
+      if (!a) return;
+      const reason = getAchievementReason(id);
+      const timeoutId = window.setTimeout(() => {
+        toast(a.name, { description: reason, duration: 4500 });
+      }, idx * 350);
+      toastTimeoutsRef.current.push(timeoutId);
+    });
+  }, [achievementById, data.achievementsUnlocked, getAchievementReason, isLoaded]);
+
+  useEffect(() => {
+    return () => {
+      for (const t of toastTimeoutsRef.current) window.clearTimeout(t);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -624,7 +674,7 @@ export default function ItollecClickerPage() {
                 <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                   <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Débloqués</div>
                   <div className="text-sm font-bold text-tx-base mt-1">
-                    {unlockedAchievements.length} / {achievements.length}
+                    {data.achievementsUnlocked.length} / {achievements.length}
                   </div>
                 </div>
                 <button
@@ -634,16 +684,6 @@ export default function ItollecClickerPage() {
                 >
                   Voir la liste
                 </button>
-                {unlockedAchievements.slice(0, 40).map((a) => (
-                  <div key={a.id} className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4 shadow-brutal">
-                    <div className="font-display font-black tracking-wider uppercase text-tx-base">{a.name}</div>
-                    <div className="text-sm text-tx-secondary font-bold mt-2">{a.description}</div>
-                  </div>
-                ))}
-                <div className="rounded-2xl border-2 border-brand-border bg-transparent p-4">
-                  <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">À débloquer</div>
-                  <div className="text-sm font-bold text-tx-base mt-1">{lockedAchievements.length}</div>
-                </div>
               </div>
             )}
           </div>
