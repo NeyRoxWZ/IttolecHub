@@ -185,7 +185,7 @@ type ApexSave = {
 };
 
 const INITIAL_SAVE: ApexSave = {
-  version: 3,
+  version: 4,
   cash: 5000,
   hype: 0.12,
   lastTickAt: Date.now(),
@@ -556,6 +556,7 @@ export default function ApexPage() {
   }, [achievementsMult, buffsIncomeMult, data.hype, passiveIncomePerMin, prestigeIncomeMult, reputationMult]);
 
   const prevAchievementsUnlockedRef = useRef<string[] | null>(null);
+  const toastedAchievementIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!isLoaded) return;
     const prev = prevAchievementsUnlockedRef.current;
@@ -569,8 +570,10 @@ export default function ApexPage() {
     prevAchievementsUnlockedRef.current = next;
     if (newly.length === 0) return;
     newly.slice(0, 4).forEach((id) => {
+      if (toastedAchievementIdsRef.current.has(id)) return;
       const a = achievementById.get(id);
       if (!a) return;
+      toastedAchievementIdsRef.current.add(id);
       toast('Succès débloqué', { description: a.name, duration: 3500 });
     });
   }, [achievementById, data.achievementsUnlocked, isLoaded]);
@@ -588,11 +591,11 @@ export default function ApexPage() {
         platformSubscribers: save.platform.subscribers,
         prestigeStars: save.prestige.stars,
       };
-      const unlocked: string[] = [];
+      const already = new Set(save.achievementsUnlocked ?? []);
       for (const a of achievements) {
-        if (isAchievementUnlocked(a, ctx)) unlocked.push(a.id);
+        if (isAchievementUnlocked(a, ctx)) already.add(a.id);
       }
-      return unlocked;
+      return achievements.filter((a) => already.has(a.id)).map((a) => a.id);
     },
     [achievements]
   );
@@ -601,7 +604,7 @@ export default function ApexPage() {
     if (!isLoaded) return;
     const now = Date.now();
     setData((prev) => {
-      if (prev.version >= 3 && prev.activeSector && prev.unlockedSectors) return prev;
+      if (prev.version >= 4 && prev.activeSector && prev.unlockedSectors) return prev;
 
       const reputation: ApexReputation = {
         public: clamp01((prev as Partial<ApexSave>).reputation?.public ?? 0.1),
@@ -652,7 +655,7 @@ export default function ApexPage() {
           ? (prev as ApexSave).unlockedSectors
           : { cinema: true };
 
-      const achievementsUnlocked = Array.isArray((prev as Partial<ApexSave>).achievementsUnlocked) ? (prev as ApexSave).achievementsUnlocked : [];
+      const achievementsUnlocked = prev.version >= 4 ? ((prev as ApexSave).achievementsUnlocked ?? []) : [];
 
       const crypto = (prev as Partial<ApexSave>).crypto?.price ? (prev as ApexSave).crypto : initCryptoState();
       const stocks = (prev as Partial<ApexSave>).stocks?.prices ? (prev as ApexSave).stocks : initStockMarket();
@@ -676,7 +679,7 @@ export default function ApexPage() {
 
       return {
         ...prev,
-        version: 3,
+        version: 4,
         cash: shouldBoostStartCash ? baseStartingCash : safeCash,
         activeSector: (prev as Partial<ApexSave>).activeSector ?? 'cinema',
         unlockedSectors,
@@ -707,6 +710,7 @@ export default function ApexPage() {
     let raf = 0;
     const tick = () => {
       setData((prev) => {
+        if (prev.version < 4) return prev;
         const epochNow = Date.now();
         const elapsedMs = Math.max(0, epochNow - prev.lastTickAt);
         const steps = Math.min(10, Math.floor(elapsedMs / 1000));
