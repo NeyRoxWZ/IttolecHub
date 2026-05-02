@@ -92,7 +92,7 @@ const INITIAL_SAVE: ItollecClickerSave = {
   decree: {
     visible: false,
     expiresAt: 0,
-    nextSpawnAt: Date.now() + 90_000,
+    nextSpawnAt: Date.now() + (10 + Math.random() * 5) * 60_000,
     chainLeft: 0,
     xPct: 0.8,
     yPct: 0.25,
@@ -551,7 +551,7 @@ export default function ItollecClickerPage() {
   }, []);
 
   const scheduleNextDecreeAt = useCallback((now: number) => {
-    const minutes = 5 + Math.random() * 10;
+    const minutes = 10 + Math.random() * 5;
     return now + minutes * 60_000;
   }, []);
 
@@ -580,9 +580,12 @@ export default function ItollecClickerPage() {
         const activeBuffs = prev.buffs.filter((b) => epochNow < b.startedAt + b.durationMs);
 
         let decree = prev.decree;
+        if (!decree.visible && decree.nextSpawnAt > epochNow && decree.nextSpawnAt < epochNow + 10 * 60_000) {
+          decree = { ...decree, nextSpawnAt: scheduleNextDecreeAt(epochNow), chainLeft: 0 };
+        }
         if (decree.visible && epochNow >= decree.expiresAt) {
-          const nextSpawnAt = decree.chainLeft > 0 ? epochNow + 900 : scheduleNextDecreeAt(epochNow);
-          decree = { ...decree, visible: false, expiresAt: 0, nextSpawnAt };
+          const nextSpawnAt = scheduleNextDecreeAt(epochNow);
+          decree = { ...decree, visible: false, expiresAt: 0, nextSpawnAt, chainLeft: 0 };
         }
         if (!decree.visible && epochNow >= decree.nextSpawnAt) {
           const xPct = 0.08 + Math.random() * 0.84;
@@ -752,11 +755,11 @@ export default function ItollecClickerPage() {
 
       const roll = Math.random();
 
-      const endDecree = (next: ItollecClickerSave, chainLeft: number) => {
-        const nextSpawnAt = chainLeft > 0 ? now + 900 : scheduleNextDecreeAt(now);
+      const endDecree = (next: ItollecClickerSave) => {
+        const nextSpawnAt = scheduleNextDecreeAt(now);
         return {
           ...next,
-          decree: { ...next.decree, visible: false, expiresAt: 0, nextSpawnAt, chainLeft },
+          decree: { ...next.decree, visible: false, expiresAt: 0, nextSpawnAt, chainLeft: 0 },
         };
       };
 
@@ -767,13 +770,13 @@ export default function ItollecClickerPage() {
       if (roll < 0.28) {
         const next = addBuff(prev, { name: 'Frenzy', startedAt: now, durationMs: 77_000, prodMult: 7, clickMult: 1 });
         showDecreeToast('Frenzy', 'Production ×7 pendant 77s');
-        return endDecree(next, Math.max(0, prev.decree.chainLeft - 1));
+        return endDecree(next);
       }
 
       if (roll < 0.48) {
         const next = addBuff(prev, { name: 'Click Frenzy', startedAt: now, durationMs: 13_000, prodMult: 1, clickMult: 777 });
         showDecreeToast('Click Frenzy', 'Clic ×777 pendant 13s');
-        return endDecree(next, Math.max(0, prev.decree.chainLeft - 1));
+        return endDecree(next);
       }
 
       if (roll < 0.66) {
@@ -786,28 +789,24 @@ export default function ItollecClickerPage() {
           lifetimeProduced: clampNonNegative(prev.lifetimeProduced + gain),
         };
         showDecreeToast('Lucky!', `+${formatShortNumber(gain)} ₶`);
-        return endDecree(next, Math.max(0, prev.decree.chainLeft - 1));
+        return endDecree(next);
       }
 
       if (roll < 0.80) {
         const next = addBuff(prev, { name: 'Dragon Harvest', startedAt: now, durationMs: 30_000, prodMult: 2, clickMult: 1 });
         showDecreeToast('Dragon Harvest', 'Production ×2 pendant 30s');
-        return endDecree(next, Math.max(0, prev.decree.chainLeft - 1));
+        return endDecree(next);
       }
 
       if (roll < 0.92) {
         const next = addBuff(prev, { name: 'Pledge', startedAt: now, durationMs: 10 * 60_000, prodMult: 1.1, clickMult: 1 });
         showDecreeToast('Pledge', '+10% pendant 10 min');
-        return endDecree(next, Math.max(0, prev.decree.chainLeft - 1));
+        return endDecree(next);
       }
 
-      const extra = 3 + Math.floor(Math.random() * 3);
-      showDecreeToast('Chain', `Déclenche ${extra} décrets`);
-      const chainLeft = extra;
-      return {
-        ...prev,
-        decree: { ...prev.decree, visible: false, expiresAt: 0, chainLeft, nextSpawnAt: now + 900 },
-      };
+      const next = addBuff(prev, { name: 'Pledge', startedAt: now, durationMs: 10 * 60_000, prodMult: 1.1, clickMult: 1 });
+      showDecreeToast('Pledge', '+10% pendant 10 min');
+      return endDecree(next);
     });
   };
 
@@ -864,7 +863,7 @@ export default function ItollecClickerPage() {
         comboActive: false,
         comboLastClickAt: 0,
         buffs: [],
-        decree: { ...prev.decree, visible: false, expiresAt: 0, chainLeft: 0, nextSpawnAt: now + 90_000 },
+        decree: { ...prev.decree, visible: false, expiresAt: 0, chainLeft: 0, nextSpawnAt: now + (10 + Math.random() * 5) * 60_000 },
         wrinklers: [],
         nextWrinklerAt: now + 45_000,
         prestige: {
