@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, Leaf, LogOut, Menu, X } from 'lucide-react';
+import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, TrendingUp, LogOut, Menu, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -633,14 +633,9 @@ export default function Home() {
 
               <div className="flex-1 md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
                 <div className="flex items-center justify-between h-12">
-                  <div className="flex items-center gap-3">
-                    <h2 className="font-display text-2xl md:text-3xl leading-none">TerraFarm</h2>
-                    <div className="h-7 px-3 rounded-full border-2 border-brand-border bg-brand-inner text-tx-secondary text-xs font-black tracking-widest uppercase flex items-center">
-                      Soon
-                    </div>
-                  </div>
+                  <h2 className="font-display text-2xl md:text-3xl leading-none">Apex</h2>
                   <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
-                    <Leaf className="h-6 w-6 text-accent-success" />
+                    <TrendingUp className="h-6 w-6 text-accent-primary" />
                   </div>
                 </div>
 
@@ -648,20 +643,20 @@ export default function Home() {
                   <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                     <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2">Description</div>
                     <p className="text-sm text-tx-secondary font-bold leading-relaxed">
-                      Un nouveau jeu idle arrive bientôt. Reste prêt.
+                      Un business-idle: négocie, produis, monte ta hype et empile des revenus passifs (₶/min).
                     </p>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  disabled
+                  onClick={() => router.push('/apex')}
                   className={cn(
                     'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
-                    'bg-brand-inner text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                    'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
                   )}
                 >
-                  Soon
+                  Jouer
                 </button>
               </div>
             </div>

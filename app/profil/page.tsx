@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 import { generatePassphrase } from '@/lib/words';
-import { LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check, Crown, Leaf } from 'lucide-react';
+import { LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check, Crown, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -315,38 +315,33 @@ export default function ProfilPage() {
 
             <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
               <div className="flex items-center justify-between h-12">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-display text-2xl leading-none">TerraFarm</h3>
-                  <div className="h-7 px-3 rounded-full border-2 border-brand-border bg-brand-inner text-tx-secondary text-xs font-black tracking-widest uppercase flex items-center">
-                    Soon
-                  </div>
-                </div>
+                <h3 className="font-display text-2xl leading-none">Apex</h3>
                 <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
-                  <Leaf className="h-6 w-6 text-accent-success" />
+                  <TrendingUp className="h-6 w-6 text-accent-primary" />
                 </div>
               </div>
 
               <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-4 space-y-3">
                 <div className="flex justify-between text-sm font-bold">
-                  <span className="text-tx-secondary">Statut</span>
-                  <span className="font-mono text-tx-base">Soon</span>
+                  <span className="text-tx-secondary">Trésorerie</span>
+                  <span className="font-mono text-tx-base">0 ₶</span>
                 </div>
                 <div className="flex justify-between text-sm font-bold">
-                  <span className="text-tx-secondary">Accès</span>
-                  <span className="font-mono text-tx-base">Bientôt</span>
+                  <span className="text-tx-secondary">₶/min</span>
+                  <span className="font-mono text-tx-base">0</span>
                 </div>
                 <div className="flex justify-between text-sm font-bold">
-                  <span className="text-tx-secondary">—</span>
-                  <span className="font-mono text-tx-base">—</span>
+                  <span className="text-tx-secondary">Deals</span>
+                  <span className="font-mono text-tx-base">0</span>
                 </div>
               </div>
 
               <button
                 type="button"
-                disabled
-                className="mt-6 w-full h-16 rounded-2xl font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-secondary opacity-70 cursor-not-allowed shadow-brutal"
+                onClick={() => router.push('/apex')}
+                className="mt-6 w-full h-16 rounded-2xl font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-brutal"
               >
-                Soon
+                Jouer
               </button>
             </div>
           </div>
