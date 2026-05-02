@@ -377,6 +377,15 @@ export default function ItollecClickerPage() {
     return grossPps * (1 - absorb);
   }, [data.wrinklers.length, grossPps]);
 
+  const wrinklerLossPps = useMemo(() => {
+    return Math.max(0, grossPps - netPps);
+  }, [grossPps, netPps]);
+
+  const wrinklerLossPct = useMemo(() => {
+    const pct = Math.min(0.9, data.wrinklers.length * WRINKLER_ABSORB_PCT) * 100;
+    return Math.round(pct);
+  }, [data.wrinklers.length]);
+
   const clickValue = useMemo(() => {
     const base = 1;
     const eventMult = data.comboActive ? 2 : 1;
@@ -1002,6 +1011,11 @@ export default function ItollecClickerPage() {
               <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin/s</div>
                 <div className="text-2xl font-display font-black text-tx-base">{formatRate(netPps)} ₶/s</div>
+                {data.wrinklers.length > 0 && (
+                  <div className="mt-2 text-xs font-bold tracking-widest uppercase text-tx-secondary">
+                    Perte révolutionnaires: -{wrinklerLossPct}% (-{formatRate(wrinklerLossPps)} ₶/s)
+                  </div>
+                )}
               </div>
               <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Clics</div>
@@ -1078,6 +1092,11 @@ export default function ItollecClickerPage() {
                 <div className="text-sm font-bold text-tx-base mt-1">
                   Décrets actifs: {data.buffs.length} • Révolutionnaires: {data.wrinklers.length}
                 </div>
+                {data.wrinklers.length > 0 && (
+                  <div className="text-sm text-tx-secondary font-bold mt-2">
+                    Ils absorbent {wrinklerLossPct}% de ta production ({formatRate(wrinklerLossPps)} ₶/s).
+                  </div>
+                )}
                 <div className="text-sm text-tx-secondary font-bold mt-3">
                   Les Décrets Impériaux apparaissent et donnent des bonus temporaires.
                 </div>
