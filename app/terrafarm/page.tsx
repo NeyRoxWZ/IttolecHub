@@ -66,6 +66,8 @@ const INITIAL_SAVE: TerraFarmSave = {
   lastEventNote: '',
 };
 
+const BASE_HARVEST_GAIN = 1;
+
 function clampNonNegative(n: number): number {
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, n);
@@ -110,9 +112,18 @@ export default function TerraFarmPage() {
   }, [data]);
 
   const [selectedBuildingId, setSelectedBuildingId] = useState<TerraBuildingId | null>(null);
+  const [howToOpen, setHowToOpen] = useState(true);
 
   const buildingById = useMemo(() => new Map(TERRAFARM_BUILDINGS.map((b) => [b.id, b] as const)), []);
   const eventById = useMemo(() => new Map(TERRAFARM_EVENTS.map((e) => [e.id, e] as const)), []);
+
+  const lastPlacementToastAtRef = useRef(0);
+  const showPlacementToast = useCallback((title: string, description: string) => {
+    const now = Date.now();
+    if (now - lastPlacementToastAtRef.current < 800) return;
+    lastPlacementToastAtRef.current = now;
+    toast(title, { description, duration: 2500 });
+  }, []);
 
   const lastEventAnnouncedRef = useRef('');
   useEffect(() => {
@@ -275,6 +286,20 @@ export default function TerraFarmPage() {
     return map;
   }, [data.tiles]);
 
+  const harvest = useCallback(() => {
+    const now = Date.now();
+    setData((prev) => {
+      const gain = BASE_HARVEST_GAIN;
+      return {
+        ...prev,
+        francs: clampNonNegative(prev.francs + gain),
+        totalProduced: clampNonNegative(prev.totalProduced + gain),
+        lifetimeProduced: clampNonNegative(prev.lifetimeProduced + gain),
+        lastTickAt: prev.lastTickAt > 0 ? prev.lastTickAt : now,
+      };
+    });
+  }, [setData]);
+
   const placeOnTile = useCallback(
     (x: number, y: number) => {
       setData((prev) => {
@@ -285,16 +310,22 @@ export default function TerraFarmPage() {
           if (def) toast(def.name, { description: `Produit ${formatFrancsRate(def.baseFps)} ƒ/s (base)`, duration: 2500 });
           return prev;
         }
-        if (!selectedBuildingId) return prev;
+        if (!selectedBuildingId) {
+          showPlacementToast('Placement', 'Clique un bâtiment dans la boutique, puis clique une tuile.');
+          return prev;
+        }
         const def = buildingById.get(selectedBuildingId);
         if (!def) return prev;
-        if (prev.francs < def.cost) return prev;
+        if (prev.francs < def.cost) {
+          showPlacementToast('Pas assez de ƒ', `Il te manque ${formatFrancs(def.cost - prev.francs)} ƒ.`);
+          return prev;
+        }
 
         const next: TerraTile = { x, y, buildingId: def.id, placedAt: Date.now() };
         return { ...prev, francs: clampNonNegative(prev.francs - def.cost), tiles: [...prev.tiles, next] };
       });
     },
-    [buildingById, selectedBuildingId, setData]
+    [buildingById, selectedBuildingId, setData, showPlacementToast]
   );
 
   const nextZone = TERRAFARM_ZONES[(data.zoneIndexUnlocked ?? 0) + 1] ?? null;
@@ -349,6 +380,14 @@ export default function TerraFarmPage() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
+            <button
+              type="button"
+              onClick={harvest}
+              className="inline-flex items-center justify-center h-[52px] px-4 rounded-xl font-display font-black tracking-wider uppercase transition-colors border-2 bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+              aria-label="Récolter"
+            >
+              Récolter +{BASE_HARVEST_GAIN} ƒ
+            </button>
             <div className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal px-4 py-3">
               <div className="text-xs text-tx-secondary font-bold">Francs Paysans</div>
               <div className="text-xl font-display font-black tracking-wider">
@@ -367,6 +406,14 @@ export default function TerraFarmPage() {
                 {formatFrancs(data.francs)} <span className="text-accent-primary">ƒ</span>
               </div>
               <div className="text-xs text-tx-secondary font-bold">{formatFrancsRate(netFps)} ƒ/s</div>
+              <button
+                type="button"
+                onClick={harvest}
+                className="mt-2 inline-flex items-center justify-center h-10 px-3 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                aria-label="Récolter"
+              >
+                Récolter +{BASE_HARVEST_GAIN} ƒ
+              </button>
             </div>
             <div className="text-right">
               <div className="text-xs text-tx-secondary font-bold">Saison</div>
@@ -374,6 +421,41 @@ export default function TerraFarmPage() {
               <div className="text-xs text-tx-secondary font-bold">×{seasonMult.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}</div>
             </div>
           </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-display font-black tracking-wider uppercase">Comment jouer</div>
+            <button
+              type="button"
+              onClick={() => setHowToOpen((v) => !v)}
+              className="h-10 px-3 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+            >
+              {howToOpen ? 'Masquer' : 'Afficher'}
+            </button>
+          </div>
+          {howToOpen ? (
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm font-bold">
+              <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                <div className="text-tx-base font-display font-black tracking-wider uppercase text-sm">1. Démarrer</div>
+                <div className="mt-1 text-tx-secondary">
+                  Clique <span className="text-tx-base">Récolter</span> pour gagner tes premiers ƒ (sinon tu restes à 0).
+                </div>
+              </div>
+              <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                <div className="text-tx-base font-display font-black tracking-wider uppercase text-sm">2. Construire</div>
+                <div className="mt-1 text-tx-secondary">
+                  Dans la boutique, choisis un bâtiment (Blé, Tournesol, Poules…). Ensuite clique une tuile pour le poser.
+                </div>
+              </div>
+              <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                <div className="text-tx-base font-display font-black tracking-wider uppercase text-sm">3. Automatique</div>
+                <div className="mt-1 text-tx-secondary">
+                  Chaque bâtiment ajoute des ƒ/s. Les saisons et événements modifient la production. Quand tu as assez, débloque une nouvelle zone.
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -418,17 +500,16 @@ export default function TerraFarmPage() {
                     const t = tileByCoord.get(`${x}:${y}`) ?? null;
                     const building = t ? buildingById.get(t.buildingId) ?? null : null;
                     const canPlace = !t && !!selectedBuildingId;
-                    const disabled = !t && selectedBuildingId ? (data.francs < (buildingById.get(selectedBuildingId)?.cost ?? Infinity) ? true : false) : false;
+                    const canAfford = selectedBuildingId ? data.francs >= (buildingById.get(selectedBuildingId)?.cost ?? Infinity) : false;
 
                     return (
                       <button
                         key={`${x}:${y}`}
                         type="button"
                         onClick={() => placeOnTile(x, y)}
-                        disabled={disabled}
                         className={cn(
                           'absolute flex items-center justify-center transition-colors',
-                          disabled ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-95'
+                          !t && selectedBuildingId && !canAfford ? 'opacity-55' : 'hover:opacity-95'
                         )}
                         style={{ left, top, width: TILE_W, height: TILE_H }}
                         aria-label={building ? building.name : canPlace ? 'Placer' : 'Tuile'}
