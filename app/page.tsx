@@ -305,7 +305,7 @@ export default function Home() {
             className="absolute inset-0 bg-black/60"
             aria-label="Fermer"
           />
-          <div className="absolute top-3 left-3 right-3 bg-brand-card border-4 border-brand-border rounded-[32px] p-5 shadow-brutal">
+          <div className="absolute top-3 left-3 right-3 bg-brand-card border-4 border-brand-border rounded-[32px] p-5 shadow-brutal max-h-[calc(100vh-24px)] overflow-y-auto">
             <div className="flex items-center justify-between gap-3">
               <div className="font-display text-2xl font-black tracking-wider uppercase text-tx-base">Menu</div>
               <button

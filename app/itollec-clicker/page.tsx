@@ -956,18 +956,18 @@ export default function ItollecClickerPage() {
   return (
     <main className="min-h-screen bg-transparent px-6 pt-4 md:pt-6 pb-8">
       <div className="w-full max-w-5xl mx-auto">
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/?mode=solo"
-              className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
+              className="h-10 md:h-11 px-3 md:px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
             >
               Accueil
             </Link>
             <button
               type="button"
               onClick={() => setShowStats((v) => !v)}
-              className="h-11 px-4 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center gap-2"
+              className="h-10 md:h-11 px-3 md:px-4 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center gap-2"
             >
               Stats
               {showStats ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -978,13 +978,13 @@ export default function ItollecClickerPage() {
                 setTutorialOpen(true);
                 setTutorialStep(0);
               }}
-              className="h-11 px-4 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
+              className="h-10 md:h-11 px-3 md:px-4 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
             >
               Tutoriel
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-end gap-3">
             <div className="text-right" ref={moneyRef}>
               <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin</div>
               <div className="text-sm font-bold text-tx-base">{formatCoins(data.coins)} ₶</div>
@@ -1285,7 +1285,7 @@ export default function ItollecClickerPage() {
             </div>
 
             {activePanel === 'buildings' && (
-              <div className="mt-6 space-y-3 overflow-y-auto h-[540px] pr-1">
+              <div className="mt-6 space-y-3 overflow-y-auto max-h-[55vh] md:h-[540px] md:max-h-none pr-1">
                 {visibleBuildings.map((b) => {
                   const owned = data.buildingsOwned[b.id] ?? 0;
                   const cost = getBuildingCost(b, owned);
@@ -1322,7 +1322,7 @@ export default function ItollecClickerPage() {
             )}
 
             {activePanel === 'upgrades' && (
-              <div className="mt-6 space-y-3 overflow-y-auto h-[540px] pr-1">
+              <div className="mt-6 space-y-3 overflow-y-auto max-h-[55vh] md:h-[540px] md:max-h-none pr-1">
                 <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                   <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Disponibles</div>
                   <div className="text-sm font-bold text-tx-base mt-1">{visibleUpgrades.length}</div>
@@ -1362,7 +1362,7 @@ export default function ItollecClickerPage() {
             )}
 
             {activePanel === 'achievements' && (
-              <div className="mt-6 space-y-3 overflow-y-auto h-[540px] pr-1">
+              <div className="mt-6 space-y-3 overflow-y-auto max-h-[55vh] md:h-[540px] md:max-h-none pr-1">
                 <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                   <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Bonus</div>
                   <div className="text-sm font-bold text-tx-base mt-1">
