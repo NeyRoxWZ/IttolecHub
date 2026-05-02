@@ -8,9 +8,34 @@ import { useCloudSave } from '@/hooks/useCloudSave';
 import { formatCoins, formatShortNumber } from '@/lib/itollec-clicker/format';
 import { drawWithoutReplacement, type DrawState } from '@/lib/apex/draw';
 import { acceptNegotiation, createNegotiation, playerCounter, type Negotiation } from '@/lib/apex/negotiation';
-import { Film, TrendingUp, Users } from 'lucide-react';
+import { generateApexAchievements, isAchievementUnlocked, type ApexAchievementDef } from '@/lib/apex/achievements';
+import {
+  computeNegotiationBoost,
+  computePrestigeHypeDecayMult,
+  computePrestigeIncomeMult,
+  computePrestigeStartingCash,
+  computeStarsFromTotalEarned,
+  getPrestigeUpgrades,
+  type ApexPrestigeState,
+} from '@/lib/apex/prestige';
+import {
+  buyCrypto,
+  buyStock,
+  initCryptoState,
+  initStockMarket,
+  portfolioValue,
+  sellCrypto,
+  sellStock,
+  stepCrypto,
+  stepStocks,
+  STOCKS,
+  type CryptoState,
+  type StockId,
+  type StockMarketState,
+} from '@/lib/apex/markets';
+import { Film, Gamepad2, TrendingUp, Tv, Users } from 'lucide-react';
 
-type SectorId = 'cinema' | 'musique' | 'series' | 'live';
+type SectorId = 'cinema' | 'musique' | 'series' | 'live' | 'crypto' | 'games' | 'stocks' | 'platform';
 
 type ApexProjectStatus = 'producing' | 'ready' | 'released';
 
@@ -56,6 +81,7 @@ type ApexSeriesSeason = {
   quality: number;
   viewers: number;
   deal: ApexDeal;
+  onPlatform: boolean;
 };
 
 type ApexLiveEvent = {
@@ -69,6 +95,27 @@ type ApexLiveEvent = {
   quality: number;
   attendance: number;
   deal: ApexDeal;
+};
+
+type ApexGame = {
+  id: string;
+  title: string;
+  studio: string;
+  budget: number;
+  startedAt: number;
+  durationMs: number;
+  status: ApexProjectStatus;
+  quality: number;
+  sales: number;
+  deal: ApexDeal;
+};
+
+type ApexPlatformState = {
+  subscribers: number;
+  arpuPerMin: number;
+  infraLevel: number;
+  marketingLevel: number;
+  librarySeasonIds: string[];
 };
 
 type ApexReputation = {
@@ -113,21 +160,32 @@ type ApexSave = {
   totalSpent: number;
   drawByCategory: Partial<Record<string, DrawState>>;
   activeSector: SectorId;
+  unlockedSectors: Partial<Record<SectorId, boolean>>;
   cinema: { films: ApexFilm[]; selectedId: string | null };
   musique: { releases: ApexMusicRelease[]; selectedId: string | null };
   series: { seasons: ApexSeriesSeason[]; selectedId: string | null };
   live: { events: ApexLiveEvent[]; selectedId: string | null };
+  games: { games: ApexGame[]; selectedId: string | null };
+  crypto: CryptoState;
+  stocks: StockMarketState;
+  platform: ApexPlatformState;
   reputation: ApexReputation;
   buffs: ApexBuff[];
+  achievementsUnlocked: string[];
+  prestige: ApexPrestigeState;
   negotiation: Negotiation | null;
-  negotiationContext: { sector: SectorId; projectId: string; dealType: 'rights' | 'royalties' | 'streaming' | 'sponsor' } | null;
+  negotiationContext: {
+    sector: SectorId;
+    projectId: string;
+    dealType: 'rights' | 'royalties' | 'streaming' | 'sponsor' | 'publishing';
+  } | null;
   nextAgentAt: number;
   nextEventAt: number;
   activeModal: ApexChoiceModal | null;
 };
 
 const INITIAL_SAVE: ApexSave = {
-  version: 2,
+  version: 3,
   cash: 250,
   hype: 0.12,
   lastTickAt: Date.now(),
@@ -135,12 +193,19 @@ const INITIAL_SAVE: ApexSave = {
   totalSpent: 0,
   drawByCategory: {},
   activeSector: 'cinema',
+  unlockedSectors: { cinema: true },
   cinema: { films: [], selectedId: null },
   musique: { releases: [], selectedId: null },
   series: { seasons: [], selectedId: null },
   live: { events: [], selectedId: null },
+  games: { games: [], selectedId: null },
+  crypto: initCryptoState(),
+  stocks: initStockMarket(),
+  platform: { subscribers: 0, arpuPerMin: 0.012, infraLevel: 0, marketingLevel: 0, librarySeasonIds: [] },
   reputation: { public: 0.1, critique: 0.08, business: 0.06, underground: 0.04, international: 0.02, global: 0.06 },
   buffs: [],
+  achievementsUnlocked: [],
+  prestige: { stars: 0, lifetimeStars: 0, upgrades: {} },
   negotiation: null,
   negotiationContext: null,
   nextAgentAt: Date.now() + (6 + Math.random() * 6) * 60_000,
@@ -177,15 +242,60 @@ function computePassiveIncomePerMin(save: ApexSave): number {
   for (const e of save.live.events) {
     if (e.deal.sold) sum += e.deal.perMin;
   }
+  for (const g of save.games.games) {
+    if (g.deal.sold) sum += g.deal.perMin;
+  }
+
+  const libraryCount = save.platform.librarySeasonIds.length;
+  const infraMult = 1 + save.platform.infraLevel * 0.05;
+  const libMult = 1 + Math.min(1.5, libraryCount * 0.03);
+  const platformIncome = save.platform.subscribers * save.platform.arpuPerMin * infraMult * libMult;
+  sum += platformIncome;
+
   return sum;
+}
+
+function areStringArraysEqual(a: string[] | undefined, b: string[] | undefined): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+function computeDealsCount(save: ApexSave): number {
+  let n = 0;
+  for (const f of save.cinema.films) if (f.deal.sold) n += 1;
+  for (const r of save.musique.releases) if (r.deal.sold) n += 1;
+  for (const s of save.series.seasons) if (s.deal.sold) n += 1;
+  for (const e of save.live.events) if (e.deal.sold) n += 1;
+  for (const g of save.games.games) if (g.deal.sold) n += 1;
+  return n;
+}
+
+function computeReleasedBySector(save: ApexSave): Record<string, number> {
+  const out: Record<string, number> = {};
+  out.cinema = save.cinema.films.filter((x) => x.status === 'released').length;
+  out.musique = save.musique.releases.filter((x) => x.status === 'released').length;
+  out.series = save.series.seasons.filter((x) => x.status === 'released').length;
+  out.live = save.live.events.filter((x) => x.status === 'released').length;
+  out.games = save.games.games.filter((x) => x.status === 'released').length;
+  return out;
 }
 
 export default function ApexPage() {
   const { data, setData, isLoaded } = useCloudSave<ApexSave>('apex', INITIAL_SAVE, { silent: true });
-  const [activeTab, setActiveTab] = useState<'production' | 'negociation' | 'catalogue'>('production');
+  const [activeTab, setActiveTab] = useState<'production' | 'negociation' | 'catalogue' | 'meta'>('production');
+  const [achievementQuery, setAchievementQuery] = useState('');
 
   const [names, setNames] = useState<Record<string, string[]> | null>(null);
   const [namesStatus, setNamesStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+
+  const achievements = useMemo(() => generateApexAchievements(), []);
+  const achievementById = useMemo(() => new Map(achievements.map((a) => [a.id, a] as const)), [achievements]);
+  const prestigeUpgrades = useMemo(() => getPrestigeUpgrades(), []);
 
   const cashRef = useRef<HTMLDivElement | null>(null);
   const ppsRef = useRef<HTMLDivElement | null>(null);
@@ -327,6 +437,16 @@ export default function ApexPage() {
     return Array.isArray(list) ? list : [];
   }, [names]);
 
+  const gameStudios = useMemo(() => {
+    const list = names?.studios_jv ?? [];
+    return Array.isArray(list) ? list : [];
+  }, [names]);
+
+  const gameNames = useMemo(() => {
+    const list = names?.noms_jeux ?? [];
+    return Array.isArray(list) ? list : [];
+  }, [names]);
+
   const agentTemplates = useMemo(
     () =>
       [
@@ -422,17 +542,61 @@ export default function ApexPage() {
   const buffsHypeDecayMult = useMemo(() => activeBuffs.reduce((acc, b) => acc * b.hypeDecayMult, 1), [activeBuffs]);
 
   const reputationMult = useMemo(() => 1 + clamp01(data.reputation.global) * 0.5, [data.reputation.global]);
+  const achievementsMult = useMemo(() => 1 + Math.max(0, (data.achievementsUnlocked?.length ?? 0)) * 0.01, [data.achievementsUnlocked]);
+  const prestigeIncomeMult = useMemo(() => computePrestigeIncomeMult(data.prestige), [data.prestige]);
 
   const incomePerMin = useMemo(() => {
     const hypeMult = 1 + clamp01(data.hype) * 0.6;
-    return passiveIncomePerMin * hypeMult * reputationMult * buffsIncomeMult;
-  }, [buffsIncomeMult, data.hype, passiveIncomePerMin, reputationMult]);
+    return passiveIncomePerMin * hypeMult * reputationMult * buffsIncomeMult * achievementsMult * prestigeIncomeMult;
+  }, [achievementsMult, buffsIncomeMult, data.hype, passiveIncomePerMin, prestigeIncomeMult, reputationMult]);
+
+  const prevAchievementsUnlockedRef = useRef<string[] | null>(null);
+  useEffect(() => {
+    if (!isLoaded) return;
+    const prev = prevAchievementsUnlockedRef.current;
+    const next = data.achievementsUnlocked ?? [];
+    if (!prev) {
+      prevAchievementsUnlockedRef.current = next;
+      return;
+    }
+    const prevSet = new Set(prev);
+    const newly = next.filter((id) => !prevSet.has(id));
+    prevAchievementsUnlockedRef.current = next;
+    if (newly.length === 0) return;
+    newly.slice(0, 4).forEach((id) => {
+      const a = achievementById.get(id);
+      if (!a) return;
+      toast('Succès débloqué', { description: a.name, duration: 3500 });
+    });
+  }, [achievementById, data.achievementsUnlocked, isLoaded]);
+
+  const computeAchievementsUnlockedNow = useCallback(
+    (save: ApexSave) => {
+      const ctx = {
+        cash: save.cash,
+        totalEarned: save.totalEarned,
+        dealsCount: computeDealsCount(save),
+        releasedBySector: computeReleasedBySector(save),
+        reputationGlobal: clamp01(save.reputation.global),
+        cryptoProfit: save.crypto.realizedProfit,
+        stocksProfit: save.stocks.realizedProfit,
+        platformSubscribers: save.platform.subscribers,
+        prestigeStars: save.prestige.stars,
+      };
+      const unlocked: string[] = [];
+      for (const a of achievements) {
+        if (isAchievementUnlocked(a, ctx)) unlocked.push(a.id);
+      }
+      return unlocked;
+    },
+    [achievements]
+  );
 
   useEffect(() => {
     if (!isLoaded) return;
     const now = Date.now();
     setData((prev) => {
-      if (prev.version >= 2 && prev.activeSector) return prev;
+      if (prev.version >= 3 && prev.activeSector && prev.unlockedSectors) return prev;
 
       const reputation: ApexReputation = {
         public: clamp01((prev as Partial<ApexSave>).reputation?.public ?? 0.1),
@@ -448,7 +612,7 @@ export default function ApexPage() {
 
       const legacy = prev as unknown as { sector?: { movies?: any[]; selectedMovieId?: string | null } };
       const legacyMovies = Array.isArray(legacy.sector?.movies) ? legacy.sector?.movies ?? [] : [];
-      const films: ApexFilm[] = legacyMovies.map((m) => ({
+      const legacyFilms: ApexFilm[] = legacyMovies.map((m) => ({
         id: String(m.id),
         title: String(m.title ?? 'Film'),
         budget: Number(m.budget ?? 0),
@@ -464,20 +628,59 @@ export default function ApexPage() {
         },
       }));
 
+      const cinemaFilms = Array.isArray((prev as Partial<ApexSave>).cinema?.films) ? (prev as ApexSave).cinema.films : legacyFilms;
+      const cinemaSelectedId =
+        typeof (prev as Partial<ApexSave>).cinema?.selectedId === 'string' || (prev as Partial<ApexSave>).cinema?.selectedId === null
+          ? (prev as ApexSave).cinema.selectedId
+          : legacy.sector?.selectedMovieId ?? null;
+
+      const seasonsRaw = Array.isArray((prev as Partial<ApexSave>).series?.seasons) ? (prev as ApexSave).series.seasons : [];
+      const seasons: ApexSeriesSeason[] = seasonsRaw.map((s) => ({ ...s, onPlatform: Boolean((s as Partial<ApexSeriesSeason>).onPlatform ?? false) }));
+
+      const prestige: ApexPrestigeState =
+        typeof (prev as Partial<ApexSave>).prestige?.stars === 'number'
+          ? (prev as ApexSave).prestige
+          : { stars: 0, lifetimeStars: 0, upgrades: {} };
+
+      const unlockedSectors: Partial<Record<SectorId, boolean>> =
+        typeof (prev as Partial<ApexSave>).unlockedSectors === 'object' && (prev as Partial<ApexSave>).unlockedSectors
+          ? (prev as ApexSave).unlockedSectors
+          : { cinema: true };
+
+      const achievementsUnlocked = Array.isArray((prev as Partial<ApexSave>).achievementsUnlocked) ? (prev as ApexSave).achievementsUnlocked : [];
+
+      const crypto = (prev as Partial<ApexSave>).crypto?.price ? (prev as ApexSave).crypto : initCryptoState();
+      const stocks = (prev as Partial<ApexSave>).stocks?.prices ? (prev as ApexSave).stocks : initStockMarket();
+      const platform =
+        typeof (prev as Partial<ApexSave>).platform?.subscribers === 'number'
+          ? (prev as ApexSave).platform
+          : { subscribers: 0, arpuPerMin: 0.012, infraLevel: 0, marketingLevel: 0, librarySeasonIds: [] };
+
+      const startingCash = computePrestigeStartingCash(prestige);
+
       return {
         ...prev,
-        version: 2,
-        activeSector: 'cinema',
-        cinema: { films, selectedId: legacy.sector?.selectedMovieId ?? null },
-        musique: { releases: [], selectedId: null },
-        series: { seasons: [], selectedId: null },
-        live: { events: [], selectedId: null },
+        version: 3,
+        cash: typeof prev.cash === 'number' ? prev.cash : 250 + startingCash,
+        activeSector: (prev as Partial<ApexSave>).activeSector ?? 'cinema',
+        unlockedSectors,
+        cinema: { films: cinemaFilms, selectedId: cinemaSelectedId },
+        musique: (prev as Partial<ApexSave>).musique ?? { releases: [], selectedId: null },
+        series: { ...(prev as Partial<ApexSave>).series ?? { seasons: [], selectedId: null }, seasons },
+        live: (prev as Partial<ApexSave>).live ?? { events: [], selectedId: null },
+        games: (prev as Partial<ApexSave>).games ?? { games: [], selectedId: null },
+        crypto,
+        stocks,
+        platform,
+        prestige,
+        achievementsUnlocked,
         reputation,
-        buffs: [],
-        negotiationContext: null,
+        buffs: Array.isArray(prev.buffs) ? prev.buffs : [],
+        negotiation: (prev as Partial<ApexSave>).negotiation ?? null,
+        negotiationContext: (prev as Partial<ApexSave>).negotiationContext ?? null,
         nextAgentAt: prev.nextAgentAt ?? now + (6 + Math.random() * 6) * 60_000,
         nextEventAt: prev.nextEventAt ?? now + (3 + Math.random() * 4) * 60_000,
-        activeModal: null,
+        activeModal: prev.activeModal ?? null,
       } as ApexSave;
     });
   }, [isLoaded, setData]);
@@ -496,19 +699,36 @@ export default function ApexPage() {
         const buffs = (prev.buffs ?? []).filter((b) => epochNow < b.startedAt + b.durationMs);
         const buffIncomeMult = buffs.reduce((acc, b) => acc * b.incomeMult, 1);
         const buffHypeDecayMult = buffs.reduce((acc, b) => acc * b.hypeDecayMult, 1);
+        const prestigeIncomeMultNow = computePrestigeIncomeMult(prev.prestige);
+        const prestigeHypeDecayMultNow = computePrestigeHypeDecayMult(prev.prestige);
+        const achievementsMultNow = 1 + Math.max(0, (prev.achievementsUnlocked?.length ?? 0)) * 0.01;
 
-        const basePerMin = computePassiveIncomePerMin(prev);
+        const crypto = stepCrypto(prev.crypto, steps);
+        const stocks = stepStocks(prev.stocks, steps);
+
+        let platform = prev.platform;
+        const libCount = platform.librarySeasonIds.length;
+        if (libCount > 0) {
+          const repPublic = clamp01(prev.reputation.public);
+          const repIntl = clamp01(prev.reputation.international);
+          const growthPerMin =
+            2 + platform.marketingLevel * 4 + repPublic * 22 + repIntl * 14 + Math.min(300, libCount * 8 + platform.infraLevel * 2);
+          const growth = (growthPerMin / 60) * steps;
+          platform = { ...platform, subscribers: Math.floor(Math.max(0, platform.subscribers + growth)) };
+        }
+
+        const basePerMin = computePassiveIncomePerMin({ ...prev, crypto, stocks, platform });
         const hype = clamp01(prev.hype);
         const repGlobal = clamp01(prev.reputation?.global ?? 0);
         const hypeMult = 1 + hype * 0.6;
         const repMult = 1 + repGlobal * 0.5;
-        const incomePerSec = ((basePerMin * hypeMult * repMult * buffIncomeMult) / 60) * steps;
+        const incomePerSec = ((basePerMin * hypeMult * repMult * buffIncomeMult * achievementsMultNow * prestigeIncomeMultNow) / 60) * steps;
 
         const nextCash = clampNonNegative(prev.cash + incomePerSec);
         const nextEarned = clampNonNegative(prev.totalEarned + incomePerSec);
 
         const denom = 300 * (1 + repGlobal * 0.8);
-        const decay = Math.exp(-((steps / denom) * buffHypeDecayMult));
+        const decay = Math.exp(-((steps / denom) * buffHypeDecayMult * prestigeHypeDecayMultNow));
         const nextHype = clamp01(hype * decay);
 
         let changed = false;
@@ -536,6 +756,12 @@ export default function ApexPage() {
           if (epochNow < e.startedAt + e.durationMs) return e;
           changed = true;
           return { ...e, status: 'ready' as const };
+        });
+        const games = prev.games.games.map((g) => {
+          if (g.status !== 'producing') return g;
+          if (epochNow < g.startedAt + g.durationMs) return g;
+          changed = true;
+          return { ...g, status: 'ready' as const };
         });
 
         let activeModal = prev.activeModal;
@@ -580,7 +806,7 @@ export default function ApexPage() {
           changed = true;
         }
 
-        const next: ApexSave = {
+        const nextBase: ApexSave = {
           ...prev,
           cash: nextCash,
           hype: nextHype,
@@ -591,12 +817,30 @@ export default function ApexPage() {
           musique: { ...prev.musique, releases },
           series: { ...prev.series, seasons },
           live: { ...prev.live, events },
+          games: { ...prev.games, games },
+          crypto,
+          stocks,
+          platform,
           activeModal,
           nextAgentAt,
           nextEventAt,
         };
 
-        return changed || nextCash !== prev.cash || nextHype !== prev.hype || buffs.length !== (prev.buffs ?? []).length ? next : prev;
+        const nextAchievements = computeAchievementsUnlockedNow(nextBase);
+        const next = areStringArraysEqual(nextAchievements, nextBase.achievementsUnlocked)
+          ? nextBase
+          : { ...nextBase, achievementsUnlocked: nextAchievements };
+
+        return changed ||
+          next.cash !== prev.cash ||
+          next.hype !== prev.hype ||
+          buffs.length !== (prev.buffs ?? []).length ||
+          next.crypto !== prev.crypto ||
+          next.stocks !== prev.stocks ||
+          next.platform !== prev.platform ||
+          next.achievementsUnlocked !== prev.achievementsUnlocked
+          ? next
+          : prev;
       });
 
       raf = window.requestAnimationFrame(tick);
@@ -604,50 +848,87 @@ export default function ApexPage() {
 
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [agentTemplates, eventTemplates, isLoaded, setData]);
+  }, [agentTemplates, computeAchievementsUnlockedNow, eventTemplates, isLoaded, setData]);
 
   const sectorUnlockCost: Record<SectorId, number> = useMemo(
-    () => ({ cinema: 0, musique: 25_000, series: 75_000, live: 150_000 }),
+    () => ({ cinema: 0, musique: 25_000, series: 75_000, live: 150_000, games: 250_000, crypto: 400_000, stocks: 600_000, platform: 900_000 }),
     []
   );
 
-  const isSectorUnlocked = useCallback((id: SectorId) => data.cash >= sectorUnlockCost[id], [data.cash, sectorUnlockCost]);
+  const isSectorUnlocked = useCallback((id: SectorId) => Boolean(data.unlockedSectors?.[id]) || id === 'cinema', [data.unlockedSectors]);
+
+  const unlockSector = useCallback(
+    (id: SectorId) => {
+      setData((prev) => {
+        if (prev.unlockedSectors?.[id] || id === 'cinema') return prev;
+        const cost = sectorUnlockCost[id];
+        if (prev.cash < cost) {
+          toast('Secteur', { description: `Il te manque ${formatShortNumber(cost - prev.cash)} ₶.`, duration: 3000 });
+          return prev;
+        }
+        toast('Secteur débloqué', { description: id, duration: 3000 });
+        return {
+          ...prev,
+          cash: clampNonNegative(prev.cash - cost),
+          totalSpent: clampNonNegative(prev.totalSpent + cost),
+          unlockedSectors: { ...prev.unlockedSectors, [id]: true },
+          activeSector: id,
+        };
+      });
+    },
+    [sectorUnlockCost, setData]
+  );
 
   const setActiveSector = useCallback(
     (id: SectorId) => {
+      if (!isSectorUnlocked(id)) {
+        unlockSector(id);
+        setActiveTab('production');
+        return;
+      }
       setData((prev) => ({ ...prev, activeSector: id }));
       setActiveTab('production');
     },
-    [setData]
+    [isSectorUnlocked, setData, unlockSector]
   );
 
   const activeSectorTitle = useMemo(() => {
     if (data.activeSector === 'cinema') return 'Cinéma';
     if (data.activeSector === 'musique') return 'Musique';
     if (data.activeSector === 'series') return 'Séries & Streaming';
-    return 'Événements Live';
+    if (data.activeSector === 'live') return 'Événements Live';
+    if (data.activeSector === 'games') return 'Jeux vidéo';
+    if (data.activeSector === 'crypto') return 'Crypto';
+    if (data.activeSector === 'stocks') return 'Bourse';
+    return 'Plateforme';
   }, [data.activeSector]);
 
   const activeDealLabel = useMemo(() => {
     if (data.activeSector === 'cinema') return 'Droits';
     if (data.activeSector === 'musique') return 'Royalties';
     if (data.activeSector === 'series') return 'Streaming';
-    return 'Sponsor';
+    if (data.activeSector === 'live') return 'Sponsor';
+    if (data.activeSector === 'games') return 'Publishing';
+    return '';
   }, [data.activeSector]);
 
   const activeProjects = useMemo(() => {
     if (data.activeSector === 'cinema') return data.cinema.films;
     if (data.activeSector === 'musique') return data.musique.releases;
     if (data.activeSector === 'series') return data.series.seasons;
-    return data.live.events;
-  }, [data.activeSector, data.cinema.films, data.live.events, data.musique.releases, data.series.seasons]);
+    if (data.activeSector === 'live') return data.live.events;
+    if (data.activeSector === 'games') return data.games.games;
+    return [];
+  }, [data.activeSector, data.cinema.films, data.games.games, data.live.events, data.musique.releases, data.series.seasons]);
 
   const activeSelectedId = useMemo(() => {
     if (data.activeSector === 'cinema') return data.cinema.selectedId;
     if (data.activeSector === 'musique') return data.musique.selectedId;
     if (data.activeSector === 'series') return data.series.selectedId;
-    return data.live.selectedId;
-  }, [data.activeSector, data.cinema.selectedId, data.live.selectedId, data.musique.selectedId, data.series.selectedId]);
+    if (data.activeSector === 'live') return data.live.selectedId;
+    if (data.activeSector === 'games') return data.games.selectedId;
+    return null;
+  }, [data.activeSector, data.cinema.selectedId, data.games.selectedId, data.live.selectedId, data.musique.selectedId, data.series.selectedId]);
 
   const selectProject = useCallback(
     (id: string) => {
@@ -655,7 +936,9 @@ export default function ApexPage() {
         if (prev.activeSector === 'cinema') return { ...prev, cinema: { ...prev.cinema, selectedId: id } };
         if (prev.activeSector === 'musique') return { ...prev, musique: { ...prev.musique, selectedId: id } };
         if (prev.activeSector === 'series') return { ...prev, series: { ...prev.series, selectedId: id } };
-        return { ...prev, live: { ...prev.live, selectedId: id } };
+        if (prev.activeSector === 'live') return { ...prev, live: { ...prev.live, selectedId: id } };
+        if (prev.activeSector === 'games') return { ...prev, games: { ...prev.games, selectedId: id } };
+        return prev;
       });
     },
     [setData]
@@ -847,6 +1130,7 @@ export default function ApexPage() {
           quality,
           viewers: 0,
           deal: { sold: false, upfront: 0, perMin: 0 },
+          onPlatform: false,
         };
 
         toast('Séries', { description: `Production lancée: ${season.title}`, duration: 3500 });
@@ -906,6 +1190,53 @@ export default function ApexPage() {
       });
     },
     [artistNames, namesStatus, setData]
+  );
+
+  const startGame = useCallback(
+    (budget: number) => {
+      if (namesStatus !== 'ready') return;
+      if (gameNames.length === 0) return;
+
+      setData((prev) => {
+        if (prev.cash < budget) {
+          toast('Jeux vidéo', { description: `Il te manque ${formatShortNumber(budget - prev.cash)} ₶.`, duration: 3000 });
+          return prev;
+        }
+
+        const titleDraw = drawWithoutReplacement({ list: gameNames, prev: prev.drawByCategory.noms_jeux });
+        const studioDraw = gameStudios.length > 0 ? drawWithoutReplacement({ list: gameStudios, prev: prev.drawByCategory.studios_jv }) : null;
+
+        const quality = 0.35 + Math.random() * 0.65;
+        const durationMs = Math.round((20_000 + Math.random() * 16_000) * (0.9 + Math.min(1, budget / 400_000) * 0.6));
+
+        const g: ApexGame = {
+          id: createId(),
+          title: titleDraw.value,
+          studio: studioDraw ? studioDraw.value : 'Studio',
+          budget,
+          startedAt: Date.now(),
+          durationMs,
+          status: 'producing',
+          quality,
+          sales: 0,
+          deal: { sold: false, upfront: 0, perMin: 0 },
+        };
+
+        toast('Jeux vidéo', { description: `Développement lancé: ${g.title}`, duration: 3500 });
+        return {
+          ...prev,
+          cash: clampNonNegative(prev.cash - budget),
+          totalSpent: clampNonNegative(prev.totalSpent + budget),
+          drawByCategory: {
+            ...prev.drawByCategory,
+            noms_jeux: titleDraw.next,
+            ...(studioDraw ? { studios_jv: studioDraw.next } : {}),
+          },
+          games: { ...prev.games, games: [g, ...prev.games.games], selectedId: g.id },
+        };
+      });
+    },
+    [gameNames, gameStudios, namesStatus, setData]
   );
 
   const releaseSelected = useCallback(() => {
@@ -987,6 +1318,31 @@ export default function ApexPage() {
         };
       }
 
+      if (prev.activeSector === 'games') {
+        const id = prev.games.selectedId;
+        if (!id) return prev;
+        const g = prev.games.games.find((x) => x.id === id);
+        if (!g || g.status !== 'ready') return prev;
+
+        const repMult = 0.85 + rep.business * 0.25 + rep.critique * 0.1;
+        const roll = 0.75 + Math.random() * 1.65;
+        const sales = g.budget * roll * (0.88 + g.quality * 0.42) * repMult * (1 + hype * 0.65);
+        const cash = sales;
+
+        const nextGames: ApexGame[] = prev.games.games.map((x) => (x.id === id ? ({ ...x, status: 'released' as const, sales } as ApexGame) : x));
+        const reputation = updateReputation(prev.reputation, { business: 0.01, critique: 0.004 + g.quality * 0.01 });
+        toast('Ventes', { description: `+${formatShortNumber(cash)} ₶`, duration: 3500 });
+
+        return {
+          ...prev,
+          cash: clampNonNegative(prev.cash + cash),
+          totalEarned: clampNonNegative(prev.totalEarned + cash),
+          hype: clamp01(prev.hype + 0.045 + g.quality * 0.03),
+          reputation,
+          games: { ...prev.games, games: nextGames },
+        };
+      }
+
       const id = prev.live.selectedId;
       if (!id) return prev;
       const e = prev.live.events.find((x) => x.id === id);
@@ -1020,20 +1376,42 @@ export default function ApexPage() {
         if (sector === 'cinema') return prev.cinema.films.find((x) => x.id === prev.cinema.selectedId);
         if (sector === 'musique') return prev.musique.releases.find((x) => x.id === prev.musique.selectedId);
         if (sector === 'series') return prev.series.seasons.find((x) => x.id === prev.series.selectedId);
-        return prev.live.events.find((x) => x.id === prev.live.selectedId);
+        if (sector === 'live') return prev.live.events.find((x) => x.id === prev.live.selectedId);
+        if (sector === 'games') return prev.games.games.find((x) => x.id === prev.games.selectedId);
+        return null;
       };
 
       const p = getProject();
       if (!p || p.status !== 'released' || p.deal.sold) return prev;
 
-      const dealType: 'rights' | 'royalties' | 'streaming' | 'sponsor' =
-        sector === 'cinema' ? 'rights' : sector === 'musique' ? 'royalties' : sector === 'series' ? 'streaming' : 'sponsor';
+      const dealType: 'rights' | 'royalties' | 'streaming' | 'sponsor' | 'publishing' =
+        sector === 'cinema'
+          ? 'rights'
+          : sector === 'musique'
+            ? 'royalties'
+            : sector === 'series'
+              ? 'streaming'
+              : sector === 'live'
+                ? 'sponsor'
+                : 'publishing';
 
       const performance = 'boxOffice' in p ? p.boxOffice : 'sales' in p ? p.sales : 'viewers' in p ? p.viewers : p.attendance;
-      const baseValue = Math.max(350, p.budget * (0.7 + p.quality * 0.7) + performance * 0.08);
+      const rawBaseValue = Math.max(350, p.budget * (0.7 + p.quality * 0.7) + performance * 0.08);
+      const boost = computeNegotiationBoost(prev.prestige);
+      const baseValue = rawBaseValue * (1 + boost);
 
-      const partner = sector === 'cinema' ? 'Distributeur' : sector === 'musique' ? 'Label' : sector === 'series' ? 'Plateforme' : 'Sponsor';
-      const difficulty = sector === 'live' ? 0.6 : 0.55;
+      const partner =
+        sector === 'cinema'
+          ? 'Distributeur'
+          : sector === 'musique'
+            ? 'Label'
+            : sector === 'series'
+              ? 'Plateforme'
+              : sector === 'live'
+                ? 'Sponsor'
+                : 'Publisher';
+      const baseDifficulty = sector === 'live' ? 0.6 : sector === 'games' ? 0.58 : 0.55;
+      const difficulty = Math.max(0.25, baseDifficulty - boost);
       const n = createNegotiation({ kind: 'generic', partner, baseValue, difficulty, maxRounds: 4 });
 
       return {
@@ -1053,7 +1431,8 @@ export default function ApexPage() {
       const n = acceptNegotiation(prev.negotiation);
       const { sector, projectId, dealType } = prev.negotiationContext;
 
-      const factor = dealType === 'sponsor' ? 0.015 : dealType === 'streaming' ? 0.021 : dealType === 'royalties' ? 0.02 : 0.02;
+      const factor =
+        dealType === 'sponsor' ? 0.015 : dealType === 'streaming' ? 0.021 : dealType === 'royalties' ? 0.02 : dealType === 'publishing' ? 0.019 : 0.02;
       const upfront = n.offer;
       const perMin = Math.max(1, Math.floor(n.offer * factor));
 
@@ -1077,7 +1456,10 @@ export default function ApexPage() {
       if (sector === 'series') {
         return { ...next, series: { ...next.series, seasons: applyDeal(next.series.seasons) }, negotiationContext: null };
       }
-      return { ...next, live: { ...next.live, events: applyDeal(next.live.events) }, negotiationContext: null };
+      if (sector === 'live') {
+        return { ...next, live: { ...next.live, events: applyDeal(next.live.events) }, negotiationContext: null };
+      }
+      return { ...next, games: { ...next.games, games: applyDeal(next.games.games) }, negotiationContext: null };
     });
   }, [setData, updateReputation]);
 
@@ -1109,9 +1491,187 @@ export default function ApexPage() {
       if (data.activeSector === 'cinema') startCinema(budget);
       else if (data.activeSector === 'musique') startMusique(budget);
       else if (data.activeSector === 'series') startSeries(budget);
-      else startLive(budget);
+      else if (data.activeSector === 'live') startLive(budget);
+      else if (data.activeSector === 'games') startGame(budget);
     },
-    [data.activeSector, startCinema, startLive, startMusique, startSeries]
+    [data.activeSector, startCinema, startGame, startLive, startMusique, startSeries]
+  );
+
+  const buyCryptoCash = useCallback(
+    (amount: number) => {
+      setData((prev) => {
+        const cash = Math.max(0, Math.floor(amount));
+        if (cash <= 0) return prev;
+        if (prev.cash < cash) {
+          toast('Crypto', { description: `Il te manque ${formatShortNumber(cash - prev.cash)} ₶.`, duration: 3000 });
+          return prev;
+        }
+        const { next } = buyCrypto(prev.crypto, cash);
+        toast('Crypto', { description: `Achat: ${formatShortNumber(cash)} ₶`, duration: 2500 });
+        return { ...prev, cash: clampNonNegative(prev.cash - cash), crypto: next };
+      });
+    },
+    [setData]
+  );
+
+  const sellCryptoPct = useCallback(
+    (pct: number) => {
+      setData((prev) => {
+        const p = Math.max(0, Math.min(1, pct));
+        if (prev.crypto.holdings <= 0) return prev;
+        const units = prev.crypto.holdings * p;
+        const { next, gained } = sellCrypto(prev.crypto, units);
+        toast('Crypto', { description: `Vente: +${formatShortNumber(gained)} ₶`, duration: 2500 });
+        return { ...prev, cash: clampNonNegative(prev.cash + gained), crypto: next };
+      });
+    },
+    [setData]
+  );
+
+  const buyStockCash = useCallback(
+    (id: StockId, amount: number) => {
+      setData((prev) => {
+        const cash = Math.max(0, Math.floor(amount));
+        if (cash <= 0) return prev;
+        if (prev.cash < cash) {
+          toast('Bourse', { description: `Il te manque ${formatShortNumber(cash - prev.cash)} ₶.`, duration: 3000 });
+          return prev;
+        }
+        const { next } = buyStock(prev.stocks, id, cash);
+        return { ...prev, cash: clampNonNegative(prev.cash - cash), stocks: next };
+      });
+    },
+    [setData]
+  );
+
+  const sellStockPct = useCallback(
+    (id: StockId, pct: number) => {
+      setData((prev) => {
+        const held = prev.stocks.shares[id] ?? 0;
+        if (held <= 0) return prev;
+        const p = Math.max(0, Math.min(1, pct));
+        const { next, gained } = sellStock(prev.stocks, id, held * p);
+        return { ...prev, cash: clampNonNegative(prev.cash + gained), stocks: next };
+      });
+    },
+    [setData]
+  );
+
+  const upgradePlatform = useCallback(
+    (kind: 'infra' | 'marketing') => {
+      setData((prev) => {
+        if (!prev.unlockedSectors.platform) {
+          toast('Plateforme', { description: 'Débloque le secteur Plateforme.', duration: 3000 });
+          return prev;
+        }
+        const level = kind === 'infra' ? prev.platform.infraLevel : prev.platform.marketingLevel;
+        const base = kind === 'infra' ? 40_000 : 25_000;
+        const cost = Math.floor(base * Math.pow(1.7, level));
+        if (prev.cash < cost) {
+          toast('Plateforme', { description: `Il te manque ${formatShortNumber(cost - prev.cash)} ₶.`, duration: 3000 });
+          return prev;
+        }
+        const platform =
+          kind === 'infra'
+            ? { ...prev.platform, infraLevel: prev.platform.infraLevel + 1 }
+            : { ...prev.platform, marketingLevel: prev.platform.marketingLevel + 1 };
+        return { ...prev, cash: clampNonNegative(prev.cash - cost), totalSpent: clampNonNegative(prev.totalSpent + cost), platform };
+      });
+    },
+    [setData]
+  );
+
+  const addSeasonToPlatform = useCallback(
+    (seasonId: string) => {
+      setData((prev) => {
+        if (!prev.unlockedSectors.platform) {
+          toast('Plateforme', { description: 'Débloque le secteur Plateforme.', duration: 3000 });
+          return prev;
+        }
+        const s = prev.series.seasons.find((x) => x.id === seasonId);
+        if (!s || s.status !== 'released' || s.onPlatform) return prev;
+        const nextSeasons = prev.series.seasons.map((x) => (x.id === seasonId ? ({ ...x, onPlatform: true } as ApexSeriesSeason) : x));
+        const already = prev.platform.librarySeasonIds.includes(seasonId);
+        const librarySeasonIds = already ? prev.platform.librarySeasonIds : [...prev.platform.librarySeasonIds, seasonId];
+        const platform = { ...prev.platform, librarySeasonIds, subscribers: prev.platform.subscribers + 50 };
+        toast('Plateforme', { description: `Ajout: ${s.title}`, duration: 3000 });
+        return { ...prev, series: { ...prev.series, seasons: nextSeasons }, platform };
+      });
+    },
+    [setData]
+  );
+
+  const achievementsFiltered = useMemo(() => {
+    const q = achievementQuery.trim().toLowerCase();
+    const unlockedSet = new Set(data.achievementsUnlocked ?? []);
+    const list = q
+      ? achievements.filter((a) => a.name.toLowerCase().includes(q) || a.description.toLowerCase().includes(q))
+      : achievements;
+    return [...list].sort((a, b) => Number(unlockedSet.has(b.id)) - Number(unlockedSet.has(a.id)) || a.id.localeCompare(b.id));
+  }, [achievementQuery, achievements, data.achievementsUnlocked]);
+
+  const claimableStars = useMemo(() => {
+    const total = computeStarsFromTotalEarned(data.totalEarned);
+    return Math.max(0, total - data.prestige.lifetimeStars);
+  }, [data.prestige.lifetimeStars, data.totalEarned]);
+
+  const prestigeNow = useCallback(() => {
+    setData((prev) => {
+      const total = computeStarsFromTotalEarned(prev.totalEarned);
+      const claimable = Math.max(0, total - prev.prestige.lifetimeStars);
+      if (claimable <= 0) {
+        toast('Prestige', { description: 'Aucune Apex Star à récupérer pour le moment.', duration: 3000 });
+        return prev;
+      }
+
+      const prestige: ApexPrestigeState = {
+        ...prev.prestige,
+        stars: prev.prestige.stars + claimable,
+        lifetimeStars: prev.prestige.lifetimeStars + claimable,
+        upgrades: prev.prestige.upgrades ?? {},
+      };
+      const startingCash = 250 + computePrestigeStartingCash(prestige);
+
+      toast('Prestige', { description: `+${claimable} Apex Stars`, duration: 3500 });
+
+      return {
+        ...prev,
+        cash: startingCash,
+        hype: 0.12,
+        lastTickAt: Date.now(),
+        drawByCategory: {},
+        activeSector: 'cinema',
+        unlockedSectors: { cinema: true },
+        cinema: { films: [], selectedId: null },
+        musique: { releases: [], selectedId: null },
+        series: { seasons: [], selectedId: null },
+        live: { events: [], selectedId: null },
+        games: { games: [], selectedId: null },
+        crypto: initCryptoState(),
+        stocks: initStockMarket(),
+        platform: { subscribers: 0, arpuPerMin: 0.012, infraLevel: 0, marketingLevel: 0, librarySeasonIds: [] },
+        buffs: [],
+        negotiation: null,
+        negotiationContext: null,
+        nextAgentAt: Date.now() + (6 + Math.random() * 6) * 60_000,
+        nextEventAt: Date.now() + (3 + Math.random() * 4) * 60_000,
+        activeModal: null,
+        prestige,
+      };
+    });
+  }, [setData]);
+
+  const buyPrestigeUpgrade = useCallback(
+    (id: string, nextLevelCost: number) => {
+      setData((prev) => {
+        if (prev.prestige.stars < nextLevelCost) return prev;
+        const upgrades = { ...(prev.prestige.upgrades ?? {}) } as Record<string, number>;
+        const current = Math.max(0, Math.floor(upgrades[id] ?? 0));
+        upgrades[id] = current + 1;
+        return { ...prev, prestige: { ...prev.prestige, stars: prev.prestige.stars - nextLevelCost, upgrades } };
+      });
+    },
+    [setData]
   );
 
   return (
@@ -1146,7 +1706,10 @@ export default function ApexPage() {
             <div ref={ppsRef} className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal px-4 py-3">
               <div className="text-xs text-tx-secondary font-bold">₶/min</div>
               <div className="text-xl font-display font-black tracking-wider">{formatCoins(incomePerMin)}</div>
-              <div className="text-xs text-tx-secondary font-bold">Base: {formatShortNumber(passiveIncomePerMin)} • Mult: ×{reputationMult.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}</div>
+              <div className="text-xs text-tx-secondary font-bold">
+                Base: {formatShortNumber(passiveIncomePerMin)} • Mult: ×
+                {(reputationMult * achievementsMult * prestigeIncomeMult * buffsIncomeMult).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+              </div>
             </div>
 
             <div ref={cashRef} className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal px-4 py-3">
@@ -1165,6 +1728,10 @@ export default function ApexPage() {
                 { id: 'musique', label: 'Musique', subtitle: 'Sorties • Ventes • Royalties' },
                 { id: 'series', label: 'Séries & Streaming', subtitle: 'Saisons • Audiences • Streaming' },
                 { id: 'live', label: 'Événements Live', subtitle: 'Billetterie • Sponsor' },
+                { id: 'crypto', label: 'Crypto', subtitle: 'Cours • Graphique • Portefeuille' },
+                { id: 'games', label: 'Jeux vidéo', subtitle: 'Dév • Ventes • Publishing' },
+                { id: 'stocks', label: 'Bourse', subtitle: 'Marché • Portefeuille • Profits' },
+                { id: 'platform', label: 'Plateforme', subtitle: 'Abonnés • ARPU • Catalogue' },
               ] as Array<{ id: SectorId; label: string; subtitle: string }>).map((s) => {
                 const unlocked = isSectorUnlocked(s.id);
                 const selected = data.activeSector === s.id;
@@ -1174,19 +1741,29 @@ export default function ApexPage() {
                     key={s.id}
                     type="button"
                     onClick={() => setActiveSector(s.id)}
-                    disabled={!unlocked}
                     className={cn(
                       'w-full text-left rounded-xl border-2 px-3 py-3 transition-colors',
                       selected
                         ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
                         : unlocked
                           ? 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                          : 'bg-brand-inner text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                          : 'bg-brand-inner text-tx-secondary border-brand-border opacity-70 hover:opacity-100'
                     )}
+                    aria-disabled={!unlocked}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="font-display font-black tracking-wider uppercase">{s.label}</div>
-                      {selected ? <Film className="h-5 w-5" /> : null}
+                      {selected ? (
+                        s.id === 'games' ? (
+                          <Gamepad2 className="h-5 w-5" />
+                        ) : s.id === 'platform' ? (
+                          <Tv className="h-5 w-5" />
+                        ) : s.id === 'crypto' || s.id === 'stocks' ? (
+                          <TrendingUp className="h-5 w-5" />
+                        ) : (
+                          <Film className="h-5 w-5" />
+                        )
+                      ) : null}
                     </div>
                     <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
                       {unlocked ? s.subtitle : `Débloque à ${formatShortNumber(cost)} ₶`}
@@ -1238,160 +1815,585 @@ export default function ApexPage() {
                   >
                     Deals
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('meta')}
+                    className={cn(
+                      'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                      activeTab === 'meta'
+                        ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
+                        : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                    )}
+                  >
+                    Méta
+                  </button>
                 </div>
               </div>
 
               {activeTab === 'production' ? (
-                <div className="mt-4 space-y-4">
-                  <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-xs text-tx-secondary font-bold">Hype</div>
-                      <div className="text-xs text-tx-secondary font-bold">{Math.round(clamp01(data.hype) * 100)}%</div>
+                data.activeSector === 'crypto' ? (
+                  <div className="mt-4 space-y-4">
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Cours</div>
+                      <div className="mt-2 flex items-end justify-between gap-3">
+                        <div className="font-display font-black tracking-wider uppercase text-2xl">{formatShortNumber(data.crypto.price)} ₶</div>
+                        <div className="text-right text-xs text-tx-secondary font-bold">
+                          {formatShortNumber(data.crypto.holdings)} unités • {formatShortNumber(data.crypto.holdings * data.crypto.price)} ₶
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs text-tx-secondary font-bold">
+                        Profit réalisé: {formatShortNumber(data.crypto.realizedProfit)} ₶
+                      </div>
                     </div>
-                    <div className="mt-2 h-3 rounded-full border-2 border-brand-border bg-brand-card overflow-hidden">
-                      <div className="h-full bg-accent-primary" style={{ width: `${Math.round(clamp01(data.hype) * 100)}%` }} />
+
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Graphique</div>
+                      <div className="mt-3 h-24 rounded-lg border-2 border-brand-border bg-brand-card overflow-hidden">
+                        {(() => {
+                          const h = data.crypto.history;
+                          const n = h.length;
+                          if (n < 2) return null;
+                          const slice = n > 80 ? h.slice(n - 80) : h;
+                          const min = Math.min(...slice);
+                          const max = Math.max(...slice);
+                          const w = 320;
+                          const hh = 96;
+                          const range = Math.max(1e-9, max - min);
+                          const pts = slice
+                            .map((v, i) => {
+                              const x = (i / (slice.length - 1)) * w;
+                              const y = hh - ((v - min) / range) * hh;
+                              return `${x.toFixed(2)},${y.toFixed(2)}`;
+                            })
+                            .join(' ');
+                          return (
+                            <svg viewBox={`0 0 ${w} ${hh}`} className="w-full h-full text-accent-primary">
+                              <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="3" />
+                            </svg>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Actions</div>
+                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[1000, 5000, 20_000, 100_000].map((a) => (
+                          <button
+                            key={a}
+                            type="button"
+                            onClick={() => buyCryptoCash(a)}
+                            disabled={data.cash < a}
+                            className={cn(
+                              'h-11 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                              data.cash < a
+                                ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                            )}
+                          >
+                            Acheter {formatShortNumber(a)}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="mt-2 grid grid-cols-3 gap-2">
+                        {[
+                          { label: 'Vendre 25%', pct: 0.25 },
+                          { label: 'Vendre 50%', pct: 0.5 },
+                          { label: 'Vendre 100%', pct: 1 },
+                        ].map((b) => (
+                          <button
+                            key={b.label}
+                            type="button"
+                            onClick={() => sellCryptoPct(b.pct)}
+                            disabled={data.crypto.holdings <= 0}
+                            className={cn(
+                              'h-11 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                              data.crypto.holdings <= 0
+                                ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                            )}
+                          >
+                            {b.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
+                ) : data.activeSector === 'stocks' ? (
+                  <div className="mt-4 space-y-4">
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Marché</div>
+                      <div className="mt-3 space-y-2">
+                        {STOCKS.map((s) => {
+                          const price = data.stocks.prices[s.id] ?? s.base;
+                          const held = data.stocks.shares[s.id] ?? 0;
+                          const value = held * price;
+                          return (
+                            <div key={s.id} className="rounded-xl border-2 border-brand-border bg-brand-card px-3 py-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="font-display font-black tracking-wider uppercase text-sm">
+                                    {s.id} • {s.name}
+                                  </div>
+                                  <div className="mt-1 text-xs text-tx-secondary font-bold">
+                                    {formatShortNumber(price)} ₶ • {formatShortNumber(held)} parts • {formatShortNumber(value)} ₶
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => buyStockCash(s.id, 2000)}
+                                    disabled={data.cash < 2000}
+                                    className={cn(
+                                      'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                                      data.cash < 2000
+                                        ? 'bg-brand-inner text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                        : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                    )}
+                                  >
+                                    +2k
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => buyStockCash(s.id, 10_000)}
+                                    disabled={data.cash < 10_000}
+                                    className={cn(
+                                      'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                                      data.cash < 10_000
+                                        ? 'bg-brand-inner text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                        : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                    )}
+                                  >
+                                    +10k
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => sellStockPct(s.id, 0.25)}
+                                    disabled={held <= 0}
+                                    className={cn(
+                                      'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                                      held <= 0
+                                        ? 'bg-brand-inner text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                        : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                    )}
+                                  >
+                                    -25%
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => sellStockPct(s.id, 1)}
+                                    disabled={held <= 0}
+                                    className={cn(
+                                      'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                                      held <= 0
+                                        ? 'bg-brand-inner text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                        : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                    )}
+                                  >
+                                    -100%
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-3 text-xs text-tx-secondary font-bold">Profit réalisé: {formatShortNumber(data.stocks.realizedProfit)} ₶</div>
+                    </div>
+                  </div>
+                ) : data.activeSector === 'platform' ? (
+                  <div className="mt-4 space-y-4">
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Plateforme</div>
+                      <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm font-bold">
+                        <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
+                          <div className="text-xs text-tx-secondary font-bold">Abonnés</div>
+                          <div className="mt-1 font-display font-black tracking-wider uppercase">{formatShortNumber(data.platform.subscribers)}</div>
+                        </div>
+                        <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
+                          <div className="text-xs text-tx-secondary font-bold">ARPU</div>
+                          <div className="mt-1 font-display font-black tracking-wider uppercase">
+                            {data.platform.arpuPerMin.toLocaleString('fr-FR', { maximumFractionDigits: 3 })} ₶/min
+                          </div>
+                        </div>
+                        <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
+                          <div className="text-xs text-tx-secondary font-bold">Catalogue</div>
+                          <div className="mt-1 font-display font-black tracking-wider uppercase">{data.platform.librarySeasonIds.length} saisons</div>
+                        </div>
+                      </div>
+                    </div>
 
-                  <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
-                    <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Projet en cours</div>
-                    {currentProducing ? (
-                      <>
-                        <div className="mt-2 font-display font-black tracking-wider uppercase">{currentProducing.title}</div>
-                        <div className="mt-2 h-3 rounded-full border-2 border-brand-border bg-brand-card overflow-hidden">
-                          <div className="h-full bg-accent-primary" style={{ width: `${Math.round(producingProgress * 100)}%` }} />
-                        </div>
-                      </>
-                    ) : currentReady ? (
-                      <div className="mt-2 flex items-center justify-between gap-3">
-                        <div>
-                          <div className="font-display font-black tracking-wider uppercase">{currentReady.title}</div>
-                          <div className="text-xs text-tx-secondary font-bold">Prêt à sortir</div>
-                        </div>
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Améliorations</div>
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <button
                           type="button"
-                          onClick={() => {
-                            selectProject(currentReady.id);
-                            releaseSelected();
-                          }}
-                          className="h-11 px-4 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                          onClick={() => upgradePlatform('marketing')}
+                          className="h-12 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
                         >
-                          Sortir
+                          Marketing +1
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => upgradePlatform('infra')}
+                          className="h-12 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                        >
+                          Infra +1
                         </button>
                       </div>
-                    ) : (
-                      <div className="mt-2 text-sm text-tx-secondary font-bold">Aucun projet en cours.</div>
-                    )}
-                  </div>
-
-                  <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
-                    <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Lancer un projet</div>
-                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {[
-                        { label: 'Petit', budget: 2500 },
-                        { label: 'Standard', budget: 20_000 },
-                        { label: 'Gros', budget: 120_000 },
-                      ].map((b) => (
-                        <button
-                          key={b.label}
-                          type="button"
-                          onClick={() => startByActiveSector(b.budget)}
-                          disabled={namesStatus !== 'ready' || data.cash < b.budget}
-                          className={cn(
-                            'h-12 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
-                            namesStatus !== 'ready' || data.cash < b.budget
-                              ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
-                              : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                          )}
-                        >
-                          {b.label} ({formatShortNumber(b.budget)} ₶)
-                        </button>
-                      ))}
+                      <div className="mt-2 text-xs text-tx-secondary font-bold">
+                        Niveaux: Marketing {data.platform.marketingLevel} • Infra {data.platform.infraLevel}
+                      </div>
                     </div>
-                    {namesStatus === 'loading' ? <div className="mt-2 text-xs text-tx-secondary font-bold">Chargement des noms…</div> : null}
                   </div>
-                </div>
+                ) : (
+                  <div className="mt-4 space-y-4">
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-xs text-tx-secondary font-bold">Hype</div>
+                        <div className="text-xs text-tx-secondary font-bold">{Math.round(clamp01(data.hype) * 100)}%</div>
+                      </div>
+                      <div className="mt-2 h-3 rounded-full border-2 border-brand-border bg-brand-card overflow-hidden">
+                        <div className="h-full bg-accent-primary" style={{ width: `${Math.round(clamp01(data.hype) * 100)}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Projet en cours</div>
+                      {currentProducing ? (
+                        <>
+                          <div className="mt-2 font-display font-black tracking-wider uppercase">{currentProducing.title}</div>
+                          <div className="mt-2 h-3 rounded-full border-2 border-brand-border bg-brand-card overflow-hidden">
+                            <div className="h-full bg-accent-primary" style={{ width: `${Math.round(producingProgress * 100)}%` }} />
+                          </div>
+                        </>
+                      ) : currentReady ? (
+                        <div className="mt-2 flex items-center justify-between gap-3">
+                          <div>
+                            <div className="font-display font-black tracking-wider uppercase">{currentReady.title}</div>
+                            <div className="text-xs text-tx-secondary font-bold">Prêt à sortir</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              selectProject(currentReady.id);
+                              releaseSelected();
+                            }}
+                            className="h-11 px-4 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                          >
+                            Sortir
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-sm text-tx-secondary font-bold">Aucun projet en cours.</div>
+                      )}
+                    </div>
+
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Lancer un projet</div>
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {[
+                          { label: 'Petit', budget: 2500 },
+                          { label: 'Standard', budget: 20_000 },
+                          { label: 'Gros', budget: 120_000 },
+                        ].map((b) => (
+                          <button
+                            key={b.label}
+                            type="button"
+                            onClick={() => startByActiveSector(b.budget)}
+                            disabled={
+                              namesStatus !== 'ready' ||
+                              data.cash < b.budget ||
+                              (data.activeSector !== 'cinema' &&
+                                data.activeSector !== 'musique' &&
+                                data.activeSector !== 'series' &&
+                                data.activeSector !== 'live' &&
+                                data.activeSector !== 'games')
+                            }
+                            className={cn(
+                              'h-12 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                              namesStatus !== 'ready' ||
+                                data.cash < b.budget ||
+                                (data.activeSector !== 'cinema' &&
+                                  data.activeSector !== 'musique' &&
+                                  data.activeSector !== 'series' &&
+                                  data.activeSector !== 'live' &&
+                                  data.activeSector !== 'games')
+                                ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                            )}
+                          >
+                            {b.label} ({formatShortNumber(b.budget)} ₶)
+                          </button>
+                        ))}
+                      </div>
+                      {namesStatus === 'loading' ? <div className="mt-2 text-xs text-tx-secondary font-bold">Chargement des noms…</div> : null}
+                    </div>
+                  </div>
+                )
               ) : null}
 
               {activeTab === 'catalogue' ? (
-                <div className="mt-4 space-y-2">
-                  {activeProjects.length === 0 ? (
-                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3 text-sm text-tx-secondary font-bold">
-                      Aucun projet. Lance une production.
+                data.activeSector === 'crypto' ? (
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Portefeuille</div>
+                      <div className="mt-2 text-sm text-tx-secondary font-bold">
+                        Holdings: <span className="text-tx-base">{formatShortNumber(data.crypto.holdings)}</span> • Valeur:{' '}
+                        <span className="text-tx-base">{formatShortNumber(data.crypto.holdings * data.crypto.price)} ₶</span>
+                      </div>
+                      <div className="mt-1 text-sm text-tx-secondary font-bold">
+                        Cost basis: <span className="text-tx-base">{formatShortNumber(data.crypto.costBasis)} ₶</span>
+                      </div>
                     </div>
-                  ) : (
-                    activeProjects.slice(0, 24).map((p) => {
-                      const selected = p.id === activeSelectedId;
-                      const perf = 'boxOffice' in p ? p.boxOffice : 'sales' in p ? p.sales : 'viewers' in p ? p.viewers : p.attendance;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => selectProject(p.id)}
-                          className={cn(
-                            'w-full text-left rounded-xl border-2 px-3 py-3 transition-colors',
-                            selected
-                              ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
-                              : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                          )}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="font-display font-black tracking-wider uppercase text-sm">{p.title}</div>
-                              <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
-                                {p.status === 'producing' ? 'En production' : p.status === 'ready' ? 'Prêt' : 'Sorti'}
-                                {p.deal.sold ? ` • ${activeDealLabel}: +${formatShortNumber(p.deal.perMin)} ₶/min` : ''}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xs font-bold">{formatShortNumber(p.budget)} ₶</div>
-                              <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
-                                {perf > 0 ? `${formatShortNumber(perf)} ₶` : '—'}
-                              </div>
-                            </div>
+                  </div>
+                ) : data.activeSector === 'stocks' ? (
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Portefeuille</div>
+                      <div className="mt-2 text-sm text-tx-secondary font-bold">
+                        Valeur: <span className="text-tx-base">{formatShortNumber(portfolioValue(data.stocks))} ₶</span>
+                      </div>
+                      <div className="mt-1 text-sm text-tx-secondary font-bold">
+                        Profit réalisé: <span className="text-tx-base">{formatShortNumber(data.stocks.realizedProfit)} ₶</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : data.activeSector === 'platform' ? (
+                  <div className="mt-4 space-y-2">
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3 text-sm text-tx-secondary font-bold">
+                      Catalogue plateforme: <span className="text-tx-base">{data.platform.librarySeasonIds.length}</span> saisons
+                    </div>
+                    {data.series.seasons.filter((s) => s.onPlatform).length === 0 ? (
+                      <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3 text-sm text-tx-secondary font-bold">
+                        Aucune saison ajoutée. Va dans Séries & Streaming &rarr; Catalogue &rarr; ajouter.
+                      </div>
+                    ) : (
+                      data.series.seasons
+                        .filter((s) => s.onPlatform)
+                        .slice(0, 30)
+                        .map((s) => (
+                          <div key={s.id} className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                            <div className="font-display font-black tracking-wider uppercase text-sm">{s.title}</div>
+                            <div className="mt-1 text-xs text-tx-secondary font-bold">Showrunner: {s.showrunner}</div>
                           </div>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
+                        ))
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-2">
+                    {activeProjects.length === 0 ? (
+                      <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3 text-sm text-tx-secondary font-bold">
+                        Aucun projet. Lance une production.
+                      </div>
+                    ) : (
+                      activeProjects.slice(0, 24).map((p) => {
+                        const selected = p.id === activeSelectedId;
+                        const perf = 'boxOffice' in p ? p.boxOffice : 'sales' in p ? p.sales : 'viewers' in p ? p.viewers : p.attendance;
+                        const showPlatform = data.activeSector === 'series' && 'onPlatform' in p && p.status === 'released' && !p.onPlatform;
+                        return (
+                          <div
+                            key={p.id}
+                            className={cn(
+                              'rounded-xl border-2 px-3 py-3',
+                              selected
+                                ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
+                                : 'bg-brand-inner text-tx-base border-brand-border'
+                            )}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => selectProject(p.id)}
+                              className={cn(
+                                'w-full text-left rounded-lg transition-colors',
+                                selected ? 'text-brand-bg' : 'hover:text-brand-bg'
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="font-display font-black tracking-wider uppercase text-sm">{p.title}</div>
+                                  <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
+                                    {p.status === 'producing' ? 'En production' : p.status === 'ready' ? 'Prêt' : 'Sorti'}
+                                    {p.deal.sold ? ` • ${activeDealLabel}: +${formatShortNumber(p.deal.perMin)} ₶/min` : ''}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-xs font-bold">{formatShortNumber(p.budget)} ₶</div>
+                                  <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
+                                    {perf > 0 ? `${formatShortNumber(perf)} ₶` : '—'}
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                            {showPlatform && data.unlockedSectors.platform ? (
+                              <button
+                                type="button"
+                                onClick={() => addSeasonToPlatform(p.id)}
+                                className={cn(
+                                  'mt-3 w-full h-11 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                                  selected
+                                    ? 'bg-brand-bg text-brand-border border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                    : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                )}
+                              >
+                                Ajouter à la plateforme
+                              </button>
+                            ) : null}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )
               ) : null}
 
               {activeTab === 'negociation' ? (
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
-                    <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">{activeDealLabel}</div>
-                    <div className="mt-2 text-sm text-tx-secondary font-bold">
-                      Négocie un deal sur un projet sorti pour obtenir un cash immédiat + un revenu passif (₶/min).
+                data.activeSector === 'crypto' || data.activeSector === 'stocks' || data.activeSector === 'platform' ? (
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3 text-sm text-tx-secondary font-bold">
+                      Pas de deals dans ce secteur.
                     </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">{activeDealLabel}</div>
+                      <div className="mt-2 text-sm text-tx-secondary font-bold">
+                        Négocie un deal sur un projet sorti pour obtenir un cash immédiat + un revenu passif (₶/min).
+                      </div>
+                      <button
+                        type="button"
+                        onClick={openDealNegotiation}
+                        disabled={!canOpenDeal}
+                        className={cn(
+                          'mt-3 w-full h-12 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                          !canOpenDeal
+                            ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                            : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        )}
+                      >
+                        Ouvrir négociation
+                      </button>
+                    </div>
+
                     <button
                       type="button"
-                      onClick={openDealNegotiation}
-                      disabled={!canOpenDeal}
+                      onClick={releaseSelected}
+                      disabled={!canRelease}
                       className={cn(
-                        'mt-3 w-full h-12 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
-                        !canOpenDeal
+                        'w-full h-12 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                        !canRelease
                           ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
-                          : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                          : 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
                       )}
                     >
-                      Ouvrir négociation
+                      Sortir (si prêt)
                     </button>
                   </div>
+                )
+              ) : null}
 
-                  <button
-                    type="button"
-                    onClick={releaseSelected}
-                    disabled={!canRelease}
-                    className={cn(
-                      'w-full h-12 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
-                      !canRelease
-                        ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
-                        : 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                    )}
-                  >
-                    Sortir (si prêt)
-                  </button>
+              {activeTab === 'meta' ? (
+                <div className="mt-4 space-y-4">
+                  <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Succès</div>
+                        <div className="mt-1 text-sm text-tx-secondary font-bold">
+                          Débloqués: <span className="text-tx-base">{data.achievementsUnlocked.length}</span> / {achievements.length} • Bonus: ×
+                          {achievementsMult.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                      <div className="text-right text-xs text-tx-secondary font-bold">
+                        Apex Stars: <span className="text-tx-base">{data.prestige.stars}</span> • À récupérer:{' '}
+                        <span className="text-tx-base">{claimableStars}</span>
+                      </div>
+                    </div>
+                    <input
+                      value={achievementQuery}
+                      onChange={(e) => setAchievementQuery(e.target.value)}
+                      placeholder="Rechercher un succès…"
+                      className="mt-3 w-full h-11 rounded-lg border-2 border-brand-border bg-brand-card px-3 text-sm font-bold text-tx-base placeholder:text-tx-secondary focus:outline-none"
+                      aria-label="Rechercher un succès"
+                    />
+                    <div className="mt-3 space-y-2 max-h-[360px] overflow-y-auto pr-1">
+                      {achievementsFiltered.slice(0, 150).map((a) => {
+                        const unlocked = data.achievementsUnlocked.includes(a.id);
+                        return (
+                          <div
+                            key={a.id}
+                            className={cn(
+                              'rounded-xl border-2 px-3 py-3',
+                              unlocked ? 'bg-brand-card text-tx-base border-brand-border shadow-brutal' : 'bg-brand-card text-tx-secondary border-brand-border opacity-70'
+                            )}
+                          >
+                            <div className="font-display font-black tracking-wider uppercase text-sm">{a.name}</div>
+                            <div className="mt-1 text-xs font-bold">{a.description}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Prestige</div>
+                        <div className="mt-1 text-sm text-tx-secondary font-bold">
+                          Claimable: <span className="text-tx-base">{claimableStars}</span> • Total (lifetime):{' '}
+                          <span className="text-tx-base">{data.prestige.lifetimeStars}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={prestigeNow}
+                        disabled={claimableStars <= 0}
+                        className={cn(
+                          'h-11 px-4 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                          claimableStars <= 0
+                            ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                            : 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        )}
+                      >
+                        Prestiger
+                      </button>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {prestigeUpgrades.map((u) => {
+                        const current = Math.max(0, Math.floor((data.prestige.upgrades ?? {})[u.id] ?? 0));
+                        const nextLevel = current + 1;
+                        const atMax = current >= u.maxLevel;
+                        const cost = atMax ? 0 : u.costForLevel(nextLevel);
+                        return (
+                          <div key={u.id} className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="font-display font-black tracking-wider uppercase text-sm">{u.name}</div>
+                                <div className="mt-1 text-xs text-tx-secondary font-bold">{u.description}</div>
+                                <div className="mt-2 text-xs text-tx-secondary font-bold">
+                                  Niveau {current} / {u.maxLevel}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => buyPrestigeUpgrade(u.id, cost)}
+                                disabled={atMax || data.prestige.stars < cost}
+                                className={cn(
+                                  'h-11 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                                  atMax || data.prestige.stars < cost
+                                    ? 'bg-brand-inner text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                    : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                )}
+                              >
+                                {atMax ? 'Max' : `Acheter (${cost})`}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               ) : null}
             </div>
