@@ -18,12 +18,67 @@ export default function ProfilPage() {
   const [regenerating, setRegenerating] = useState(false);
   const [newWords, setNewWords] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [apexStatsLoading, setApexStatsLoading] = useState(false);
+  const [apexStats, setApexStats] = useState<{
+    updatedAt: string | null;
+    totalEarned: number;
+    achievementsUnlocked: number;
+    lifetimeStars: number;
+    stars: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/connexion?next=%2Fprofil');
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    const run = async () => {
+      setApexStatsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('game_saves')
+          .select('save_data, updated_at')
+          .eq('user_id', user.id)
+          .eq('game_slug', 'apex')
+          .maybeSingle();
+        if (error) throw error;
+        if (cancelled) return;
+        if (!data) {
+          setApexStats(null);
+          return;
+        }
+
+        const save = data.save_data as any;
+        const totalEarned = Math.max(0, Number(save?.totalEarned ?? 0) || 0);
+        const achievementsUnlocked = Array.isArray(save?.achievementsUnlocked) ? save.achievementsUnlocked.length : 0;
+        const lifetimeStars = Math.max(0, Number(save?.prestige?.lifetimeStars ?? 0) || 0);
+        const stars = Math.max(0, Number(save?.prestige?.stars ?? 0) || 0);
+
+        setApexStats({
+          updatedAt: typeof data.updated_at === 'string' ? data.updated_at : null,
+          totalEarned,
+          achievementsUnlocked,
+          lifetimeStars,
+          stars,
+        });
+      } catch {
+        if (cancelled) return;
+        setApexStats(null);
+      } finally {
+        if (!cancelled) setApexStatsLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   if (loading || !user) {
     return <div className="pt-20 text-center">Chargement...</div>;
@@ -187,6 +242,53 @@ export default function ProfilPage() {
                 <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
                   {user.is_discord ? 'Discord' : 'Passphrase'}
                 </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Apex</div>
+                    <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">Stats & prestige</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-tx-secondary" />
+                    <Crown className="w-5 h-5 text-tx-secondary" />
+                  </div>
+                </div>
+                {apexStatsLoading ? (
+                  <div className="mt-3 text-sm text-tx-secondary font-bold">Chargement…</div>
+                ) : apexStats ? (
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
+                      <div className="text-xs text-tx-secondary font-bold">Total gagné</div>
+                      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
+                        {Math.round(apexStats.totalEarned).toLocaleString('fr-FR')} ₶
+                      </div>
+                    </div>
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
+                      <div className="text-xs text-tx-secondary font-bold">Succès</div>
+                      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
+                        {apexStats.achievementsUnlocked} / 150
+                      </div>
+                    </div>
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
+                      <div className="text-xs text-tx-secondary font-bold">Apex Stars</div>
+                      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
+                        {apexStats.stars.toLocaleString('fr-FR')}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
+                      <div className="text-xs text-tx-secondary font-bold">Prestige (lifetime)</div>
+                      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
+                        {apexStats.lifetimeStars.toLocaleString('fr-FR')}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 text-sm text-tx-secondary font-bold">
+                    Aucune sauvegarde Apex trouvée pour le moment.
+                  </div>
+                )}
               </div>
 
               {!user.is_discord && (

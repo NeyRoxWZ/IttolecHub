@@ -33,7 +33,7 @@ import {
   type StockId,
   type StockMarketState,
 } from '@/lib/apex/markets';
-import { Film, Gamepad2, TrendingUp, Tv, Users } from 'lucide-react';
+import { Film, Gamepad2, Plus, TrendingUp, Tv, Users, X } from 'lucide-react';
 
 type SectorId = 'cinema' | 'musique' | 'series' | 'live' | 'crypto' | 'games' | 'stocks' | 'platform';
 
@@ -186,7 +186,7 @@ type ApexSave = {
 
 const INITIAL_SAVE: ApexSave = {
   version: 3,
-  cash: 250,
+  cash: 5000,
   hype: 0.12,
   lastTickAt: Date.now(),
   totalEarned: 0,
@@ -289,6 +289,7 @@ export default function ApexPage() {
   const { data, setData, isLoaded } = useCloudSave<ApexSave>('apex', INITIAL_SAVE, { silent: true });
   const [activeTab, setActiveTab] = useState<'production' | 'negociation' | 'catalogue' | 'meta'>('production');
   const [achievementQuery, setAchievementQuery] = useState('');
+  const [mobileSheet, setMobileSheet] = useState<null | 'sectors' | 'actions'>(null);
 
   const [names, setNames] = useState<Record<string, string[]> | null>(null);
   const [namesStatus, setNamesStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -300,8 +301,10 @@ export default function ApexPage() {
   const cashRef = useRef<HTMLDivElement | null>(null);
   const ppsRef = useRef<HTMLDivElement | null>(null);
   const sectorRef = useRef<HTMLDivElement | null>(null);
+  const sectorButtonRef = useRef<HTMLButtonElement | null>(null);
   const productionRef = useRef<HTMLDivElement | null>(null);
   const negotiationRef = useRef<HTMLDivElement | null>(null);
+  const metaTabRef = useRef<HTMLButtonElement | null>(null);
   const tutorialCardRef = useRef<HTMLDivElement | null>(null);
 
   const [tutorialOpen, setTutorialOpen] = useState(false);
@@ -313,9 +316,10 @@ export default function ApexPage() {
     () => [
       { key: 'pps', title: '₶/min', body: 'Ton revenu passif. Il augmente surtout grâce aux contrats de droits.' },
       { key: 'cash', title: 'Trésorerie', body: 'Tes ₶ disponibles. Elles servent à financer des projets et payer des coûts.' },
-      { key: 'sector', title: 'Secteurs', body: 'Cinéma, Musique, Séries & Streaming, Live. Débloque-les en accumulant des ₶.' },
+      { key: 'sector', title: 'Secteurs', body: 'Débloque des secteurs (Crypto, Jeux, Bourse, Plateforme) en accumulant des ₶.' },
       { key: 'production', title: 'Production', body: 'Lance un projet, attends la production, puis sors-le pour gagner du cash et de la hype.' },
-      { key: 'negociation', title: 'Deals', body: 'Négocie des deals (droits/royalties/streaming/sponsor) pour un cash immédiat + ₶/min.' },
+      { key: 'negociation', title: 'Deals', body: 'Négocie des deals pour un cash immédiat + ₶/min (sauf Crypto/Bourse/Plateforme).' },
+      { key: 'meta', title: 'Méta', body: 'Débloque des succès (+bonus) et récupère des Apex Stars pour acheter des upgrades permanentes.' },
     ],
     []
   );
@@ -341,9 +345,10 @@ export default function ApexPage() {
     const getEl = () => {
       if (step?.key === 'pps') return ppsRef.current;
       if (step?.key === 'cash') return cashRef.current;
-      if (step?.key === 'sector') return sectorRef.current;
+      if (step?.key === 'sector') return sectorButtonRef.current ?? sectorRef.current;
       if (step?.key === 'production') return productionRef.current;
       if (step?.key === 'negociation') return negotiationRef.current;
+      if (step?.key === 'meta') return metaTabRef.current ?? productionRef.current;
       return null;
     };
 
@@ -656,12 +661,23 @@ export default function ApexPage() {
           ? (prev as ApexSave).platform
           : { subscribers: 0, arpuPerMin: 0.012, infraLevel: 0, marketingLevel: 0, librarySeasonIds: [] };
 
-      const startingCash = computePrestigeStartingCash(prestige);
+      const startingCashBonus = computePrestigeStartingCash(prestige);
+      const baseStartingCash = 5000 + startingCashBonus;
+      const safeCashRaw = typeof prev.cash === 'number' && Number.isFinite(prev.cash) ? prev.cash : baseStartingCash;
+      const safeTotalEarned = typeof prev.totalEarned === 'number' && Number.isFinite(prev.totalEarned) ? prev.totalEarned : 0;
+      const safeTotalSpent = typeof prev.totalSpent === 'number' && Number.isFinite(prev.totalSpent) ? prev.totalSpent : 0;
+      const safeCash = clampNonNegative(safeCashRaw);
+      const shouldBoostStartCash =
+        safeTotalEarned <= 0 &&
+        safeTotalSpent <= 0 &&
+        safeCash < 2500 &&
+        legacyFilms.length === 0 &&
+        cinemaFilms.length === 0;
 
       return {
         ...prev,
         version: 3,
-        cash: typeof prev.cash === 'number' ? prev.cash : 250 + startingCash,
+        cash: shouldBoostStartCash ? baseStartingCash : safeCash,
         activeSector: (prev as Partial<ApexSave>).activeSector ?? 'cinema',
         unlockedSectors,
         cinema: { films: cinemaFilms, selectedId: cinemaSelectedId },
@@ -992,6 +1008,7 @@ export default function ApexPage() {
         const reputation = updateReputation(prev.reputation, choice.repDelta);
 
         toast(modal.kind === 'agent' ? 'Agent' : 'Événement', { description: choice.label, duration: 3000 });
+        const minNextAt = now + 45_000;
 
         return {
           ...prev,
@@ -1002,6 +1019,8 @@ export default function ApexPage() {
           reputation,
           buffs,
           activeModal: null,
+          nextAgentAt: Math.max(prev.nextAgentAt, minNextAt),
+          nextEventAt: Math.max(prev.nextEventAt, minNextAt),
         };
       });
     },
@@ -1630,7 +1649,7 @@ export default function ApexPage() {
         lifetimeStars: prev.prestige.lifetimeStars + claimable,
         upgrades: prev.prestige.upgrades ?? {},
       };
-      const startingCash = 250 + computePrestigeStartingCash(prestige);
+      const startingCash = 5000 + computePrestigeStartingCash(prestige);
 
       toast('Prestige', { description: `+${claimable} Apex Stars`, duration: 3500 });
 
@@ -1675,7 +1694,7 @@ export default function ApexPage() {
   );
 
   return (
-    <main className="min-h-screen px-4 md:px-8 py-6">
+    <main className="min-h-screen px-4 md:px-8 pt-6 pb-24 lg:pb-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -1698,9 +1717,19 @@ export default function ApexPage() {
                 setTutorialOpen(true);
                 setTutorialStep(0);
               }}
-              className="hidden md:inline-flex items-center justify-center h-[52px] px-4 rounded-xl font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+              className="hidden sm:inline-flex items-center justify-center h-[52px] px-4 rounded-xl font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
             >
               Tutoriel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTutorialOpen(true);
+                setTutorialStep(0);
+              }}
+              className="sm:hidden inline-flex items-center justify-center h-10 px-3 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+            >
+              Tuto
             </button>
 
             <div ref={ppsRef} className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal px-4 py-3">
@@ -1720,7 +1749,7 @@ export default function ApexPage() {
         </div>
 
         <div className="mt-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
-          <div ref={sectorRef} className="lg:col-span-3 rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
+          <div ref={sectorRef} className="hidden lg:block lg:col-span-3 rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
             <div className="text-sm font-display font-black tracking-wider uppercase">Secteurs</div>
             <div className="mt-3 space-y-2">
               {([
@@ -1777,8 +1806,19 @@ export default function ApexPage() {
           <div className="lg:col-span-6 space-y-4">
             <div ref={productionRef} className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-display font-black tracking-wider uppercase">{activeSectorTitle}</div>
                 <div className="flex items-center gap-2">
+                  <button
+                    ref={sectorButtonRef}
+                    type="button"
+                    onClick={() => setMobileSheet('sectors')}
+                    className="lg:hidden inline-flex items-center justify-center h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                    aria-label="Changer de secteur"
+                  >
+                    {activeSectorTitle}
+                  </button>
+                  <div className="hidden lg:block text-sm font-display font-black tracking-wider uppercase">{activeSectorTitle}</div>
+                </div>
+                <div className="hidden lg:flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setActiveTab('production')}
@@ -1818,6 +1858,7 @@ export default function ApexPage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('meta')}
+                    ref={metaTabRef}
                     className={cn(
                       'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
                       activeTab === 'meta'
@@ -2576,6 +2617,361 @@ export default function ApexPage() {
                       <div className="mt-1 text-xs font-bold text-tx-secondary">{o.body}</div>
                     </button>
                   ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => setMobileSheet('actions')}
+          className="lg:hidden fixed right-5 bottom-[104px] z-[99990] h-14 w-14 rounded-full border-2 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
+          aria-label="Actions rapides"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[99989] px-4 pb-4">
+          <div className="rounded-[28px] border-2 border-brand-border bg-brand-card shadow-brutal p-2">
+            <div className="grid grid-cols-5 gap-2">
+              <button
+                type="button"
+                onClick={() => setMobileSheet('sectors')}
+                className="h-12 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase transition-colors hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+              >
+                Secteurs
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('production')}
+                className={cn(
+                  'h-12 rounded-xl border-2 font-display font-black tracking-wider uppercase transition-colors',
+                  activeTab === 'production'
+                    ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
+                    : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                )}
+              >
+                Prod
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('catalogue')}
+                className={cn(
+                  'h-12 rounded-xl border-2 font-display font-black tracking-wider uppercase transition-colors',
+                  activeTab === 'catalogue'
+                    ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
+                    : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                )}
+              >
+                Cat
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('negociation')}
+                className={cn(
+                  'h-12 rounded-xl border-2 font-display font-black tracking-wider uppercase transition-colors',
+                  activeTab === 'negociation'
+                    ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
+                    : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                )}
+              >
+                Deals
+              </button>
+              <button
+                ref={metaTabRef}
+                type="button"
+                onClick={() => setActiveTab('meta')}
+                className={cn(
+                  'h-12 rounded-xl border-2 font-display font-black tracking-wider uppercase transition-colors',
+                  activeTab === 'meta'
+                    ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
+                    : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                )}
+              >
+                Méta
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {mobileSheet ? (
+          <div className="lg:hidden fixed inset-0 z-[99997]">
+            <button type="button" onClick={() => setMobileSheet(null)} className="absolute inset-0 bg-black/70" aria-label="Fermer" />
+            <div className="absolute left-0 right-0 bottom-0 px-4 pb-4">
+              <div className="rounded-[32px] border-4 border-brand-border bg-brand-card shadow-brutal overflow-hidden">
+                <div className="flex items-center justify-between gap-3 px-4 py-3 border-b-2 border-brand-border bg-brand-inner">
+                  <div className="font-display font-black tracking-wider uppercase text-sm text-tx-base">
+                    {mobileSheet === 'sectors' ? 'Secteurs' : 'Actions'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMobileSheet(null)}
+                    className="h-10 w-10 rounded-xl border-2 border-brand-border bg-brand-card text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
+                    aria-label="Fermer"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="max-h-[72vh] overflow-y-auto p-4">
+                  {mobileSheet === 'sectors' ? (
+                    <div className="space-y-2">
+                      {([
+                        { id: 'cinema', label: 'Cinéma', subtitle: 'Production • Box-office • Droits' },
+                        { id: 'musique', label: 'Musique', subtitle: 'Sorties • Ventes • Royalties' },
+                        { id: 'series', label: 'Séries & Streaming', subtitle: 'Saisons • Audiences • Streaming' },
+                        { id: 'live', label: 'Événements Live', subtitle: 'Billetterie • Sponsor' },
+                        { id: 'crypto', label: 'Crypto', subtitle: 'Cours • Graphique • Portefeuille' },
+                        { id: 'games', label: 'Jeux vidéo', subtitle: 'Dév • Ventes • Publishing' },
+                        { id: 'stocks', label: 'Bourse', subtitle: 'Marché • Portefeuille • Profits' },
+                        { id: 'platform', label: 'Plateforme', subtitle: 'Abonnés • ARPU • Catalogue' },
+                      ] as Array<{ id: SectorId; label: string; subtitle: string }>).map((s) => {
+                        const unlocked = isSectorUnlocked(s.id);
+                        const selected = data.activeSector === s.id;
+                        const cost = sectorUnlockCost[s.id];
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => {
+                              setActiveSector(s.id);
+                              setMobileSheet(null);
+                            }}
+                            className={cn(
+                              'w-full text-left rounded-xl border-2 px-3 py-3 transition-colors',
+                              selected
+                                ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
+                                : unlocked
+                                  ? 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                  : 'bg-brand-inner text-tx-secondary border-brand-border opacity-70 hover:opacity-100'
+                            )}
+                            aria-disabled={!unlocked}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="font-display font-black tracking-wider uppercase">{s.label}</div>
+                              {selected ? (
+                                s.id === 'games' ? (
+                                  <Gamepad2 className="h-5 w-5" />
+                                ) : s.id === 'platform' ? (
+                                  <Tv className="h-5 w-5" />
+                                ) : s.id === 'crypto' || s.id === 'stocks' ? (
+                                  <TrendingUp className="h-5 w-5" />
+                                ) : (
+                                  <Film className="h-5 w-5" />
+                                )
+                              ) : null}
+                            </div>
+                            <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
+                              {unlocked ? s.subtitle : `Débloque à ${formatShortNumber(cost)} ₶`}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : data.activeSector === 'crypto' ? (
+                    <div className="space-y-3">
+                      <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                        <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Crypto</div>
+                        <div className="mt-2 text-sm text-tx-secondary font-bold">
+                          Prix: <span className="text-tx-base">{formatShortNumber(data.crypto.price)} ₶</span> • Holdings:{' '}
+                          <span className="text-tx-base">{formatShortNumber(data.crypto.holdings)}</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[1000, 5000, 20_000, 100_000].map((a) => (
+                          <button
+                            key={a}
+                            type="button"
+                            onClick={() => buyCryptoCash(a)}
+                            disabled={data.cash < a}
+                            className={cn(
+                              'h-12 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                              data.cash < a
+                                ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                            )}
+                          >
+                            +{formatShortNumber(a)}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { label: '-25%', pct: 0.25 },
+                          { label: '-50%', pct: 0.5 },
+                          { label: '-100%', pct: 1 },
+                        ].map((b) => (
+                          <button
+                            key={b.label}
+                            type="button"
+                            onClick={() => sellCryptoPct(b.pct)}
+                            disabled={data.crypto.holdings <= 0}
+                            className={cn(
+                              'h-12 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                              data.crypto.holdings <= 0
+                                ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                            )}
+                          >
+                            {b.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : data.activeSector === 'stocks' ? (
+                    <div className="space-y-3">
+                      {STOCKS.map((s) => {
+                        const price = data.stocks.prices[s.id] ?? s.base;
+                        const held = data.stocks.shares[s.id] ?? 0;
+                        return (
+                          <div key={s.id} className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="font-display font-black tracking-wider uppercase text-sm">{s.id}</div>
+                                <div className="mt-1 text-xs text-tx-secondary font-bold">
+                                  {formatShortNumber(price)} ₶ • Held {formatShortNumber(held)}
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => buyStockCash(s.id, 2000)}
+                                  disabled={data.cash < 2000}
+                                  className={cn(
+                                    'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                                    data.cash < 2000
+                                      ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                      : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                  )}
+                                >
+                                  +2k
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => buyStockCash(s.id, 10_000)}
+                                  disabled={data.cash < 10_000}
+                                  className={cn(
+                                    'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                                    data.cash < 10_000
+                                      ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                      : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                  )}
+                                >
+                                  +10k
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => sellStockPct(s.id, 0.25)}
+                                  disabled={held <= 0}
+                                  className={cn(
+                                    'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                                    held <= 0
+                                      ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                      : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                  )}
+                                >
+                                  -25%
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => sellStockPct(s.id, 1)}
+                                  disabled={held <= 0}
+                                  className={cn(
+                                    'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                                    held <= 0
+                                      ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                      : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                  )}
+                                >
+                                  -100%
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : data.activeSector === 'platform' ? (
+                    <div className="space-y-3">
+                      <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                        <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Plateforme</div>
+                        <div className="mt-2 text-sm text-tx-secondary font-bold">
+                          Abonnés: <span className="text-tx-base">{formatShortNumber(data.platform.subscribers)}</span> • Catalogue:{' '}
+                          <span className="text-tx-base">{data.platform.librarySeasonIds.length}</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => upgradePlatform('marketing')}
+                          className="h-12 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                        >
+                          Marketing +1
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => upgradePlatform('infra')}
+                          className="h-12 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                        >
+                          Infra +1
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {currentReady ? (
+                        <button
+                          type="button"
+                          onClick={releaseSelected}
+                          className="w-full h-12 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                        >
+                          Sortir (prêt)
+                        </button>
+                      ) : null}
+
+                      <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                        <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Lancer un projet</div>
+                        <div className="mt-3 grid grid-cols-1 gap-2">
+                          {[
+                            { label: 'Petit', budget: 2500 },
+                            { label: 'Standard', budget: 20_000 },
+                            { label: 'Gros', budget: 120_000 },
+                          ].map((b) => (
+                            <button
+                              key={b.label}
+                              type="button"
+                              onClick={() => startByActiveSector(b.budget)}
+                              disabled={
+                                namesStatus !== 'ready' ||
+                                data.cash < b.budget ||
+                                (data.activeSector !== 'cinema' &&
+                                  data.activeSector !== 'musique' &&
+                                  data.activeSector !== 'series' &&
+                                  data.activeSector !== 'live' &&
+                                  data.activeSector !== 'games')
+                              }
+                              className={cn(
+                                'h-12 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                                namesStatus !== 'ready' ||
+                                  data.cash < b.budget ||
+                                  (data.activeSector !== 'cinema' &&
+                                    data.activeSector !== 'musique' &&
+                                    data.activeSector !== 'series' &&
+                                    data.activeSector !== 'live' &&
+                                    data.activeSector !== 'games')
+                                  ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                  : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                              )}
+                            >
+                              {b.label} ({formatShortNumber(b.budget)} ₶)
+                            </button>
+                          ))}
+                        </div>
+                        {namesStatus === 'loading' ? <div className="mt-2 text-xs text-tx-secondary font-bold">Chargement des noms…</div> : null}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
