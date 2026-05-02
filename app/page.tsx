@@ -215,7 +215,7 @@ export default function Home() {
 
           <div className="flex-1 hidden md:block" />
 
-          <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-2 flex gap-2">
+          <div className="hidden md:flex rounded-2xl border-2 border-brand-border bg-brand-inner p-2 gap-2">
             <button
               type="button"
               onClick={() => handleSetMode('multiplayer')}
@@ -442,7 +442,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <form onSubmit={handleAction} className="mt-6 flex-1 flex flex-col relative">
+                <form onSubmit={handleAction} className="mt-6 flex-1 flex flex-col">
                   <div className="space-y-2 relative z-10">
                     <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
                       Ton pseudo
@@ -458,8 +458,12 @@ export default function Home() {
 
                   <div
                     className={cn(
-                      'space-y-2 absolute top-[84px] left-0 w-full transition-all duration-300',
-                      activeTab === 'join' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+                      'space-y-2 w-full',
+                      activeTab === 'join' ? 'block mt-4' : 'hidden',
+                      'md:block md:mt-0 md:absolute md:top-[84px] md:left-0 md:w-full md:transition-all md:duration-300',
+                      activeTab === 'join'
+                        ? 'md:opacity-100 md:translate-y-0'
+                        : 'md:opacity-0 md:-translate-y-4 md:pointer-events-none'
                     )}
                   >
                     <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
@@ -478,7 +482,7 @@ export default function Home() {
                     type="submit"
                     disabled={!canSubmit}
                     className={cn(
-                      'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
+                      'mt-6 md:mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
                       'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base',
                       !canSubmit && 'opacity-50 cursor-not-allowed hover:bg-brand-inner hover:text-tx-base hover:border-brand-border'
                     )}
