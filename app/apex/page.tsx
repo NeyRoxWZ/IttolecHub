@@ -10,18 +10,98 @@ import { drawWithoutReplacement, type DrawState } from '@/lib/apex/draw';
 import { acceptNegotiation, createNegotiation, playerCounter, type Negotiation } from '@/lib/apex/negotiation';
 import { Film, TrendingUp, Users } from 'lucide-react';
 
-type ApexMovie = {
+type SectorId = 'cinema' | 'musique' | 'series' | 'live';
+
+type ApexProjectStatus = 'producing' | 'ready' | 'released';
+
+type ApexDeal = {
+  sold: boolean;
+  upfront: number;
+  perMin: number;
+};
+
+type ApexFilm = {
   id: string;
   title: string;
   budget: number;
   startedAt: number;
   durationMs: number;
-  status: 'producing' | 'ready' | 'released';
+  status: ApexProjectStatus;
   quality: number;
   boxOffice: number;
-  rightsUpfront: number;
-  rightsPerMin: number;
-  rightsSold: boolean;
+  deal: ApexDeal;
+};
+
+type ApexMusicRelease = {
+  id: string;
+  title: string;
+  artist: string;
+  budget: number;
+  startedAt: number;
+  durationMs: number;
+  status: ApexProjectStatus;
+  quality: number;
+  sales: number;
+  deal: ApexDeal;
+};
+
+type ApexSeriesSeason = {
+  id: string;
+  title: string;
+  showrunner: string;
+  budget: number;
+  startedAt: number;
+  durationMs: number;
+  status: ApexProjectStatus;
+  quality: number;
+  viewers: number;
+  deal: ApexDeal;
+};
+
+type ApexLiveEvent = {
+  id: string;
+  title: string;
+  headliner: string;
+  budget: number;
+  startedAt: number;
+  durationMs: number;
+  status: ApexProjectStatus;
+  quality: number;
+  attendance: number;
+  deal: ApexDeal;
+};
+
+type ApexReputation = {
+  public: number;
+  critique: number;
+  business: number;
+  underground: number;
+  international: number;
+  global: number;
+};
+
+type ApexBuff = {
+  id: string;
+  name: string;
+  startedAt: number;
+  durationMs: number;
+  incomeMult: number;
+  hypeDecayMult: number;
+};
+
+type ApexChoiceModal = {
+  id: string;
+  kind: 'agent' | 'event';
+  title: string;
+  body: string;
+  options: Array<{
+    label: string;
+    body: string;
+    cashDelta: number;
+    hypeDelta: number;
+    repDelta: Partial<Omit<ApexReputation, 'global'>>;
+    buff?: Omit<ApexBuff, 'id' | 'startedAt'>;
+  }>;
 };
 
 type ApexSave = {
@@ -31,25 +111,41 @@ type ApexSave = {
   lastTickAt: number;
   totalEarned: number;
   totalSpent: number;
-  drawByCategory: Record<string, DrawState>;
-  sector: {
-    active: 'cinema';
-    movies: ApexMovie[];
-    selectedMovieId: string | null;
-  };
+  drawByCategory: Partial<Record<string, DrawState>>;
+  activeSector: SectorId;
+  cinema: { films: ApexFilm[]; selectedId: string | null };
+  musique: { releases: ApexMusicRelease[]; selectedId: string | null };
+  series: { seasons: ApexSeriesSeason[]; selectedId: string | null };
+  live: { events: ApexLiveEvent[]; selectedId: string | null };
+  reputation: ApexReputation;
+  buffs: ApexBuff[];
   negotiation: Negotiation | null;
+  negotiationContext: { sector: SectorId; projectId: string; dealType: 'rights' | 'royalties' | 'streaming' | 'sponsor' } | null;
+  nextAgentAt: number;
+  nextEventAt: number;
+  activeModal: ApexChoiceModal | null;
 };
 
 const INITIAL_SAVE: ApexSave = {
-  version: 1,
+  version: 2,
   cash: 250,
   hype: 0.12,
   lastTickAt: Date.now(),
   totalEarned: 0,
   totalSpent: 0,
   drawByCategory: {},
-  sector: { active: 'cinema', movies: [], selectedMovieId: null },
+  activeSector: 'cinema',
+  cinema: { films: [], selectedId: null },
+  musique: { releases: [], selectedId: null },
+  series: { seasons: [], selectedId: null },
+  live: { events: [], selectedId: null },
+  reputation: { public: 0.1, critique: 0.08, business: 0.06, underground: 0.04, international: 0.02, global: 0.06 },
+  buffs: [],
   negotiation: null,
+  negotiationContext: null,
+  nextAgentAt: Date.now() + (6 + Math.random() * 6) * 60_000,
+  nextEventAt: Date.now() + (3 + Math.random() * 4) * 60_000,
+  activeModal: null,
 };
 
 function clamp01(n: number): number {
@@ -67,10 +163,19 @@ function createId(): string {
   return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
-function computeRightsIncomePerMin(movies: ApexMovie[]): number {
+function computePassiveIncomePerMin(save: ApexSave): number {
   let sum = 0;
-  for (const m of movies) {
-    if (m.rightsSold) sum += m.rightsPerMin;
+  for (const m of save.cinema.films) {
+    if (m.deal.sold) sum += m.deal.perMin;
+  }
+  for (const m of save.musique.releases) {
+    if (m.deal.sold) sum += m.deal.perMin;
+  }
+  for (const s of save.series.seasons) {
+    if (s.deal.sold) sum += s.deal.perMin;
+  }
+  for (const e of save.live.events) {
+    if (e.deal.sold) sum += e.deal.perMin;
   }
   return sum;
 }
@@ -98,9 +203,9 @@ export default function ApexPage() {
     () => [
       { key: 'pps', title: '₶/min', body: 'Ton revenu passif. Il augmente surtout grâce aux contrats de droits.' },
       { key: 'cash', title: 'Trésorerie', body: 'Tes ₶ disponibles. Elles servent à financer des projets et payer des coûts.' },
-      { key: 'sector', title: 'Secteurs', body: 'Tu débloqueras d’autres secteurs plus tard. Pour l’instant: Cinéma.' },
-      { key: 'production', title: 'Production', body: 'Lance un film, attends la production, puis sors-le pour faire du box-office.' },
-      { key: 'negociation', title: 'Négociation', body: 'Négocie les droits pour obtenir un paiement immédiat + un revenu par minute.' },
+      { key: 'sector', title: 'Secteurs', body: 'Cinéma, Musique, Séries & Streaming, Live. Débloque-les en accumulant des ₶.' },
+      { key: 'production', title: 'Production', body: 'Lance un projet, attends la production, puis sors-le pour gagner du cash et de la hype.' },
+      { key: 'negociation', title: 'Deals', body: 'Négocie des deals (droits/royalties/streaming/sponsor) pour un cash immédiat + ₶/min.' },
     ],
     []
   );
@@ -207,12 +312,175 @@ export default function ApexPage() {
     return Array.isArray(list) ? list : [];
   }, [names]);
 
-  const rightsIncomePerMin = useMemo(() => computeRightsIncomePerMin(data.sector.movies), [data.sector.movies]);
+  const artistNames = useMemo(() => {
+    const list = names?.artistes ?? [];
+    return Array.isArray(list) ? list : [];
+  }, [names]);
 
-  const ppsPerMin = useMemo(() => {
+  const showrunnerNames = useMemo(() => {
+    const list = names?.showrunners ?? [];
+    return Array.isArray(list) ? list : [];
+  }, [names]);
+
+  const seriesNames = useMemo(() => {
+    const list = names?.noms_series ?? [];
+    return Array.isArray(list) ? list : [];
+  }, [names]);
+
+  const agentTemplates = useMemo(
+    () =>
+      [
+        {
+          title: 'L’Agent débarque',
+          body: 'Une opportunité tombe: tu veux jouer safe ou tenter le gros coup ?',
+          options: [
+            { label: 'Safe', body: '+₶ immédiats, un peu moins de hype.', cashDelta: 2500, hypeDelta: -0.02, repDelta: { business: 0.02 } },
+            {
+              label: 'All-in',
+              body: '+hype, mais tu prends un risque réputation.',
+              cashDelta: 0,
+              hypeDelta: 0.08,
+              repDelta: { critique: -0.02, public: 0.03 },
+              buff: { name: 'Coup de projecteur', durationMs: 3 * 60_000, incomeMult: 1.25, hypeDecayMult: 0.85 },
+            },
+          ],
+        },
+        {
+          title: 'Nouveau contact',
+          body: 'Un réseau te propose un deal discret.',
+          options: [
+            { label: 'Accepter', body: '+₶/min, mais underground ↑.', cashDelta: 0, hypeDelta: 0.01, repDelta: { underground: 0.05, business: -0.01 } },
+            { label: 'Refuser', body: 'Tu restes clean.', cashDelta: 0, hypeDelta: 0, repDelta: { business: 0.01 } },
+          ],
+        },
+        {
+          title: 'Plateau TV',
+          body: 'Invitation à un plateau: ça peut booster ta réputation grand public.',
+          options: [
+            { label: 'Y aller', body: 'Public ↑, hype ↑.', cashDelta: 500, hypeDelta: 0.04, repDelta: { public: 0.05 } },
+            { label: 'Passer', body: 'Critique ↑ (mystère), hype ↓.', cashDelta: 0, hypeDelta: -0.01, repDelta: { critique: 0.03 } },
+          ],
+        },
+      ] as const,
+    []
+  );
+
+  const eventTemplates = useMemo(
+    () =>
+      [
+        {
+          title: 'Bad buzz',
+          body: 'Une polémique te tombe dessus. Tu réponds comment ?',
+          options: [
+            { label: 'Excuses', body: 'Public remonte, business un peu down.', cashDelta: 0, hypeDelta: -0.03, repDelta: { public: 0.03, business: -0.01 } },
+            { label: 'Attaquer', body: 'Hype ↑ mais critique ↓.', cashDelta: 0, hypeDelta: 0.02, repDelta: { critique: -0.03 } },
+          ],
+        },
+        {
+          title: 'Bon timing',
+          body: 'Une tendance explose pile quand tu sors un projet.',
+          options: [
+            {
+              label: 'Capitaliser',
+              body: 'Income ×1.15 pendant 3 min.',
+              cashDelta: 0,
+              hypeDelta: 0.03,
+              repDelta: { public: 0.01 },
+              buff: { name: 'Tendance', durationMs: 3 * 60_000, incomeMult: 1.15, hypeDecayMult: 0.9 },
+            },
+            { label: 'Ignorer', body: 'Critique ↑ (cohérence).', cashDelta: 0, hypeDelta: 0, repDelta: { critique: 0.02 } },
+          ],
+        },
+        {
+          title: 'Contrôle fiscal',
+          body: 'On te demande des justificatifs sur des dépenses.',
+          options: [
+            { label: 'Payer', body: '-₶ mais business ↑.', cashDelta: -1200, hypeDelta: 0, repDelta: { business: 0.03 } },
+            { label: 'Négocier', body: 'Moins cher, mais risque critique.', cashDelta: -600, hypeDelta: 0, repDelta: { critique: -0.01, business: 0.01 } },
+          ],
+        },
+        {
+          title: 'Invitation internationale',
+          body: 'Un événement à l’étranger te met en avant.',
+          options: [
+            { label: 'Participer', body: 'International ↑, cash ↓.', cashDelta: -800, hypeDelta: 0.02, repDelta: { international: 0.05 } },
+            { label: 'Refuser', body: 'Business ↑.', cashDelta: 0, hypeDelta: 0, repDelta: { business: 0.02 } },
+          ],
+        },
+      ] as const,
+    []
+  );
+
+  const passiveIncomePerMin = useMemo(() => computePassiveIncomePerMin(data), [data]);
+
+  const activeBuffs = useMemo(() => {
+    const now = Date.now();
+    return (data.buffs ?? []).filter((b) => now < b.startedAt + b.durationMs);
+  }, [data.buffs]);
+
+  const buffsIncomeMult = useMemo(() => activeBuffs.reduce((acc, b) => acc * b.incomeMult, 1), [activeBuffs]);
+  const buffsHypeDecayMult = useMemo(() => activeBuffs.reduce((acc, b) => acc * b.hypeDecayMult, 1), [activeBuffs]);
+
+  const reputationMult = useMemo(() => 1 + clamp01(data.reputation.global) * 0.5, [data.reputation.global]);
+
+  const incomePerMin = useMemo(() => {
     const hypeMult = 1 + clamp01(data.hype) * 0.6;
-    return rightsIncomePerMin * hypeMult;
-  }, [data.hype, rightsIncomePerMin]);
+    return passiveIncomePerMin * hypeMult * reputationMult * buffsIncomeMult;
+  }, [buffsIncomeMult, data.hype, passiveIncomePerMin, reputationMult]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const now = Date.now();
+    setData((prev) => {
+      if (prev.version >= 2 && prev.activeSector) return prev;
+
+      const reputation: ApexReputation = {
+        public: clamp01((prev as Partial<ApexSave>).reputation?.public ?? 0.1),
+        critique: clamp01((prev as Partial<ApexSave>).reputation?.critique ?? 0.08),
+        business: clamp01((prev as Partial<ApexSave>).reputation?.business ?? 0.06),
+        underground: clamp01((prev as Partial<ApexSave>).reputation?.underground ?? 0.04),
+        international: clamp01((prev as Partial<ApexSave>).reputation?.international ?? 0.02),
+        global: 0,
+      };
+      reputation.global = clamp01(
+        (reputation.public + reputation.critique + reputation.business + reputation.underground + reputation.international) / 5
+      );
+
+      const legacy = prev as unknown as { sector?: { movies?: any[]; selectedMovieId?: string | null } };
+      const legacyMovies = Array.isArray(legacy.sector?.movies) ? legacy.sector?.movies ?? [] : [];
+      const films: ApexFilm[] = legacyMovies.map((m) => ({
+        id: String(m.id),
+        title: String(m.title ?? 'Film'),
+        budget: Number(m.budget ?? 0),
+        startedAt: Number(m.startedAt ?? now),
+        durationMs: Number(m.durationMs ?? 30_000),
+        status: (m.status as ApexProjectStatus) ?? 'released',
+        quality: Number(m.quality ?? 0.5),
+        boxOffice: Number(m.boxOffice ?? 0),
+        deal: {
+          sold: Boolean(m.rightsSold ?? false),
+          upfront: Number(m.rightsUpfront ?? 0),
+          perMin: Number(m.rightsPerMin ?? 0),
+        },
+      }));
+
+      return {
+        ...prev,
+        version: 2,
+        activeSector: 'cinema',
+        cinema: { films, selectedId: legacy.sector?.selectedMovieId ?? null },
+        musique: { releases: [], selectedId: null },
+        series: { seasons: [], selectedId: null },
+        live: { events: [], selectedId: null },
+        reputation,
+        buffs: [],
+        negotiationContext: null,
+        nextAgentAt: prev.nextAgentAt ?? now + (6 + Math.random() * 6) * 60_000,
+        nextEventAt: prev.nextEventAt ?? now + (3 + Math.random() * 4) * 60_000,
+        activeModal: null,
+      } as ApexSave;
+    });
+  }, [isLoaded, setData]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -225,26 +493,92 @@ export default function ApexPage() {
         const steps = Math.min(10, Math.floor(elapsedMs / 1000));
         if (steps <= 0) return prev;
 
-        const basePerMin = computeRightsIncomePerMin(prev.sector.movies);
+        const buffs = (prev.buffs ?? []).filter((b) => epochNow < b.startedAt + b.durationMs);
+        const buffIncomeMult = buffs.reduce((acc, b) => acc * b.incomeMult, 1);
+        const buffHypeDecayMult = buffs.reduce((acc, b) => acc * b.hypeDecayMult, 1);
+
+        const basePerMin = computePassiveIncomePerMin(prev);
         const hype = clamp01(prev.hype);
+        const repGlobal = clamp01(prev.reputation?.global ?? 0);
         const hypeMult = 1 + hype * 0.6;
-        const incomePerSec = (basePerMin * hypeMult) / 60;
+        const repMult = 1 + repGlobal * 0.5;
+        const incomePerSec = ((basePerMin * hypeMult * repMult * buffIncomeMult) / 60) * steps;
 
-        let nextCash = clampNonNegative(prev.cash + incomePerSec * steps);
-        let nextEarned = clampNonNegative(prev.totalEarned + incomePerSec * steps);
+        const nextCash = clampNonNegative(prev.cash + incomePerSec);
+        const nextEarned = clampNonNegative(prev.totalEarned + incomePerSec);
 
-        const decay = Math.exp(-(steps / 300));
+        const denom = 300 * (1 + repGlobal * 0.8);
+        const decay = Math.exp(-((steps / denom) * buffHypeDecayMult));
         const nextHype = clamp01(hype * decay);
 
-        let movies = prev.sector.movies;
         let changed = false;
-        movies = movies.map((m) => {
+
+        const films = prev.cinema.films.map((m) => {
           if (m.status !== 'producing') return m;
-          const done = epochNow >= m.startedAt + m.durationMs;
-          if (!done) return m;
+          if (epochNow < m.startedAt + m.durationMs) return m;
           changed = true;
           return { ...m, status: 'ready' as const };
         });
+        const releases = prev.musique.releases.map((m) => {
+          if (m.status !== 'producing') return m;
+          if (epochNow < m.startedAt + m.durationMs) return m;
+          changed = true;
+          return { ...m, status: 'ready' as const };
+        });
+        const seasons = prev.series.seasons.map((s) => {
+          if (s.status !== 'producing') return s;
+          if (epochNow < s.startedAt + s.durationMs) return s;
+          changed = true;
+          return { ...s, status: 'ready' as const };
+        });
+        const events = prev.live.events.map((e) => {
+          if (e.status !== 'producing') return e;
+          if (epochNow < e.startedAt + e.durationMs) return e;
+          changed = true;
+          return { ...e, status: 'ready' as const };
+        });
+
+        let activeModal = prev.activeModal;
+        let nextAgentAt = prev.nextAgentAt;
+        let nextEventAt = prev.nextEventAt;
+
+        if (!activeModal && epochNow >= prev.nextAgentAt) {
+          const t = agentTemplates[Math.floor(Math.random() * agentTemplates.length)]!;
+          activeModal = {
+            id: createId(),
+            kind: 'agent',
+            title: t.title,
+            body: t.body,
+            options: t.options.map((o) => ({
+              label: o.label,
+              body: o.body,
+              cashDelta: o.cashDelta,
+              hypeDelta: o.hypeDelta,
+              repDelta: o.repDelta,
+              buff: 'buff' in o && o.buff ? o.buff : undefined,
+            })),
+          };
+          nextAgentAt = epochNow + (6 + Math.random() * 6) * 60_000;
+          changed = true;
+        } else if (!activeModal && epochNow >= prev.nextEventAt) {
+          const t = eventTemplates[Math.floor(Math.random() * eventTemplates.length)]!;
+          activeModal = {
+            id: createId(),
+            kind: 'event',
+            title: t.title,
+            body: t.body,
+            options: t.options.map((o) => ({
+              label: o.label,
+              body: o.body,
+              cashDelta: o.cashDelta,
+              hypeDelta: o.hypeDelta,
+              repDelta: o.repDelta,
+              buff: 'buff' in o && o.buff ? o.buff : undefined,
+            })),
+          };
+          nextEventAt = epochNow + (3 + Math.random() * 4) * 60_000;
+          changed = true;
+        }
 
         const next: ApexSave = {
           ...prev,
@@ -252,10 +586,17 @@ export default function ApexPage() {
           hype: nextHype,
           totalEarned: nextEarned,
           lastTickAt: prev.lastTickAt + steps * 1000,
-          sector: { ...prev.sector, movies },
+          buffs,
+          cinema: { ...prev.cinema, films },
+          musique: { ...prev.musique, releases },
+          series: { ...prev.series, seasons },
+          live: { ...prev.live, events },
+          activeModal,
+          nextAgentAt,
+          nextEventAt,
         };
 
-        return changed || nextCash !== prev.cash || nextHype !== prev.hype ? next : prev;
+        return changed || nextCash !== prev.cash || nextHype !== prev.hype || buffs.length !== (prev.buffs ?? []).length ? next : prev;
       });
 
       raf = window.requestAnimationFrame(tick);
@@ -263,21 +604,130 @@ export default function ApexPage() {
 
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [isLoaded, setData]);
+  }, [agentTemplates, eventTemplates, isLoaded, setData]);
 
-  const selectedMovie = useMemo(() => {
-    const id = data.sector.selectedMovieId;
-    return id ? data.sector.movies.find((m) => m.id === id) ?? null : null;
-  }, [data.sector.movies, data.sector.selectedMovieId]);
+  const sectorUnlockCost: Record<SectorId, number> = useMemo(
+    () => ({ cinema: 0, musique: 25_000, series: 75_000, live: 150_000 }),
+    []
+  );
 
-  const selectMovie = useCallback(
-    (id: string) => {
-      setData((prev) => ({ ...prev, sector: { ...prev.sector, selectedMovieId: id } }));
+  const isSectorUnlocked = useCallback((id: SectorId) => data.cash >= sectorUnlockCost[id], [data.cash, sectorUnlockCost]);
+
+  const setActiveSector = useCallback(
+    (id: SectorId) => {
+      setData((prev) => ({ ...prev, activeSector: id }));
+      setActiveTab('production');
     },
     [setData]
   );
 
-  const startMovie = useCallback(
+  const activeSectorTitle = useMemo(() => {
+    if (data.activeSector === 'cinema') return 'Cinéma';
+    if (data.activeSector === 'musique') return 'Musique';
+    if (data.activeSector === 'series') return 'Séries & Streaming';
+    return 'Événements Live';
+  }, [data.activeSector]);
+
+  const activeDealLabel = useMemo(() => {
+    if (data.activeSector === 'cinema') return 'Droits';
+    if (data.activeSector === 'musique') return 'Royalties';
+    if (data.activeSector === 'series') return 'Streaming';
+    return 'Sponsor';
+  }, [data.activeSector]);
+
+  const activeProjects = useMemo(() => {
+    if (data.activeSector === 'cinema') return data.cinema.films;
+    if (data.activeSector === 'musique') return data.musique.releases;
+    if (data.activeSector === 'series') return data.series.seasons;
+    return data.live.events;
+  }, [data.activeSector, data.cinema.films, data.live.events, data.musique.releases, data.series.seasons]);
+
+  const activeSelectedId = useMemo(() => {
+    if (data.activeSector === 'cinema') return data.cinema.selectedId;
+    if (data.activeSector === 'musique') return data.musique.selectedId;
+    if (data.activeSector === 'series') return data.series.selectedId;
+    return data.live.selectedId;
+  }, [data.activeSector, data.cinema.selectedId, data.live.selectedId, data.musique.selectedId, data.series.selectedId]);
+
+  const selectProject = useCallback(
+    (id: string) => {
+      setData((prev) => {
+        if (prev.activeSector === 'cinema') return { ...prev, cinema: { ...prev.cinema, selectedId: id } };
+        if (prev.activeSector === 'musique') return { ...prev, musique: { ...prev.musique, selectedId: id } };
+        if (prev.activeSector === 'series') return { ...prev, series: { ...prev.series, selectedId: id } };
+        return { ...prev, live: { ...prev.live, selectedId: id } };
+      });
+    },
+    [setData]
+  );
+
+  const selectedProject = useMemo(() => {
+    const id = activeSelectedId;
+    return id ? activeProjects.find((p) => p.id === id) ?? null : null;
+  }, [activeProjects, activeSelectedId]);
+
+  const currentProducing = useMemo(() => activeProjects.find((p) => p.status === 'producing') ?? null, [activeProjects]);
+  const currentReady = useMemo(() => activeProjects.find((p) => p.status === 'ready') ?? null, [activeProjects]);
+
+  const producingProgress = useMemo(() => {
+    if (!currentProducing) return 0;
+    const now = Date.now();
+    const p = (now - currentProducing.startedAt) / currentProducing.durationMs;
+    return Math.max(0, Math.min(1, p));
+  }, [currentProducing]);
+
+  const updateReputation = useCallback((prev: ApexReputation, delta: Partial<Omit<ApexReputation, 'global'>>): ApexReputation => {
+    const next: ApexReputation = {
+      public: clamp01(prev.public + (delta.public ?? 0)),
+      critique: clamp01(prev.critique + (delta.critique ?? 0)),
+      business: clamp01(prev.business + (delta.business ?? 0)),
+      underground: clamp01(prev.underground + (delta.underground ?? 0)),
+      international: clamp01(prev.international + (delta.international ?? 0)),
+      global: 0,
+    };
+    next.global = clamp01((next.public + next.critique + next.business + next.underground + next.international) / 5);
+    return next;
+  }, []);
+
+  const applyModalChoice = useCallback(
+    (choiceIndex: number) => {
+      setData((prev) => {
+        const modal = prev.activeModal;
+        if (!modal) return prev;
+        const choice = modal.options[choiceIndex];
+        if (!choice) return prev;
+
+        const now = Date.now();
+        const buffs = [...(prev.buffs ?? [])];
+        if (choice.buff) {
+          buffs.push({ id: createId(), name: choice.buff.name, startedAt: now, durationMs: choice.buff.durationMs, incomeMult: choice.buff.incomeMult, hypeDecayMult: choice.buff.hypeDecayMult });
+        }
+
+        const nextCash = clampNonNegative(prev.cash + choice.cashDelta);
+        const nextEarned = choice.cashDelta > 0 ? clampNonNegative(prev.totalEarned + choice.cashDelta) : prev.totalEarned;
+        const nextSpent = choice.cashDelta < 0 ? clampNonNegative(prev.totalSpent + Math.abs(choice.cashDelta)) : prev.totalSpent;
+        const reputation = updateReputation(prev.reputation, choice.repDelta);
+
+        toast(modal.kind === 'agent' ? 'Agent' : 'Événement', { description: choice.label, duration: 3000 });
+
+        return {
+          ...prev,
+          cash: nextCash,
+          totalEarned: nextEarned,
+          totalSpent: nextSpent,
+          hype: clamp01(prev.hype + choice.hypeDelta),
+          reputation,
+          buffs,
+          activeModal: null,
+        };
+      });
+    },
+    [setData, updateReputation]
+  );
+
+  const [counterOffer, setCounterOffer] = useState('');
+
+  const startCinema = useCallback(
     (budget: number) => {
       if (namesStatus !== 'ready') return;
       if (filmNames.length === 0) return;
@@ -290,11 +740,10 @@ export default function ApexPage() {
 
         const drawPrev = prev.drawByCategory.films;
         const drawn = drawWithoutReplacement({ list: filmNames, prev: drawPrev });
-
         const quality = 0.35 + Math.random() * 0.65;
         const durationMs = Math.round((18_000 + Math.random() * 12_000) * (0.85 + Math.min(1, budget / 200_000) * 0.5));
 
-        const movie: ApexMovie = {
+        const film: ApexFilm = {
           id: createId(),
           title: drawn.value,
           budget,
@@ -303,93 +752,334 @@ export default function ApexPage() {
           status: 'producing',
           quality,
           boxOffice: 0,
-          rightsUpfront: 0,
-          rightsPerMin: 0,
-          rightsSold: false,
+          deal: { sold: false, upfront: 0, perMin: 0 },
         };
 
-        toast('Cinéma', { description: `Production lancée: ${movie.title}`, duration: 3500 });
-
+        toast('Cinéma', { description: `Production lancée: ${film.title}`, duration: 3500 });
         return {
           ...prev,
           cash: clampNonNegative(prev.cash - budget),
           totalSpent: clampNonNegative(prev.totalSpent + budget),
           drawByCategory: { ...prev.drawByCategory, films: drawn.next },
-          sector: { ...prev.sector, movies: [movie, ...prev.sector.movies], selectedMovieId: movie.id },
+          cinema: { ...prev.cinema, films: [film, ...prev.cinema.films], selectedId: film.id },
         };
       });
     },
     [filmNames, namesStatus, setData]
   );
 
-  const releaseMovie = useCallback(() => {
+  const startMusique = useCallback(
+    (budget: number) => {
+      if (namesStatus !== 'ready') return;
+      if (artistNames.length === 0) return;
+
+      setData((prev) => {
+        if (prev.cash < budget) {
+          toast('Musique', { description: `Il te manque ${formatShortNumber(budget - prev.cash)} ₶.`, duration: 3000 });
+          return prev;
+        }
+
+        const artistDraw = drawWithoutReplacement({ list: artistNames, prev: prev.drawByCategory.artistes });
+        const titleDraw =
+          filmNames.length > 0 ? drawWithoutReplacement({ list: filmNames, prev: prev.drawByCategory.films_alt ?? prev.drawByCategory.films }) : null;
+
+        const artist = artistDraw.value;
+        const title = titleDraw ? titleDraw.value : `Single — ${artist}`;
+        const quality = 0.35 + Math.random() * 0.65;
+        const durationMs = Math.round(16_000 + Math.random() * 10_000);
+
+        const release: ApexMusicRelease = {
+          id: createId(),
+          title,
+          artist,
+          budget,
+          startedAt: Date.now(),
+          durationMs,
+          status: 'producing',
+          quality,
+          sales: 0,
+          deal: { sold: false, upfront: 0, perMin: 0 },
+        };
+
+        toast('Musique', { description: `Sortie en préparation: ${release.artist}`, duration: 3500 });
+        return {
+          ...prev,
+          cash: clampNonNegative(prev.cash - budget),
+          totalSpent: clampNonNegative(prev.totalSpent + budget),
+          drawByCategory: {
+            ...prev.drawByCategory,
+            artistes: artistDraw.next,
+            ...(titleDraw ? { films_alt: titleDraw.next } : {}),
+          },
+          musique: { ...prev.musique, releases: [release, ...prev.musique.releases], selectedId: release.id },
+        };
+      });
+    },
+    [artistNames, filmNames, namesStatus, setData]
+  );
+
+  const startSeries = useCallback(
+    (budget: number) => {
+      if (namesStatus !== 'ready') return;
+      if (seriesNames.length === 0) return;
+
+      setData((prev) => {
+        if (prev.cash < budget) {
+          toast('Séries', { description: `Il te manque ${formatShortNumber(budget - prev.cash)} ₶.`, duration: 3000 });
+          return prev;
+        }
+
+        const titleDraw = drawWithoutReplacement({ list: seriesNames, prev: prev.drawByCategory.noms_series });
+        const showrunnerDraw =
+          showrunnerNames.length > 0 ? drawWithoutReplacement({ list: showrunnerNames, prev: prev.drawByCategory.showrunners }) : null;
+
+        const quality = 0.35 + Math.random() * 0.65;
+        const durationMs = Math.round(22_000 + Math.random() * 14_000);
+
+        const season: ApexSeriesSeason = {
+          id: createId(),
+          title: titleDraw.value,
+          showrunner: showrunnerDraw ? showrunnerDraw.value : 'Showrunner',
+          budget,
+          startedAt: Date.now(),
+          durationMs,
+          status: 'producing',
+          quality,
+          viewers: 0,
+          deal: { sold: false, upfront: 0, perMin: 0 },
+        };
+
+        toast('Séries', { description: `Production lancée: ${season.title}`, duration: 3500 });
+        return {
+          ...prev,
+          cash: clampNonNegative(prev.cash - budget),
+          totalSpent: clampNonNegative(prev.totalSpent + budget),
+          drawByCategory: {
+            ...prev.drawByCategory,
+            noms_series: titleDraw.next,
+            ...(showrunnerDraw ? { showrunners: showrunnerDraw.next } : {}),
+          },
+          series: { ...prev.series, seasons: [season, ...prev.series.seasons], selectedId: season.id },
+        };
+      });
+    },
+    [namesStatus, seriesNames, setData, showrunnerNames]
+  );
+
+  const startLive = useCallback(
+    (budget: number) => {
+      if (namesStatus !== 'ready') return;
+      if (artistNames.length === 0) return;
+
+      setData((prev) => {
+        if (prev.cash < budget) {
+          toast('Live', { description: `Il te manque ${formatShortNumber(budget - prev.cash)} ₶.`, duration: 3000 });
+          return prev;
+        }
+
+        const headlinerDraw = drawWithoutReplacement({ list: artistNames, prev: prev.drawByCategory.artistes_live ?? prev.drawByCategory.artistes });
+        const headliner = headlinerDraw.value;
+        const quality = 0.35 + Math.random() * 0.65;
+        const durationMs = Math.round(14_000 + Math.random() * 10_000);
+
+        const e: ApexLiveEvent = {
+          id: createId(),
+          title: `Live: ${headliner}`,
+          headliner,
+          budget,
+          startedAt: Date.now(),
+          durationMs,
+          status: 'producing',
+          quality,
+          attendance: 0,
+          deal: { sold: false, upfront: 0, perMin: 0 },
+        };
+
+        toast('Live', { description: `Événement planifié: ${headliner}`, duration: 3500 });
+        return {
+          ...prev,
+          cash: clampNonNegative(prev.cash - budget),
+          totalSpent: clampNonNegative(prev.totalSpent + budget),
+          drawByCategory: { ...prev.drawByCategory, artistes_live: headlinerDraw.next },
+          live: { ...prev.live, events: [e, ...prev.live.events], selectedId: e.id },
+        };
+      });
+    },
+    [artistNames, namesStatus, setData]
+  );
+
+  const releaseSelected = useCallback(() => {
     setData((prev) => {
-      const id = prev.sector.selectedMovieId;
-      if (!id) return prev;
-      const m = prev.sector.movies.find((x) => x.id === id);
-      if (!m || m.status !== 'ready') return prev;
-
+      const rep = prev.reputation;
       const hype = clamp01(prev.hype);
-      const hypeMult = 1 + hype * 1.1;
-      const roll = 0.75 + Math.random() * 1.85;
-      const boxOffice = m.budget * roll * (0.9 + m.quality * 0.5) * hypeMult;
 
-      toast('Box-office', { description: `+${formatShortNumber(boxOffice)} ₶`, duration: 3500 });
+      if (prev.activeSector === 'cinema') {
+        const id = prev.cinema.selectedId;
+        if (!id) return prev;
+        const m = prev.cinema.films.find((x) => x.id === id);
+        if (!m || m.status !== 'ready') return prev;
 
-      const nextMovies: ApexMovie[] = prev.sector.movies.map((x) =>
-        x.id === id ? ({ ...x, status: 'released' as const, boxOffice } as ApexMovie) : x
-      );
+        const repMult = 0.9 + rep.public * 0.25 + rep.critique * 0.15;
+        const hypeMult = 1 + hype * 1.1;
+        const roll = 0.8 + Math.random() * 1.7;
+        const boxOffice = m.budget * roll * (0.9 + m.quality * 0.5) * repMult * hypeMult;
+
+        const nextFilms: ApexFilm[] = prev.cinema.films.map((x) => (x.id === id ? ({ ...x, status: 'released' as const, boxOffice } as ApexFilm) : x));
+        const reputation = updateReputation(prev.reputation, { public: 0.01, critique: 0.005 + m.quality * 0.01 });
+        toast('Box-office', { description: `+${formatShortNumber(boxOffice)} ₶`, duration: 3500 });
+
+        return {
+          ...prev,
+          cash: clampNonNegative(prev.cash + boxOffice),
+          totalEarned: clampNonNegative(prev.totalEarned + boxOffice),
+          hype: clamp01(prev.hype + 0.05 + m.quality * 0.04),
+          reputation,
+          cinema: { ...prev.cinema, films: nextFilms },
+        };
+      }
+
+      if (prev.activeSector === 'musique') {
+        const id = prev.musique.selectedId;
+        if (!id) return prev;
+        const r = prev.musique.releases.find((x) => x.id === id);
+        if (!r || r.status !== 'ready') return prev;
+
+        const repMult = 0.85 + rep.public * 0.35 + rep.underground * 0.1;
+        const roll = 0.7 + Math.random() * 1.6;
+        const sales = r.budget * roll * (0.85 + r.quality * 0.45) * repMult * (1 + hype * 0.7);
+
+        const nextReleases: ApexMusicRelease[] = prev.musique.releases.map((x) => (x.id === id ? ({ ...x, status: 'released' as const, sales } as ApexMusicRelease) : x));
+        const reputation = updateReputation(prev.reputation, { public: 0.01, underground: 0.01 + r.quality * 0.01 });
+        toast('Ventes', { description: `+${formatShortNumber(sales)} ₶`, duration: 3500 });
+
+        return {
+          ...prev,
+          cash: clampNonNegative(prev.cash + sales),
+          totalEarned: clampNonNegative(prev.totalEarned + sales),
+          hype: clamp01(prev.hype + 0.04 + r.quality * 0.03),
+          reputation,
+          musique: { ...prev.musique, releases: nextReleases },
+        };
+      }
+
+      if (prev.activeSector === 'series') {
+        const id = prev.series.selectedId;
+        if (!id) return prev;
+        const s = prev.series.seasons.find((x) => x.id === id);
+        if (!s || s.status !== 'ready') return prev;
+
+        const repMult = 0.85 + rep.international * 0.35 + rep.business * 0.1;
+        const roll = 0.75 + Math.random() * 1.55;
+        const viewers = s.budget * roll * (0.85 + s.quality * 0.45) * repMult * (1 + hype * 0.6);
+        const cash = viewers;
+
+        const nextSeasons: ApexSeriesSeason[] = prev.series.seasons.map((x) => (x.id === id ? ({ ...x, status: 'released' as const, viewers } as ApexSeriesSeason) : x));
+        const reputation = updateReputation(prev.reputation, { international: 0.015, business: 0.005 });
+        toast('Audiences', { description: `+${formatShortNumber(cash)} ₶`, duration: 3500 });
+
+        return {
+          ...prev,
+          cash: clampNonNegative(prev.cash + cash),
+          totalEarned: clampNonNegative(prev.totalEarned + cash),
+          hype: clamp01(prev.hype + 0.04 + s.quality * 0.03),
+          reputation,
+          series: { ...prev.series, seasons: nextSeasons },
+        };
+      }
+
+      const id = prev.live.selectedId;
+      if (!id) return prev;
+      const e = prev.live.events.find((x) => x.id === id);
+      if (!e || e.status !== 'ready') return prev;
+
+      const repMult = 0.95 + rep.public * 0.25 + rep.international * 0.1;
+      const roll = 0.8 + Math.random() * 1.4;
+      const attendance = e.budget * roll * (0.9 + e.quality * 0.4) * repMult * (1 + hype * 0.5);
+      const cash = attendance;
+
+      const nextEvents: ApexLiveEvent[] = prev.live.events.map((x) => (x.id === id ? ({ ...x, status: 'released' as const, attendance } as ApexLiveEvent) : x));
+      const reputation = updateReputation(prev.reputation, { public: 0.02, international: 0.005 });
+      toast('Billetterie', { description: `+${formatShortNumber(cash)} ₶`, duration: 3500 });
+
       return {
         ...prev,
-        cash: clampNonNegative(prev.cash + boxOffice),
-        totalEarned: clampNonNegative(prev.totalEarned + boxOffice),
-        hype: clamp01(prev.hype + 0.06 + m.quality * 0.05),
-        sector: { ...prev.sector, movies: nextMovies },
+        cash: clampNonNegative(prev.cash + cash),
+        totalEarned: clampNonNegative(prev.totalEarned + cash),
+        hype: clamp01(prev.hype + 0.05 + e.quality * 0.03),
+        reputation,
+        live: { ...prev.live, events: nextEvents },
       };
     });
-  }, [setData]);
+  }, [setData, updateReputation]);
 
-  const openRightsNegotiation = useCallback(() => {
+  const openDealNegotiation = useCallback(() => {
     setData((prev) => {
-      const id = prev.sector.selectedMovieId;
-      if (!id) return prev;
-      const m = prev.sector.movies.find((x) => x.id === id);
-      if (!m || m.status !== 'released' || m.rightsSold) return prev;
+      const sector = prev.activeSector;
 
-      const baseValue = Math.max(250, m.budget * (0.8 + m.quality * 0.6));
-      const n = createNegotiation({ kind: 'rights', partner: 'Distributeur', baseValue, difficulty: 0.55, maxRounds: 4 });
-      return { ...prev, negotiation: n };
+      const getProject = () => {
+        if (sector === 'cinema') return prev.cinema.films.find((x) => x.id === prev.cinema.selectedId);
+        if (sector === 'musique') return prev.musique.releases.find((x) => x.id === prev.musique.selectedId);
+        if (sector === 'series') return prev.series.seasons.find((x) => x.id === prev.series.selectedId);
+        return prev.live.events.find((x) => x.id === prev.live.selectedId);
+      };
+
+      const p = getProject();
+      if (!p || p.status !== 'released' || p.deal.sold) return prev;
+
+      const dealType: 'rights' | 'royalties' | 'streaming' | 'sponsor' =
+        sector === 'cinema' ? 'rights' : sector === 'musique' ? 'royalties' : sector === 'series' ? 'streaming' : 'sponsor';
+
+      const performance = 'boxOffice' in p ? p.boxOffice : 'sales' in p ? p.sales : 'viewers' in p ? p.viewers : p.attendance;
+      const baseValue = Math.max(350, p.budget * (0.7 + p.quality * 0.7) + performance * 0.08);
+
+      const partner = sector === 'cinema' ? 'Distributeur' : sector === 'musique' ? 'Label' : sector === 'series' ? 'Plateforme' : 'Sponsor';
+      const difficulty = sector === 'live' ? 0.6 : 0.55;
+      const n = createNegotiation({ kind: 'generic', partner, baseValue, difficulty, maxRounds: 4 });
+
+      return {
+        ...prev,
+        negotiation: n,
+        negotiationContext: { sector, projectId: p.id, dealType },
+      };
     });
     setActiveTab('negociation');
   }, [setData]);
 
-  const [counterOffer, setCounterOffer] = useState('');
-
   const acceptCurrentNegotiation = useCallback(() => {
     setData((prev) => {
       if (!prev.negotiation || prev.negotiation.status !== 'active') return prev;
+      if (!prev.negotiationContext) return prev;
+
       const n = acceptNegotiation(prev.negotiation);
-      const id = prev.sector.selectedMovieId;
-      const m = id ? prev.sector.movies.find((x) => x.id === id) ?? null : null;
-      if (!m || m.rightsSold || m.status !== 'released') return { ...prev, negotiation: n };
+      const { sector, projectId, dealType } = prev.negotiationContext;
 
+      const factor = dealType === 'sponsor' ? 0.015 : dealType === 'streaming' ? 0.021 : dealType === 'royalties' ? 0.02 : 0.02;
       const upfront = n.offer;
-      const perMin = Math.max(1, Math.floor(n.offer * 0.02));
-      toast('Droits', { description: `Accord: +${formatShortNumber(upfront)} ₶ et +${formatShortNumber(perMin)} ₶/min`, duration: 4500 });
+      const perMin = Math.max(1, Math.floor(n.offer * factor));
 
-      const nextMovies: ApexMovie[] = prev.sector.movies.map((x) =>
-        x.id === m.id ? ({ ...x, rightsSold: true, rightsUpfront: upfront, rightsPerMin: perMin } as ApexMovie) : x
-      );
+      const applyDeal = <T extends { id: string; deal: ApexDeal }>(items: T[]): T[] =>
+        items.map((x) => (x.id === projectId ? ({ ...x, deal: { sold: true, upfront, perMin } } as T) : x));
 
-      return {
+      const next: ApexSave = {
         ...prev,
         cash: clampNonNegative(prev.cash + upfront),
         totalEarned: clampNonNegative(prev.totalEarned + upfront),
         negotiation: n,
-        sector: { ...prev.sector, movies: nextMovies },
+        reputation: updateReputation(prev.reputation, { business: 0.02, international: 0.005 }),
       };
+
+      if (sector === 'cinema') {
+        return { ...next, cinema: { ...next.cinema, films: applyDeal(next.cinema.films) }, negotiationContext: null };
+      }
+      if (sector === 'musique') {
+        return { ...next, musique: { ...next.musique, releases: applyDeal(next.musique.releases) }, negotiationContext: null };
+      }
+      if (sector === 'series') {
+        return { ...next, series: { ...next.series, seasons: applyDeal(next.series.seasons) }, negotiationContext: null };
+      }
+      return { ...next, live: { ...next.live, events: applyDeal(next.live.events) }, negotiationContext: null };
     });
-  }, [setData]);
+  }, [setData, updateReputation]);
 
   const counterCurrentNegotiation = useCallback(() => {
     const value = Number(counterOffer.replace(',', '.'));
@@ -405,18 +1095,24 @@ export default function ApexPage() {
   }, [counterOffer, setData]);
 
   const closeNegotiation = useCallback(() => {
-    setData((prev) => ({ ...prev, negotiation: null }));
+    setData((prev) => ({ ...prev, negotiation: null, negotiationContext: null }));
   }, [setData]);
 
-  const currentProducing = useMemo(() => data.sector.movies.find((m) => m.status === 'producing') ?? null, [data.sector.movies]);
-  const currentReady = useMemo(() => data.sector.movies.find((m) => m.status === 'ready') ?? null, [data.sector.movies]);
+  const canOpenDeal = useMemo(() => {
+    return Boolean(selectedProject && selectedProject.status === 'released' && !selectedProject.deal.sold);
+  }, [selectedProject]);
 
-  const producingProgress = useMemo(() => {
-    if (!currentProducing) return 0;
-    const now = Date.now();
-    const p = (now - currentProducing.startedAt) / currentProducing.durationMs;
-    return Math.max(0, Math.min(1, p));
-  }, [currentProducing]);
+  const canRelease = useMemo(() => Boolean(currentReady), [currentReady]);
+
+  const startByActiveSector = useCallback(
+    (budget: number) => {
+      if (data.activeSector === 'cinema') startCinema(budget);
+      else if (data.activeSector === 'musique') startMusique(budget);
+      else if (data.activeSector === 'series') startSeries(budget);
+      else startLive(budget);
+    },
+    [data.activeSector, startCinema, startLive, startMusique, startSeries]
+  );
 
   return (
     <main className="min-h-screen px-4 md:px-8 py-6">
@@ -449,7 +1145,8 @@ export default function ApexPage() {
 
             <div ref={ppsRef} className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal px-4 py-3">
               <div className="text-xs text-tx-secondary font-bold">₶/min</div>
-              <div className="text-xl font-display font-black tracking-wider">{formatCoins(ppsPerMin)}</div>
+              <div className="text-xl font-display font-black tracking-wider">{formatCoins(incomePerMin)}</div>
+              <div className="text-xs text-tx-secondary font-bold">Base: {formatShortNumber(passiveIncomePerMin)} • Mult: ×{reputationMult.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}</div>
             </div>
 
             <div ref={cashRef} className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal px-4 py-3">
@@ -463,30 +1160,47 @@ export default function ApexPage() {
           <div ref={sectorRef} className="lg:col-span-3 rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
             <div className="text-sm font-display font-black tracking-wider uppercase">Secteurs</div>
             <div className="mt-3 space-y-2">
-              <div className="rounded-xl border-2 border-brand-border bg-accent-primary text-brand-bg shadow-brutal px-3 py-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="font-display font-black tracking-wider uppercase">Cinéma</div>
-                  <Film className="h-5 w-5" />
-                </div>
-                <div className="mt-1 text-xs font-bold opacity-90">Production • Box-office • Droits</div>
-              </div>
-
-              {['Musique', 'Séries & Streaming', 'Événements Live', 'Crypto', 'Jeux Vidéo', 'Bourse'].map((label) => (
-                <div
-                  key={label}
-                  className="rounded-xl border-2 border-brand-border bg-brand-inner px-3 py-3 text-tx-secondary opacity-70"
-                >
-                  <div className="font-display font-black tracking-wider uppercase">{label}</div>
-                  <div className="mt-1 text-xs font-bold">Bientôt</div>
-                </div>
-              ))}
+              {([
+                { id: 'cinema', label: 'Cinéma', subtitle: 'Production • Box-office • Droits' },
+                { id: 'musique', label: 'Musique', subtitle: 'Sorties • Ventes • Royalties' },
+                { id: 'series', label: 'Séries & Streaming', subtitle: 'Saisons • Audiences • Streaming' },
+                { id: 'live', label: 'Événements Live', subtitle: 'Billetterie • Sponsor' },
+              ] as Array<{ id: SectorId; label: string; subtitle: string }>).map((s) => {
+                const unlocked = isSectorUnlocked(s.id);
+                const selected = data.activeSector === s.id;
+                const cost = sectorUnlockCost[s.id];
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setActiveSector(s.id)}
+                    disabled={!unlocked}
+                    className={cn(
+                      'w-full text-left rounded-xl border-2 px-3 py-3 transition-colors',
+                      selected
+                        ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
+                        : unlocked
+                          ? 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                          : 'bg-brand-inner text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="font-display font-black tracking-wider uppercase">{s.label}</div>
+                      {selected ? <Film className="h-5 w-5" /> : null}
+                    </div>
+                    <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
+                      {unlocked ? s.subtitle : `Débloque à ${formatShortNumber(cost)} ₶`}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           <div className="lg:col-span-6 space-y-4">
             <div ref={productionRef} className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-display font-black tracking-wider uppercase">Cinéma</div>
+                <div className="text-sm font-display font-black tracking-wider uppercase">{activeSectorTitle}</div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -522,7 +1236,7 @@ export default function ApexPage() {
                         : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
                     )}
                   >
-                    Négociation
+                    Deals
                   </button>
                 </div>
               </div>
@@ -557,8 +1271,8 @@ export default function ApexPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            selectMovie(currentReady.id);
-                            releaseMovie();
+                            selectProject(currentReady.id);
+                            releaseSelected();
                           }}
                           className="h-11 px-4 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
                         >
@@ -571,17 +1285,17 @@ export default function ApexPage() {
                   </div>
 
                   <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
-                    <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Lancer un film</div>
+                    <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Lancer un projet</div>
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {[
-                        { label: 'Indé', budget: 2500 },
-                        { label: 'Studio', budget: 20_000 },
-                        { label: 'Blockbuster', budget: 120_000 },
+                        { label: 'Petit', budget: 2500 },
+                        { label: 'Standard', budget: 20_000 },
+                        { label: 'Gros', budget: 120_000 },
                       ].map((b) => (
                         <button
                           key={b.label}
                           type="button"
-                          onClick={() => startMovie(b.budget)}
+                          onClick={() => startByActiveSector(b.budget)}
                           disabled={namesStatus !== 'ready' || data.cash < b.budget}
                           className={cn(
                             'h-12 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
@@ -601,18 +1315,19 @@ export default function ApexPage() {
 
               {activeTab === 'catalogue' ? (
                 <div className="mt-4 space-y-2">
-                  {data.sector.movies.length === 0 ? (
+                  {activeProjects.length === 0 ? (
                     <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3 text-sm text-tx-secondary font-bold">
-                      Aucun film. Lance une production.
+                      Aucun projet. Lance une production.
                     </div>
                   ) : (
-                    data.sector.movies.slice(0, 20).map((m) => {
-                      const selected = m.id === data.sector.selectedMovieId;
+                    activeProjects.slice(0, 24).map((p) => {
+                      const selected = p.id === activeSelectedId;
+                      const perf = 'boxOffice' in p ? p.boxOffice : 'sales' in p ? p.sales : 'viewers' in p ? p.viewers : p.attendance;
                       return (
                         <button
-                          key={m.id}
+                          key={p.id}
                           type="button"
-                          onClick={() => selectMovie(m.id)}
+                          onClick={() => selectProject(p.id)}
                           className={cn(
                             'w-full text-left rounded-xl border-2 px-3 py-3 transition-colors',
                             selected
@@ -622,16 +1337,16 @@ export default function ApexPage() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <div className="font-display font-black tracking-wider uppercase text-sm">{m.title}</div>
+                              <div className="font-display font-black tracking-wider uppercase text-sm">{p.title}</div>
                               <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
-                                {m.status === 'producing' ? 'En production' : m.status === 'ready' ? 'Prêt' : 'Sorti'}
-                                {m.rightsSold ? ` • Droits: +${formatShortNumber(m.rightsPerMin)} ₶/min` : ''}
+                                {p.status === 'producing' ? 'En production' : p.status === 'ready' ? 'Prêt' : 'Sorti'}
+                                {p.deal.sold ? ` • ${activeDealLabel}: +${formatShortNumber(p.deal.perMin)} ₶/min` : ''}
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-xs font-bold">{formatShortNumber(m.budget)} ₶</div>
+                              <div className="text-xs font-bold">{formatShortNumber(p.budget)} ₶</div>
                               <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
-                                {m.boxOffice > 0 ? `Box: ${formatShortNumber(m.boxOffice)} ₶` : '—'}
+                                {perf > 0 ? `${formatShortNumber(perf)} ₶` : '—'}
                               </div>
                             </div>
                           </div>
@@ -645,17 +1360,17 @@ export default function ApexPage() {
               {activeTab === 'negociation' ? (
                 <div className="mt-4 space-y-3">
                   <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
-                    <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Droits</div>
+                    <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">{activeDealLabel}</div>
                     <div className="mt-2 text-sm text-tx-secondary font-bold">
-                      Négocie des droits sur un film sorti pour obtenir un cash immédiat + un revenu passif.
+                      Négocie un deal sur un projet sorti pour obtenir un cash immédiat + un revenu passif (₶/min).
                     </div>
                     <button
                       type="button"
-                      onClick={openRightsNegotiation}
-                      disabled={!selectedMovie || selectedMovie.status !== 'released' || selectedMovie.rightsSold}
+                      onClick={openDealNegotiation}
+                      disabled={!canOpenDeal}
                       className={cn(
                         'mt-3 w-full h-12 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
-                        !selectedMovie || selectedMovie.status !== 'released' || selectedMovie.rightsSold
+                        !canOpenDeal
                           ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
                           : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
                       )}
@@ -663,6 +1378,20 @@ export default function ApexPage() {
                       Ouvrir négociation
                     </button>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={releaseSelected}
+                    disabled={!canRelease}
+                    className={cn(
+                      'w-full h-12 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                      !canRelease
+                        ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                        : 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                    )}
+                  >
+                    Sortir (si prêt)
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -762,26 +1491,94 @@ export default function ApexPage() {
 
             <div className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-display font-black tracking-wider uppercase">Stats</div>
+                <div className="text-sm font-display font-black tracking-wider uppercase">Réputation</div>
+                <TrendingUp className="h-5 w-5 text-tx-secondary" />
+              </div>
+
+              <div className="mt-3 space-y-2 text-sm font-bold">
+                {(
+                  [
+                    { key: 'public', label: 'Public' },
+                    { key: 'critique', label: 'Critique' },
+                    { key: 'business', label: 'Business' },
+                    { key: 'underground', label: 'Underground' },
+                    { key: 'international', label: 'International' },
+                  ] as Array<{ key: keyof Omit<ApexReputation, 'global'>; label: string }>
+                ).map((r) => {
+                  const v = clamp01(data.reputation[r.key]);
+                  return (
+                    <div key={r.key} className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-tx-secondary">{r.label}</span>
+                        <span className="font-mono text-tx-base">{Math.round(v * 100)}%</span>
+                      </div>
+                      <div className="mt-2 h-3 rounded-full border-2 border-brand-border bg-brand-card overflow-hidden">
+                        <div className="h-full bg-accent-primary" style={{ width: `${Math.round(v * 100)}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-tx-secondary">Global</span>
+                    <span className="font-mono text-tx-base">{Math.round(clamp01(data.reputation.global) * 100)}%</span>
+                  </div>
+                  <div className="mt-2 text-xs text-tx-secondary font-bold">Income ×{reputationMult.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-display font-black tracking-wider uppercase">Buffs</div>
                 <TrendingUp className="h-5 w-5 text-tx-secondary" />
               </div>
               <div className="mt-3 rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3 space-y-2 text-sm font-bold">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-tx-secondary">Gagné</span>
-                  <span className="font-mono text-tx-base">{formatShortNumber(data.totalEarned)} ₶</span>
+                  <span className="text-tx-secondary">Income</span>
+                  <span className="font-mono text-tx-base">×{buffsIncomeMult.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-tx-secondary">Dépensé</span>
-                  <span className="font-mono text-tx-base">{formatShortNumber(data.totalSpent)} ₶</span>
+                  <span className="text-tx-secondary">Décroissance hype</span>
+                  <span className="font-mono text-tx-base">×{buffsHypeDecayMult.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-tx-secondary">Droits</span>
-                  <span className="font-mono text-tx-base">{formatShortNumber(rightsIncomePerMin)} ₶/min</span>
+                  <span className="text-tx-secondary">Actifs</span>
+                  <span className="font-mono text-tx-base">{activeBuffs.length}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {data.activeModal ? (
+          <div className="fixed inset-0 z-[99998]">
+            <div className="absolute inset-0 bg-black/70" />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md px-4">
+              <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
+                <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
+                  {data.activeModal.kind === 'agent' ? 'Agent' : 'Événement'}
+                </div>
+                <div className="mt-2 font-display text-2xl font-black tracking-wider uppercase text-tx-base">{data.activeModal.title}</div>
+                <div className="mt-3 text-sm text-tx-secondary font-bold leading-relaxed">{data.activeModal.body}</div>
+                <div className="mt-6 space-y-2">
+                  {data.activeModal.options.map((o, idx) => (
+                    <button
+                      key={o.label}
+                      type="button"
+                      onClick={() => applyModalChoice(idx)}
+                      className="w-full text-left rounded-xl border-2 border-brand-border bg-brand-inner px-4 py-3 hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                    >
+                      <div className="font-display font-black tracking-wider uppercase text-sm">{o.label}</div>
+                      <div className="mt-1 text-xs font-bold text-tx-secondary">{o.body}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {tutorialOpen && tutorialSpot ? (
           <div className="fixed inset-0 z-[99999]">
