@@ -315,7 +315,12 @@ export default function ProfilPage() {
 
             <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
               <div className="flex items-center justify-between h-12">
-                <h3 className="font-display text-2xl leading-none">TerraFarm</h3>
+                <div className="flex items-center gap-3">
+                  <h3 className="font-display text-2xl leading-none">TerraFarm</h3>
+                  <div className="h-7 px-3 rounded-full border-2 border-brand-border bg-brand-inner text-tx-secondary text-xs font-black tracking-widest uppercase flex items-center">
+                    Soon
+                  </div>
+                </div>
                 <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
                   <Leaf className="h-6 w-6 text-accent-success" />
                 </div>
@@ -323,25 +328,25 @@ export default function ProfilPage() {
 
               <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-4 space-y-3">
                 <div className="flex justify-between text-sm font-bold">
-                  <span className="text-tx-secondary">Francs Paysans</span>
-                  <span className="font-mono text-tx-base">0 ƒ</span>
+                  <span className="text-tx-secondary">Statut</span>
+                  <span className="font-mono text-tx-base">Soon</span>
                 </div>
                 <div className="flex justify-between text-sm font-bold">
-                  <span className="text-tx-secondary">Zones</span>
-                  <span className="font-mono text-tx-base">1 / 6</span>
+                  <span className="text-tx-secondary">Accès</span>
+                  <span className="font-mono text-tx-base">Bientôt</span>
                 </div>
                 <div className="flex justify-between text-sm font-bold">
-                  <span className="text-tx-secondary">Succès</span>
-                  <span className="font-mono text-tx-base">0 / 150</span>
+                  <span className="text-tx-secondary">—</span>
+                  <span className="font-mono text-tx-base">—</span>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={() => router.push('/terrafarm')}
-                className="mt-6 w-full h-16 rounded-2xl font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-brutal"
+                disabled
+                className="mt-6 w-full h-16 rounded-2xl font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-secondary opacity-70 cursor-not-allowed shadow-brutal"
               >
-                Jouer
+                Soon
               </button>
             </div>
           </div>

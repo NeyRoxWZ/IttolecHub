@@ -240,98 +240,6 @@ Pari sur l'avenir : risquer des ₶ pour potentiellement les tripler.
 
 ---
 
-## JEU 2 — TERRAFARM 🌿
-### Thème : Ferme rurale française, progression infinie
-
-**Devise :** Francs Paysans (ƒ)
-**Ambiance :** Campagne française, tons verts, ocres, ciel bleu. Style aquarelle vectorisée douce.
-**Particularité :** Pas de fin. Le jeu s'étend à l'infini via l'expansion géographique.
-
----
-
-### PHILOSOPHIE DE PROGRESSION
-
-- Le joueur doit TOUJOURS sentir qu'il avance (débloquer quelque chose toutes les ~10-20 min de jeu actif)
-- Mais il doit TOUJOURS sentir qu'il est loin du prochain cap important
-- Pas de prestige classique : à la place, expansion géographique (nouvelle région à débloquer)
-- Courbe exponentielle : récompenses croissantes mais objectifs toujours lointains
-
----
-
-### BÂTIMENTS / STRUCTURES
-
-| Catégorie | Bâtiments disponibles |
-|-----------|----------------------|
-| Cultures | Blé, Tournesol, Lavande, Vigne, Truffe, Safran, Chanvre |
-| Élevage | Poules, Vaches, Moutons, Cochons, Abeilles, Chevaux |
-| Transformation | Moulin, Fromagerie, Cave à vin, Boulangerie, Distillerie |
-| Infrastructure | Silo, Grange, Puits, Clôture, Route pavée, Pont |
-| Commerce | Étal de marché, Charrette, Comptoir, Foire régionale |
-| Luxe | Pigeonnier, Chapelle, Manoir, Tour de guet, Bassin |
-
----
-
-### SAISONS (cycle de 20 minutes réel = 1 an en jeu)
-
-- **Printemps** : production x1.2, cultures poussent plus vite
-- **Été** : ventes augmentées, risque de sécheresse (-20% eau)
-- **Automne** : récoltes abondantes x1.5, foire disponible
-- **Hiver** : production x0.7, produits transformés mieux vendus
-
----
-
-### ÉVÉNEMENTS ALÉATOIRES
-
-- Tempête → perte de 10% d'une culture (assurance débloquable)
-- Marché florissant → x3 sur ventes pendant 2 minutes
-- Visiteur mystérieux → upgrade unique disponible 1 minute
-- Bonne année → +20% global pendant une journée
-- Maladie du bétail → élevage -50% pendant 5 min (vétérinaire débloquable)
-
----
-
-### SYSTÈME D'EXPANSION GÉOGRAPHIQUE
-
-- Départ : 1 petite parcelle (3×3 cases)
-- Déblocage progressif : nouvelle parcelle → village voisin → forêt → rivière → collines → montagne
-- Chaque zone apporte des cultures et bâtiments exclusifs
-- Prix de déblocage très élevé = fort sentiment de victoire
-- Total : **6 zones**, plusieurs semaines pour toutes débloquer
-
----
-
-### UPGRADES TERRAFARM
-
-- **Outils** : faux rouillée → faux acier → moissonneuse-batteuse → combine GPS
-- **Semences** : locales → hybrides → OGM → laboratoire
-- **Irrigation** : arrosoir → canal → goutte-à-goutte → réseau automatique
-- **Bêtes** : races locales → améliorées → primées → légendaires
-- **Commerce** : bord de route → marché → coopérative → export
-
----
-
-### SUCCÈS TERRAFARM
-
-Minimum **150 achievements**. Exemples :
-- "Premier sillon" — Planter sa première graine
-- "La belle saison" — Survivre à 4 saisons complètes
-- "Producteur local" — Atteindre 1 000 ƒ/sec
-- "Baron de la lavande" — Posséder 100 champs de lavande
-- "Maître fromager" — 5 fromageries au niveau maximum
-- "L'Empire Vert" — Débloquer les 6 zones géographiques
-
----
-
-### INTERFACE TERRAFARM
-
-- **Vue principale** : carte isométrique de la ferme (cases cliquables)
-- **Panneau gauche** : stats + ƒ/sec + saison actuelle + météo
-- **Panneau droit** : boutique bâtiments + upgrades
-- **Bas de page** : barre de progression vers la prochaine expansion
-- **Mobile** : vue scrollable, double-tap pour acheter, bottom sheet pour la boutique
-
----
-
 ## PAGES À CRÉER
 
 | URL | Description |
@@ -341,7 +249,6 @@ Minimum **150 achievements**. Exemples :
 | `/creer-compte` | Choix pseudo + génération 6 mots + confirmation |
 | `/profil` | Page profil utilisateur complète |
 | `/itollec-clicker` | Jeu ItollecClicker complet inline |
-| `/terrafarm` | Jeu TerraFarm complet inline |
 
 ---
 
@@ -363,10 +270,9 @@ Minimum **150 achievements**. Exemples :
 1. Analyser les fichiers du projet existant avant de commencer
 2. Reprendre la palette, la typographie et les espacements du site
 3. **ItollecClicker** : style gravure/parchemin — palette or, bleu impérial, bordeaux, crème
-4. **TerraFarm** : style aquarelle vectorisée douce — palette verts, ocres, ciel clair
-5. Aucun emoji dans l'UI des jeux (sauf dans les achievements où c'est voulu)
-6. Animations fluides (CSS transitions + `requestAnimationFrame`)
-7. Pas de cubes, pas de carrés grossiers : formes organiques, illustrations fines
+4. Aucun emoji dans l'UI des jeux (sauf dans les achievements où c'est voulu)
+5. Animations fluides (CSS transitions + `requestAnimationFrame`)
+6. Pas de cubes, pas de carrés grossiers : formes organiques, illustrations fines
 
 ---
 
@@ -379,8 +285,5 @@ Minimum **150 achievements**. Exemples :
 5. ItollecClicker — upgrades + achievements
 6. ItollecClicker — Décrets Impériaux + Révolutionnaires + Prestige
 7. ItollecClicker — mini-jeux internes + événements saisonniers
-8. TerraFarm — moteur + carte isométrique + bâtiments
-9. TerraFarm — saisons + événements + expansions géographiques
-10. TerraFarm — achievements + upgrades complètes
-11. Navigation globale + header connexion + cohérence DA
-12. Tests mobile et pc + optimisation performance
+8. Navigation globale + header connexion + cohérence DA
+9. Tests mobile et pc + optimisation performance
