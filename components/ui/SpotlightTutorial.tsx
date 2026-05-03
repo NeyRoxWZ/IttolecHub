@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface SpotlightTutorialStep {
@@ -27,25 +27,26 @@ interface Props {
 }
 
 export default function SpotlightTutorial(props: Props) {
+  const { open, stepIndex, steps, targetEl, onStepChange, onClose, storageKey: storageKeyProp } = props;
   const [spot, setSpot] = useState<SpotlightRect | null>(null);
   const [cardTop, setCardTop] = useState(24);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
-  const step = props.steps[props.stepIndex] ?? null;
-  const maxIndex = Math.max(0, props.steps.length - 1);
-  const canPrev = props.stepIndex > 0;
-  const isLast = props.stepIndex >= maxIndex;
+  const step = steps[stepIndex] ?? null;
+  const maxIndex = Math.max(0, steps.length - 1);
+  const canPrev = stepIndex > 0;
+  const isLast = stepIndex >= maxIndex;
 
-  const storageKey = useMemo(() => props.storageKey ?? 'spotlight_tutorial_done', [props.storageKey]);
+  const storageKey = useMemo(() => storageKeyProp ?? 'spotlight_tutorial_done', [storageKeyProp]);
 
   useEffect(() => {
-    if (!props.open) {
+    if (!open) {
       setSpot(null);
       return;
     }
 
     const update = () => {
-      const el = props.targetEl;
+      const el = targetEl;
       if (!el) {
         setSpot(null);
         return;
@@ -61,10 +62,10 @@ export default function SpotlightTutorial(props: Props) {
       window.removeEventListener('resize', update);
       window.removeEventListener('scroll', update, true);
     };
-  }, [props.open, props.targetEl, props.stepIndex, props.steps]);
+  }, [open, stepIndex, steps, targetEl]);
 
   useEffect(() => {
-    if (!props.open || !spot) return;
+    if (!open || !spot) return;
     const vh = window.innerHeight;
     const cardHeight = cardRef.current?.getBoundingClientRect().height ?? 280;
     const padding = 16;
@@ -80,25 +81,34 @@ export default function SpotlightTutorial(props: Props) {
 
     top = Math.max(padding, Math.min(vh - cardHeight - padding, top));
     setCardTop(top);
-  }, [props.open, spot, props.stepIndex]);
+  }, [open, spot, stepIndex]);
 
   useEffect(() => {
-    if (!props.open) return;
-    const el = props.targetEl;
+    if (!open) return;
+    const el = targetEl;
     if (!el) return;
     try {
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     } catch {}
-  }, [props.open, props.targetEl, props.stepIndex]);
+  }, [open, stepIndex, targetEl]);
 
-  const close = () => {
-    props.onClose();
+  const close = useCallback(() => {
+    onClose();
     try {
       localStorage.setItem(storageKey, '1');
     } catch {}
-  };
+  }, [onClose, storageKey]);
 
-  if (!props.open || !step) return null;
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [close, open]);
+
+  if (!open || !step) return null;
 
   return (
     <div className="fixed inset-0 z-[99999]">
@@ -126,7 +136,7 @@ export default function SpotlightTutorial(props: Props) {
         aria-label="Tutoriel"
       >
         <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
-          Tutoriel {props.stepIndex + 1} / {props.steps.length}
+          Tutoriel {stepIndex + 1} / {steps.length}
         </div>
         <div className="mt-2 font-display text-2xl font-black tracking-wider uppercase text-tx-base">{step.title}</div>
         <div className="mt-3 text-sm text-tx-secondary font-bold leading-relaxed">{step.body}</div>
@@ -134,7 +144,7 @@ export default function SpotlightTutorial(props: Props) {
         <div className="mt-6 flex items-center justify-between gap-3">
           <button
             type="button"
-            onClick={() => props.onStepChange(Math.max(0, props.stepIndex - 1))}
+            onClick={() => onStepChange(Math.max(0, stepIndex - 1))}
             disabled={!canPrev}
             className={cn(
               'h-11 px-4 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
@@ -161,7 +171,7 @@ export default function SpotlightTutorial(props: Props) {
                 close();
                 return;
               }
-              props.onStepChange(Math.min(maxIndex, props.stepIndex + 1));
+              onStepChange(Math.min(maxIndex, stepIndex + 1));
             }}
             className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
           >

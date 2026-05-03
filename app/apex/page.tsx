@@ -548,7 +548,7 @@ export default function ApexPage() {
     []
   );
 
-  const tutorialTargetEl = useMemo(() => {
+  const tutorialTargetEl = (() => {
     const key = tutorialSteps[tutorialStep]?.key;
     if (key === 'cash') return cashSpotRef.current;
     if (key === 'tabs') return tabsSpotRef.current;
@@ -561,7 +561,7 @@ export default function ApexPage() {
     if (key === 'event') return eventSpotRef.current;
     if (key === 'mobile') return mobileFabSpotRef.current;
     return null;
-  }, [tutorialStep, tutorialSteps]);
+  })();
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -5332,7 +5332,7 @@ function MobileBar(props: {
         className="fixed bottom-20 right-4 z-30 h-12 w-12 rounded-full border-2 border-brand-border bg-accent-primary text-brand-bg shadow-brutal flex items-center justify-center"
         aria-label="Ouvrir la bottom sheet"
       >
-        <Plus className="h-5 w-5" aria-hidden="true" />
+        <Menu className="h-5 w-5" aria-hidden="true" />
       </button>
 
       <Modal open={props.sheetOpen} onClose={() => props.onSheetOpenChange(false)} title="Panneau">
