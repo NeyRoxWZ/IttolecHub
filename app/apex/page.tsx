@@ -55,6 +55,7 @@ type ApexFilm = {
   quality: number;
   boxOffice: number;
   deal: ApexDeal;
+  releasedAt?: number;
 };
 
 type ApexMusicRelease = {
@@ -68,6 +69,7 @@ type ApexMusicRelease = {
   quality: number;
   sales: number;
   deal: ApexDeal;
+  releasedAt?: number;
 };
 
 type ApexSeriesSeason = {
@@ -82,6 +84,7 @@ type ApexSeriesSeason = {
   viewers: number;
   deal: ApexDeal;
   onPlatform: boolean;
+  releasedAt?: number;
 };
 
 type ApexLiveEvent = {
@@ -95,6 +98,7 @@ type ApexLiveEvent = {
   quality: number;
   attendance: number;
   deal: ApexDeal;
+  releasedAt?: number;
 };
 
 type ApexGame = {
@@ -108,6 +112,7 @@ type ApexGame = {
   quality: number;
   sales: number;
   deal: ApexDeal;
+  releasedAt?: number;
 };
 
 type ApexPlatformState = {
@@ -795,21 +800,84 @@ export default function ApexPage() {
         let nextEventAt = prev.nextEventAt;
 
         if (!activeModal && epochNow >= prev.nextAgentAt) {
-          const t = agentTemplates[Math.floor(Math.random() * agentTemplates.length)]!;
-          activeModal = {
-            id: createId(),
-            kind: 'agent',
-            title: t.title,
-            body: t.body,
-            options: t.options.map((o) => ({
-              label: o.label,
-              body: o.body,
-              cashDelta: o.cashDelta,
-              hypeDelta: o.hypeDelta,
-              repDelta: o.repDelta,
-              buff: 'buff' in o && o.buff ? o.buff : undefined,
-            })),
-          };
+          // Agent intelligent
+          // Chercher des projets sortis non vendus (opportunités)
+          const unsold: { sector: SectorId, id: string, title: string, budget: number, type: string }[] = [];
+          prev.cinema.films.forEach(f => { if (f.status === 'released' && !f.deal.sold) unsold.push({ sector: 'cinema', id: f.id, title: f.title, budget: f.budget, type: 'Film' }); });
+          prev.musique.releases.forEach(r => { if (r.status === 'released' && !r.deal.sold) unsold.push({ sector: 'musique', id: r.id, title: r.title, budget: r.budget, type: 'Morceau' }); });
+          prev.series.seasons.forEach(s => { if (s.status === 'released' && !s.deal.sold) unsold.push({ sector: 'series', id: s.id, title: s.title, budget: s.budget, type: 'Série' }); });
+          
+          let generated = false;
+
+          if (unsold.length > 0 && Math.random() < 0.6) {
+            const p = unsold[Math.floor(Math.random() * unsold.length)];
+            const offer = Math.max(500, Math.floor(p.budget * (0.8 + Math.random() * 0.7)));
+            activeModal = {
+              id: createId(),
+              kind: 'agent',
+              title: `Offre directe pour ${p.title}`,
+              body: `J'ai un contact sérieux qui veut acheter les droits de ton ${p.type.toLowerCase()} immédiatement pour ${formatShortNumber(offer)} ₶. Pas de négociation, à prendre ou à laisser.`,
+              options: [
+                {
+                  label: 'Vendre',
+                  body: `+${formatShortNumber(offer)} ₶ immédiat.`,
+                  cashDelta: offer,
+                  hypeDelta: 0,
+                  repDelta: { business: 0.02 },
+                },
+                {
+                  label: 'Refuser',
+                  body: 'On trouvera mieux plus tard.',
+                  cashDelta: 0,
+                  hypeDelta: 0,
+                  repDelta: { critique: 0.01 },
+                }
+              ]
+            };
+            generated = true;
+          } else if (prev.cash > 5000 && Math.random() < 0.5) {
+             activeModal = {
+              id: createId(),
+              kind: 'agent',
+              title: 'Campagne de Hype',
+              body: 'On peut injecter 2500 ₶ dans une campagne de relations publiques agressive pour booster la Hype globale de 20%.',
+              options: [
+                {
+                  label: 'Payer 2500 ₶',
+                  body: 'Hype +20%.',
+                  cashDelta: -2500,
+                  hypeDelta: 0.20,
+                  repDelta: { public: 0.03 },
+                },
+                {
+                  label: 'Ignorer',
+                  body: 'On garde le cash.',
+                  cashDelta: 0,
+                  hypeDelta: 0,
+                  repDelta: {},
+                }
+              ]
+            };
+            generated = true;
+          }
+
+          if (!generated) {
+            const t = agentTemplates[Math.floor(Math.random() * agentTemplates.length)]!;
+            activeModal = {
+              id: createId(),
+              kind: 'agent',
+              title: t.title,
+              body: t.body,
+              options: t.options.map((o) => ({
+                label: o.label,
+                body: o.body,
+                cashDelta: o.cashDelta,
+                hypeDelta: o.hypeDelta,
+                repDelta: o.repDelta,
+                buff: 'buff' in o && o.buff ? o.buff : undefined,
+              })),
+            };
+          }
           nextAgentAt = epochNow + (6 + Math.random() * 6) * 60_000;
           changed = true;
         } else if (!activeModal && epochNow >= prev.nextEventAt) {
@@ -851,6 +919,36 @@ export default function ApexPage() {
           nextAgentAt,
           nextEventAt,
         };
+
+        // Condition de faillite (Game Over)
+        const isBankrupt = 
+          nextBase.cash < 500 && 
+          basePerMin <= 0 &&
+          films.every((f) => f.status === 'released' && f.deal.sold) &&
+          releases.every((r) => r.status === 'released' && r.deal.sold) &&
+          seasons.every((s) => s.status === 'released' && s.deal.sold) &&
+          events.every((e) => e.status === 'released' && e.deal.sold) &&
+          games.every((g) => g.status === 'released' && g.deal.sold) &&
+          crypto.holdings * crypto.price < 500 &&
+          portfolioValue(stocks) < 500;
+
+        if (isBankrupt && !nextBase.activeModal) {
+          nextBase.activeModal = {
+            id: createId(),
+            kind: 'event',
+            title: 'Faillite',
+            body: 'Tu n\'as plus d\'argent, plus de revenus passifs, plus de projets à vendre et plus d\'actifs. Ton empire s\'effondre.',
+            options: [
+              {
+                label: 'Recommencer',
+                body: 'Tout perdre et repartir à zéro.',
+                cashDelta: 0,
+                hypeDelta: 0,
+                repDelta: {},
+              }
+            ]
+          };
+        }
 
         const nextAchievements = computeAchievementsUnlockedNow(nextBase);
         const next = areStringArraysEqual(nextAchievements, nextBase.achievementsUnlocked)
@@ -1015,6 +1113,28 @@ export default function ApexPage() {
         const nextSpent = choice.cashDelta < 0 ? clampNonNegative(prev.totalSpent + Math.abs(choice.cashDelta)) : prev.totalSpent;
         const reputation = updateReputation(prev.reputation, choice.repDelta);
 
+        // Si c'est une vente directe de l'agent
+        let updatedCinema = prev.cinema.films;
+        let updatedMusique = prev.musique.releases;
+        let updatedSeries = prev.series.seasons;
+
+        if (modal.kind === 'agent' && modal.title.startsWith('Offre directe pour') && choice.label === 'Vendre') {
+           const titleTarget = modal.title.replace('Offre directe pour ', '');
+           updatedCinema = updatedCinema.map(f => f.title === titleTarget ? { ...f, deal: { sold: true, upfront: choice.cashDelta, perMin: 0 } } : f);
+           updatedMusique = updatedMusique.map(r => r.title === titleTarget ? { ...r, deal: { sold: true, upfront: choice.cashDelta, perMin: 0 } } : r);
+           updatedSeries = updatedSeries.map(s => s.title === titleTarget ? { ...s, deal: { sold: true, upfront: choice.cashDelta, perMin: 0 } } : s);
+        }
+
+        // Si faillite recommencer
+        if (modal.title === 'Faillite' && choice.label === 'Recommencer') {
+          return {
+            ...INITIAL_SAVE,
+            prestige: prev.prestige,
+            achievementsUnlocked: prev.achievementsUnlocked,
+            cash: 5000 + computePrestigeStartingCash(prev.prestige),
+          };
+        }
+
         toast(modal.kind === 'agent' ? 'Agent' : 'Événement', { description: choice.label, duration: 3000 });
         const minNextAt = now + 45_000;
 
@@ -1027,6 +1147,9 @@ export default function ApexPage() {
           reputation,
           buffs,
           activeModal: null,
+          cinema: { ...prev.cinema, films: updatedCinema },
+          musique: { ...prev.musique, releases: updatedMusique },
+          series: { ...prev.series, seasons: updatedSeries },
           nextAgentAt: Math.max(prev.nextAgentAt, minNextAt),
           nextEventAt: Math.max(prev.nextEventAt, minNextAt),
         };
@@ -1763,18 +1886,14 @@ export default function ApexPage() {
               Tuto
             </button>
 
-            <div ref={ppsRef} className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal px-4 py-3">
+            <div ref={ppsRef} className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal px-4 py-2 flex flex-col justify-center h-full min-h-[64px]">
               <div className="text-xs text-tx-secondary font-bold">₶/min</div>
-              <div className="text-xl font-display font-black tracking-wider">{formatCoins(incomePerMin)}</div>
-              <div className="text-xs text-tx-secondary font-bold">
-                Base: {formatShortNumber(passiveIncomePerMin)} • Mult: ×
-                {(reputationMult * achievementsMult * prestigeIncomeMult * buffsIncomeMult).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-              </div>
+              <div className="text-xl font-display font-black tracking-wider leading-none mt-1">{formatCoins(incomePerMin)}</div>
             </div>
 
-            <div ref={cashRef} className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal px-4 py-3">
+            <div ref={cashRef} className="rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal px-4 py-2 flex flex-col justify-center h-full min-h-[64px]">
               <div className="text-xs text-tx-secondary font-bold">Trésorerie</div>
-              <div className="text-xl font-display font-black tracking-wider">{formatCoins(data.cash)}</div>
+              <div className="text-xl font-display font-black tracking-wider leading-none mt-1">{formatCoins(data.cash)}</div>
             </div>
           </div>
         </div>
@@ -2185,61 +2304,122 @@ export default function ApexPage() {
                         Aucun projet. Lance une production.
                       </div>
                     ) : (
-                      activeProjects.slice(0, 24).map((p) => {
-                        const selected = p.id === activeSelectedId;
-                        const perf = 'boxOffice' in p ? p.boxOffice : 'sales' in p ? p.sales : 'viewers' in p ? p.viewers : p.attendance;
-                        const showPlatform = data.activeSector === 'series' && 'onPlatform' in p && p.status === 'released' && !p.onPlatform;
-                        return (
-                          <div
-                            key={p.id}
-                            className={cn(
-                              'rounded-xl border-2 px-3 py-3',
-                              selected
-                                ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
-                                : 'bg-brand-inner text-tx-base border-brand-border'
-                            )}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => selectProject(p.id)}
-                              className={cn(
-                                'w-full text-left rounded-lg transition-colors',
-                                selected ? 'text-brand-bg' : 'hover:text-brand-bg'
-                              )}
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div>
-                                  <div className="font-display font-black tracking-wider uppercase text-sm">{p.title}</div>
-                                  <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
-                                    {p.status === 'producing' ? 'En production' : p.status === 'ready' ? 'Prêt' : 'Sorti'}
-                                    {p.deal.sold ? ` • ${activeDealLabel}: +${formatShortNumber(p.deal.perMin)} ₶/min` : ''}
-                                  </div>
+                      <>
+                        <div className="mb-2 flex items-center justify-between">
+                          <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Projets en cours & Actifs</div>
+                          <div className="text-xs text-tx-secondary font-bold">Max 50 affichés</div>
+                        </div>
+                        <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                          {activeProjects
+                            .sort((a, b) => b.startedAt - a.startedAt)
+                            .slice(0, 50)
+                            .map((p) => {
+                              const selected = p.id === activeSelectedId;
+                              const perf = 'boxOffice' in p ? p.boxOffice : 'sales' in p ? p.sales : 'viewers' in p ? p.viewers : p.attendance;
+                              const showPlatform = data.activeSector === 'series' && 'onPlatform' in p && p.status === 'released' && !p.onPlatform;
+                              
+                              // Timer for negotiation (5 minutes = 300_000 ms)
+                              const releasedAt = p.releasedAt ?? 0;
+                              const canNegotiateTime = releasedAt + 300_000;
+                              const now = Date.now();
+                              const embargoActive = p.status === 'released' && !p.deal.sold && now < canNegotiateTime;
+                              const embargoLeftMs = Math.max(0, canNegotiateTime - now);
+                              const embargoLeftSec = Math.ceil(embargoLeftMs / 1000);
+                              const embargoStr = `${Math.floor(embargoLeftSec / 60)}:${(embargoLeftSec % 60).toString().padStart(2, '0')}`;
+
+                              return (
+                                <div
+                                  key={p.id}
+                                  className={cn(
+                                    'rounded-xl border-2 px-3 py-3',
+                                    selected
+                                      ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
+                                      : 'bg-brand-inner text-tx-base border-brand-border'
+                                  )}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => selectProject(p.id)}
+                                    className={cn(
+                                      'w-full text-left rounded-lg transition-colors',
+                                      selected ? 'text-brand-bg' : 'hover:text-brand-bg'
+                                    )}
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div>
+                                        <div className="font-display font-black tracking-wider uppercase text-sm">{p.title}</div>
+                                        <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
+                                          {p.status === 'producing' ? 'En production' : p.status === 'ready' ? 'Prêt' : 'Sorti'}
+                                          {p.deal.sold ? ` • Deal: +${formatShortNumber(p.deal.perMin)} ₶/min` : ''}
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="text-xs font-bold">{formatShortNumber(p.budget)} ₶</div>
+                                        <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
+                                          {perf > 0 ? `${formatShortNumber(perf)} ₶` : '—'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </button>
+                                  
+                                  {/* Action Buttons right in the card! */}
+                                  {p.status === 'producing' ? (
+                                    <div className="mt-3 h-2 rounded-full border-2 border-brand-border bg-brand-card overflow-hidden">
+                                      <div className="h-full bg-accent-primary" style={{ width: `${Math.max(0, Math.min(100, Math.round(((now - p.startedAt) / p.durationMs) * 100)))}%` }} />
+                                    </div>
+                                  ) : p.status === 'ready' ? (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        selectProject(p.id);
+                                        setTimeout(releaseSelected, 50); // slight delay so state updates
+                                      }}
+                                      className="mt-3 w-full h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                                    >
+                                      Sortir le projet
+                                    </button>
+                                  ) : p.status === 'released' && !p.deal.sold ? (
+                                    <button
+                                      type="button"
+                                      disabled={embargoActive}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        selectProject(p.id);
+                                        setTimeout(openDealNegotiation, 50);
+                                      }}
+                                      className={cn(
+                                        'mt-3 w-full h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 flex items-center justify-center gap-2',
+                                        embargoActive
+                                          ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                                          : selected
+                                            ? 'bg-brand-bg text-brand-border border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                            : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                      )}
+                                    >
+                                      {embargoActive ? `Négociable dans ${embargoStr}` : 'Négocier les droits'}
+                                    </button>
+                                  ) : null}
+
+                                  {showPlatform && data.unlockedSectors.platform ? (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); addSeasonToPlatform(p.id); }}
+                                      className={cn(
+                                        'mt-3 w-full h-11 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                                        selected
+                                          ? 'bg-brand-bg text-brand-border border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                          : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                                      )}
+                                    >
+                                      Ajouter à la plateforme
+                                    </button>
+                                  ) : null}
                                 </div>
-                                <div className="text-right">
-                                  <div className="text-xs font-bold">{formatShortNumber(p.budget)} ₶</div>
-                                  <div className={cn('mt-1 text-xs font-bold', selected ? 'text-brand-bg' : 'text-tx-secondary')}>
-                                    {perf > 0 ? `${formatShortNumber(perf)} ₶` : '—'}
-                                  </div>
-                                </div>
-                              </div>
-                            </button>
-                            {showPlatform && data.unlockedSectors.platform ? (
-                              <button
-                                type="button"
-                                onClick={() => addSeasonToPlatform(p.id)}
-                                className={cn(
-                                  'mt-3 w-full h-11 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
-                                  selected
-                                    ? 'bg-brand-bg text-brand-border border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                                    : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                                )}
-                              >
-                                Ajouter à la plateforme
-                              </button>
-                            ) : null}
-                          </div>
-                        );
-                      })
+                              );
+                            })}
+                        </div>
+                      </>
                     )}
                   </div>
                 )
