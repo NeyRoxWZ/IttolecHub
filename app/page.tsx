@@ -161,7 +161,6 @@ export default function Home() {
 
   return (
     <main className="bg-transparent min-h-screen md:h-screen flex flex-col justify-between md:overflow-hidden relative">
-      {/* EASTER EGG */}
       {easterEggActive && (
         <div 
           className="fixed inset-0 z-[9999] pointer-events-none"
@@ -170,12 +169,7 @@ export default function Home() {
             className="absolute bottom-4 left-4 animate-in slide-in-from-bottom-full duration-500 fade-in pointer-events-auto cursor-pointer"
             onClick={() => setEasterEggActive(false)}
           >
-            <img 
-                src="/easteregg.png" 
-                alt="Easter Egg" 
-                className="w-48 h-auto drop-shadow-2xl"
-                draggable={false}
-              />
+            <Image src="/easteregg.png" alt="Easter Egg" width={192} height={192} className="w-48 h-auto drop-shadow-2xl" draggable={false} priority />
           </div>
         </div>
       )}

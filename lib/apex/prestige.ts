@@ -1,80 +1,105 @@
-export type ApexPrestigeUpgradeId = 'income' | 'starting_cash' | 'hype_decay' | 'negotiation';
+export type ApexPrestigeUpgradeId =
+  | 'premier_reseau'
+  | 'reputation_heritee'
+  | 'agent_confiance'
+  | 'negociateur_ne'
+  | 'memoire_marche'
+  | 'tete_reseau'
+  | 'hype_machine';
 
 export type ApexPrestigeState = {
   stars: number;
   lifetimeStars: number;
-  upgrades: Partial<Record<ApexPrestigeUpgradeId, number>>;
+  count?: number;
+  upgrades: Partial<Record<ApexPrestigeUpgradeId, boolean>>;
 };
 
 export type ApexPrestigeUpgradeDef = {
   id: ApexPrestigeUpgradeId;
   name: string;
   description: string;
-  maxLevel: number;
-  costForLevel: (nextLevel: number) => number;
+  cost: number;
 };
 
-export const APEX_STAR_BASE = 5_000_000;
+export function computeStarsFromRun(args: {
+  totalEarned: number;
+  sectorsUnlocked: number;
+  achievementsUnlocked: number;
+}): number {
+  const earned = Math.max(0, args.totalEarned);
+  const sectors = Math.max(0, Math.floor(args.sectorsUnlocked));
+  const achievements = Math.max(0, Math.floor(args.achievementsUnlocked));
 
-export function computeStarsFromTotalEarned(totalEarned: number): number {
-  const x = Math.max(0, totalEarned);
-  return Math.floor(Math.sqrt(x / APEX_STAR_BASE));
+  const base = Math.sqrt(earned / 5_000_000);
+  const sectorBonus = sectors * 0.35;
+  const achievementBonus = Math.min(10, achievements / 30);
+
+  return Math.max(0, Math.floor(base + sectorBonus + achievementBonus));
 }
 
 export function getPrestigeUpgrades(): ApexPrestigeUpgradeDef[] {
   return [
     {
-      id: 'income',
-      name: 'Capital permanent',
-      description: '+5% income par niveau.',
-      maxLevel: 20,
-      costForLevel: (lvl) => Math.max(1, Math.floor(1 + lvl * 2)),
+      id: 'premier_reseau',
+      name: 'Premier Réseau',
+      description: 'Commencer avec 25 000 ₶ au lieu de 10 000 ₶.',
+      cost: 5,
     },
     {
-      id: 'starting_cash',
-      name: 'Trésorerie de départ',
-      description: '+1 000 ₶ au départ par niveau.',
-      maxLevel: 25,
-      costForLevel: (lvl) => Math.max(1, Math.floor(1 + lvl)),
+      id: 'reputation_heritee',
+      name: 'Réputation Héritée',
+      description: 'Toutes les jauges de réputation commencent à 10.',
+      cost: 8,
     },
     {
-      id: 'hype_decay',
-      name: 'Hype tenace',
-      description: 'Hype décroît plus lentement.',
-      maxLevel: 15,
-      costForLevel: (lvl) => Math.max(1, Math.floor(2 + lvl)),
+      id: 'agent_confiance',
+      name: "L'Agent de Confiance",
+      description: "L'Agent revient deux fois plus vite.",
+      cost: 6,
     },
     {
-      id: 'negotiation',
-      name: 'Négociateur',
-      description: 'Deals un peu meilleurs.',
-      maxLevel: 15,
-      costForLevel: (lvl) => Math.max(1, Math.floor(2 + lvl)),
+      id: 'negociateur_ne',
+      name: 'Négociateur Né',
+      description: '+5% de probabilité de succès sur toutes les négociations.',
+      cost: 10,
+    },
+    {
+      id: 'memoire_marche',
+      name: 'Mémoire du Marché',
+      description: 'Cours crypto légèrement prédictibles.',
+      cost: 12,
+    },
+    {
+      id: 'tete_reseau',
+      name: 'Tête de Réseau',
+      description: 'Roster max artistes +3 dès le départ.',
+      cost: 15,
+    },
+    {
+      id: 'hype_machine',
+      name: 'Hype Machine',
+      description: 'Hype initiale de tous les projets +10.',
+      cost: 20,
     },
   ];
 }
 
-export function getUpgradeLevel(state: ApexPrestigeState, id: ApexPrestigeUpgradeId): number {
-  return Math.max(0, Math.floor(state.upgrades[id] ?? 0));
+export function hasPrestigeUpgrade(state: ApexPrestigeState, id: ApexPrestigeUpgradeId): boolean {
+  return Boolean(state.upgrades[id]);
 }
 
 export function computePrestigeIncomeMult(state: ApexPrestigeState): number {
-  const lvl = getUpgradeLevel(state, 'income');
-  return 1 + lvl * 0.05;
+  return 1;
 }
 
 export function computePrestigeStartingCash(state: ApexPrestigeState): number {
-  const lvl = getUpgradeLevel(state, 'starting_cash');
-  return lvl * 1000;
+  return hasPrestigeUpgrade(state, 'premier_reseau') ? 25_000 : 10_000;
 }
 
 export function computePrestigeHypeDecayMult(state: ApexPrestigeState): number {
-  const lvl = getUpgradeLevel(state, 'hype_decay');
-  return Math.max(0.45, 1 - lvl * 0.03);
+  return 1;
 }
 
 export function computeNegotiationBoost(state: ApexPrestigeState): number {
-  const lvl = getUpgradeLevel(state, 'negotiation');
-  return Math.min(0.18, lvl * 0.012);
+  return hasPrestigeUpgrade(state, 'negociateur_ne') ? 0.05 : 0;
 }
-

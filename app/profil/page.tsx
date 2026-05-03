@@ -8,7 +8,9 @@ import { supabase } from '@/lib/supabase/client';
 import { generatePassphrase } from '@/lib/words';
 import { LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check, Crown, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { getPrestigeUpgrades } from '@/lib/apex/prestige';
 
 export default function ProfilPage() {
   const { user, loading, logout, refreshUser } = useAuth();
@@ -25,6 +27,8 @@ export default function ProfilPage() {
     achievementsUnlocked: number;
     lifetimeStars: number;
     stars: number;
+    prestigeLevel: number;
+    upgrades: string[];
   } | null>(null);
 
   useEffect(() => {
@@ -55,9 +59,12 @@ export default function ProfilPage() {
 
         const save = data.save_data as any;
         const totalEarned = Math.max(0, Number(save?.totalEarned ?? 0) || 0);
-        const achievementsUnlocked = Array.isArray(save?.achievementsUnlocked) ? save.achievementsUnlocked.length : 0;
+        const achievementsUnlocked = Array.isArray(save?.achievements) ? save.achievements.length : 0;
         const lifetimeStars = Math.max(0, Number(save?.prestige?.lifetimeStars ?? 0) || 0);
         const stars = Math.max(0, Number(save?.prestige?.stars ?? 0) || 0);
+        const prestigeLevel = Math.max(0, Number(save?.prestige?.count ?? 0) || 0);
+        const upgradesObj = save?.prestige?.upgrades;
+        const upgrades = upgradesObj && typeof upgradesObj === 'object' ? Object.keys(upgradesObj).filter((k) => Boolean(upgradesObj[k])) : [];
 
         setApexStats({
           updatedAt: typeof data.updated_at === 'string' ? data.updated_at : null,
@@ -65,6 +72,8 @@ export default function ProfilPage() {
           achievementsUnlocked,
           lifetimeStars,
           stars,
+          prestigeLevel,
+          upgrades,
         });
       } catch {
         if (cancelled) return;
@@ -174,7 +183,7 @@ export default function ProfilPage() {
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             <div className="shrink-0">
               {user.avatar_url ? (
-                <img src={user.avatar_url} alt="Avatar" className="w-24 h-24 rounded-full border-4 border-brand-border shadow-brutal" />
+                <Image src={user.avatar_url} alt="Avatar" width={96} height={96} unoptimized className="w-24 h-24 rounded-full border-4 border-brand-border shadow-brutal" />
               ) : (
                 <div className="w-24 h-24 rounded-full bg-brand-inner border-4 border-brand-border shadow-brutal flex items-center justify-center font-display font-black text-4xl text-tx-base">
                   {user.pseudo[0].toUpperCase()}
@@ -281,6 +290,19 @@ export default function ProfilPage() {
                       <div className="text-xs text-tx-secondary font-bold">Prestige (lifetime)</div>
                       <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
                         {apexStats.lifetimeStars.toLocaleString('fr-FR')}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3 sm:col-span-2">
+                      <div className="text-xs text-tx-secondary font-bold">Niveau de prestige</div>
+                      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">{apexStats.prestigeLevel.toLocaleString('fr-FR')}</div>
+                      <div className="mt-2 text-xs text-tx-secondary font-bold">
+                        Upgrades:{" "}
+                        {apexStats.upgrades.length === 0
+                          ? 'Aucun'
+                          : getPrestigeUpgrades()
+                              .filter((u) => apexStats.upgrades.includes(u.id))
+                              .map((u) => u.name)
+                              .join(' • ')}
                       </div>
                     </div>
                   </div>

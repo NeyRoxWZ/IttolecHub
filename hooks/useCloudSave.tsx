@@ -11,6 +11,22 @@ type CloudSaveOptions = {
   silent?: boolean;
 };
 
+function mergeWithDefaults<T>(defaults: T, loaded: unknown): T {
+  if (Array.isArray(defaults)) return (Array.isArray(loaded) ? (loaded as any) : defaults) as T;
+  if (typeof defaults !== 'object' || defaults === null) return (loaded === undefined ? defaults : (loaded as any)) as T;
+
+  const out: any = { ...(defaults as any) };
+  if (typeof loaded !== 'object' || loaded === null) return out as T;
+
+  for (const key of Object.keys(out)) {
+    out[key] = mergeWithDefaults(out[key], (loaded as any)[key]);
+  }
+  for (const key of Object.keys(loaded as any)) {
+    if (!(key in out)) out[key] = (loaded as any)[key];
+  }
+  return out as T;
+}
+
 export function useCloudSave<T extends SaveData>(gameSlug: string, initialData: T, options?: CloudSaveOptions) {
   const { user } = useAuth();
   const [data, setData] = useState<T>(initialData);
@@ -18,6 +34,8 @@ export function useCloudSave<T extends SaveData>(gameSlug: string, initialData: 
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'error' | 'local'>('idle');
   const dataRef = useRef(data);
   const [isLoaded, setIsLoaded] = useState(false);
+  const syncInFlightRef = useRef(false);
+  const lastSyncAttemptAtRef = useRef<number | null>(null);
 
   // Mettre à jour la ref à chaque changement de data pour le setInterval
   useEffect(() => {
@@ -60,7 +78,6 @@ export function useCloudSave<T extends SaveData>(gameSlug: string, initialData: 
           };
         }
       } catch (e) {
-        console.error('Erreur chargement cloud:', e);
       }
     }
 
@@ -85,7 +102,7 @@ export function useCloudSave<T extends SaveData>(gameSlug: string, initialData: 
     }
 
     // Fusionner avec les valeurs par défaut pour éviter les clés manquantes
-    setData({ ...initialData, ...finalData });
+    setData(mergeWithDefaults(initialData, finalData));
     setLastSync(finalTime.getTime() > 0 ? finalTime : new Date());
     setIsLoaded(true);
     
@@ -107,39 +124,69 @@ export function useCloudSave<T extends SaveData>(gameSlug: string, initialData: 
     loadData();
   }, [loadData]);
 
-  // Synchronisation toutes les 30s
-  useEffect(() => {
+  const syncOnce = useCallback(async () => {
     if (!user || !isLoaded) return;
+    if (syncInFlightRef.current) return;
 
-    const interval = setInterval(async () => {
-      setSyncStatus('syncing');
-      try {
-        const currentData = dataRef.current;
-        const now = new Date().toISOString();
+    syncInFlightRef.current = true;
+    setSyncStatus('syncing');
 
-        const { error } = await supabase
-          .from('game_saves')
-          .upsert({
+    try {
+      const currentData = dataRef.current;
+      const now = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('game_saves')
+        .upsert(
+          {
             user_id: user.id,
             game_slug: gameSlug,
             save_data: currentData,
-            updated_at: now
-          }, {
-            onConflict: 'user_id, game_slug'
-          });
+            updated_at: now,
+          },
+          {
+            onConflict: 'user_id, game_slug',
+          }
+        );
 
-        if (error) throw error;
-        
-        setLastSync(new Date(now));
-        setSyncStatus('idle');
-      } catch (error) {
-        console.error('Erreur sync:', error);
-        setSyncStatus('error');
+      if (error) throw error;
+
+      setLastSync(new Date(now));
+      setSyncStatus('idle');
+    } catch (error) {
+      setSyncStatus('error');
+    } finally {
+      syncInFlightRef.current = false;
+    }
+  }, [user, isLoaded, gameSlug]);
+
+  // Synchronisation toutes les 30s (sans setInterval)
+  useEffect(() => {
+    if (!user || !isLoaded) return;
+
+    let rafId = 0;
+    let cancelled = false;
+
+    const loop = (ts: number) => {
+      if (cancelled) return;
+      if (lastSyncAttemptAtRef.current === null) lastSyncAttemptAtRef.current = ts;
+
+      const elapsed = ts - (lastSyncAttemptAtRef.current ?? ts);
+      if (elapsed >= 30000) {
+        lastSyncAttemptAtRef.current = ts;
+        void syncOnce();
       }
-    }, 30000);
 
-    return () => clearInterval(interval);
-  }, [user, gameSlug]);
+      rafId = requestAnimationFrame(loop);
+    };
+
+    rafId = requestAnimationFrame(loop);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+    };
+  }, [user, isLoaded, syncOnce]);
 
   const forceSync = async () => {
     if (!user) return;
@@ -162,7 +209,6 @@ export function useCloudSave<T extends SaveData>(gameSlug: string, initialData: 
       setSyncStatus('idle');
       if (!options?.silent) toast.success('Sauvegarde synchronisée');
     } catch (error) {
-      console.error('Erreur sync forcée:', error);
       setSyncStatus('error');
       if (!options?.silent) toast.error('Erreur de synchronisation');
     }

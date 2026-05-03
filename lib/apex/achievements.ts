@@ -83,7 +83,7 @@ export function generateApexAchievements(): ApexAchievementDef[] {
     { id: 'musique', label: 'Musique' },
     { id: 'series', label: 'Séries' },
     { id: 'live', label: 'Live' },
-    { id: 'games', label: 'Jeux vidéo' },
+    { id: 'jv', label: 'Jeux vidéo' },
   ] as const;
 
   const releasedTiers = [1, 2, 3, 5, 8, 12, 18, 25, 40, 60];
