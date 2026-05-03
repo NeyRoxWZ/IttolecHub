@@ -35,7 +35,7 @@ import {
 } from '@/lib/apex/markets';
 import { Film, Gamepad2, Plus, TrendingUp, Tv, Users, X } from 'lucide-react';
 
-type SectorId = 'cinema' | 'musique' | 'series' | 'live' | 'crypto' | 'games' | 'stocks' | 'platform';
+type SectorId = 'cinema' | 'musique' | 'series' | 'live' | 'crypto' | 'games' | 'stocks' | 'platform' | 'meta';
 
 type ApexProjectStatus = 'producing' | 'ready' | 'released';
 
@@ -287,9 +287,15 @@ function computeReleasedBySector(save: ApexSave): Record<string, number> {
 
 export default function ApexPage() {
   const { data, setData, isLoaded } = useCloudSave<ApexSave>('apex', INITIAL_SAVE, { silent: true });
-  const [activeTab, setActiveTab] = useState<'production' | 'negociation' | 'catalogue' | 'meta'>('production');
   const [achievementQuery, setAchievementQuery] = useState('');
   const [mobileSheet, setMobileSheet] = useState<null | 'sectors' | 'actions'>(null);
+  const [creationModal, setCreationModal] = useState<SectorId | null>(null);
+  
+  // Creation Panel State
+  const [creationGenre, setCreationGenre] = useState('Action');
+  const [creationBudget, setCreationBudget] = useState('5000');
+  const [creationMarketing, setCreationMarketing] = useState('25');
+  const [creationQualityLevel, setCreationQualityLevel] = useState(1); // 1, 2, 3
 
   const [names, setNames] = useState<Record<string, string[]> | null>(null);
   const [namesStatus, setNamesStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -871,7 +877,7 @@ export default function ApexPage() {
   }, [agentTemplates, computeAchievementsUnlockedNow, eventTemplates, isLoaded, setData]);
 
   const sectorUnlockCost: Record<SectorId, number> = useMemo(
-    () => ({ cinema: 0, musique: 25_000, series: 75_000, live: 150_000, games: 250_000, crypto: 400_000, stocks: 600_000, platform: 900_000 }),
+    () => ({ cinema: 0, musique: 25_000, series: 75_000, live: 150_000, games: 250_000, crypto: 400_000, stocks: 600_000, platform: 900_000, meta: 0 }),
     []
   );
 
@@ -901,13 +907,11 @@ export default function ApexPage() {
 
   const setActiveSector = useCallback(
     (id: SectorId) => {
-      if (!isSectorUnlocked(id)) {
+      if (!isSectorUnlocked(id) && id !== 'meta') {
         unlockSector(id);
-        setActiveTab('production');
         return;
       }
       setData((prev) => ({ ...prev, activeSector: id }));
-      setActiveTab('production');
     },
     [isSectorUnlocked, setData, unlockSector]
   );
@@ -1034,25 +1038,31 @@ export default function ApexPage() {
   const [counterOffer, setCounterOffer] = useState('');
 
   const startCinema = useCallback(
-    (budget: number) => {
+    (budgetBase: number, marketingPct: number, qualityLevel: number) => {
       if (namesStatus !== 'ready') return;
       if (filmNames.length === 0) return;
 
+      const totalBudget = Math.floor(budgetBase * (1 + marketingPct / 100));
+
       setData((prev) => {
-        if (prev.cash < budget) {
-          toast('Cinéma', { description: `Il te manque ${formatShortNumber(budget - prev.cash)} ₶.`, duration: 3000 });
+        if (prev.cash < totalBudget) {
+          toast('Cinéma', { description: `Il te manque ${formatShortNumber(totalBudget - prev.cash)} ₶.`, duration: 3000 });
           return prev;
         }
 
         const drawPrev = prev.drawByCategory.films;
         const drawn = drawWithoutReplacement({ list: filmNames, prev: drawPrev });
-        const quality = 0.35 + Math.random() * 0.65;
-        const durationMs = Math.round((18_000 + Math.random() * 12_000) * (0.85 + Math.min(1, budget / 200_000) * 0.5));
+        
+        // Quality Level (1 = Débutant, 2 = Confirmé, 3 = Star) adds base quality but costs more.
+        // Actually, we just use the qualityLevel to boost quality.
+        const baseQ = qualityLevel === 3 ? 0.6 : qualityLevel === 2 ? 0.45 : 0.35;
+        const quality = Math.min(1, baseQ + Math.random() * 0.4 + (marketingPct / 100) * 0.1);
+        const durationMs = Math.round((18_000 + Math.random() * 12_000) * (0.85 + Math.min(1, totalBudget / 200_000) * 0.5));
 
         const film: ApexFilm = {
           id: createId(),
           title: drawn.value,
-          budget,
+          budget: totalBudget,
           startedAt: Date.now(),
           durationMs,
           status: 'producing',
@@ -1064,24 +1074,27 @@ export default function ApexPage() {
         toast('Cinéma', { description: `Production lancée: ${film.title}`, duration: 3500 });
         return {
           ...prev,
-          cash: clampNonNegative(prev.cash - budget),
-          totalSpent: clampNonNegative(prev.totalSpent + budget),
+          cash: clampNonNegative(prev.cash - totalBudget),
+          totalSpent: clampNonNegative(prev.totalSpent + totalBudget),
           drawByCategory: { ...prev.drawByCategory, films: drawn.next },
           cinema: { ...prev.cinema, films: [film, ...prev.cinema.films], selectedId: film.id },
         };
       });
+      setCreationModal(null);
     },
     [filmNames, namesStatus, setData]
   );
 
   const startMusique = useCallback(
-    (budget: number) => {
+    (budgetBase: number, marketingPct: number, qualityLevel: number) => {
       if (namesStatus !== 'ready') return;
       if (artistNames.length === 0) return;
 
+      const totalBudget = Math.floor(budgetBase * (1 + marketingPct / 100));
+
       setData((prev) => {
-        if (prev.cash < budget) {
-          toast('Musique', { description: `Il te manque ${formatShortNumber(budget - prev.cash)} ₶.`, duration: 3000 });
+        if (prev.cash < totalBudget) {
+          toast('Musique', { description: `Il te manque ${formatShortNumber(totalBudget - prev.cash)} ₶.`, duration: 3000 });
           return prev;
         }
 
@@ -1091,14 +1104,15 @@ export default function ApexPage() {
 
         const artist = artistDraw.value;
         const title = titleDraw ? titleDraw.value : `Single — ${artist}`;
-        const quality = 0.35 + Math.random() * 0.65;
-        const durationMs = Math.round(16_000 + Math.random() * 10_000);
+        const baseQ = qualityLevel === 3 ? 0.6 : qualityLevel === 2 ? 0.45 : 0.35;
+        const quality = Math.min(1, baseQ + Math.random() * 0.4 + (marketingPct / 100) * 0.1);
+        const durationMs = Math.round((16_000 + Math.random() * 10_000) * (0.85 + Math.min(1, totalBudget / 200_000) * 0.5));
 
         const release: ApexMusicRelease = {
           id: createId(),
           title,
           artist,
-          budget,
+          budget: totalBudget,
           startedAt: Date.now(),
           durationMs,
           status: 'producing',
@@ -1110,8 +1124,8 @@ export default function ApexPage() {
         toast('Musique', { description: `Sortie en préparation: ${release.artist}`, duration: 3500 });
         return {
           ...prev,
-          cash: clampNonNegative(prev.cash - budget),
-          totalSpent: clampNonNegative(prev.totalSpent + budget),
+          cash: clampNonNegative(prev.cash - totalBudget),
+          totalSpent: clampNonNegative(prev.totalSpent + totalBudget),
           drawByCategory: {
             ...prev.drawByCategory,
             artistes: artistDraw.next,
@@ -1120,18 +1134,21 @@ export default function ApexPage() {
           musique: { ...prev.musique, releases: [release, ...prev.musique.releases], selectedId: release.id },
         };
       });
+      setCreationModal(null);
     },
     [artistNames, filmNames, namesStatus, setData]
   );
 
   const startSeries = useCallback(
-    (budget: number) => {
+    (budgetBase: number, marketingPct: number, qualityLevel: number) => {
       if (namesStatus !== 'ready') return;
       if (seriesNames.length === 0) return;
 
+      const totalBudget = Math.floor(budgetBase * (1 + marketingPct / 100));
+
       setData((prev) => {
-        if (prev.cash < budget) {
-          toast('Séries', { description: `Il te manque ${formatShortNumber(budget - prev.cash)} ₶.`, duration: 3000 });
+        if (prev.cash < totalBudget) {
+          toast('Séries', { description: `Il te manque ${formatShortNumber(totalBudget - prev.cash)} ₶.`, duration: 3000 });
           return prev;
         }
 
@@ -1139,14 +1156,15 @@ export default function ApexPage() {
         const showrunnerDraw =
           showrunnerNames.length > 0 ? drawWithoutReplacement({ list: showrunnerNames, prev: prev.drawByCategory.showrunners }) : null;
 
-        const quality = 0.35 + Math.random() * 0.65;
-        const durationMs = Math.round(22_000 + Math.random() * 14_000);
+        const baseQ = qualityLevel === 3 ? 0.6 : qualityLevel === 2 ? 0.45 : 0.35;
+        const quality = Math.min(1, baseQ + Math.random() * 0.4 + (marketingPct / 100) * 0.1);
+        const durationMs = Math.round((22_000 + Math.random() * 14_000) * (0.85 + Math.min(1, totalBudget / 200_000) * 0.5));
 
         const season: ApexSeriesSeason = {
           id: createId(),
           title: titleDraw.value,
           showrunner: showrunnerDraw ? showrunnerDraw.value : 'Showrunner',
-          budget,
+          budget: totalBudget,
           startedAt: Date.now(),
           durationMs,
           status: 'producing',
@@ -1159,8 +1177,8 @@ export default function ApexPage() {
         toast('Séries', { description: `Production lancée: ${season.title}`, duration: 3500 });
         return {
           ...prev,
-          cash: clampNonNegative(prev.cash - budget),
-          totalSpent: clampNonNegative(prev.totalSpent + budget),
+          cash: clampNonNegative(prev.cash - totalBudget),
+          totalSpent: clampNonNegative(prev.totalSpent + totalBudget),
           drawByCategory: {
             ...prev.drawByCategory,
             noms_series: titleDraw.next,
@@ -1169,31 +1187,36 @@ export default function ApexPage() {
           series: { ...prev.series, seasons: [season, ...prev.series.seasons], selectedId: season.id },
         };
       });
+      setCreationModal(null);
     },
     [namesStatus, seriesNames, setData, showrunnerNames]
   );
 
   const startLive = useCallback(
-    (budget: number) => {
+    (budgetBase: number, marketingPct: number, qualityLevel: number) => {
       if (namesStatus !== 'ready') return;
       if (artistNames.length === 0) return;
 
+      const totalBudget = Math.floor(budgetBase * (1 + marketingPct / 100));
+
       setData((prev) => {
-        if (prev.cash < budget) {
-          toast('Live', { description: `Il te manque ${formatShortNumber(budget - prev.cash)} ₶.`, duration: 3000 });
+        if (prev.cash < totalBudget) {
+          toast('Live', { description: `Il te manque ${formatShortNumber(totalBudget - prev.cash)} ₶.`, duration: 3000 });
           return prev;
         }
 
         const headlinerDraw = drawWithoutReplacement({ list: artistNames, prev: prev.drawByCategory.artistes_live ?? prev.drawByCategory.artistes });
         const headliner = headlinerDraw.value;
-        const quality = 0.35 + Math.random() * 0.65;
-        const durationMs = Math.round(14_000 + Math.random() * 10_000);
+        
+        const baseQ = qualityLevel === 3 ? 0.6 : qualityLevel === 2 ? 0.45 : 0.35;
+        const quality = Math.min(1, baseQ + Math.random() * 0.4 + (marketingPct / 100) * 0.1);
+        const durationMs = Math.round((14_000 + Math.random() * 10_000) * (0.85 + Math.min(1, totalBudget / 200_000) * 0.5));
 
         const e: ApexLiveEvent = {
           id: createId(),
           title: `Live: ${headliner}`,
           headliner,
-          budget,
+          budget: totalBudget,
           startedAt: Date.now(),
           durationMs,
           status: 'producing',
@@ -1205,38 +1228,42 @@ export default function ApexPage() {
         toast('Live', { description: `Événement planifié: ${headliner}`, duration: 3500 });
         return {
           ...prev,
-          cash: clampNonNegative(prev.cash - budget),
-          totalSpent: clampNonNegative(prev.totalSpent + budget),
+          cash: clampNonNegative(prev.cash - totalBudget),
+          totalSpent: clampNonNegative(prev.totalSpent + totalBudget),
           drawByCategory: { ...prev.drawByCategory, artistes_live: headlinerDraw.next },
           live: { ...prev.live, events: [e, ...prev.live.events], selectedId: e.id },
         };
       });
+      setCreationModal(null);
     },
     [artistNames, namesStatus, setData]
   );
 
   const startGame = useCallback(
-    (budget: number) => {
+    (budgetBase: number, marketingPct: number, qualityLevel: number) => {
       if (namesStatus !== 'ready') return;
       if (gameNames.length === 0) return;
 
+      const totalBudget = Math.floor(budgetBase * (1 + marketingPct / 100));
+
       setData((prev) => {
-        if (prev.cash < budget) {
-          toast('Jeux vidéo', { description: `Il te manque ${formatShortNumber(budget - prev.cash)} ₶.`, duration: 3000 });
+        if (prev.cash < totalBudget) {
+          toast('Jeux vidéo', { description: `Il te manque ${formatShortNumber(totalBudget - prev.cash)} ₶.`, duration: 3000 });
           return prev;
         }
 
         const titleDraw = drawWithoutReplacement({ list: gameNames, prev: prev.drawByCategory.noms_jeux });
         const studioDraw = gameStudios.length > 0 ? drawWithoutReplacement({ list: gameStudios, prev: prev.drawByCategory.studios_jv }) : null;
 
-        const quality = 0.35 + Math.random() * 0.65;
-        const durationMs = Math.round((20_000 + Math.random() * 16_000) * (0.9 + Math.min(1, budget / 400_000) * 0.6));
+        const baseQ = qualityLevel === 3 ? 0.6 : qualityLevel === 2 ? 0.45 : 0.35;
+        const quality = Math.min(1, baseQ + Math.random() * 0.4 + (marketingPct / 100) * 0.1);
+        const durationMs = Math.round((20_000 + Math.random() * 16_000) * (0.85 + Math.min(1, totalBudget / 400_000) * 0.6));
 
         const g: ApexGame = {
           id: createId(),
           title: titleDraw.value,
           studio: studioDraw ? studioDraw.value : 'Studio',
-          budget,
+          budget: totalBudget,
           startedAt: Date.now(),
           durationMs,
           status: 'producing',
@@ -1248,8 +1275,8 @@ export default function ApexPage() {
         toast('Jeux vidéo', { description: `Développement lancé: ${g.title}`, duration: 3500 });
         return {
           ...prev,
-          cash: clampNonNegative(prev.cash - budget),
-          totalSpent: clampNonNegative(prev.totalSpent + budget),
+          cash: clampNonNegative(prev.cash - totalBudget),
+          totalSpent: clampNonNegative(prev.totalSpent + totalBudget),
           drawByCategory: {
             ...prev.drawByCategory,
             noms_jeux: titleDraw.next,
@@ -1258,6 +1285,7 @@ export default function ApexPage() {
           games: { ...prev.games, games: [g, ...prev.games.games], selectedId: g.id },
         };
       });
+      setCreationModal(null);
     },
     [gameNames, gameStudios, namesStatus, setData]
   );
@@ -1443,7 +1471,6 @@ export default function ApexPage() {
         negotiationContext: { sector, projectId: p.id, dealType },
       };
     });
-    setActiveTab('negociation');
   }, [setData]);
 
   const acceptCurrentNegotiation = useCallback(() => {
@@ -1510,12 +1537,12 @@ export default function ApexPage() {
   const canRelease = useMemo(() => Boolean(currentReady), [currentReady]);
 
   const startByActiveSector = useCallback(
-    (budget: number) => {
-      if (data.activeSector === 'cinema') startCinema(budget);
-      else if (data.activeSector === 'musique') startMusique(budget);
-      else if (data.activeSector === 'series') startSeries(budget);
-      else if (data.activeSector === 'live') startLive(budget);
-      else if (data.activeSector === 'games') startGame(budget);
+    (budgetBase: number, marketingPct: number, qualityLevel: number) => {
+      if (data.activeSector === 'cinema') startCinema(budgetBase, marketingPct, qualityLevel);
+      else if (data.activeSector === 'musique') startMusique(budgetBase, marketingPct, qualityLevel);
+      else if (data.activeSector === 'series') startSeries(budgetBase, marketingPct, qualityLevel);
+      else if (data.activeSector === 'live') startLive(budgetBase, marketingPct, qualityLevel);
+      else if (data.activeSector === 'games') startGame(budgetBase, marketingPct, qualityLevel);
     },
     [data.activeSector, startCinema, startGame, startLive, startMusique, startSeries]
   );
@@ -1822,60 +1849,9 @@ export default function ApexPage() {
                   </button>
                   <div className="hidden lg:block text-sm font-display font-black tracking-wider uppercase">{activeSectorTitle}</div>
                 </div>
-                <div className="hidden lg:flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('production')}
-                    className={cn(
-                      'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
-                      activeTab === 'production'
-                        ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
-                        : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                    )}
-                  >
-                    Production
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('catalogue')}
-                    className={cn(
-                      'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
-                      activeTab === 'catalogue'
-                        ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
-                        : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                    )}
-                  >
-                    Catalogue
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('negociation')}
-                    className={cn(
-                      'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
-                      activeTab === 'negociation'
-                        ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
-                        : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                    )}
-                  >
-                    Deals
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('meta')}
-                    ref={metaTabRef}
-                    className={cn(
-                      'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
-                      activeTab === 'meta'
-                        ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
-                        : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                    )}
-                  >
-                    Méta
-                  </button>
-                </div>
               </div>
 
-              {activeTab === 'production' ? (
+              {data.activeSector !== 'meta' ? (
                 data.activeSector === 'crypto' ? (
                   <div className="mt-4 space-y-4">
                     <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
@@ -2135,50 +2111,27 @@ export default function ApexPage() {
                     </div>
 
                     <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
-                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Lancer un projet</div>
-                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {[
-                          { label: 'Petit', budget: 2500 },
-                          { label: 'Standard', budget: 20_000 },
-                          { label: 'Gros', budget: 120_000 },
-                        ].map((b) => (
-                          <button
-                            key={b.label}
-                            type="button"
-                            onClick={() => startByActiveSector(b.budget)}
-                            disabled={
-                              namesStatus !== 'ready' ||
-                              data.cash < b.budget ||
-                              (data.activeSector !== 'cinema' &&
-                                data.activeSector !== 'musique' &&
-                                data.activeSector !== 'series' &&
-                                data.activeSector !== 'live' &&
-                                data.activeSector !== 'games')
-                            }
-                            className={cn(
-                              'h-12 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
-                              namesStatus !== 'ready' ||
-                                data.cash < b.budget ||
-                                (data.activeSector !== 'cinema' &&
-                                  data.activeSector !== 'musique' &&
-                                  data.activeSector !== 'series' &&
-                                  data.activeSector !== 'live' &&
-                                  data.activeSector !== 'games')
-                                ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
-                                : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                            )}
-                          >
-                            {b.label} ({formatShortNumber(b.budget)} ₶)
-                          </button>
-                        ))}
-                      </div>
-                      {namesStatus === 'loading' ? <div className="mt-2 text-xs text-tx-secondary font-bold">Chargement des noms…</div> : null}
+                      <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Nouveau projet</div>
+                      <button
+                        type="button"
+                        onClick={() => setCreationModal(data.activeSector)}
+                        disabled={namesStatus !== 'ready'}
+                        className={cn(
+                          'mt-3 w-full h-12 rounded-xl border-2 font-display font-black tracking-wider uppercase transition-colors shadow-brutal',
+                          namesStatus !== 'ready'
+                            ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                            : 'bg-accent-primary text-brand-bg border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        )}
+                      >
+                        Configurer le projet
+                      </button>
+                      {namesStatus === 'loading' ? <div className="mt-2 text-xs text-tx-secondary font-bold">Chargement des données…</div> : null}
                     </div>
                   </div>
                 )
               ) : null}
 
-              {activeTab === 'catalogue' ? (
+              {data.activeSector !== 'meta' ? (
                 data.activeSector === 'crypto' ? (
                   <div className="mt-4 space-y-3">
                     <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
@@ -2292,7 +2245,7 @@ export default function ApexPage() {
                 )
               ) : null}
 
-              {activeTab === 'negociation' ? (
+              {data.activeSector !== 'meta' ? (
                 data.activeSector === 'crypto' || data.activeSector === 'stocks' || data.activeSector === 'platform' ? (
                   <div className="mt-4 space-y-3">
                     <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3 text-sm text-tx-secondary font-bold">
@@ -2338,7 +2291,7 @@ export default function ApexPage() {
                 )
               ) : null}
 
-              {activeTab === 'meta' ? (
+              {data.activeSector === 'meta' ? (
                 <div className="mt-4 space-y-4">
                   <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
                     <div className="flex items-start justify-between gap-4">
@@ -2599,6 +2552,112 @@ export default function ApexPage() {
           </div>
         </div>
 
+        {creationModal ? (
+          <div className="fixed inset-0 z-[99998]">
+            <div className="absolute inset-0 bg-black/70" />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md px-4">
+              <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
+                <div className="flex items-center justify-between gap-3 border-b-2 border-brand-border pb-3 mb-4">
+                  <div className="font-display text-xl font-black tracking-wider uppercase text-tx-base">
+                    Configurer le projet
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCreationModal(null)}
+                    className="h-10 w-10 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base flex items-center justify-center transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-tx-secondary tracking-widest uppercase">Genre / Cible</label>
+                    <select
+                      value={creationGenre}
+                      onChange={(e) => setCreationGenre(e.target.value)}
+                      className="w-full h-11 rounded-lg border-2 border-brand-border bg-brand-inner px-3 text-sm font-bold focus:outline-none"
+                    >
+                      <option value="Action">Action / Pop</option>
+                      <option value="Drame">Drame / Indé</option>
+                      <option value="Comedie">Comédie / Feel Good</option>
+                      <option value="Auteur">Auteur / Conceptuel</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-tx-secondary tracking-widest uppercase">Envergure (Qualité & Coût)</label>
+                    <select
+                      value={creationQualityLevel}
+                      onChange={(e) => setCreationQualityLevel(Number(e.target.value))}
+                      className="w-full h-11 rounded-lg border-2 border-brand-border bg-brand-inner px-3 text-sm font-bold focus:outline-none"
+                    >
+                      <option value={1}>Modeste (Débutants)</option>
+                      <option value={2}>Standard (Confirmés)</option>
+                      <option value={3}>Ambitieux (Stars)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-tx-secondary tracking-widest uppercase">Budget de production (₶)</label>
+                    <input
+                      type="number"
+                      value={creationBudget}
+                      onChange={(e) => setCreationBudget(e.target.value)}
+                      min="500"
+                      step="500"
+                      className="w-full h-11 rounded-lg border-2 border-brand-border bg-brand-inner px-3 text-sm font-bold focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-tx-secondary tracking-widest uppercase">Budget Marketing</label>
+                      <span className="text-xs font-bold text-tx-base">{creationMarketing}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={creationMarketing}
+                      onChange={(e) => setCreationMarketing(e.target.value)}
+                      className="w-full"
+                    />
+                    <div className="text-xs font-bold text-tx-secondary text-right">
+                      Coût pub: {formatShortNumber(Math.floor((Number(creationBudget) || 0) * (Number(creationMarketing) / 100)))} ₶
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t-2 border-brand-border">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-bold text-tx-secondary">Coût Total:</span>
+                      <span className="text-lg font-display font-black">
+                        {formatShortNumber(Math.floor((Number(creationBudget) || 0) * (1 + Number(creationMarketing) / 100)))} ₶
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const b = Number(creationBudget) || 0;
+                        const m = Number(creationMarketing) || 0;
+                        if (b < 500) {
+                          toast('Erreur', { description: 'Le budget minimum est de 500 ₶.', duration: 3000 });
+                          return;
+                        }
+                        startByActiveSector(b, m, creationQualityLevel);
+                      }}
+                      className="w-full h-12 rounded-xl font-display font-black tracking-wider uppercase transition-colors border-2 bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                    >
+                      Lancer la production
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {data.activeModal ? (
           <div className="fixed inset-0 z-[99998]">
             <div className="absolute inset-0 bg-black/70" />
@@ -2638,7 +2697,7 @@ export default function ApexPage() {
 
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[99989] px-4 pb-4">
           <div className="rounded-[28px] border-2 border-brand-border bg-brand-card shadow-brutal p-2">
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setMobileSheet('sectors')}
@@ -2647,48 +2706,12 @@ export default function ApexPage() {
                 Secteurs
               </button>
               <button
-                type="button"
-                onClick={() => setActiveTab('production')}
-                className={cn(
-                  'h-12 rounded-xl border-2 font-display font-black tracking-wider uppercase transition-colors',
-                  activeTab === 'production'
-                    ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
-                    : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                )}
-              >
-                Prod
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('catalogue')}
-                className={cn(
-                  'h-12 rounded-xl border-2 font-display font-black tracking-wider uppercase transition-colors',
-                  activeTab === 'catalogue'
-                    ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
-                    : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                )}
-              >
-                Cat
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('negociation')}
-                className={cn(
-                  'h-12 rounded-xl border-2 font-display font-black tracking-wider uppercase transition-colors',
-                  activeTab === 'negociation'
-                    ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
-                    : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                )}
-              >
-                Deals
-              </button>
-              <button
                 ref={metaTabRef}
                 type="button"
-                onClick={() => setActiveTab('meta')}
+                onClick={() => setActiveSector('meta')}
                 className={cn(
                   'h-12 rounded-xl border-2 font-display font-black tracking-wider uppercase transition-colors',
-                  activeTab === 'meta'
+                  data.activeSector === 'meta'
                     ? 'bg-accent-primary text-brand-bg border-brand-border shadow-brutal'
                     : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
                 )}
@@ -2935,44 +2958,24 @@ export default function ApexPage() {
                       ) : null}
 
                       <div className="rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal p-3">
-                        <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Lancer un projet</div>
-                        <div className="mt-3 grid grid-cols-1 gap-2">
-                          {[
-                            { label: 'Petit', budget: 2500 },
-                            { label: 'Standard', budget: 20_000 },
-                            { label: 'Gros', budget: 120_000 },
-                          ].map((b) => (
-                            <button
-                              key={b.label}
-                              type="button"
-                              onClick={() => startByActiveSector(b.budget)}
-                              disabled={
-                                namesStatus !== 'ready' ||
-                                data.cash < b.budget ||
-                                (data.activeSector !== 'cinema' &&
-                                  data.activeSector !== 'musique' &&
-                                  data.activeSector !== 'series' &&
-                                  data.activeSector !== 'live' &&
-                                  data.activeSector !== 'games')
-                              }
-                              className={cn(
-                                'h-12 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
-                                namesStatus !== 'ready' ||
-                                  data.cash < b.budget ||
-                                  (data.activeSector !== 'cinema' &&
-                                    data.activeSector !== 'musique' &&
-                                    data.activeSector !== 'series' &&
-                                    data.activeSector !== 'live' &&
-                                    data.activeSector !== 'games')
-                                  ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
-                                  : 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                              )}
-                            >
-                              {b.label} ({formatShortNumber(b.budget)} ₶)
-                            </button>
-                          ))}
-                        </div>
-                        {namesStatus === 'loading' ? <div className="mt-2 text-xs text-tx-secondary font-bold">Chargement des noms…</div> : null}
+                        <div className="text-xs text-tx-secondary font-bold tracking-widest uppercase">Nouveau projet</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCreationModal(data.activeSector);
+                            setMobileSheet(null);
+                          }}
+                          disabled={namesStatus !== 'ready'}
+                          className={cn(
+                            'mt-3 w-full h-12 rounded-xl border-2 font-display font-black tracking-wider uppercase transition-colors shadow-brutal',
+                            namesStatus !== 'ready'
+                              ? 'bg-brand-card text-tx-secondary border-brand-border opacity-70 cursor-not-allowed'
+                              : 'bg-accent-primary text-brand-bg border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                          )}
+                        >
+                          Configurer le projet
+                        </button>
+                        {namesStatus === 'loading' ? <div className="mt-2 text-xs text-tx-secondary font-bold">Chargement des données…</div> : null}
                       </div>
                     </div>
                   )}
