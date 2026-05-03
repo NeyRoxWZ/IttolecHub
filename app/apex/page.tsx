@@ -47,7 +47,8 @@ import type {
   ApexSeriesProject,
   ApexStockId,
 } from '@/types/apex';
-import { ChevronDown, Coins, Crown, Film, Gamepad2, LineChart, Music2, Plus, ShieldCheck, Star, Tv, Users } from 'lucide-react';
+import SpotlightTutorial, { type SpotlightTutorialStep } from '@/components/ui/SpotlightTutorial';
+import { ChevronDown, Coins, Crown, Film, Gamepad2, HelpCircle, LineChart, Menu, Music2, Plus, ShieldCheck, Star, Tv, Users } from 'lucide-react';
 
 type ApexNames = {
   films: string[];
@@ -515,6 +516,74 @@ export default function ApexPage() {
   const [signingOfferId, setSigningOfferId] = useState<string | null>(null);
   const [signingSalary, setSigningSalary] = useState<number>(0);
   const [signingMonths, setSigningMonths] = useState<number>(6);
+
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+
+  const cashSpotRef = useRef<HTMLDivElement | null>(null);
+  const tabsSpotRef = useRef<HTMLDivElement | null>(null);
+  const createSpotRef = useRef<HTMLButtonElement | null>(null);
+  const projectsSpotRef = useRef<HTMLDivElement | null>(null);
+  const contractsSpotRef = useRef<HTMLDivElement | null>(null);
+  const reputationSpotRef = useRef<HTMLDivElement | null>(null);
+  const portfoliosSpotRef = useRef<HTMLDivElement | null>(null);
+  const agentSpotRef = useRef<HTMLDivElement | null>(null);
+  const eventSpotRef = useRef<HTMLDivElement | null>(null);
+  const mobileFabSpotRef = useRef<HTMLButtonElement | null>(null);
+
+  const tutorialSteps = useMemo<SpotlightTutorialStep[]>(
+    () => [
+      { key: 'cash', title: 'Tes Apex Coins', body: 'Ton argent (₶). Il augmente avec tes projets et tes deals.' },
+      { key: 'tabs', title: 'Secteurs', body: 'Chaque onglet débloque un nouveau levier. Garde toujours un objectif proche (débloquer le secteur suivant).' },
+      { key: 'create', title: 'Lancer un projet', body: 'C’est ta boucle principale: produire → sortir → vendre les droits → réinvestir.' },
+      { key: 'projects', title: 'Projets', body: 'Surveille le statut + la hype. La hype baisse avec le temps et impacte tout.' },
+      { key: 'contracts', title: 'Contrats', body: 'Quand un contrat est dispo, tu peux négocier un prix. Plus tu demandes, plus la proba baisse.' },
+      { key: 'reputation', title: 'Réputation', body: 'Plus elle est haute, plus les deals deviennent faciles. Les flops et scandales la font chuter.' },
+      { key: 'portfolios', title: 'Portefeuilles', body: 'Crypto et bourse sont des boosts/risques. Tu influences aussi le marché.' },
+      { key: 'agent', title: 'L’Agent', body: 'Il arrive avec des offres exclusives. 90 secondes pour décider.' },
+      { key: 'event', title: 'Événements', body: 'Un événement toutes les 5–12 minutes. Certains demandent un choix.' },
+      { key: 'mobile', title: 'Menu mobile', body: 'Sur mobile, ouvre le menu pour voir contrats, réputation, agent et stats.' },
+    ],
+    []
+  );
+
+  const tutorialTargetEl = useMemo(() => {
+    const key = tutorialSteps[tutorialStep]?.key;
+    if (key === 'cash') return cashSpotRef.current;
+    if (key === 'tabs') return tabsSpotRef.current;
+    if (key === 'create') return createSpotRef.current;
+    if (key === 'projects') return projectsSpotRef.current;
+    if (key === 'contracts') return contractsSpotRef.current;
+    if (key === 'reputation') return reputationSpotRef.current;
+    if (key === 'portfolios') return portfoliosSpotRef.current;
+    if (key === 'agent') return agentSpotRef.current;
+    if (key === 'event') return eventSpotRef.current;
+    if (key === 'mobile') return mobileFabSpotRef.current;
+    return null;
+  }, [tutorialStep, tutorialSteps]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      const done = localStorage.getItem('apex_tutorial_done_v1') === '1';
+      if (!done) {
+        setTutorialOpen(true);
+        setTutorialStep(0);
+      }
+    } catch {}
+  }, [isLoaded]);
+
+  useEffect(() => {
+    if (!tutorialOpen) return;
+    const key = tutorialSteps[tutorialStep]?.key;
+    const isMobile = typeof window !== 'undefined' ? window.matchMedia('(max-width: 1023px)').matches : false;
+    if (!isMobile) return;
+    if (key === 'contracts' || key === 'reputation' || key === 'portfolios' || key === 'agent' || key === 'event') setMobileSheetOpen(true);
+    if (key === 'mobile') {
+      setMobileSheetOpen(false);
+    }
+  }, [tutorialOpen, tutorialStep, tutorialSteps]);
 
   const rosterMax = useMemo(() => 5 + (hasPrestigeUpgrade(data.prestige as ApexPrestigeState, 'tete_reseau') ? 3 : 0), [data.prestige]);
 
@@ -2979,7 +3048,7 @@ export default function ApexPage() {
           <div className="font-display font-black tracking-wider uppercase">APEX</div>
         </div>
         <div className="ml-auto flex items-center gap-3 text-sm font-bold">
-          <div className="flex items-center gap-2">
+          <div ref={cashSpotRef} className="flex items-center gap-2">
             <Coins className="h-4 w-4 text-accent-primary" aria-hidden="true" />
             <span aria-label="Apex Coins actuels">{formatShortNumber(Math.floor(data.cash))} ₶</span>
           </div>
@@ -2990,6 +3059,18 @@ export default function ApexPage() {
             <ShieldCheck className="h-4 w-4 text-accent-success" aria-hidden="true" />
             {Math.round(globalRep)}%
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setTutorialOpen(true);
+              setTutorialStep(0);
+            }}
+            className="hidden md:inline-flex h-9 px-3 items-center gap-2 rounded-lg border-2 border-brand-border bg-brand-inner hover:bg-brand-card transition-colors"
+            aria-label="Ouvrir le tutoriel"
+          >
+            <HelpCircle className="h-4 w-4 text-tx-secondary" aria-hidden="true" />
+            Tutoriel
+          </button>
           {prestigeAvailable ? (
             <button
               type="button"
@@ -3025,22 +3106,8 @@ export default function ApexPage() {
 
   const leftSidebar = (
     <div className="space-y-3">
-      <div className="rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
-        <div className="text-xs text-tx-secondary font-black tracking-widest uppercase">Portefeuille Crypto</div>
-        <div className="mt-2 text-sm font-black">
-          {formatShortNumber(
-            Object.values(data.crypto.coins).reduce((acc, c) => acc + c.holdings * c.price, 0)
-          )}{' '}
-          ₶
-        </div>
-      </div>
-      <div className="rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
-        <div className="text-xs text-tx-secondary font-black tracking-widest uppercase">Portefeuille Bourse</div>
-        <div className="mt-2 text-sm font-black">{formatShortNumber(portfolioValue(data.stocks))} ₶</div>
-      </div>
-
       {data.agent.active ? (
-        <div className="rounded-2xl border-2 border-brand-border bg-brand-inner shadow-brutal p-4">
+        <div ref={agentSpotRef} className="rounded-2xl border-2 border-brand-border bg-brand-inner shadow-brutal p-4">
           <div className="text-xs text-tx-secondary font-black tracking-widest uppercase">L’Agent</div>
           <div className="mt-2 font-display text-lg font-black tracking-wider uppercase">{data.agent.title}</div>
           <div className="mt-2 text-sm text-tx-secondary font-bold leading-relaxed">{data.agent.description}</div>
@@ -3051,7 +3118,7 @@ export default function ApexPage() {
       ) : null}
 
       {data.event.active ? (
-        <div className="rounded-2xl border-2 border-brand-border bg-brand-inner shadow-brutal p-4">
+        <div ref={eventSpotRef} className="rounded-2xl border-2 border-brand-border bg-brand-inner shadow-brutal p-4">
           <div className="text-xs text-tx-secondary font-black tracking-widest uppercase">Événement</div>
           <div className="mt-2 font-display text-lg font-black tracking-wider uppercase">{data.event.title}</div>
           <div className="mt-2 text-sm text-tx-secondary font-bold leading-relaxed">{data.event.description}</div>
@@ -3060,12 +3127,47 @@ export default function ApexPage() {
           </div>
         </div>
       ) : null}
+
+      <div ref={portfoliosSpotRef} className="rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
+        <div className="text-xs text-tx-secondary font-black tracking-widest uppercase">Portefeuilles</div>
+        <div className="mt-3 space-y-1 text-sm font-bold text-tx-secondary">
+          <div className="flex items-center justify-between">
+            <span>Crypto</span>
+            <span className="text-tx-base">
+              {formatShortNumber(Object.values(data.crypto.coins).reduce((acc, c) => acc + c.holdings * c.price, 0))} ₶
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Bourse</span>
+            <span className="text-tx-base">{formatShortNumber(portfolioValue(data.stocks))} ₶</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 
   const rightSidebar = (
     <div className="space-y-3">
-      <div className="rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
+      <div ref={contractsSpotRef} className="rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
+        <div className="text-xs text-tx-secondary font-black tracking-widest uppercase">Contrats disponibles</div>
+        <div className="mt-3 space-y-2">
+          {collectContracts(data).slice(0, 5).map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => openNegotiation(c.open)}
+              className="w-full text-left rounded-xl border-2 border-brand-border bg-brand-inner hover:bg-brand-card transition-colors p-3"
+              aria-label={`Négocier: ${c.label}`}
+            >
+              <div className="font-display font-black tracking-wider uppercase text-sm">{c.label}</div>
+              <div className="mt-1 text-xs text-tx-secondary font-bold">{c.sub}</div>
+            </button>
+          ))}
+          {collectContracts(data).length === 0 ? <div className="text-sm text-tx-secondary font-bold">Aucun contrat disponible.</div> : null}
+        </div>
+      </div>
+
+      <div ref={reputationSpotRef} className="rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
         <div className="text-xs text-tx-secondary font-black tracking-widest uppercase">Réputation</div>
         <div className="mt-3 space-y-2">
           {(
@@ -3087,25 +3189,6 @@ export default function ApexPage() {
               </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
-        <div className="text-xs text-tx-secondary font-black tracking-widest uppercase">Contrats disponibles</div>
-        <div className="mt-3 space-y-2">
-          {collectContracts(data).slice(0, 5).map((c) => (
-            <button
-              key={c.key}
-              type="button"
-              onClick={() => openNegotiation(c.open)}
-              className="w-full text-left rounded-xl border-2 border-brand-border bg-brand-inner hover:bg-brand-card transition-colors p-3"
-              aria-label={`Négocier: ${c.label}`}
-            >
-              <div className="font-display font-black tracking-wider uppercase text-sm">{c.label}</div>
-              <div className="mt-1 text-xs text-tx-secondary font-bold">{c.sub}</div>
-            </button>
-          ))}
-          {collectContracts(data).length === 0 ? <div className="text-sm text-tx-secondary font-bold">Aucun contrat disponible.</div> : null}
         </div>
       </div>
 
@@ -3141,13 +3224,13 @@ export default function ApexPage() {
 
   return (
     <main className="min-h-screen">
-      {desktopHeader}
+      <div className="hidden lg:block">{desktopHeader}</div>
 
       <div className="mx-auto max-w-7xl px-4 py-6 grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] gap-6">
         <aside className="hidden lg:block">{leftSidebar}</aside>
 
         <section className="space-y-4">
-          <div className="rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
+          <div ref={tabsSpotRef} className="rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal p-4 lg:static sticky top-14 z-10">
             <div className="flex flex-wrap items-center gap-2">
               {sectorTabs.map((t) => (
                 <button
@@ -3179,7 +3262,7 @@ export default function ApexPage() {
                     onClick={launchPlatform}
                     disabled={data.cash < 500_000}
                     className={cn(
-                      'h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                      'hidden lg:inline-flex h-10 px-3 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
                       data.cash < 500_000
                         ? 'bg-brand-inner text-tx-secondary border-brand-border opacity-60 cursor-not-allowed'
                         : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
@@ -3193,7 +3276,8 @@ export default function ApexPage() {
                 <button
                   type="button"
                   onClick={() => setCreateOpen(true)}
-                  className="h-10 px-3 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors inline-flex items-center gap-2"
+                  ref={createSpotRef}
+                  className="hidden lg:inline-flex h-10 px-3 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors items-center gap-2"
                   aria-label="Lancer un projet"
                 >
                   <Plus className="h-4 w-4" aria-hidden="true" />
@@ -3203,7 +3287,7 @@ export default function ApexPage() {
             </div>
           </div>
 
-          <div className="grid gap-4">
+          <div ref={projectsSpotRef} className="grid gap-4 pb-24 lg:pb-0">
             {data.sectorTab === 'cinema' ? (
               <div className="space-y-4">
                 <div className="rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal p-4">
@@ -4080,6 +4164,18 @@ export default function ApexPage() {
         cashPerMin={cashPerMin}
         globalRep={globalRep}
         onCreate={() => setCreateOpen(true)}
+        onTutorial={() => {
+          setTutorialOpen(true);
+          setTutorialStep(0);
+        }}
+        sheetOpen={mobileSheetOpen}
+        onSheetOpenChange={setMobileSheetOpen}
+        createButtonRef={(el) => {
+          createSpotRef.current = el;
+        }}
+        fabButtonRef={(el) => {
+          mobileFabSpotRef.current = el;
+        }}
         leftContent={leftSidebar}
         rightContent={rightSidebar}
       />
@@ -5019,6 +5115,19 @@ export default function ApexPage() {
           </div>
         </div>
       </Modal>
+
+      <SpotlightTutorial
+        open={tutorialOpen}
+        stepIndex={tutorialStep}
+        steps={tutorialSteps}
+        targetEl={tutorialTargetEl}
+        onStepChange={setTutorialStep}
+        onClose={() => {
+          setTutorialOpen(false);
+          setTutorialStep(0);
+        }}
+        storageKey="apex_tutorial_done_v1"
+      />
     </main>
   );
 }
@@ -5172,23 +5281,36 @@ function MobileBar(props: {
   cashPerMin: number;
   globalRep: number;
   onCreate: () => void;
+  onTutorial: () => void;
+  sheetOpen: boolean;
+  onSheetOpenChange: (open: boolean) => void;
+  createButtonRef: (el: HTMLButtonElement | null) => void;
+  fabButtonRef: (el: HTMLButtonElement | null) => void;
   leftContent: React.ReactNode;
   rightContent: React.ReactNode;
 }) {
-  const [sheetOpen, setSheetOpen] = useState(false);
   return (
     <div className="lg:hidden">
       <div className="sticky top-0 z-30 border-b-2 border-brand-border bg-brand-bg/90 backdrop-blur">
         <div className="px-4 py-3 flex items-center justify-between gap-2">
           <div className="text-sm font-black">{formatShortNumber(Math.floor(props.cash))} ₶</div>
           <div className="text-xs text-tx-secondary font-bold">{formatShortNumber(Math.floor(props.cashPerMin))} ₶/min</div>
+          <div className="text-xs text-tx-secondary font-bold">{Math.round(props.globalRep)}%</div>
           <button
             type="button"
-            onClick={() => setSheetOpen(true)}
-            className="h-9 px-3 rounded-lg border-2 border-brand-border bg-brand-inner font-display font-black tracking-wider uppercase"
+            onClick={props.onTutorial}
+            className="h-9 w-9 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base flex items-center justify-center"
+            aria-label="Ouvrir le tutoriel"
+          >
+            <HelpCircle className="h-4 w-4 text-tx-secondary" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => props.onSheetOpenChange(true)}
+            className="h-9 w-9 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base flex items-center justify-center"
             aria-label="Ouvrir le menu"
           >
-            ☰
+            <Menu className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -5196,6 +5318,7 @@ function MobileBar(props: {
       <button
         type="button"
         onClick={props.onCreate}
+        ref={props.createButtonRef}
         className="fixed bottom-4 left-4 right-4 z-30 h-12 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
         aria-label="Lancer un projet"
       >
@@ -5204,14 +5327,15 @@ function MobileBar(props: {
 
       <button
         type="button"
-        onClick={() => setSheetOpen(true)}
+        onClick={() => props.onSheetOpenChange(true)}
+        ref={props.fabButtonRef}
         className="fixed bottom-20 right-4 z-30 h-12 w-12 rounded-full border-2 border-brand-border bg-accent-primary text-brand-bg shadow-brutal flex items-center justify-center"
         aria-label="Ouvrir la bottom sheet"
       >
         <Plus className="h-5 w-5" aria-hidden="true" />
       </button>
 
-      <Modal open={sheetOpen} onClose={() => setSheetOpen(false)} title="Panneau">
+      <Modal open={props.sheetOpen} onClose={() => props.onSheetOpenChange(false)} title="Panneau">
         <div className="grid gap-4">
           {props.rightContent}
           {props.leftContent}
