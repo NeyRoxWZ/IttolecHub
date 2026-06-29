@@ -436,7 +436,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <form onSubmit={handleAction} className="mt-6 flex-1 flex flex-col">
+                <form onSubmit={handleAction} className="mt-6 flex-1 flex flex-col relative">
                   <div className="space-y-2 relative z-10">
                     <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
                       Ton pseudo

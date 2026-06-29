@@ -357,6 +357,40 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     managePhases();
   }, [isHost, currentPhase, timeLeft, alivePlayers, voteTime, readyPlayersFromTable, gameState, roomId, game.timer_start_at]);
 
+  // 5. Resolve Mr. White's guess (Host only)
+  // Without this, the game stays stuck forever on the 'mrwhite_guess' phase
+  // because nobody ever reads the 'guess' move Mr. White submits.
+  const processedGuessRef = useRef<string>('');
+  useEffect(() => {
+      if (!isHost || !roomId || currentPhase !== 'mrwhite_guess' || !eliminatedPlayerId) return;
+
+      const guessMoves = moves.filter((m: any) => m.action_type === 'guess' && m.player_id === eliminatedPlayerId);
+      if (guessMoves.length === 0) return;
+
+      const lastGuess = guessMoves[guessMoves.length - 1];
+      if (lastGuess.id === processedGuessRef.current) return;
+      processedGuessRef.current = lastGuess.id;
+
+      const guessText = String(lastGuess.payload?.text || '').trim().toLowerCase();
+      const target = String(civilWord || '').trim().toLowerCase();
+      const isCorrect = guessText.length > 0 && guessText === target;
+
+      const resolveGuess = async () => {
+          if (isCorrect) {
+              await updateRoundData({
+                  notification: { id: Date.now().toString(), message: "Mr. White a trouvé le mot ! Victoire des imposteurs.", type: 'success' }
+              });
+              await finishGame('IMPOSTORS', alivePlayers);
+          } else {
+              await updateRoundData({
+                  notification: { id: Date.now().toString(), message: "Mauvaise réponse de Mr. White !", type: 'error' }
+              });
+              await handleElimination(eliminatedPlayerId);
+          }
+      };
+      resolveGuess();
+  }, [isHost, roomId, currentPhase, moves, eliminatedPlayerId, civilWord, alivePlayers]);
+
   // Auto-start (Removed to fix automatic transition to role distribution)
   /*
   useEffect(() => {

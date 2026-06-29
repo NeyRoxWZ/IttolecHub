@@ -699,10 +699,16 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           }
 
           const newRoom = payload.new as any;
-          // Synchronisation des settings pour les non-hosts
-          if (newRoom.game_type) setSelectedGameId(newRoom.game_type);
+          // Synchronisation des settings pour les non-hosts uniquement.
+          // L'hôte est la source de vérité : réappliquer l'écho de sa propre
+          // écriture écraserait sa saisie en cours (boucle d'écho).
+          if (!isHostRef.current) {
+              if (newRoom.game_type) setSelectedGameId(newRoom.game_type);
+              if (newRoom.settings) {
+                  setGameSettings(newRoom.settings);
+              }
+          }
           if (newRoom.settings) {
-              setGameSettings(newRoom.settings);
               if (newRoom.settings.isPrivate !== undefined) {
                   setIsPrivateMode(newRoom.settings.isPrivate);
               }
