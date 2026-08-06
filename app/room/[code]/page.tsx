@@ -1175,64 +1175,58 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     <h2 className="font-display text-2xl font-bold">Choix du jeu</h2>
                 </div>
 
-                {isHost ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto custom-scrollbar pr-2 max-h-[300px] lg:max-h-none">
-                        {gamesList.map((game) => {
-                            const isSelected = selectedGameId === game.id;
-                            const Icon = game.icon;
-                            const isComingSoon = (game as any).comingSoon;
-                            
-                            return (
-                                <div 
-                                    key={game.id}
-                                    onClick={() => {
-                                        if (isComingSoon) {
-                                            toast.info("Ce jeu arrive bientôt !");
-                                            return;
-                                        }
-                                        setSelectedGameId(game.id);
-                                    }}
-                                    className={cn(
-                                        "cursor-pointer rounded-xl border-2 transition-all p-3 flex items-center gap-3",
-                                        isComingSoon && "opacity-50 cursor-not-allowed",
-                                        isSelected 
-                                            ? "border-tx-base bg-brand-inner shadow-brutal" 
-                                            : "border-brand-border bg-brand-card hover:border-tx-base/50"
-                                    )}
-                                >
-                                    <Icon className={cn("h-8 w-8 shrink-0", isSelected ? "text-tx-base" : "text-tx-secondary")} />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <h3 className="font-bold text-tx-base truncate">{game.name}</h3>
-                                            {isComingSoon && (
-                                                <span className="shrink-0 text-[9px] font-black uppercase tracking-wider bg-brand-inner border border-brand-border px-1.5 py-0.5 rounded">
-                                                    Bientôt
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="text-xs text-tx-secondary truncate mt-0.5">{game.description}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto custom-scrollbar pr-2 max-h-[300px] lg:max-h-none">
+                    {gamesList.map((game) => {
+                        const isSelected = selectedGameId === game.id;
+                        const Icon = game.icon;
+                        const isComingSoon = (game as any).comingSoon;
+
+                        return (
+                            <div
+                                key={game.id}
+                                onClick={() => {
+                                    if (!isHost) return;
+                                    if (isComingSoon) {
+                                        toast.info("Ce jeu arrive bientôt !");
+                                        return;
+                                    }
+                                    setSelectedGameId(game.id);
+                                }}
+                                className={cn(
+                                    "rounded-xl border-2 transition-all p-3 flex items-center gap-3",
+                                    isHost ? "cursor-pointer" : "cursor-default",
+                                    isComingSoon && isHost && "opacity-50 cursor-not-allowed",
+                                    isSelected
+                                        ? "border-tx-base bg-brand-inner shadow-brutal"
+                                        : cn("border-brand-border bg-brand-card", isHost && "hover:border-tx-base/50")
+                                )}
+                            >
+                                <Icon className={cn("h-8 w-8 shrink-0", isSelected ? "text-tx-base" : "text-tx-secondary")} />
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <h3 className="font-bold text-tx-base truncate">{game.name}</h3>
+                                        {isComingSoon && (
+                                            <span className="shrink-0 text-[9px] font-black uppercase tracking-wider bg-brand-inner border border-brand-border px-1.5 py-0.5 rounded">
+                                                Bientôt
+                                            </span>
+                                        )}
+                                        {isSelected && !isHost && (
+                                            <span className="shrink-0 text-[9px] font-black uppercase tracking-wider bg-tx-base text-brand-bg px-1.5 py-0.5 rounded">
+                                                Choisi
+                                            </span>
+                                        )}
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="flex-1 bg-brand-inner border-2 border-brand-border rounded-xl p-8 flex items-center justify-center text-center">
-                        {selectedGame ? (
-                            <div className="flex flex-col items-center gap-4 animate-in zoom-in duration-300">
-                                <selectedGame.icon className="h-16 w-16 text-tx-base" />
-                                <div>
-                                    <h3 className="font-display text-3xl font-black mb-2">{selectedGame.name}</h3>
-                                    <p className="text-tx-secondary font-medium">{selectedGame.description}</p>
+                                    <p className="text-xs text-tx-secondary truncate mt-0.5">{game.description}</p>
                                 </div>
                             </div>
-                        ) : (
-                            <div className="flex flex-col items-center gap-4 text-tx-secondary">
-                                <Settings className="h-12 w-12 animate-spin-slow opacity-50" />
-                                <p className="font-bold">L&apos;hôte choisit un jeu...</p>
-                            </div>
-                        )}
-                    </div>
+                        );
+                    })}
+                </div>
+                {!isHost && !selectedGame && (
+                    <p className="mt-4 text-center text-tx-secondary font-bold flex items-center justify-center gap-2">
+                        <Settings className="h-4 w-4 animate-spin-slow opacity-50" />
+                        L&apos;hôte choisit un jeu...
+                    </p>
                 )}
             </div>
 
