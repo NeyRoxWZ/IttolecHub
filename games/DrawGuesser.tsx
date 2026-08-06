@@ -121,7 +121,14 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
   const receivedStrokes = useRef<Map<string, StrokeBatch[]>>(new Map());
 
   // --- EFFECTS ---
-  
+
+  // Cleanup stray batch interval on unmount (e.g. leaving mid-stroke)
+  useEffect(() => {
+    return () => {
+        if (batchTimeout.current) clearInterval(batchTimeout.current);
+    };
+  }, []);
+
   // Return to Lobby Broadcast
   useEffect(() => {
     if (lastEvent && lastEvent.type === 'return_to_lobby') {
@@ -471,6 +478,20 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           isEnd: false
       };
       strokeBatch.current = [{ x, y }];
+
+      // Start periodic broadcast for the duration of this stroke. This is
+      // started/stopped explicitly (not via a useEffect keyed on a ref)
+      // because refs don't trigger effect re-runs — a previous version kept
+      // this in an effect depending on isDrawing.current, so the interval
+      // was only ever evaluated once at mount (before drawing started) and
+      // never actually ran, meaning viewers only saw the whole stroke pop
+      // in at once when the drawer lifted their finger.
+      if (batchTimeout.current) clearInterval(batchTimeout.current);
+      batchTimeout.current = setInterval(() => {
+          if (strokeBatch.current.length > 0) {
+              broadcastBatch(false);
+          }
+      }, 40);
   };
 
   const drawStroke = (e: any) => {
@@ -504,24 +525,16 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       lastPos.current = { x, y };
   };
 
-  // Batch sending every 40ms
-  useEffect(() => {
-      if (!isDrawing.current || !isDrawer) return;
-      
-      const interval = setInterval(() => {
-          if (strokeBatch.current.length > 0) {
-              broadcastBatch(false);
-          }
-      }, 40);
-      
-      return () => clearInterval(interval);
-  }, [isDrawer, isDrawing.current]);
-
   const stopDrawing = () => {
       if (!isDrawing.current) return;
       isDrawing.current = false;
       isDrawingRef.current = false;
-      
+
+      if (batchTimeout.current) {
+          clearInterval(batchTimeout.current);
+          batchTimeout.current = null;
+      }
+
       // Send final batch with isEnd: true
       if (strokeBatch.current.length > 0) {
           broadcastBatch(true);

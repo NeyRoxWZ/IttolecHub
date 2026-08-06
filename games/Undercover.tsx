@@ -30,10 +30,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     sendMove,
     getTimeLeft,
     updateRoundData,
-    resetAllPlayersReady,
     nextRound,
     submitAnswer,
-    setPlayerReady,
     moves,
     setGameStatus,
     roomId,
@@ -66,18 +64,23 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   const currentSpeakerId = game.current_speaker_id;
   const currentClueRound = game.current_clue_round || 1;
   // Read skip_votes from SQL game state
-  const skipVotes = (game.skip_votes as string[]) || []; 
-  const roundStartedAt = Number((gameState?.round_data as any)?.round_started_at || 0);
-  
+  const skipVotes = (game.skip_votes as string[]) || [];
+
+  // Filtered by round_id (set atomically with `phase` on the same
+  // undercover_games row) rather than a wall-clock timestamp — clock-based
+  // filtering could momentarily show clues from the previous game until the
+  // separate game_sessions row caught up, making old words look "stuck"
+  // until the first new clue was sent.
   const clues = useMemo(() => {
-      const all = undercover?.clues?.map((c: any) => ({
+      const all = undercover?.clues || [];
+      const currentRoundId = game.round_id;
+      const filtered = currentRoundId ? all.filter((c: any) => c.round_id === currentRoundId) : all;
+      return filtered.map((c: any) => ({
           playerId: c.player_id,
           text: c.text,
           timestamp: new Date(c.created_at).getTime()
-      })) || [];
-      if (!roundStartedAt) return all;
-      return all.filter(c => c.timestamp >= roundStartedAt);
-  }, [undercover?.clues, roundStartedAt]);
+      }));
+  }, [undercover?.clues, game.round_id]);
 
   // Read votes from SQL
   const votes = useMemo(() => {
@@ -100,10 +103,15 @@ export default function Undercover({ roomCode }: UndercoverProps) {
   const undercoverCount = Number(settings.undercoverCount || 1);
   const currentRoundNumber = gameState?.current_round || 0;
 
-  // Ready Status
+  // Ready Status — tracked directly on the undercover_games row (not the
+  // shared players.is_ready column) so the reset and the phase transition
+  // land in the same row/table and can never arrive out of order on the
+  // client. Cross-table ordering (players vs undercover_games) isn't
+  // guaranteed, which caused the "ready" check to misfire on alternating
+  // rounds.
   const readyPlayersFromTable = useMemo(() => {
-      return players.filter((p: any) => p.is_ready).map(p => p.id);
-  }, [players]);
+      return (game.ready_players as string[]) || [];
+  }, [game.ready_players]);
   const amIReady = playerId && readyPlayersFromTable.includes(playerId);
 
   // Local State
@@ -417,8 +425,6 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             return;
         }
 
-        if (resetAllPlayersReady) await resetAllPlayersReady();
-
         const firstPair = Array.isArray(words) ? words[0] : words;
         const { newRoles } = assignRoles(players, mrWhiteEnabled, undercoverCount);
 
@@ -430,7 +436,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             civil_word: firstPair.civilWord,
             undercover_word: firstPair.undercoverWord,
             current_speaker_id: null,
-            current_clue_round: 1
+            current_clue_round: 1,
+            ready_players: [],
+            skip_votes: []
         }, { onConflict: 'room_id' });
 
         if (gameError) {
@@ -643,7 +651,6 @@ export default function Undercover({ roomCode }: UndercoverProps) {
           if (!nextPair) return;
 
           const { newRoles } = assignRoles(players, mrWhiteEnabled, undercoverCount);
-          if (resetAllPlayersReady) await resetAllPlayersReady();
 
           // Reset everything for next round
           await supabase.from('undercover_games').update({
@@ -656,6 +663,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
               winner: null,
               eliminated_player_id: null,
               skip_votes: [],
+              ready_players: [],
               timer_start_at: null,
               timer_duration_seconds: null
           }).eq('room_id', roomId);
@@ -699,9 +707,11 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
   // --- CLIENT ---
   const sendReady = async () => {
-    // Toggle ready state
-    if (!setPlayerReady) return;
-    await setPlayerReady(!amIReady);
+    // Toggle ready state directly on the undercover_games row (round-scoped)
+    if (!playerId || !roomId) return;
+    const current = [...readyPlayersFromTable];
+    const next = amIReady ? current.filter(id => id !== playerId) : [...current, playerId];
+    await supabase.from('undercover_games').update({ ready_players: next }).eq('room_id', roomId);
   };
 
   const sendClue = async () => {
@@ -1027,7 +1037,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
                 {/* BOTTOM: INPUT (Desktop & Mobile Fixed) */}
                 {isMyTurn && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 z-50 md:relative md:bg-transparent md:border-none md:p-0 md:mt-4">
+                    <div className="fixed bottom-0 left-0 right-0 p-4 pr-[92px] z-50 md:relative md:bg-transparent md:border-none md:p-0 md:pr-0 md:mt-4">
                         <div className="max-w-3xl mx-auto flex gap-3">
                             <input 
                                 placeholder="Donnez votre indice (1 mot)..." 

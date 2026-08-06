@@ -19,10 +19,14 @@ create table if not exists undercover_games (
   winner text, -- 'CIVILS' or 'IMPOSTORS'
   eliminated_player_id uuid,
   skip_votes text[] default array[]::text[],
+  ready_players text[] default array[]::text[],
   timer_start_at timestamptz,
   timer_duration_seconds int,
   created_at timestamptz default now()
 );
+
+-- Migration for existing databases (safe to re-run):
+alter table undercover_games add column if not exists ready_players text[] default array[]::text[];
 
 create table if not exists undercover_players (
   room_id uuid references rooms(id) on delete cascade,

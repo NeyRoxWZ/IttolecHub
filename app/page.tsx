@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, TrendingUp, LogOut, Menu, X } from 'lucide-react';
+import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, TrendingUp, LogOut, Menu, X, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/lib/supabase/client';
 
 export const viewport = {
   width: 'device-width',
@@ -46,7 +47,42 @@ export default function Home() {
   const [easterEggActive, setEasterEggActive] = useState(false);
   const [keyBuffer, setKeyBuffer] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [resumeRoom, setResumeRoom] = useState<{ code: string; name: string } | null>(null);
   const { user, logout } = useAuth();
+
+  // Offer to resume the last room this browser was in, if it's still alive.
+  useEffect(() => {
+    let cancelled = false;
+    try {
+      const raw = localStorage.getItem('itollec_last_room');
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { code: string; name: string };
+      if (!saved?.code || !saved?.name) return;
+
+      supabase
+        .from('rooms')
+        .select('code,status')
+        .eq('code', saved.code)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (cancelled) return;
+          if (data && data.status !== 'closed' && data.status !== 'finished') {
+            setResumeRoom(saved);
+          } else {
+            localStorage.removeItem('itollec_last_room');
+          }
+        });
+    } catch {}
+    return () => { cancelled = true; };
+  }, []);
+
+  const resumeLastGame = () => {
+    if (!resumeRoom) return;
+    sessionStorage.setItem('playerName', resumeRoom.name);
+    // No ?return=true here on purpose: if the room is mid-game, the room
+    // page's own logic should redirect straight into the running game.
+    router.push(`/room/${resumeRoom.code}`);
+  };
 
   useEffect(() => {
     const urlMode = searchParams.get('mode');
@@ -395,6 +431,16 @@ export default function Home() {
 
       <section className="flex-1 flex items-start md:items-center pb-8 md:pb-10 pt-1">
         <div className="w-full max-w-5xl mx-auto px-6">
+          {resumeRoom && mode === 'multiplayer' && (
+            <button
+              type="button"
+              onClick={resumeLastGame}
+              className="mb-6 w-full flex items-center justify-center gap-3 h-14 rounded-2xl border-4 border-brand-border bg-brand-card text-tx-base font-display font-black tracking-wider shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors animate-in fade-in slide-in-from-top-2"
+            >
+              <RotateCcw className="h-5 w-5" />
+              Reprendre la partie {resumeRoom.code}
+            </button>
+          )}
           {mode === 'multiplayer' ? (
             <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center">
               <div className="flex-1 md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">

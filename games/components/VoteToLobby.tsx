@@ -72,7 +72,9 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode, gameT
     });
   };
 
-  const requiredVotes = players.length;
+  // Majority instead of unanimity: a single AFK/disconnected player
+  // shouldn't be able to hold the whole table hostage in an active game.
+  const requiredVotes = Math.floor(players.length / 2) + 1;
 
   useEffect(() => {
     if (votes.length >= requiredVotes && requiredVotes > 0 && channel) {

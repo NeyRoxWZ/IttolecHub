@@ -326,6 +326,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     isHostRef.current = isHost;
   }, [players, isHost]);
 
+  // Clear the resume prompt whenever this room becomes unusable (kicked or deleted)
+  useEffect(() => {
+    if (isKicked || isRoomDeleted) {
+        try { localStorage.removeItem('itollec_last_room'); } catch {}
+    }
+  }, [isKicked, isRoomDeleted]);
+
   // Handle QR Code styling
   useEffect(() => {
     if (showJoinOverlay && qrRef.current && typeof window !== 'undefined') {
@@ -386,29 +393,26 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   // Initialisation et gestion de la room/joueur via Supabase
   useEffect(() => {
-    // Check for QR Code join or stored session
+    // Check for stored session. Any direct visit to a room URL without a
+    // stored session (closed tab, cleared sessionStorage, another device)
+    // now prompts for a pseudo instead of bouncing to home — this is what
+    // lets a player rejoin an in-progress game just by knowing the code and
+    // typing the same name back in.
     const storedName = sessionStorage.getItem('playerName');
-    const searchParams = new URLSearchParams(window.location.search);
-    const isSharedJoin = searchParams.get('source') === 'qrcode' || searchParams.get('source') === 'link';
-    
+
     if (!storedName) {
-        if (isSharedJoin) {
-            setShowPseudoModal(true);
-            return;
-        } else {
-            // Normal redirect if no session and not a shared link
-            router.push('/');
-            return;
-        }
+        setShowPseudoModal(true);
+        return;
     }
-    
+
     setPlayerName(storedName);
 
     const initRoom = async () => {
       try {
+        const searchParams = new URLSearchParams(window.location.search);
         let roomData = null;
         let attempts = 0;
-        
+
         // Retry logic for room fetching (wait for creation propagation)
         while (attempts < 5 && !roomData) {
             const { data, error } = await supabase
@@ -416,12 +420,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               .select('*')
               .eq('code', params.code)
               .maybeSingle();
-            
+
             if (data) {
                 roomData = data;
                 break;
             }
-            
+
             // Wait 500ms before retry
             await new Promise(r => setTimeout(r, 500));
             attempts++;
@@ -429,7 +433,6 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
         if (!roomData) {
           // Check if user just created this room (isHost param)
-          const searchParams = new URLSearchParams(window.location.search);
           const isHostParam = searchParams.get('host') === 'true';
           
           if (isHostParam) {
@@ -549,6 +552,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         setIsHost(isCurrentHost);
         sessionStorage.setItem('isHost', String(isCurrentHost));
         if (currentPlayerId) sessionStorage.setItem('playerId', currentPlayerId);
+
+        // Remember this room in localStorage (survives closed tabs, unlike
+        // sessionStorage) so the home page can offer to resume it later.
+        try {
+          localStorage.setItem('itollec_last_room', JSON.stringify({ code: params.code, name: storedName }));
+        } catch {}
 
         // 3. Charger la liste initiale des joueurs
         const { data: currentPlayers } = await supabase
@@ -937,16 +946,23 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     // Supprimer le joueur de la DB
     if (roomId && playerName) {
         await supabase.from('players').delete().match({ room_id: roomId, name: playerName });
-        
-        // Check if we were the last player
-        const { count } = await supabase.from('players').select('*', { count: 'exact', head: true }).eq('room_id', roomId);
-        if (count === 0) {
+
+        // Check remaining players; if we were the host, hand off host to
+        // someone else immediately instead of leaving the room headless
+        // until the 5-minute inactivity check kicks in.
+        const { data: remaining } = await supabase.from('players').select('*').eq('room_id', roomId);
+        if (!remaining || remaining.length === 0) {
             await supabase.from('rooms').delete().eq('id', roomId);
+        } else if (isHost) {
+            const nextHost = remaining[0];
+            await supabase.from('players').update({ is_host: true }).eq('id', nextHost.id);
+            await supabase.from('rooms').update({ host_id: nextHost.id }).eq('id', roomId);
         }
     }
     sessionStorage.removeItem('playerName');
     sessionStorage.removeItem('isHost');
     sessionStorage.removeItem('playerId');
+    try { localStorage.removeItem('itollec_last_room'); } catch {}
     router.push('/');
   };
 

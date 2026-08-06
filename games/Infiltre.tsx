@@ -944,7 +944,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
                 {/* BOTTOM INPUT (Fixed Mobile) */}
                 {!isMaster && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 z-50 md:relative md:p-0 md:mt-4">
+                    <div className="fixed bottom-0 left-0 right-0 p-4 pr-[92px] z-50 md:relative md:p-0 md:pr-0 md:mt-4">
                         <div className="max-w-3xl mx-auto flex gap-3">
                             <input 
                                 placeholder="Posez une question..." 
@@ -966,7 +966,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
                 {/* MASTER CONTROLS */}
                 {isMaster && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 z-50 md:relative md:p-0 md:mt-4 text-center">
+                    <div className="fixed bottom-0 left-0 right-0 p-4 pr-[92px] z-50 md:relative md:p-0 md:pr-0 md:mt-4 text-center">
                         <p className="text-tx-secondary font-bold mb-2 uppercase tracking-widest text-sm">Quelqu'un a trouvé le mot ?</p>
                         <div className="flex flex-wrap justify-center gap-3">
                             {players.filter(p => p.id !== playerId).map(p => (
