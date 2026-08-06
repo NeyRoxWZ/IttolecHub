@@ -37,7 +37,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     roomId,
     roomStatus,
     lastEvent,
-    broadcast
+    broadcast,
+    isConnected
   } = useGameSync(roomCode, 'undercover');
 
   // --- DERIVED STATE ---
@@ -765,6 +766,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
   return (
     <GameLayout
+      isConnected={isConnected}
       players={playersMap}
       roundCount={currentRoundNumber}
       maxRounds={rounds}

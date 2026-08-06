@@ -26,7 +26,8 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
     airbnb,
     roomId,
     lastEvent,
-    broadcast
+    broadcast,
+    isConnected
   } = useGameSync(roomCode, 'airbnb');
 
   // --- DERIVED STATE ---
@@ -299,6 +300,7 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
   
   return (
       <GameLayout
+          isConnected={isConnected}
           gameTitle="AirbnbGuessr"
           roundCount={currentRound}
           maxRounds={totalRounds}
@@ -343,7 +345,7 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
 
           {/* Playing Phase */}
           {currentPhase === 'playing' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full w-full p-4">
+              <div key={game.current_round} className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full w-full p-4 animate-in fade-in duration-300">
                   {/* Left: Property Details */}
                   <div className="space-y-4">
                       {/* Photo */}

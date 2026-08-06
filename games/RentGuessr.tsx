@@ -38,7 +38,8 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
     resetAllPlayersReady,
     roomId,
     lastEvent,
-    broadcast
+    broadcast,
+    isConnected
   } = useGameSync(roomCode, 'rent');
 
   // --- DERIVED STATE ---
@@ -341,6 +342,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
   
   return (
       <GameLayout
+          isConnected={isConnected}
           gameTitle="RentGuessr"
           roundCount={currentRound}
           maxRounds={totalRounds}
@@ -384,7 +386,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
 
           {/* Playing Phase */}
           {currentPhase === 'playing' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full w-full p-4">
+              <div key={game.current_round} className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full w-full p-4 animate-in fade-in duration-300">
                   {/* Left: Property Details & Map */}
                   <div className="space-y-4">
                       {/* Photo */}

@@ -1,7 +1,7 @@
 'use client';
 
-import { ReactNode } from 'react';
-import { Clock, Users } from 'lucide-react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
+import { Clock, Users, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactionButton from './ReactionButton';
 
@@ -20,6 +20,7 @@ interface GameLayoutProps {
   className?: string;
   showScores?: boolean; // New prop to toggle score display
   voteToLobby?: ReactNode; // Vote to lobby button
+  isConnected?: boolean; // Realtime connection status (from useGameSync)
 }
 
 export default function GameLayout({
@@ -33,14 +34,35 @@ export default function GameLayout({
   gameStarted = true,
   className,
   showScores = true, // Default true
-  voteToLobby // Default undefined
+  voteToLobby, // Default undefined
+  isConnected = true
 }: GameLayoutProps) {
-  
+
   // Extract roomId from URL (simple hack since we don't pass it down yet)
   const roomId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop()?.split('?')[0] : '';
 
+  // Only show the "connection lost" banner after we've connected at least
+  // once — otherwise it'd flash during the normal initial handshake.
+  const everConnected = useRef(false);
+  const [showDisconnected, setShowDisconnected] = useState(false);
+  useEffect(() => {
+    if (isConnected) {
+      everConnected.current = true;
+      setShowDisconnected(false);
+    } else if (everConnected.current) {
+      setShowDisconnected(true);
+    }
+  }, [isConnected]);
+
   return (
     <div className="min-h-screen bg-transparent text-tx-base font-sans selection:bg-accent-primary/30 flex flex-col">
+      {showDisconnected && (
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-accent-secondary text-white text-sm font-bold uppercase tracking-widest text-center py-2 flex items-center justify-center gap-2 animate-in slide-in-from-top duration-300">
+          <WifiOff className="w-4 h-4" />
+          Connexion perdue — reconnexion en cours...
+        </div>
+      )}
+
       {/* REACTION BUTTON (Fixed Bottom Right) */}
       <div className="fixed bottom-6 right-6 z-[90]">
           <ReactionButton roomId={roomId || ''} />

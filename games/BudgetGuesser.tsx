@@ -32,7 +32,8 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
     resetAllPlayersReady,
     roomId,
     lastEvent,
-    broadcast
+    broadcast,
+    isConnected
   } = useGameSync(roomCode, 'budget');
 
   // --- DERIVED STATE ---
@@ -339,6 +340,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
 
   return (
     <GameLayout
+      isConnected={isConnected}
       players={playersMap}
       roundCount={game.current_round || 0}
       maxRounds={game.total_rounds || totalRounds}
@@ -385,7 +387,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
 
         {/* PHASE: PLAYING / RESULTS */}
         {(currentPhase === 'playing' || currentPhase === 'round_results') && currentMovie && (
-            <div className="flex flex-col items-center w-full max-w-4xl gap-6 pt-4 px-4">
+            <div key={`${game.current_round}-${currentPhase}`} className="flex flex-col items-center w-full max-w-4xl gap-6 pt-4 px-4 animate-in fade-in duration-300">
                 
                 {/* MOVIE CARD */}
                 <div className="flex flex-col md:flex-row bg-brand-card rounded-[32px] overflow-hidden shadow-brutal border-4 border-brand-border w-full p-4 gap-6">

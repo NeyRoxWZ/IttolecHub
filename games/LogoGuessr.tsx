@@ -79,7 +79,8 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
     logo,
     roomId,
     lastEvent,
-    broadcast
+    broadcast,
+    isConnected
   } = useGameSync(roomCode, 'logo');
 
   // --- DERIVED STATE ---
@@ -576,6 +577,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   
   return (
       <GameLayout
+          isConnected={isConnected}
           gameTitle="LogoGuessr"
           roundCount={currentRound}
           maxRounds={totalRounds}
@@ -620,7 +622,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
 
           {/* Playing Phase */}
           {currentPhase === 'playing' && (
-              <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto gap-8 p-4">
+              <div key={game.current_round} className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto gap-8 p-4 animate-in fade-in duration-300">
                   {/* Logo Display */}
                   <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-brand-inner rounded-[32px] shadow-brutal flex items-center justify-center p-4 border-4 border-brand-border overflow-hidden min-h-[16rem]">
                       {currentLogo && !logoError ? (

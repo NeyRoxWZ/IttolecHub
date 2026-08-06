@@ -39,7 +39,8 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
     roomId,
     roomStatus,
     lastEvent,
-    broadcast
+    broadcast,
+    isConnected
   } = useGameSync(roomCode, 'infiltre');
 
   // --- DERIVED STATE ---
@@ -659,6 +660,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
   return (
     <GameLayout
+      isConnected={isConnected}
       players={playersMap}
       roundCount={currentRoundNumber}
       maxRounds={rounds}

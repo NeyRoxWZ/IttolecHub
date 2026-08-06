@@ -61,7 +61,8 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
     resetAllPlayersReady,
     roomId,
     lastEvent,
-    broadcast
+    broadcast,
+    isConnected
   } = useGameSync(roomCode, 'draw');
 
   // --- DERIVED STATE ---
@@ -911,6 +912,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
 
   return (
     <GameLayout
+      isConnected={isConnected}
       players={playersMap}
       roundCount={game.current_round || 0}
       maxRounds={game.total_rounds || totalRounds}

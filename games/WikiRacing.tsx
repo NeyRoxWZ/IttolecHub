@@ -25,7 +25,8 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
         sendMove,
         moves,
         setGameStatus,
-        serverTime
+        serverTime,
+        isConnected
     } = useGameSync(roomCode, 'wikiracing');
 
     const [htmlContent, setHtmlContent] = useState<string>('');
@@ -408,7 +409,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
 
     if (!gameState) {
         return (
-            <GameLayout gameTitle="WikiRacing" players={playersRecord} roundCount={1} maxRounds={1} timer="00" timeLeft={0} voteToLobby={<VoteToLobby roomCode={roomCode} roomId={roomId || ''} playerId={playerId || ''} players={players} />}>
+            <GameLayout isConnected={isConnected} gameTitle="WikiRacing" players={playersRecord} roundCount={1} maxRounds={1} timer="00" timeLeft={0} voteToLobby={<VoteToLobby roomCode={roomCode} roomId={roomId || ''} playerId={playerId || ''} players={players} />}>
                 <div className="flex items-center justify-center flex-1">
                     <Loader2 className="w-12 h-12 animate-spin text-accent-primary" />
                 </div>
@@ -418,6 +419,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
 
     return (
         <GameLayout
+            isConnected={isConnected}
             gameTitle="WikiRacing"
             players={playersRecord}
             roundCount={currentRound}

@@ -24,7 +24,8 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
         updateRoundData,
         sendMove,
         moves,
-        setGameStatus
+        setGameStatus,
+        isConnected
     } = useGameSync(roomCode, 'jaugeguessr');
 
     const [userGuess, setUserGuess] = useState<number>(90);
@@ -334,7 +335,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
 
     if (!gameState) {
         return (
-            <GameLayout gameTitle="JaugeGuessr" players={playersRecord} roundCount={1} maxRounds={1} timer="00" timeLeft={0} voteToLobby={<VoteToLobby roomCode={roomCode} roomId={roomId || ''} playerId={playerId || ''} players={players} />}>
+            <GameLayout isConnected={isConnected} gameTitle="JaugeGuessr" players={playersRecord} roundCount={1} maxRounds={1} timer="00" timeLeft={0} voteToLobby={<VoteToLobby roomCode={roomCode} roomId={roomId || ''} playerId={playerId || ''} players={players} />}>
                 <div className="flex items-center justify-center flex-1">
                     <Loader2 className="w-12 h-12 animate-spin text-accent-primary" />
                 </div>
@@ -344,6 +345,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
 
     return (
         <GameLayout
+            isConnected={isConnected}
             gameTitle="JaugeGuessr"
             players={playersRecord}
             roundCount={currentRound}

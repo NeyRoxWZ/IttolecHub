@@ -33,7 +33,8 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
     resetAllPlayersReady,
     roomId,
     lastEvent,
-    broadcast
+    broadcast,
+    isConnected
   } = useGameSync(roomCode, 'flag');
 
   // --- DERIVED STATE ---
@@ -367,6 +368,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
   // --- RENDER ---
   return (
     <GameLayout
+      isConnected={isConnected}
       players={playersMap}
       roundCount={game.current_round || 0}
       maxRounds={game.total_rounds || totalRounds}
@@ -414,7 +416,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
 
         {/* PHASE: PLAYING / ROUND_RESULTS */}
         {(currentPhase === 'playing' || currentPhase === 'round_results') && currentFlag && (
-            <div className="flex flex-col items-center w-full max-w-2xl gap-6 pt-4 p-4">
+            <div key={`${game.current_round}-${currentPhase}`} className="flex flex-col items-center w-full max-w-2xl gap-6 pt-4 p-4 animate-in fade-in duration-300">
                 
                 {/* FLAG IMAGE */}
                 <div className="relative w-full aspect-[16/9] md:aspect-[2/1] bg-brand-inner rounded-[32px] overflow-hidden shadow-brutal border-4 border-brand-border p-4">

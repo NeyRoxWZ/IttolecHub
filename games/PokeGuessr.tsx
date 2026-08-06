@@ -39,7 +39,8 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
     resetAllPlayersReady,
     roomId,
     lastEvent,
-    broadcast
+    broadcast,
+    isConnected
   } = useGameSync(roomCode, 'poke');
 
   // --- DERIVED STATE ---
@@ -433,6 +434,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
 
   return (
     <GameLayout
+        isConnected={isConnected}
         gameTitle="PokeGuessr"
         roundCount={currentRound}
         maxRounds={totalRounds}
@@ -475,7 +477,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
 
         {/* PLAYING / RESULTS */}
         {(currentPhase === 'playing' || currentPhase === 'round_results') && currentPokemon && (
-            <div className="flex flex-col items-center justify-center w-full h-full gap-8 p-4">
+            <div key={`${game.current_round}-${currentPhase}`} className="flex flex-col items-center justify-center w-full h-full gap-8 p-4 animate-in fade-in duration-300">
                 
                 {/* POKEMON IMAGE */}
                 <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center transition-all duration-700 min-h-[16rem] bg-brand-inner border-4 border-brand-border rounded-3xl shadow-brutal p-8">

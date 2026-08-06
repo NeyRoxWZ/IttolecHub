@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useGameRoom } from './useGameRoom';
 import { useServerTime } from './useServerTime';
+import { toast } from 'sonner';
 
 export interface Player {
   id: string;
@@ -181,12 +182,15 @@ export function useGameSync(roomCode: string, gameType: string) {
   const updateSettings = async (newSettings: any) => {
     if (!roomId || !isHost) return;
     const { error } = await supabase.from('rooms').update({ settings: newSettings }).eq('id', roomId);
-    if (error) console.error('Error updating settings:', error);
+    if (error) {
+      console.error('Error updating settings:', error);
+      toast.error("Impossible de sauvegarder les réglages. Vérifiez votre connexion.");
+    }
   };
 
   const startGame = async (initialRoundData: any = {}) => {
     if (!roomId || !isHost) return;
-    
+
     const sessionPayload = {
         room_id: roomId,
         status: 'round_active',
@@ -194,30 +198,39 @@ export function useGameSync(roomCode: string, gameType: string) {
         answers: {},
         round_data: initialRoundData
     };
-    
+
     // Use upsert to ensure session exists and handle race conditions
     const { error: sessionError } = await supabase
         .from('game_sessions')
         .upsert(sessionPayload, { onConflict: 'room_id' });
-        
-    if (sessionError) console.error('ERREUR SUPABASE (startGame session):', sessionError);
+
+    if (sessionError) {
+      console.error('ERREUR SUPABASE (startGame session):', sessionError);
+      toast.error("Impossible de lancer la partie. Réessayez.");
+      return;
+    }
 
     const roomPayload = { status: 'in_game' };
     const { error: roomError } = await supabase.from('rooms').update(roomPayload).eq('id', roomId);
-    if (roomError) console.error('ERREUR SUPABASE (startGame room):', roomError);
+    if (roomError) {
+      console.error('ERREUR SUPABASE (startGame room):', roomError);
+      toast.error("Impossible de lancer la partie. Réessayez.");
+    }
   };
 
   const submitAnswer = async (answer: any) => {
     if (!roomId || !playerId || !gameState) return;
     const newAnswers = { ...gameState.answers, [playerId]: { answer, time: Date.now() } };
-    await supabase.from('game_sessions').update({ answers: newAnswers }).eq('room_id', roomId);
+    const { error } = await supabase.from('game_sessions').update({ answers: newAnswers }).eq('room_id', roomId);
+    if (error) toast.error("Votre réponse n'a pas été envoyée. Réessayez.");
   };
 
   const setPlayerReady = async (isReady: boolean) => {
     if (!playerId) return;
-    await supabase.from('players').update({ is_ready: isReady }).eq('id', playerId);
+    const { error } = await supabase.from('players').update({ is_ready: isReady }).eq('id', playerId);
+    if (error) toast.error("Impossible de mettre à jour votre statut. Réessayez.");
   };
-  
+
   const resetAllPlayersReady = async () => {
     if (!roomId || !isHost) return;
     await supabase.from('players').update({ is_ready: false }).eq('room_id', roomId);
@@ -225,13 +238,14 @@ export function useGameSync(roomCode: string, gameType: string) {
 
   const sendMove = async (actionType: string, payload: any) => {
     if (!roomId || !playerId) return;
-    await supabase.from('game_moves').insert({
+    const { error } = await supabase.from('game_moves').insert({
         room_id: roomId,
         player_id: playerId,
         action_type: actionType,
         // game_type removed as it's not in the schema
         payload
     });
+    if (error) toast.error("Action non envoyée. Vérifiez votre connexion.");
   };
 
   const nextRound = async (nextRoundData: any = {}) => {
@@ -304,6 +318,7 @@ export function useGameSync(roomCode: string, gameType: string) {
     serverTime: now, // Exposed if needed
     roomId, // Exposed UUID
     lastEvent, // Exposed for components
-    broadcast // Exposed for components
+    broadcast, // Exposed for components
+    isConnected // Exposed for connection-status banner
   };
 }
