@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import VoteToLobby from './components/VoteToLobby';
 import { cn } from '@/lib/utils';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 type Role = 'CIVIL' | 'UNDERCOVER' | 'MR_WHITE';
 type Phase = 'setup' | 'roles' | 'clues' | 'discussion' | 'vote' | 'mrwhite_guess' | 'results' | 'game_over';
@@ -726,7 +727,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         text: userClue,
         round_number: currentClueRound
     });
-    
+
+    vibrate(HAPTIC.SOFT);
     setUserClue('');
   };
 
@@ -741,6 +743,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         await supabase.from('undercover_votes').update({
             target_id: targetId
         }).eq('id', existingVotes[0].id);
+        vibrate(HAPTIC.MEDIUM);
         toast.success('Vote modifié');
     } else {
         // Insert new vote
@@ -750,6 +753,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
             voter_id: playerId,
             target_id: targetId
         });
+        vibrate(HAPTIC.MEDIUM);
         toast.success('Vote enregistré');
     }
   };
@@ -759,22 +763,14 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     await sendMove('guess', { text: mrWhiteGuess });
   };
 
-  // --- RENDER HELPERS ---
-  const playersMap = useMemo(() => {
-     return players.reduce((acc, p) => ({ ...acc, [p.name]: 0 }), {} as Record<string, number>);
-  }, [players]);
-
   return (
     <GameLayout
       isConnected={isConnected}
-      players={playersMap}
       roundCount={currentRoundNumber}
       maxRounds={rounds}
       timer={timeLeft > 0 ? `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}` : '--:--'}
       gameTitle="Undercover"
-      gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
-      showScores={false}
       voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} /> : undefined}
     >
       <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)]">

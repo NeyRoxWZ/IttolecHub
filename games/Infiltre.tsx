@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import VoteToLobby from './components/VoteToLobby';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 type Role = 'MASTER' | 'INFILTRE' | 'CITIZEN';
 type Phase = 'setup' | 'roles' | 'playing' | 'voting_finder' | 'voting_infiltre' | 'results';
@@ -366,7 +367,8 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
           text: questionText,
           answer: null
       });
-      
+
+      vibrate(HAPTIC.SOFT);
       setUserQuestion('');
   };
 
@@ -412,6 +414,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
           await supabase.from('infiltre_votes').update({
               target_id: targetId
           }).eq('id', myVote.id);
+          vibrate(HAPTIC.MEDIUM);
           toast.success('Vote modifié');
       } else {
           // Insert new vote
@@ -421,6 +424,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
               target_id: targetId,
               vote_phase: votePhase
           });
+          vibrate(HAPTIC.MEDIUM);
           toast.success('Vote enregistré');
       }
       
@@ -653,22 +657,14 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
     await setPlayerReady(!amIReady);
   };
 
-  // --- RENDER HELPERS ---
-  const playersMap = useMemo(() => {
-     return players.reduce((acc, p) => ({ ...acc, [p.name]: 0 }), {} as Record<string, number>);
-  }, [players]);
-
   return (
     <GameLayout
       isConnected={isConnected}
-      players={playersMap}
       roundCount={currentRoundNumber}
       maxRounds={rounds}
       timer={timeLeft > 0 ? `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}` : '--:--'}
       gameTitle="L'Infiltré"
-      gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
-      showScores={false}
       voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} /> : undefined}
     >
       <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)]">

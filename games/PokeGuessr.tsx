@@ -424,14 +424,6 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
       return { filter: 'none', opacity: 1 };
   };
 
-  // Players Map for GameLayout
-  const playersMap = useMemo(() => {
-    return players.reduce((acc, p) => {
-        acc[p.name] = p.score;
-        return acc;
-    }, {} as Record<string, number>);
-  }, [players]);
-
   return (
     <GameLayout
         isConnected={isConnected}
@@ -439,7 +431,6 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
         roundCount={currentRound}
         maxRounds={totalRounds}
         timer={timeLeft.toString()}
-        players={playersMap}
         timeLeft={timeLeft}
         voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} /> : undefined}
     >

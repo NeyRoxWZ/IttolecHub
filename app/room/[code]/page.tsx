@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import QRCodeStyling from 'qr-code-styling';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/Dialog';
 import { cn } from '@/lib/utils';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 interface Player {
   id: string;
@@ -377,6 +378,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       if (!isHost) return; // Seul l'hôte peut changer ce mode
       const newState = !isPrivateMode;
       setIsPrivateMode(newState);
+      vibrate(HAPTIC.SOFT);
       
       if (roomId) {
           await supabase.from('rooms').update({
@@ -835,7 +837,9 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   const startGame = async () => {
     if (!selectedGameId || selectedGameId === '__placeholder__' || !roomId) return;
-    
+
+    vibrate(HAPTIC.HEAVY);
+
     // Check if game is coming soon
     const gameInfo = gamesList.find(g => g.id === selectedGameId);
     if (gameInfo?.comingSoon) {
@@ -921,16 +925,19 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const copyRoomCode = () => {
     navigator.clipboard.writeText(params.code);
     setCopied(true);
+    vibrate(HAPTIC.SOFT);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const kickPlayer = async (playerIdToKick: string, playerName: string) => {
     if (!isHost || !roomId) return;
-    
+
+    vibrate(HAPTIC.WARNING);
+
     const currentBanned = Array.isArray(gameSettings.banned) ? gameSettings.banned : [];
     const newBanned = [...currentBanned, playerName, playerIdToKick];
     const newSettings = { ...gameSettings, banned: newBanned };
-    
+
     // Update local state immediately so we don't have to wait for F5
     setPlayers(prev => prev.filter(p => p.id !== playerIdToKick));
     
@@ -945,6 +952,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   };
 
   const leaveRoom = async () => {
+    vibrate(HAPTIC.SOFT);
     // Supprimer le joueur de la DB
     if (roomId && playerName) {
         await supabase.from('players').delete().match({ room_id: roomId, name: playerName });
@@ -1227,6 +1235,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                         toast.info("Ce jeu arrive bientôt !");
                                         return;
                                     }
+                                    vibrate(HAPTIC.SOFT);
                                     setSelectedGameId(game.id);
                                 }}
                                 className={cn(

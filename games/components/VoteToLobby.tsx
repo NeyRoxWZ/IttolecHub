@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 interface VoteToLobbyProps {
   roomId: string;
@@ -54,6 +55,7 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode, gameT
   const handleVote = async () => {
     if (hasVoted || !roomId || !playerId || !channel) return;
 
+    vibrate(HAPTIC.SOFT);
     const playerName = players.find(p => p.id === playerId)?.name || 'Joueur';
     
     const vote: Vote = {

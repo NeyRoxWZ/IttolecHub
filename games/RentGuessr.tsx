@@ -56,13 +56,6 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
   const totalRounds = Number(settings.rounds || 5);
   const timerSeconds = Number(settings.time || 30);
   
-  // Players Map for GameLayout
-  const playersMap = useMemo(() => {
-    return players.reduce((acc, p) => {
-        acc[p.name] = p.score;
-        return acc;
-    }, {} as Record<string, number>);
-  }, [players]);
 
   // Local State
   const [timeLeft, setTimeLeft] = useState(0);
@@ -347,7 +340,6 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
           roundCount={currentRound}
           maxRounds={totalRounds}
           timer={timeLeft.toString()}
-          players={playersMap}
           timeLeft={timeLeft}
           voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} />}
       >

@@ -351,13 +351,6 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
       return matrix[b.length][a.length]; 
   };
 
-  const playersMap = useMemo(() => {
-      return players.reduce((acc, p) => {
-          const gp = gamePlayers.find((gp: any) => gp.player_id === p.id);
-          return { ...acc, [p.name]: gp?.score || 0 };
-      }, {} as Record<string, number>);
-  }, [players, gamePlayers]);
-
   const sortedPlayers = useMemo(() => {
       return [...players].map(p => {
           const gp = gamePlayers.find((gp: any) => gp.player_id === p.id);
@@ -369,12 +362,10 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
   return (
     <GameLayout
       isConnected={isConnected}
-      players={playersMap}
       roundCount={game.current_round || 0}
       maxRounds={game.total_rounds || totalRounds}
       timer={timeLeft > 0 ? `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}` : '--:--'}
       gameTitle="Flag Guessr"
-      gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
       voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} />}
     >

@@ -12,13 +12,9 @@ interface GameLayoutProps {
   roundCount: number;
   maxRounds: number;
   timer: string;
-  // Players
-  players: Record<string, number>; // name -> score
   // State
   timeLeft?: number;
-  gameStarted?: boolean;
   className?: string;
-  showScores?: boolean; // New prop to toggle score display
   voteToLobby?: ReactNode; // Vote to lobby button
   isConnected?: boolean; // Realtime connection status (from useGameSync)
 }
@@ -29,11 +25,8 @@ export default function GameLayout({
   roundCount,
   maxRounds,
   timer,
-  players,
   timeLeft = 0,
-  gameStarted = true,
   className,
-  showScores = true, // Default true
   voteToLobby, // Default undefined
   isConnected = true
 }: GameLayoutProps) {

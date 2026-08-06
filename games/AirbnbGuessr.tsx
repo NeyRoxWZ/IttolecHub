@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { Euro, TrendingUp, TrendingDown, Clock, MapPin, Home, Bed, Layout, Building2, Trophy, Users, CheckCircle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import VoteToLobby from './components/VoteToLobby';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 interface AirbnbGuessrProps {
   roomCode: string;
@@ -44,13 +45,6 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
   const totalRounds = Number(settings.rounds || 5);
   const timerSeconds = Number(settings.time || 30);
   
-  // Players Map for GameLayout
-  const playersMap = useMemo(() => {
-    return players.reduce((acc, p) => {
-        acc[p.name] = p.score;
-        return acc;
-    }, {} as Record<string, number>);
-  }, [players]);
 
   // Local State
   const [timeLeft, setTimeLeft] = useState(0);
@@ -274,6 +268,7 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
       }).match({ room_id: roomId, player_id: playerId });
       
       setHasGuessed(true);
+      vibrate(HAPTIC.MEDIUM);
       toast.success("Estimation envoyée !");
   };
 
@@ -305,7 +300,6 @@ export default function AirbnbGuessr({ roomCode }: AirbnbGuessrProps) {
           roundCount={currentRound}
           maxRounds={totalRounds}
           timer={timeLeft.toString()}
-          players={playersMap}
           timeLeft={timeLeft}
           voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} />}
       >

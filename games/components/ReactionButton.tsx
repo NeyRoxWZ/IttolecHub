@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import { Smile, Heart, ThumbsUp, PartyPopper, Flame, Frown } from 'lucide-react';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/Popover';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 const REACTIONS = [
   { emoji: '❤️', label: 'Love' },
@@ -59,6 +60,7 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
   };
 
   const sendReaction = async (emoji: string) => {
+    vibrate(HAPTIC.SOFT);
     // Optimistic local show
     addFloatingReaction(emoji);
     

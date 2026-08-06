@@ -331,22 +331,13 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
       }).sort((a, b) => (b.score - a.score) || a.name.localeCompare(b.name));
   }, [players, gamePlayers]);
 
-  const playersMap = useMemo(() => {
-      return players.reduce((acc, p) => {
-          const gp = gamePlayers.find((gp: any) => gp.player_id === p.id);
-          return { ...acc, [p.name]: gp?.score || 0 };
-      }, {} as Record<string, number>);
-  }, [players, gamePlayers]);
-
   return (
     <GameLayout
       isConnected={isConnected}
-      players={playersMap}
       roundCount={game.current_round || 0}
       maxRounds={game.total_rounds || totalRounds}
       timer={timeLeft > 0 ? `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}` : '--:--'}
       gameTitle="BudgetGuessr"
-      gameStarted={currentPhase !== 'setup'}
       timeLeft={timeLeft}
       voteToLobby={currentPhase !== 'setup' ? <VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} /> : undefined}
     >

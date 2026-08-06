@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 export const viewport = {
   width: 'device-width',
@@ -154,6 +155,7 @@ export default function Home() {
     }
 
     sessionStorage.setItem('playerName', name);
+    vibrate(HAPTIC.MEDIUM);
 
     if (activeTab === 'create') {
       const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -174,6 +176,7 @@ export default function Home() {
   const goNext = () => setCurrentStep((prev) => (prev + 1) % STEPS.length);
 
   const handleSetMode = (nextMode: 'multiplayer' | 'solo') => {
+    vibrate(HAPTIC.SOFT);
     setMode(nextMode);
     sessionStorage.setItem('itollec_home_mode', nextMode);
     router.replace(`/?mode=${nextMode}`);
@@ -457,7 +460,7 @@ export default function Home() {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => setActiveTab('create')}
+                      onClick={() => { vibrate(HAPTIC.SOFT); setActiveTab('create'); }}
                       className={cn(
                         'flex-1 h-11 rounded-lg font-display font-bold transition-colors border-2',
                         activeTab === 'create'
@@ -469,7 +472,7 @@ export default function Home() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setActiveTab('join')}
+                      onClick={() => { vibrate(HAPTIC.SOFT); setActiveTab('join'); }}
                       className={cn(
                         'flex-1 h-11 rounded-lg font-display font-bold transition-colors border-2',
                         activeTab === 'join'

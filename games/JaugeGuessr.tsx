@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { Eye, EyeOff, Send, Target, Trophy, Clock, Loader2, ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 export default function JaugeGuessr({ params }: { params: { code: string } }) {
     const roomCode = params.code;
@@ -190,11 +191,13 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
     const submitClue = () => {
         if (!isGuider || !clueInput.trim()) return;
         sendMove('jauge_clue', { clue: clueInput.trim() });
+        vibrate(HAPTIC.SOFT);
     };
 
     const submitGuess = () => {
         if (isGuider || hasGuessed || !playerId) return;
         sendMove('jauge_guess', { angle: userGuess });
+        vibrate(HAPTIC.MEDIUM);
     };
 
     const nextRound = async () => {
@@ -325,17 +328,9 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
         })).sort((a, b) => (b.score - a.score) || a.name.localeCompare(b.name));
     }, [players, scores]);
 
-    const playersRecord = useMemo(() => {
-        const record: Record<string, number> = {};
-        players.forEach(p => {
-            record[p.name] = scores[p.id] || 0;
-        });
-        return record;
-    }, [players, scores]);
-
     if (!gameState) {
         return (
-            <GameLayout isConnected={isConnected} gameTitle="JaugeGuessr" players={playersRecord} roundCount={1} maxRounds={1} timer="00" timeLeft={0} voteToLobby={<VoteToLobby roomCode={roomCode} roomId={roomId || ''} playerId={playerId || ''} players={players} />}>
+            <GameLayout isConnected={isConnected} gameTitle="JaugeGuessr" roundCount={1} maxRounds={1} timer="00" timeLeft={0} voteToLobby={<VoteToLobby roomCode={roomCode} roomId={roomId || ''} playerId={playerId || ''} players={players} />}>
                 <div className="flex items-center justify-center flex-1">
                     <Loader2 className="w-12 h-12 animate-spin text-accent-primary" />
                 </div>
@@ -347,7 +342,6 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
         <GameLayout
             isConnected={isConnected}
             gameTitle="JaugeGuessr"
-            players={playersRecord}
             roundCount={currentRound}
             maxRounds={totalRounds}
             timer="--"

@@ -99,13 +99,6 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   const timerSeconds = Number(settings.time || 15);
   const difficulty = settings.difficulty || 'easy';
 
-  // Players Map for GameLayout
-  const playersMap = useMemo(() => {
-    return players.reduce((acc, p) => {
-        acc[p.name] = p.score;
-        return acc;
-    }, {} as Record<string, number>);
-  }, [players]);
 
   // Local State
   const [timeLeft, setTimeLeft] = useState(0);
@@ -582,7 +575,6 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           roundCount={currentRound}
           maxRounds={totalRounds}
           timer={timeLeft.toString()}
-          players={playersMap}
           timeLeft={timeLeft}
           voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} />}
       >

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { Trophy, Clock, Loader2, ArrowRight, Target, Link as LinkIcon, Search, ChevronUp, ChevronDown, X, CornerRightUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { vibrate, HAPTIC } from '@/lib/haptic';
 
 export default function WikiRacing({ params }: { params: { code: string } }) {
     const roomCode = params.code;
@@ -328,6 +329,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                 }
 
                 setLocalClicks(c => c + 1);
+                vibrate(HAPTIC.SOFT);
                 loadWikiPage(nextTitle);
             }
         }
@@ -338,6 +340,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
         setHasFinished(true);
         const timeTaken = Date.now() - (roundStartTime || Date.now());
         sendMove('wiki_finish', { clicks: localClicks + 1, time: timeTaken });
+        vibrate(HAPTIC.SUCCESS);
         toast.success("Vous avez atteint la cible !");
     };
 
@@ -373,14 +376,6 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
         })).sort((a, b) => (b.score - a.score) || a.name.localeCompare(b.name));
     }, [players, scores]);
 
-    const playersRecord = useMemo(() => {
-        const record: Record<string, number> = {};
-        players.forEach(p => {
-            record[p.name] = scores[p.id] || 0;
-        });
-        return record;
-    }, [players, scores]);
-
     // Timer display
     const [timeLeft, setTimeLeft] = useState(0);
     useEffect(() => {
@@ -409,7 +404,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
 
     if (!gameState) {
         return (
-            <GameLayout isConnected={isConnected} gameTitle="WikiRacing" players={playersRecord} roundCount={1} maxRounds={1} timer="00" timeLeft={0} voteToLobby={<VoteToLobby roomCode={roomCode} roomId={roomId || ''} playerId={playerId || ''} players={players} />}>
+            <GameLayout isConnected={isConnected} gameTitle="WikiRacing" roundCount={1} maxRounds={1} timer="00" timeLeft={0} voteToLobby={<VoteToLobby roomCode={roomCode} roomId={roomId || ''} playerId={playerId || ''} players={players} />}>
                 <div className="flex items-center justify-center flex-1">
                     <Loader2 className="w-12 h-12 animate-spin text-accent-primary" />
                 </div>
@@ -421,7 +416,6 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
         <GameLayout
             isConnected={isConnected}
             gameTitle="WikiRacing"
-            players={playersRecord}
             roundCount={currentRound}
             maxRounds={totalRounds}
             timer={countdownEndTime && timeLeft > 0 ? String(timeLeft) : "--"}
