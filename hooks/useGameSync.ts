@@ -32,7 +32,7 @@ export function useGameSync(roomCode: string, gameType: string) {
   // Use the new robust hook for sync
   const { 
     room, session, players, moves, 
-    undercover, infiltre, flag, wiki, budget, draw, poke, rent, airbnb, logo,
+    undercover, infiltre, flag, wiki, budget, draw, poke, rent, logo,
     isConnected, lastEvent, broadcast 
   } = useGameRoom(roomId || '', playerId || '');
 
@@ -312,7 +312,6 @@ export function useGameSync(roomCode: string, gameType: string) {
     draw, // Exposed dedicated tables
     poke, // Exposed dedicated tables
     rent, // Exposed dedicated tables
-    airbnb, // Exposed dedicated tables
     logo, // Exposed dedicated tables
     getTimeLeft, // Exposed for components
     serverTime: now, // Exposed if needed

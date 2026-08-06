@@ -44,10 +44,6 @@ export interface GameRoomState {
       game: any;
       players: any[];
   };
-  airbnb: {
-      game: any;
-      players: any[];
-  };
   logo: {
       game: any;
       players: any[];
@@ -98,10 +94,6 @@ export function useGameRoom(roomId: string, playerId: string) {
         game: null,
         players: []
     },
-    airbnb: {
-        game: null,
-        players: []
-    },
     logo: {
         game: null,
         players: []
@@ -139,7 +131,6 @@ export function useGameRoom(roomId: string, playerId: string) {
           drawGame, drawPlayers,
           pokeGame, pokePlayers,
           rentGame, rentPlayers,
-          airbnbGame, airbnbPlayers,
           logoGame, logoPlayers
       ] = await Promise.all([
         supabase.from('rooms').select('*').eq('id', roomId).maybeSingle(),
@@ -174,9 +165,6 @@ export function useGameRoom(roomId: string, playerId: string) {
         // Rent Tables
         supabase.from('rent_games').select('*').eq('room_id', roomId).maybeSingle(),
         supabase.from('rent_players').select('*').eq('room_id', roomId),
-        // Airbnb Tables
-         supabase.from('airbnb_games').select('*').eq('room_id', roomId).maybeSingle(),
-         supabase.from('airbnb_players').select('*').eq('room_id', roomId),
          // Logo Tables
          supabase.from('logo_games').select('*').eq('room_id', roomId).maybeSingle(),
          supabase.from('logo_players').select('*').eq('room_id', roomId)
@@ -224,10 +212,6 @@ export function useGameRoom(roomId: string, playerId: string) {
           rent: {
               game: rentGame.data,
               players: rentPlayers.data || []
-          },
-          airbnb: {
-              game: airbnbGame.data,
-              players: airbnbPlayers.data || []
           },
           logo: {
               game: logoGame.data,
@@ -345,15 +329,6 @@ export function useGameRoom(roomId: string, playerId: string) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rent_players', filter: `room_id=eq.${roomId}` }, async () => {
           const { data } = await supabase.from('rent_players').select('*').eq('room_id', roomId);
           if (isMounted && data) setState(prev => ({ ...prev, rent: { ...prev.rent, players: data } }));
-      })
-
-      // --- AIRBNB TABLES ---
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'airbnb_games', filter: `room_id=eq.${roomId}` }, (payload) => {
-          if (isMounted && payload.new) setState(prev => ({ ...prev, airbnb: { ...prev.airbnb, game: payload.new } }));
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'airbnb_players', filter: `room_id=eq.${roomId}` }, async () => {
-          const { data } = await supabase.from('airbnb_players').select('*').eq('room_id', roomId);
-          if (isMounted && data) setState(prev => ({ ...prev, airbnb: { ...prev.airbnb, players: data } }));
       })
 
       // --- LOGO TABLES ---

@@ -234,18 +234,6 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
     ],
   },
   {
-    id: 'airbnbguessr',
-    name: 'AirbnbGuessr',
-    description: 'Le prix d\'une nuit de rêve.',
-    icon: Home, // Placeholder, should be MapPin
-    color: 'from-rose-500 to-pink-600',
-    settings: [
-      { id: 'rounds', label: 'Manches', type: 'number', default: 5 },
-      { id: 'time', label: 'Temps par manche (s)', type: 'number', default: 30 },
-    ],
-    comingSoon: true
-  },
-  {
     id: 'jaugeguessr',
     name: 'JaugeGuessr',
     description: 'Ciblez la bonne intensité.',

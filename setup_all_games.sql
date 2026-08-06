@@ -331,36 +331,6 @@ create table if not exists rent_players (
 alter publication supabase_realtime add table rent_games;
 alter publication supabase_realtime add table rent_players;
 
--- AirbnbGuessr Tables
-
-create table if not exists airbnb_games (
-  room_id uuid references rooms(id) on delete cascade primary key,
-  phase text default 'setup', -- setup, playing, round_results, podium
-  current_round int default 1,
-  round_id text, -- Unique ID for current round
-  total_rounds int default 5,
-  timer_seconds int default 30,
-  timer_start_at timestamptz,
-  current_listing jsonb, -- { id, city, neighbourhood, photo_url, price_per_night, accommodates, bedrooms, room_type }
-  queue jsonb, -- Queue of upcoming listings
-  scores jsonb default '{}'::jsonb,
-  created_at timestamptz default now()
-);
-
-create table if not exists airbnb_players (
-  room_id uuid references rooms(id) on delete cascade,
-  player_id uuid references players(id) on delete cascade,
-  score int default 0,
-  last_guess int, -- The price guessed
-  guess_diff_percent float,
-  guess_time_ms int,
-  has_guessed boolean default false,
-  primary key (room_id, player_id)
-);
-
-alter publication supabase_realtime add table airbnb_games;
-alter publication supabase_realtime add table airbnb_players;
-
 -- LogoGuessr Tables
 
 create table if not exists logo_games (

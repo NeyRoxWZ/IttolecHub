@@ -90,11 +90,6 @@ ALTER TABLE poke_games ADD COLUMN IF NOT EXISTS round_id text;
 ALTER TABLE rent_games ADD COLUMN IF NOT EXISTS round_id text;
 
 -- ==========================================
--- AIRBNBGUESSR
--- ==========================================
-ALTER TABLE airbnb_games ADD COLUMN IF NOT EXISTS round_id text;
-
--- ==========================================
 -- LOGOGUESSR
 -- ==========================================
 ALTER TABLE logo_games ADD COLUMN IF NOT EXISTS round_id text;
