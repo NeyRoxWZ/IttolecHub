@@ -226,12 +226,6 @@ export default function FrenlyWheelPage() {
                     </div>
                   );
                 })}
-
-                {/* subtle sheen for depth */}
-                <div
-                  className="absolute inset-0 rounded-full pointer-events-none"
-                  style={{ background: 'radial-gradient(circle at 35% 28%, rgba(255,255,255,0.18), transparent 55%)' }}
-                />
               </div>
 
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
@@ -241,11 +235,14 @@ export default function FrenlyWheelPage() {
               </div>
             </div>
 
-            {lastResult && !spinning && (
-              <div className={cn('mt-6 px-4 py-2 rounded-xl border-2 font-bold text-sm', lastResult.won ? 'border-accent-success text-accent-success bg-accent-success/10' : 'border-accent-secondary text-accent-secondary bg-accent-secondary/10')}>
-                {lastResult.won ? `Gagné +${lastResult.payout} ₶` : 'Perdu'}
-              </div>
-            )}
+            {/* Fixed-height slot so the badge appearing doesn't re-center (and visibly shift) the wheel above it */}
+            <div className="mt-6 h-10 flex items-center">
+              {lastResult && !spinning && (
+                <div className={cn('px-4 py-2 rounded-xl border-2 font-bold text-sm animate-in fade-in duration-200', lastResult.won ? 'border-accent-success text-accent-success bg-accent-success/10' : 'border-accent-secondary text-accent-secondary bg-accent-secondary/10')}>
+                  {lastResult.won ? `Gagné +${lastResult.payout} ₶` : 'Perdu'}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* BETTING */}
