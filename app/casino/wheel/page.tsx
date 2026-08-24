@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Coins, Info, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,10 +17,13 @@ import {
 } from '@/lib/casino/wheel';
 
 const SEGMENT_ANGLE = 360 / WHEEL_ORDER.length;
+const PRESPIN_SPEED = 640; // deg/sec while waiting on the result
+const SETTLE_DURATION_MS = 2200;
+const SETTLE_EXTRA_SPINS = 3;
 
 const COLOR_HEX: Record<'red' | 'black' | 'green', string> = {
   red: '#FF2A55',
-  black: '#1C1C26',
+  black: '#0A0A0F',
   green: '#00FF94',
 };
 
@@ -32,9 +35,16 @@ export default function FrenlyWheelPage() {
   const [betValue, setBetValue] = useState<any>('red');
   const [amount, setAmount] = useState(10);
   const [spinning, setSpinning] = useState(false);
-  const [rotation, setRotation] = useState(0);
   const [lastResult, setLastResult] = useState<WheelSpinResult | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+
+  const wheelRef = useRef<HTMLDivElement>(null);
+  const currentAngleRef = useRef(0);
+  const preSpinRafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => { if (preSpinRafRef.current) cancelAnimationFrame(preSpinRafRef.current); };
+  }, []);
 
   const wheelGradient = useMemo(() => {
     const stops: string[] = [];
@@ -47,7 +57,58 @@ export default function FrenlyWheelPage() {
     return `conic-gradient(${stops.join(', ')})`;
   }, []);
 
+  // Thin dividers between pockets so segments read as distinct slices
+  // instead of blurring into one dark mass.
+  const separatorGradient = useMemo(() => {
+    const stops: string[] = [];
+    const lineWidth = 0.45;
+    for (let i = 1; i < WHEEL_ORDER.length; i++) {
+      const boundary = i * SEGMENT_ANGLE;
+      stops.push(
+        `transparent ${(boundary - lineWidth).toFixed(2)}deg`,
+        `rgba(0,0,0,0.6) ${(boundary - lineWidth).toFixed(2)}deg`,
+        `rgba(0,0,0,0.6) ${(boundary + lineWidth).toFixed(2)}deg`,
+        `transparent ${(boundary + lineWidth).toFixed(2)}deg`
+      );
+    }
+    return `conic-gradient(${stops.join(', ')})`;
+  }, []);
+
   const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
+
+  const startPreSpin = () => {
+    let last = performance.now();
+    const loop = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      currentAngleRef.current += PRESPIN_SPEED * dt;
+      if (wheelRef.current) {
+        wheelRef.current.style.transition = 'none';
+        wheelRef.current.style.transform = `rotate(${currentAngleRef.current}deg)`;
+      }
+      preSpinRafRef.current = requestAnimationFrame(loop);
+    };
+    preSpinRafRef.current = requestAnimationFrame(loop);
+  };
+
+  const settleOnNumber = (landedNumber: number) => {
+    if (preSpinRafRef.current) cancelAnimationFrame(preSpinRafRef.current);
+
+    const index = WHEEL_ORDER.indexOf(landedNumber);
+    const targetSegmentCenter = index * SEGMENT_ANGLE + SEGMENT_ANGLE / 2;
+    const desiredMod = (360 - targetSegmentCenter + 360) % 360;
+    const currentMod = ((currentAngleRef.current % 360) + 360) % 360;
+    let delta = desiredMod - currentMod;
+    if (delta < 0) delta += 360;
+
+    const target = currentAngleRef.current + delta + SETTLE_EXTRA_SPINS * 360;
+    currentAngleRef.current = target;
+
+    if (wheelRef.current) {
+      wheelRef.current.style.transition = `transform ${SETTLE_DURATION_MS}ms cubic-bezier(0.12, 0.67, 0.1, 0.99)`;
+      wheelRef.current.style.transform = `rotate(${target}deg)`;
+    }
+  };
 
   const handleSpin = async () => {
     if (spinning) return;
@@ -55,24 +116,21 @@ export default function FrenlyWheelPage() {
     if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
 
     setSpinning(true);
+    setLastResult(null);
     vibrate(HAPTIC.MEDIUM);
+    startPreSpin();
 
     const bet: WheelBet = { type: betType, value: betValue };
     const result = await spinWheelBet(bet, amount);
 
     if ('error' in result) {
+      if (preSpinRafRef.current) cancelAnimationFrame(preSpinRafRef.current);
       toast.error(result.error);
       setSpinning(false);
       return;
     }
 
-    const index = WHEEL_ORDER.indexOf(result.landedNumber);
-    const targetSegmentCenter = index * SEGMENT_ANGLE + SEGMENT_ANGLE / 2;
-    const spins = 6; // full turns for effect
-    setRotation((prev) => {
-      const base = prev - (prev % 360); // reset to a multiple of 360 to keep numbers sane
-      return base + spins * 360 - targetSegmentCenter;
-    });
+    settleOnNumber(result.landedNumber);
 
     setTimeout(() => {
       setLastResult(result);
@@ -84,7 +142,7 @@ export default function FrenlyWheelPage() {
         vibrate(HAPTIC.ERROR);
         toast.error(`Numéro ${result.landedNumber}. Perdu.`);
       }
-    }, 4000);
+    }, SETTLE_DURATION_MS);
   };
 
   const wheelHistory = history.filter((h) => h.game_slug === 'wheel').slice(0, 12);
@@ -136,7 +194,6 @@ export default function FrenlyWheelPage() {
                   <span className="font-bold">1/37 · paie x36 · RTP 97.3%</span>
                 </div>
               </div>
-              <p className="text-xs text-tx-muted mt-4">37 cases (0 à 36), un seul zéro. Le tirage est calculé côté serveur, jamais côté client.</p>
             </div>
           </div>
         )}
@@ -145,17 +202,40 @@ export default function FrenlyWheelPage() {
           {/* WHEEL */}
           <div className="flex flex-col items-center justify-center bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
             <div className="relative w-64 h-64 sm:w-80 sm:h-80">
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[16px] border-t-accent-primary" />
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[16px] border-t-accent-primary drop-shadow-md" />
+
               <div
-                className="w-full h-full rounded-full border-4 border-brand-border shadow-brutal"
+                ref={wheelRef}
+                className="relative w-full h-full rounded-full border-4 border-brand-border"
                 style={{
                   background: wheelGradient,
-                  transform: `rotate(${rotation}deg)`,
-                  transition: spinning ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
+                  boxShadow: '0 0 0 6px rgba(0,0,0,0.35), 0 18px 40px -12px rgba(0,0,0,0.75)',
                 }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-16 h-16 rounded-full bg-brand-card border-4 border-brand-border flex items-center justify-center font-display font-black text-lg">
+              >
+                {/* separators */}
+                <div className="absolute inset-0 rounded-full pointer-events-none" style={{ background: separatorGradient }} />
+
+                {/* numbers, radial like a real wheel */}
+                {WHEEL_ORDER.map((num, i) => {
+                  const angle = i * SEGMENT_ANGLE + SEGMENT_ANGLE / 2;
+                  return (
+                    <div key={num} className="absolute inset-0" style={{ transform: `rotate(${angle}deg)` }}>
+                      <span className="absolute left-1/2 top-1.5 sm:top-2 -translate-x-1/2 text-[8px] sm:text-[10px] font-bold text-white/90 select-none">
+                        {num}
+                      </span>
+                    </div>
+                  );
+                })}
+
+                {/* subtle sheen for depth */}
+                <div
+                  className="absolute inset-0 rounded-full pointer-events-none"
+                  style={{ background: 'radial-gradient(circle at 35% 28%, rgba(255,255,255,0.18), transparent 55%)' }}
+                />
+              </div>
+
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <div className="w-16 h-16 rounded-full bg-brand-card border-4 border-brand-border shadow-brutal flex items-center justify-center font-display font-black text-lg">
                   {lastResult ? lastResult.landedNumber : '?'}
                 </div>
               </div>
@@ -199,7 +279,7 @@ export default function FrenlyWheelPage() {
                     key={c}
                     onClick={() => { setBetValue(c); vibrate(HAPTIC.SOFT); }}
                     className={cn('h-14 rounded-lg font-display font-black border-2 transition-all', betValue === c && 'ring-2 ring-accent-primary')}
-                    style={{ backgroundColor: COLOR_HEX[c], color: c === 'red' ? '#fff' : '#fff', borderColor: '#000' }}
+                    style={{ backgroundColor: COLOR_HEX[c], color: '#fff', borderColor: '#000' }}
                   >
                     {c === 'red' ? 'ROUGE' : 'NOIR'}
                   </button>
