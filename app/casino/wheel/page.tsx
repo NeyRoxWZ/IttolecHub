@@ -207,10 +207,7 @@ export default function FrenlyWheelPage() {
               <div
                 ref={wheelRef}
                 className="relative w-full h-full rounded-full border-4 border-brand-border"
-                style={{
-                  background: wheelGradient,
-                  boxShadow: '0 0 0 6px rgba(0,0,0,0.35), 0 18px 40px -12px rgba(0,0,0,0.75)',
-                }}
+                style={{ background: wheelGradient }}
               >
                 {/* separators */}
                 <div className="absolute inset-0 rounded-full pointer-events-none" style={{ background: separatorGradient }} />
