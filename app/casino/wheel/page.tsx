@@ -24,7 +24,7 @@ const SETTLE_EXTRA_SPINS = 3;
 const COLOR_HEX: Record<'red' | 'black' | 'green', string> = {
   red: '#FF2A55',
   black: '#0A0A0F',
-  green: '#00FF94',
+  green: '#0F9D58',
 };
 
 export default function FrenlyWheelPage() {
@@ -220,7 +220,10 @@ export default function FrenlyWheelPage() {
                   const angle = i * SEGMENT_ANGLE + SEGMENT_ANGLE / 2;
                   return (
                     <div key={num} className="absolute inset-0" style={{ transform: `rotate(${angle}deg)` }}>
-                      <span className="absolute left-1/2 top-1.5 sm:top-2 -translate-x-1/2 text-[8px] sm:text-[10px] font-bold text-white/90 select-none">
+                      <span
+                        className="absolute left-1/2 top-1.5 sm:top-2 -translate-x-1/2 text-[9px] sm:text-[11px] font-bold text-white select-none"
+                        style={{ textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}
+                      >
                         {num}
                       </span>
                     </div>
@@ -299,13 +302,13 @@ export default function FrenlyWheelPage() {
             )}
 
             {betType === 'number' && (
-              <div className="grid grid-cols-7 gap-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+              <div className="grid grid-cols-7 gap-1 max-h-48 overflow-y-auto custom-scrollbar p-1">
                 {Array.from({ length: 37 }, (_, n) => n).map((n) => (
                   <button
                     key={n}
                     onClick={() => { setBetValue(n); vibrate(HAPTIC.SOFT); }}
                     className={cn(
-                      'h-9 rounded-md font-bold text-xs border-2 flex items-center justify-center',
+                      'h-9 rounded-md font-bold text-xs border-2 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/50',
                       betValue === n && 'ring-2 ring-accent-primary'
                     )}
                     style={{ backgroundColor: COLOR_HEX[getPocketColor(n)], color: '#fff', borderColor: '#000' }}
