@@ -32,13 +32,13 @@ const CASINO_GAMES: CasinoGameEntry[] = [
   { slug: 'tower', name: 'Frenly Tower', description: 'Grimpe les étages sans piège.', icon: Building2, rtp: '~96%', enabled: false },
   { slug: 'keno', name: 'Frenly Keno', description: 'Choisis tes numéros chanceux.', icon: Grid3x3, rtp: '~95%', enabled: false },
   { slug: 'caisses', name: 'Frenly Caisses', description: 'Trouve le gros lot.', icon: Gift, rtp: '~93%', enabled: false },
-  { slug: 'coinflip', name: 'Frenly Coinflip', description: 'Pile ou face, x2.', icon: Coins, rtp: '~97%', enabled: false },
+  { slug: 'coinflip', name: 'Frenly Coinflip', description: 'Pile ou face, x2.', icon: Coins, rtp: '~97%', enabled: true },
   { slug: 'dino', name: 'Frenly Dino', description: 'Esquive, encaisse avant impact.', icon: Zap, rtp: '~95%', enabled: false },
   { slug: 'chevaux', name: 'Frenly Chevaux', description: 'Course de chevaux fictifs.', icon: Flag, rtp: '~94%', enabled: false },
-  { slug: 'bonneteau', name: 'Frenly Bonneteau', description: 'Suis le bon gobelet.', icon: GlassWater, rtp: '~93%', enabled: false },
+  { slug: 'bonneteau', name: 'Frenly Bonneteau', description: 'Suis le bon gobelet.', icon: GlassWater, rtp: '~93%', enabled: true },
   { slug: 'stade', name: 'Frenly Stade', description: 'Domicile, Extérieur ou Nul.', icon: LayoutGrid, rtp: '~96%', enabled: false },
   { slug: 'baccarat', name: 'Frenly Baccarat', description: 'Joueur, Banque, ou Égalité.', icon: Layers, rtp: '~98.5%', enabled: false },
-  { slug: 'rps', name: 'Frenly Pierre-Feuille-Ciseaux', description: 'Contre la maison, coup unique.', icon: Hand, rtp: '~96%', enabled: false },
+  { slug: 'rps', name: 'Frenly Pierre-Feuille-Ciseaux', description: 'Contre la maison, coup unique.', icon: Hand, rtp: '~96%', enabled: true },
   { slug: 'craps', name: 'Frenly Craps Express', description: 'Ça passe ou ça casse.', icon: Dice5, rtp: '~98.6%', enabled: false },
 ];
 

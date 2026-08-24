@@ -52,6 +52,15 @@ export interface WheelSpinResult {
   newBalance: number;
 }
 
+export interface GenericBetResult {
+  won: boolean;
+  multiplier: number;
+  payout: number;
+  netChange: number;
+  newBalance: number;
+  meta: any;
+}
+
 export function useCasinoWallet() {
   const { user } = useAuth();
   const [balance, setBalance] = useState<number>(CASINO_STARTING_BALANCE);
@@ -140,5 +149,52 @@ export function useCasinoWallet() {
     }
   }, [user, refresh]);
 
-  return { balance, history, isLoaded, isLocal, maxBet, spinWheelBet, refresh };
+  // Generic path for "one bet, one instant reveal" games (coinflip, rps,
+  // bonneteau, ...). `localResolve` mirrors exactly what the server route
+  // computes, so anonymous play behaves the same, just unsynced/unsaved.
+  const placeBet = useCallback(async (
+    gameSlug: string,
+    amount: number,
+    payload: any,
+    localResolve: () => { won: boolean; multiplier: number; meta: any }
+  ): Promise<GenericBetResult | { error: string }> => {
+    if (spinningRef.current) return { error: 'Une mise est déjà en cours.' };
+    spinningRef.current = true;
+    try {
+      if (user) {
+        const res = await fetch(`/api/casino/${gameSlug}/play`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, amount, payload }),
+        });
+        const data = await res.json();
+        if (!res.ok) return { error: data.error || 'Erreur du serveur' };
+        setBalance(data.newBalance);
+        await refresh();
+        return data as GenericBetResult;
+      } else {
+        const w = loadLocalWallet();
+        if (amount > w.balance) return { error: 'Solde insuffisant' };
+        if (amount > getMaxBet(w.balance)) return { error: `Mise max: ${getMaxBet(w.balance)} ₶` };
+
+        const { won, multiplier, meta } = localResolve();
+        const payout = Math.round(amount * multiplier);
+        const netChange = payout - amount;
+        w.balance += netChange;
+        const txType = multiplier === 0 ? 'bet' : multiplier === 1 ? 'push' : 'win';
+        w.history = [
+          { id: crypto.randomUUID(), game_slug: gameSlug, type: txType, amount: netChange, balance_after: w.balance, meta: { ...meta, amount, multiplier }, created_at: new Date().toISOString() },
+          ...w.history,
+        ].slice(0, 50);
+        saveLocalWallet(w);
+        setBalance(w.balance);
+        setHistory(w.history);
+        return { won, multiplier, payout, netChange, newBalance: w.balance, meta };
+      }
+    } finally {
+      spinningRef.current = false;
+    }
+  }, [user, refresh]);
+
+  return { balance, history, isLoaded, isLocal, maxBet, spinWheelBet, placeBet, refresh };
 }

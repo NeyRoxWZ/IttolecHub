@@ -2,6 +2,9 @@
 // 37 pockets (0-36), one green zero. Same house edge on every bet type
 // (RTP ~97.3%), just like real roulette — no per-bet-type balancing needed.
 
+export * from './core';
+import { secureRandomInt } from './core';
+
 export const RED_NUMBERS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
 export const BLACK_NUMBERS = [2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 35];
 
@@ -43,10 +46,7 @@ export function getPocketDozen(n: number): WheelDozenValue | null {
 }
 
 export function spinWheel(): number {
-  // crypto RNG, not Math.random() — this is the money-relevant roll.
-  const buf = new Uint32Array(1);
-  crypto.getRandomValues(buf);
-  return buf[0] % 37;
+  return secureRandomInt(37);
 }
 
 export function resolveWheelBet(landedNumber: number, bet: WheelBet): { won: boolean; multiplier: number } {
@@ -59,15 +59,4 @@ export function resolveWheelBet(landedNumber: number, bet: WheelBet): { won: boo
     won = landedNumber === bet.value;
   }
   return { won, multiplier: won ? WHEEL_PAYOUTS[bet.type] : 0 };
-}
-
-export const CASINO_STARTING_BALANCE = 250;
-export const CASINO_MIN_BET = 1;
-export const CASINO_MAX_BET_ABS = 500;
-export const CASINO_MAX_BET_PERCENT = 0.5; // can't bet more than 50% of balance in one spin
-export const CASINO_SAFETY_NET_THRESHOLD = 10;
-export const CASINO_SAFETY_NET_AMOUNT = 50;
-
-export function getMaxBet(balance: number): number {
-  return Math.max(CASINO_MIN_BET, Math.min(CASINO_MAX_BET_ABS, Math.floor(balance * CASINO_MAX_BET_PERCENT)));
 }
