@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, TrendingUp, LogOut, Menu, X, RotateCcw } from 'lucide-react';
+import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, TrendingUp, LogOut, Menu, X, RotateCcw, Coins } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -644,8 +644,8 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center">
-              <div className="flex-1 md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+            <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center flex-wrap">
+              <div className="flex-1 md:min-w-[280px] md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
                 <div className="flex items-center justify-between h-12">
                   <h2 className="font-display text-2xl md:text-3xl leading-none">ItollecClicker</h2>
                   <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
@@ -674,7 +674,7 @@ export default function Home() {
                 </button>
               </div>
 
-              <div className="flex-1 md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+              <div className="flex-1 md:min-w-[280px] md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
                 <div className="flex items-center justify-between h-12">
                   <h2 className="font-display text-2xl md:text-3xl leading-none">Apex</h2>
                   <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
@@ -694,6 +694,35 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => router.push('/apex')}
+                  className={cn(
+                    'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
+                    'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                  )}
+                >
+                  Jouer
+                </button>
+              </div>
+
+              <div className="flex-1 md:min-w-[280px] md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+                <div className="flex items-center justify-between h-12">
+                  <h2 className="font-display text-2xl md:text-3xl leading-none">Casino</h2>
+                  <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
+                    <Coins className="h-6 w-6 text-accent-primary" />
+                  </div>
+                </div>
+
+                <div className="mt-6 flex-1 flex flex-col">
+                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2">Description</div>
+                    <p className="text-sm text-tx-secondary font-bold leading-relaxed">
+                      Mise tes FrenlyCoins (₶) sur des mini-jeux façon casino. Monnaie fictive, sans valeur réelle.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => router.push('/casino')}
                   className={cn(
                     'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
                     'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
