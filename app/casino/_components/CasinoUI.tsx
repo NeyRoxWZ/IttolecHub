@@ -2,11 +2,13 @@
 
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus, HelpCircle, X, Volume2, VolumeX, Flame } from 'lucide-react';
+import { ArrowLeft, Coins, Minus, Plus, HelpCircle, X, Volume2, VolumeX, Flame, Zap, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { sfx, isMuted, setMuted } from '@/lib/casino/sfx';
 import { CASINO_MIN_BET } from '@/lib/casino/core';
+import { useTurbo } from '@/lib/casino/turbo';
+import { streakLabel, streakBonus, nextStreakTier } from '@/lib/casino/progression';
 
 /* ------------------------------------------------------------------ */
 /* Animated number                                                      */
@@ -97,13 +99,16 @@ export function RulesModal({ title, rules, onClose }: { title: string; rules: Ru
 /* ------------------------------------------------------------------ */
 
 export function BetControls({
-  amount, setAmount, maxBet, disabled, step = 5,
+  amount, setAmount, maxBet, disabled, step = 5, lastBet,
 }: {
   amount: number; setAmount: (v: number) => void; maxBet: number; disabled?: boolean; step?: number;
+  /** Stake of the previous round, for the one-tap rebet chip. */
+  lastBet?: number;
 }) {
   const clamp = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v || 0)));
   const bump = (delta: number) => { sfx.click(); vibrate(HAPTIC.SOFT); setAmount(clamp(amount + delta)); };
   const setTo = (v: number) => { sfx.click(); vibrate(HAPTIC.SOFT); setAmount(clamp(v)); };
+  const showRebet = !!lastBet && lastBet !== amount && lastBet <= maxBet;
 
   return (
     <div>
@@ -129,7 +134,17 @@ export function BetControls({
           <Plus className="h-4 w-4" />
         </button>
       </div>
-      <div className="grid grid-cols-4 gap-2 mt-2">
+      <div className={cn('grid gap-2 mt-2', showRebet ? 'grid-cols-5' : 'grid-cols-4')}>
+        {showRebet && (
+          <button
+            onClick={() => setTo(lastBet!)}
+            disabled={disabled}
+            title={`Remiser ${lastBet!.toLocaleString('fr-FR')} ₶`}
+            className="h-9 rounded-lg border-2 border-accent-primary/70 bg-accent-primary/10 text-accent-primary flex items-center justify-center hover:bg-accent-primary/20 disabled:opacity-40 focus:outline-none active:scale-95 transition-transform"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+        )}
         {[
           { label: '½', value: Math.floor(amount / 2) },
           { label: '×2', value: amount * 2 },
@@ -186,7 +201,14 @@ export function PlayButton({
 /* Result banner — fixed slot so the stage never jumps                  */
 /* ------------------------------------------------------------------ */
 
-export function ResultBanner({ state, children }: { state: 'idle' | 'win' | 'lose' | 'push'; children?: ReactNode }) {
+export function ResultBanner({
+  state, children, nearMiss,
+}: {
+  state: 'idle' | 'win' | 'lose' | 'push';
+  children?: ReactNode;
+  /** A loss that came within a hair of paying — worth pointing out. */
+  nearMiss?: ReactNode;
+}) {
   return (
     <div className="h-12 flex items-center justify-center">
       {state !== 'idle' && (
@@ -194,13 +216,61 @@ export function ResultBanner({ state, children }: { state: 'idle' | 'win' | 'los
           className={cn(
             'px-5 py-2.5 rounded-xl border-2 font-display font-black text-sm animate-in zoom-in-95 fade-in duration-200',
             state === 'win' && 'border-accent-success text-accent-success bg-accent-success/15',
-            state === 'lose' && 'border-accent-secondary text-accent-secondary bg-accent-secondary/15',
+            state === 'lose' && !nearMiss && 'border-accent-secondary text-accent-secondary bg-accent-secondary/15',
+            state === 'lose' && nearMiss && 'border-accent-primary text-accent-primary bg-accent-primary/15 animate-pulse',
             state === 'push' && 'border-tx-secondary text-tx-secondary bg-brand-inner'
           )}
         >
-          {children}
+          {state === 'lose' && nearMiss ? nearMiss : children}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Win-streak meter                                                     */
+/* ------------------------------------------------------------------ */
+
+/** Shows the current streak, what it's worth, and the next tier to chase. */
+export function StreakMeter({ streak }: { streak: number }) {
+  const label = streakLabel(streak);
+  const bonus = streakBonus(streak);
+  const next = nextStreakTier(streak);
+
+  return (
+    <div className="shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner px-3 py-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <Flame className={cn('h-4 w-4', bonus > 0 ? 'text-accent-secondary' : 'text-tx-muted')} />
+          <span className="font-display font-black text-sm">{streak}</span>
+          {label && <span className="text-[10px] font-black tracking-widest text-accent-secondary">{label}</span>}
+        </div>
+        {bonus > 0 && (
+          <span className="text-[11px] font-bold text-accent-success">+{Math.round(bonus * 100)}% de gain</span>
+        )}
+      </div>
+      {next && (
+        <div className="text-[10px] text-tx-muted mt-1">
+          {next.min - streak} victoire{next.min - streak > 1 ? 's' : ''} avant {next.label} (+{Math.round(next.bonus * 100)}%)
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Level bar                                                            */
+/* ------------------------------------------------------------------ */
+
+export function LevelBar({ level, into, needed }: { level: number; into: number; needed: number }) {
+  const pct = needed > 0 ? Math.min(100, (into / needed) * 100) : 0;
+  return (
+    <div className="flex items-center gap-2 min-w-[130px]">
+      <span className="text-[10px] font-black tracking-widest text-tx-muted shrink-0">NIV {level}</span>
+      <div className="flex-1 h-2 rounded-full bg-brand-inner border border-brand-border overflow-hidden">
+        <div className="h-full bg-accent-primary transition-[width] duration-500" style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }
@@ -261,7 +331,7 @@ export function PlayingCard({
 /* ------------------------------------------------------------------ */
 
 export function GameShell({
-  title, rules, balance, isLoaded, isLocal, streak, stage, panel,
+  title, rules, balance, isLoaded, isLocal, streak, level, xpIntoLevel, xpForNext, stage, panel,
 }: {
   title: string;
   rules: RulesSpec;
@@ -269,12 +339,16 @@ export function GameShell({
   isLoaded: boolean;
   isLocal: boolean;
   streak?: number;
+  level?: number;
+  xpIntoLevel?: number;
+  xpForNext?: number;
   stage: ReactNode;
   panel: ReactNode;
 }) {
   const router = useRouter();
   const [showRules, setShowRules] = useState(false);
   const [mutedState, setMutedState] = useState(false);
+  const [turbo, setTurboMode] = useTurbo();
 
   useEffect(() => { setMutedState(isMuted()); }, []);
 
@@ -314,6 +388,21 @@ export function GameShell({
           </div>
 
           <div className="flex items-center gap-2">
+            {level !== undefined && (
+              <div className="h-11 hidden sm:flex items-center px-3 rounded-xl border-2 border-brand-border bg-brand-inner">
+                <LevelBar level={level} into={xpIntoLevel ?? 0} needed={xpForNext ?? 1} />
+              </div>
+            )}
+            <button
+              onClick={() => { sfx.click(); vibrate(HAPTIC.SOFT); setTurboMode(!turbo); }}
+              title="Mode turbo : animations accélérées"
+              className={cn(
+                'h-11 w-11 rounded-xl border-2 flex items-center justify-center focus:outline-none transition-colors',
+                turbo ? 'border-accent-primary bg-accent-primary/15 text-accent-primary' : 'border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base'
+              )}
+            >
+              <Zap className="h-4 w-4" />
+            </button>
             {streak !== undefined && streak > 1 && (
               <div className="h-11 flex items-center gap-1.5 px-3 rounded-xl border-2 border-accent-secondary bg-accent-secondary/10">
                 <Flame className="h-4 w-4 text-accent-secondary" />
@@ -337,6 +426,7 @@ export function GameShell({
             {stage}
           </div>
           <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 sm:p-5 shadow-brutal flex flex-col gap-4 min-h-0">
+            {streak !== undefined && <StreakMeter streak={streak} />}
             {panel}
           </div>
         </div>

@@ -12,6 +12,7 @@ import {
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtCoinFace } from '../_components/CasinoArt';
+import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -85,7 +86,7 @@ export default function CoinflipPage() {
     angleRef.current += delta + 360 * 3;
     apply(angleRef.current, `transform ${SETTLE_MS}ms cubic-bezier(0.18, 0.72, 0.1, 1)`);
 
-    await new Promise((res) => setTimeout(res, SETTLE_MS));
+    await new Promise((res) => setTimeout(res, tempo(SETTLE_MS)));
     setResult({ ...r, landed });
     setFlipping(false);
 
@@ -98,6 +99,8 @@ export default function CoinflipPage() {
     }
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'coinflip').slice(0, 10);
 
   const stage = (
@@ -166,7 +169,7 @@ export default function CoinflipPage() {
         </div>
       </div>
 
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={flipping} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={flipping} />
 
       <PlayButton onClick={handleFlip} loading={flipping} disabled={!isLoaded || amount < CASINO_MIN_BET}>
         {flipping ? 'ÇA TOURNE...' : `LANCER · ${amount} ₶ (×${COINFLIP_PAYOUT})`}
@@ -177,6 +180,6 @@ export default function CoinflipPage() {
   );
 
   return (
-    <GameShell title="Frenly Coinflip" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
+    <GameShell title="Frenly Coinflip" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
   );
 }

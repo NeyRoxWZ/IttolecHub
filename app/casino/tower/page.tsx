@@ -152,6 +152,8 @@ export default function TowerPage() {
     setPhase('idle'); setStep(0); setMultiplier(1); setRoundId(null); setRevealed({});
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'tower').slice(0, 10);
 
   const stage = (
@@ -220,7 +222,7 @@ export default function TowerPage() {
     <>
       {!active ? (
         <>
-          <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
+          <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
           <PlayButton onClick={phase === 'idle' ? handleStart : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
             {phase === 'idle' ? `MISER · ${amount} ₶` : 'REJOUER'}
           </PlayButton>
@@ -255,6 +257,9 @@ export default function TowerPage() {
       isLoaded={isLoaded}
       isLocal={isLocal}
       streak={stats.currentStreak}
+      level={stats.level}
+      xpIntoLevel={stats.xpIntoLevel}
+      xpForNext={stats.xpForNext}
       stage={stage}
       panel={panel}
     />

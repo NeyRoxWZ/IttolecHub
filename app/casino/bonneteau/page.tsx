@@ -12,6 +12,7 @@ import {
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtBall } from '../_components/CasinoArt';
+import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -50,7 +51,7 @@ export default function BonneteauPage() {
       [pos[a], pos[b]] = [pos[b], pos[a]];
       setPositions([...pos]);
       sfx.tick();
-      await new Promise((r) => setTimeout(r, 150));
+      await new Promise((r) => setTimeout(r, tempo(150)));
     }
   };
 
@@ -102,6 +103,8 @@ export default function BonneteauPage() {
 
   const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setPending(null); setPositions([0, 1, 2]); };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'bonneteau').slice(0, 10);
 
   const stage = (
@@ -169,7 +172,7 @@ export default function BonneteauPage() {
 
   const panel = (
     <>
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'shuffling' || phase === 'choosing' || busy} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'shuffling' || phase === 'choosing' || busy} />
 
       {phase === 'choosing' ? (
         <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
@@ -187,6 +190,6 @@ export default function BonneteauPage() {
   );
 
   return (
-    <GameShell title="Frenly Bonneteau" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
+    <GameShell title="Frenly Bonneteau" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
   );
 }

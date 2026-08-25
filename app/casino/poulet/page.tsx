@@ -13,6 +13,7 @@ import {
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtChicken, ArtCar, ArtImpact, ArtFinishFlag } from '../_components/CasinoArt';
+import { tempo } from '@/lib/casino/turbo';
 
 const CONFIG = LADDER_CONFIGS.poulet;
 
@@ -100,7 +101,7 @@ export default function PouletPage() {
     vibrate(HAPTIC.SOFT); sfx.step(step);
 
     // Brief hop animation before the outcome lands.
-    await new Promise((r) => setTimeout(r, 140));
+    await new Promise((r) => setTimeout(r, tempo(140)));
 
     const targetLane = step;
 
@@ -168,6 +169,8 @@ export default function PouletPage() {
     setPhase('idle'); setStep(0); setMultiplier(1); setRoundId(null); setDeathLane(null);
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'poulet').slice(0, 10);
 
   const stage = (
@@ -277,7 +280,7 @@ export default function PouletPage() {
     <>
       {!active ? (
         <>
-          <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
+          <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
           <PlayButton onClick={phase === 'idle' ? handleStart : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
             {phase === 'idle' ? `LÂCHER LE POULET · ${amount} ₶` : 'REJOUER'}
           </PlayButton>
@@ -317,6 +320,9 @@ export default function PouletPage() {
       isLoaded={isLoaded}
       isLocal={isLocal}
       streak={stats.currentStreak}
+      level={stats.level}
+      xpIntoLevel={stats.xpIntoLevel}
+      xpForNext={stats.xpForNext}
       stage={stage}
       panel={panel}
     />

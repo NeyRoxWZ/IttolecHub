@@ -12,6 +12,7 @@ import {
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtCherry, ArtBell, ArtStar, ArtDiamond, ArtLemon, ArtSeven } from '../_components/CasinoArt';
+import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -137,7 +138,7 @@ export default function SlotsPage() {
         const { tier, multiplier, reels: r } = spinSlots();
         return { ...resolveSlots(multiplier), meta: { tier, reels: r } };
       }),
-      new Promise((r) => setTimeout(r, 420)),
+      new Promise((r) => setTimeout(r, tempo(420))),
     ]);
 
     if ('error' in result) {
@@ -155,13 +156,13 @@ export default function SlotsPage() {
     // two already match — the classic near-miss tension, and it's honest:
     // the outcome was already decided server-side before the reels moved.
     stopReel(0, symbols[0]);
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, tempo(300)));
     stopReel(1, symbols[1]);
     const suspense = symbols[0] === symbols[1] ? 700 : 300;
-    await new Promise((r) => setTimeout(r, suspense));
+    await new Promise((r) => setTimeout(r, tempo(suspense)));
     stopReel(2, symbols[2]);
 
-    await new Promise((r) => setTimeout(r, 260));
+    await new Promise((r) => setTimeout(r, tempo(260)));
     setSpinning(false);
     setLastResult(result);
 
@@ -176,9 +177,14 @@ export default function SlotsPage() {
     }
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'slots').slice(0, 10);
   const allSettled = reels.every((r) => r.settled);
   const isWinLine = !!lastResult?.won && allSettled;
+  // Two matching reels out of three: worth flagging instead of a flat loss.
+  const nearMiss = !!lastResult && !lastResult.won && allSettled && finalSymbols.length === 3
+    && new Set(finalSymbols).size === 2;
 
   const stage = (
     <div className="w-full flex flex-col items-center gap-5">
@@ -198,7 +204,10 @@ export default function SlotsPage() {
         </div>
       </div>
 
-      <ResultBanner state={lastResult === null ? 'idle' : lastResult.won ? 'win' : 'lose'}>
+      <ResultBanner
+        state={lastResult === null ? 'idle' : lastResult.won ? 'win' : 'lose'}
+        nearMiss={nearMiss ? 'À un symbole du gain !' : undefined}
+      >
         {lastResult?.won ? `×${lastResult.multiplier} — +${lastResult.payout} ₶` : 'Pas de combinaison'}
       </ResultBanner>
     </div>
@@ -206,7 +215,7 @@ export default function SlotsPage() {
 
   const panel = (
     <>
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={spinning} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={spinning} />
       <PlayButton onClick={handleSpin} loading={spinning} disabled={!isLoaded || amount < CASINO_MIN_BET}>
         {spinning ? 'ÇA TOURNE...' : `LANCER · ${amount} ₶`}
       </PlayButton>
@@ -238,6 +247,9 @@ export default function SlotsPage() {
       isLoaded={isLoaded}
       isLocal={isLocal}
       streak={stats.currentStreak}
+      level={stats.level}
+      xpIntoLevel={stats.xpIntoLevel}
+      xpForNext={stats.xpForNext}
       stage={stage}
       panel={panel}
     />

@@ -12,6 +12,7 @@ import {
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtRps } from '../_components/CasinoArt';
+import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -60,7 +61,7 @@ export default function RpsPage() {
       }),
       // Three "shoot" beats before the reveal.
       (async () => {
-        for (let i = 0; i < 3; i++) { sfx.tick(); vibrate(HAPTIC.SOFT); await new Promise((res) => setTimeout(res, 150)); }
+        for (let i = 0; i < 3; i++) { sfx.tick(); vibrate(HAPTIC.SOFT); await new Promise((res) => setTimeout(res, tempo(150))); }
       })(),
     ]);
 
@@ -82,6 +83,8 @@ export default function RpsPage() {
     }
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'rps').slice(0, 10);
 
   const stage = (
@@ -120,7 +123,7 @@ export default function RpsPage() {
 
   const panel = (
     <>
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
 
       <div>
         <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Ton coup (×{RPS_PAYOUT} si tu gagnes)</div>
@@ -149,6 +152,6 @@ export default function RpsPage() {
   );
 
   return (
-    <GameShell title="Pierre-Feuille-Ciseaux" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
+    <GameShell title="Pierre-Feuille-Ciseaux" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
   );
 }

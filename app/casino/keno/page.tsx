@@ -14,6 +14,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -82,13 +83,13 @@ export default function KenoPage() {
     // Reveal the draw one ball at a time so matches land visibly.
     const all: number[] = r.meta.drawn;
     for (let i = 0; i < all.length; i++) {
-      await new Promise((res) => setTimeout(res, 45));
+      await new Promise((res) => setTimeout(res, tempo(45)));
       setDrawn(all.slice(0, i + 1));
       if (picks.includes(all[i])) { sfx.step(Math.min(8, i)); vibrate(HAPTIC.SOFT); }
       else sfx.tick();
     }
 
-    await new Promise((res) => setTimeout(res, 180));
+    await new Promise((res) => setTimeout(res, tempo(180)));
     setBusy(false); setPhase('done');
     setResult({ ...r, matches: r.meta.matches });
 
@@ -105,6 +106,8 @@ export default function KenoPage() {
 
   const handleReset = () => { sfx.click(); setPhase('picking'); setDrawn([]); setResult(null); };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'keno').slice(0, 10);
 
   const stage = (
@@ -159,7 +162,10 @@ export default function KenoPage() {
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-accent-success inline-block" /> Correspondance</span>
       </div>
 
-      <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
+      <ResultBanner
+        state={!result ? 'idle' : result.won ? 'win' : 'lose'}
+        nearMiss={result && !result.won && result.matches === 4 ? 'À un numéro près !' : undefined}
+      >
         {result?.won ? `${result.matches} bons — +${result.payout} ₶` : `${result?.matches ?? 0} bons — perdu`}
       </ResultBanner>
     </div>
@@ -178,7 +184,7 @@ export default function KenoPage() {
             </button>
           </div>
 
-          <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
+          <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
 
           <PlayButton onClick={handleDraw} loading={busy} disabled={!isLoaded || !picksComplete || amount < CASINO_MIN_BET}>
             {picksComplete ? `LANCER LE TIRAGE · ${amount} ₶` : `ENCORE ${KENO_PICK_COUNT - picks.length} NUMÉRO${KENO_PICK_COUNT - picks.length > 1 ? 'S' : ''}`}
@@ -217,6 +223,9 @@ export default function KenoPage() {
       isLoaded={isLoaded}
       isLocal={isLocal}
       streak={stats.currentStreak}
+      level={stats.level}
+      xpIntoLevel={stats.xpIntoLevel}
+      xpForNext={stats.xpForNext}
       stage={stage}
       panel={panel}
     />

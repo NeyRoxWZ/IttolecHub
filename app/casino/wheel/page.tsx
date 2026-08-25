@@ -86,6 +86,8 @@ export default function FrenlyWheelPage() {
     }
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'wheel').slice(0, 10);
   const landedColor = lastResult ? getPocketColor(lastResult.landedNumber) : null;
 
@@ -209,7 +211,7 @@ export default function FrenlyWheelPage() {
         )}
       </div>
 
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={spinning} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={spinning} />
 
       <PlayButton onClick={handleSpin} loading={spinning} disabled={!isLoaded || amount < CASINO_MIN_BET}>
         {spinning ? 'ÇA TOURNE...' : `LANCER · ${amount} ₶ (×${WHEEL_PAYOUTS[betType]})`}
@@ -227,6 +229,9 @@ export default function FrenlyWheelPage() {
       isLoaded={isLoaded}
       isLocal={isLocal}
       streak={stats.currentStreak}
+      level={stats.level}
+      xpIntoLevel={stats.xpIntoLevel}
+      xpForNext={stats.xpForNext}
       stage={stage}
       panel={panel}
     />

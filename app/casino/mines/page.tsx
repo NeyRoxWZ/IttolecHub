@@ -159,6 +159,8 @@ export default function MinesPage() {
     setHitCell(null); setMultiplier(1); setRoundId(null);
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'mines').slice(0, 10);
   const finished = phase === 'busted' || phase === 'cashed';
 
@@ -229,7 +231,7 @@ export default function MinesPage() {
     <>
       {!active ? (
         <>
-          <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
+          <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
 
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -295,6 +297,9 @@ export default function MinesPage() {
       isLoaded={isLoaded}
       isLocal={isLocal}
       streak={stats.currentStreak}
+      level={stats.level}
+      xpIntoLevel={stats.xpIntoLevel}
+      xpForNext={stats.xpForNext}
       stage={stage}
       panel={panel}
     />

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import { rollDailyBonus } from '@/lib/casino/meta';
+import { dailyStreakMultiplier } from '@/lib/casino/progression';
 
 function isSameUtcDay(a: Date, b: Date): boolean {
   return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
@@ -25,7 +26,10 @@ export async function POST(request: Request) {
     }
 
     const newStreak = wallet.last_daily_claim_at && isYesterday(new Date(wallet.last_daily_claim_at), now) ? Number(wallet.daily_streak || 0) + 1 : 1;
-    const reward = rollDailyBonus();
+    // Longer login streaks pay more — that's the whole point of coming back.
+    const streakMult = dailyStreakMultiplier(newStreak);
+    const base = rollDailyBonus();
+    const reward = Math.round(base * streakMult);
     const newBalance = wallet.balance + reward;
 
     await supabase.from('casino_wallets').update({
@@ -33,10 +37,10 @@ export async function POST(request: Request) {
     }).eq('user_id', userId);
 
     await supabase.from('casino_transactions').insert({
-      user_id: userId, game_slug: 'casino', type: 'bonus', amount: reward, balance_after: newBalance, meta: { kind: 'daily', streak: newStreak },
+      user_id: userId, game_slug: 'casino', type: 'bonus', amount: reward, balance_after: newBalance, meta: { kind: 'daily', streak: newStreak, base, streakMult },
     });
 
-    return NextResponse.json({ reward, newBalance, dailyStreak: newStreak });
+    return NextResponse.json({ reward, base, streakMult, newBalance, dailyStreak: newStreak });
   } catch (err) {
     console.error('Erreur daily claim:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

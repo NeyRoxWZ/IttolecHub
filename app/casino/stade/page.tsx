@@ -12,6 +12,7 @@ import {
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtShield, ArtHandshake } from '../_components/CasinoArt';
+import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -74,11 +75,11 @@ export default function StadePage() {
       [home, away] = outcome === 'home' ? [hi, lo] : [lo, hi];
     }
 
-    await new Promise((res) => setTimeout(res, 200));
+    await new Promise((res) => setTimeout(res, tempo(200)));
     setCards({ home }); sfx.card();
-    await new Promise((res) => setTimeout(res, 280));
+    await new Promise((res) => setTimeout(res, tempo(280)));
     setCards({ home, away }); sfx.reveal();
-    await new Promise((res) => setTimeout(res, 220));
+    await new Promise((res) => setTimeout(res, tempo(220)));
 
     setPlaying(false);
     setResult({ ...r, outcome });
@@ -94,6 +95,8 @@ export default function StadePage() {
     }
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'stade').slice(0, 10);
 
   const stage = (
@@ -155,7 +158,7 @@ export default function StadePage() {
         </div>
       </div>
 
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
 
       <PlayButton onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET}>
         {playing ? 'TIRAGE...' : `PARIER · ${amount} ₶`}
@@ -166,6 +169,6 @@ export default function StadePage() {
   );
 
   return (
-    <GameShell title="Frenly Stade" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
+    <GameShell title="Frenly Stade" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
   );
 }

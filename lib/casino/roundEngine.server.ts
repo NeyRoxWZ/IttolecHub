@@ -1,5 +1,8 @@
 import { supabase } from '@/lib/supabase/server';
-import { getMaxBet, CASINO_MIN_BET } from './core';
+import { CASINO_MIN_BET } from './core';
+import { streakBonus } from './progression';
+import { loadEffects, consumeEffects } from './effects.server';
+import { effectiveMaxBet } from './settleBet.server';
 import { recordWager, recordSettlement, type SettlementResult } from './metaProgression.server';
 
 // Shared by every "start a round, take steps, cash out anytime" game
@@ -22,7 +25,8 @@ export async function startRound({ userId, gameSlug, amount, initialState }: Sta
   const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
   if (!wallet) return { ok: false as const, status: 404, error: 'Portefeuille introuvable' };
 
-  const maxBet = getMaxBet(wallet.balance);
+  const effects = await loadEffects(userId);
+  const maxBet = effectiveMaxBet(wallet.balance, effects);
   if (amount > wallet.balance) return { ok: false as const, status: 400, error: 'Solde insuffisant' };
   if (amount > maxBet) return { ok: false as const, status: 400, error: `Mise max: ${maxBet} ₶` };
 
@@ -97,14 +101,41 @@ export async function updateRoundState(roundId: string, state: any, multiplier: 
 export async function bustRound(userId: string, roundId: string, gameSlug: string, amount: number): Promise<SettlementResult> {
   await supabase.from('casino_rounds').update({ status: 'busted', updated_at: new Date().toISOString() }).eq('id', roundId);
   const { data: wallet } = await supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle();
-  return recordSettlement(userId, gameSlug, { amount, payout: 0, multiplier: 0, newBalance: wallet?.balance ?? 0 });
+  let balance = wallet?.balance ?? 0;
+
+  // Loss insurance hands part of the stake back before the settlement is logged.
+  const effects = await loadEffects(userId);
+  if (effects.loss_refund) {
+    const refunded = Math.round(amount * effects.loss_refund.magnitude);
+    if (refunded > 0) {
+      balance += refunded;
+      await supabase.from('casino_wallets').update({ balance, updated_at: new Date().toISOString() }).eq('user_id', userId);
+      await supabase.from('casino_transactions').insert({
+        user_id: userId, game_slug: gameSlug, type: 'bonus', amount: refunded,
+        balance_after: balance, meta: { kind: 'loss_refund', roundId },
+      });
+    }
+    await consumeEffects(userId, effects, ['loss_refund']);
+  }
+
+  return recordSettlement(userId, gameSlug, { amount, payout: 0, multiplier: 0, baseMultiplier: 0, newBalance: balance, effects });
 }
 
-export async function cashoutRound(userId: string, roundId: string, amount: number, multiplier: number, gameSlug: string) {
-  const payout = Math.round(amount * multiplier);
-
+export async function cashoutRound(userId: string, roundId: string, amount: number, baseMultiplier: number, gameSlug: string) {
   const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
   if (!wallet) return { ok: false as const, status: 404, error: 'Portefeuille introuvable' };
+
+  // Same rule as the instant games: bonuses lift the profit, never the stake.
+  const effects = await loadEffects(userId);
+  const used: string[] = [];
+  const streakPct = baseMultiplier > 1 ? streakBonus(Number(wallet.current_streak || 0)) : 0;
+  const itemPct = baseMultiplier > 1 ? (effects.win_bonus?.magnitude ?? 0) : 0;
+  if (itemPct > 0) used.push('win_bonus');
+
+  const multiplier = baseMultiplier > 1 && streakPct + itemPct > 0
+    ? 1 + (baseMultiplier - 1) * (1 + streakPct + itemPct)
+    : baseMultiplier;
+  const payout = Math.round(amount * multiplier);
 
   const newBalance = wallet.balance + payout;
   const { data: updated, error } = await supabase
@@ -118,10 +149,19 @@ export async function cashoutRound(userId: string, roundId: string, amount: numb
 
   await supabase.from('casino_rounds').update({ status: 'cashed_out', multiplier, updated_at: new Date().toISOString() }).eq('id', roundId);
   await supabase.from('casino_transactions').insert({
-    user_id: userId, game_slug: gameSlug, type: 'win', amount: payout, balance_after: newBalance, meta: { roundId, multiplier },
+    user_id: userId, game_slug: gameSlug, type: 'win', amount: payout, balance_after: newBalance,
+    meta: { roundId, multiplier, baseMultiplier, streakPct, itemPct },
   });
 
-  const progression = await recordSettlement(userId, gameSlug, { amount, payout, multiplier, newBalance });
+  await consumeEffects(userId, effects, used);
+  const progression = await recordSettlement(userId, gameSlug, { amount, payout, multiplier, baseMultiplier, newBalance, effects });
 
-  return { ok: true as const, payout, newBalance, progression };
+  return {
+    ok: true as const,
+    payout,
+    newBalance,
+    multiplier: Math.round(multiplier * 100) / 100,
+    progression,
+    bonuses: { streak: streakPct, item: itemPct },
+  };
 }

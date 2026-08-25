@@ -11,6 +11,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -81,13 +82,13 @@ export default function CrapsPage() {
       // Tumble before each result lands.
       for (let t = 0; t < 5; t++) {
         setDice({ d1: 1 + Math.floor(Math.random() * 6), d2: 1 + Math.floor(Math.random() * 6), sum: 0 });
-        await new Promise((res) => setTimeout(res, 35));
+        await new Promise((res) => setTimeout(res, tempo(35)));
       }
       setDice(rolls[i]);
       setRollLog((prev) => [...prev, rolls[i].sum]);
       sfx.card(); vibrate(HAPTIC.SOFT);
       if (i === 0 && r.meta.point) setPoint(r.meta.point);
-      await new Promise((res) => setTimeout(res, 300));
+      await new Promise((res) => setTimeout(res, tempo(300)));
     }
 
     setRolling(false);
@@ -102,6 +103,8 @@ export default function CrapsPage() {
     }
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'craps').slice(0, 10);
 
   const stage = (
@@ -147,7 +150,7 @@ export default function CrapsPage() {
 
   const panel = (
     <>
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={rolling} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={rolling} />
       <PlayButton onClick={handleRoll} loading={rolling} disabled={!isLoaded || amount < CASINO_MIN_BET}>
         {rolling ? 'ÇA ROULE...' : `LANCER LES DÉS · ${amount} ₶`}
       </PlayButton>
@@ -164,6 +167,6 @@ export default function CrapsPage() {
   );
 
   return (
-    <GameShell title="Frenly Craps" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
+    <GameShell title="Frenly Craps" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
   );
 }

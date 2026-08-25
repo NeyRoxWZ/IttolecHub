@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import { CASINO_STARTING_BALANCE, CASINO_SAFETY_NET_THRESHOLD, CASINO_SAFETY_NET_AMOUNT } from '@/lib/casino/wheel';
+import { levelFromXp } from '@/lib/casino/progression';
+import { loadEffects } from '@/lib/casino/effects.server';
 
 function isSameUtcDay(a: Date, b: Date): boolean {
   return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
@@ -53,6 +55,10 @@ export async function GET(request: Request) {
       .limit(50);
 
     const now = new Date();
+    const xp = Number(wallet.xp || 0);
+    const { level, intoLevel, needed } = levelFromXp(xp);
+    const effects = await loadEffects(userId);
+
     const dailyClaimedToday = !!wallet.last_daily_claim_at && isSameUtcDay(new Date(wallet.last_daily_claim_at), now);
     const wheelClaimedToday = !!wallet.last_wheel_claim_at && isSameUtcDay(new Date(wallet.last_wheel_claim_at), now);
 
@@ -70,7 +76,13 @@ export async function GET(request: Request) {
         dailyStreak: Number(wallet.daily_streak || 0),
         dailyClaimedToday,
         wheelClaimedToday,
+        xp,
+        level,
+        xpIntoLevel: intoLevel,
+        xpForNext: needed,
+        cashbackClaimedToday: !!wallet.last_cashback_claim_at && isSameUtcDay(new Date(wallet.last_cashback_claim_at), now),
       },
+      effects,
     });
   } catch (err) {
     console.error('Erreur GET wallet:', err);

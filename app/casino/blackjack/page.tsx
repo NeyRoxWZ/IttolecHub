@@ -16,6 +16,7 @@ import {
   type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { tempo } from '@/lib/casino/turbo';
 
 type Phase = 'idle' | 'dealing' | 'playing' | 'finished';
 
@@ -60,7 +61,7 @@ export default function BlackjackPage() {
   const dealerHand = computeHandValue(dealerVisible);
   const canDouble = phase === 'playing' && playerCards.length === 2 && lockedAmount <= balance;
 
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, tempo(ms)));
 
   /** Deal cards one at a time so it reads like a real table. */
   const animateDeal = useCallback(async (pCards: number[], dUp: number) => {
@@ -258,6 +259,8 @@ export default function BlackjackPage() {
     setDealerHidden(true); setOutcome(null); setPayout(0); setRoundId(null);
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'blackjack').slice(0, 10);
   const bannerState = outcome === null ? 'idle' : outcome === 'push' ? 'push' : (outcome === 'win' || outcome === 'blackjack') ? 'win' : 'lose';
 
@@ -331,7 +334,7 @@ export default function BlackjackPage() {
     <>
       {phase === 'idle' || phase === 'finished' ? (
         <>
-          <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
+          <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
           <PlayButton onClick={phase === 'idle' ? handleDeal : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
             {phase === 'idle' ? `DISTRIBUER · ${amount} ₶` : 'REJOUER'}
           </PlayButton>
@@ -378,6 +381,9 @@ export default function BlackjackPage() {
       isLoaded={isLoaded}
       isLocal={isLocal}
       streak={stats.currentStreak}
+      level={stats.level}
+      xpIntoLevel={stats.xpIntoLevel}
+      xpForNext={stats.xpForNext}
       stage={stage}
       panel={panel}
     />

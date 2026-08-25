@@ -35,12 +35,21 @@ export interface CasinoStats {
   dailyStreak: number;
   dailyClaimedToday: boolean;
   wheelClaimedToday: boolean;
+  xp: number;
+  level: number;
+  xpIntoLevel: number;
+  xpForNext: number;
+  cashbackClaimedToday: boolean;
 }
+
+export interface ActiveEffect { effect: string; magnitude: number; uses_left: number | null; expires_at: string | null }
+export type EffectMap = Record<string, ActiveEffect>;
 
 const EMPTY_STATS: CasinoStats = {
   totalWagered: 0, totalWon: 0, currentStreak: 0, bestStreak: 0, prestigeCount: 0,
   biggestMultiplier: 0, allTimeBestBalance: CASINO_STARTING_BALANCE, dailyStreak: 0,
   dailyClaimedToday: false, wheelClaimedToday: false,
+  xp: 0, level: 1, xpIntoLevel: 0, xpForNext: 200, cashbackClaimedToday: false,
 };
 
 /* ------------------------------------------------------------------ */
@@ -58,6 +67,7 @@ interface WalletSnapshot {
   balance: number;
   history: CasinoTransaction[];
   stats: CasinoStats;
+  effects: EffectMap;
   isLoaded: boolean;
 }
 
@@ -65,6 +75,7 @@ let snapshot: WalletSnapshot = {
   balance: CASINO_STARTING_BALANCE,
   history: [],
   stats: EMPTY_STATS,
+  effects: {},
   isLoaded: false,
 };
 
@@ -123,6 +134,13 @@ export interface WheelSpinResult {
 export interface Progression {
   newAchievements: { id: string; name: string; description: string }[];
   jackpotWon: number | null;
+  xpGained?: number;
+  level?: number;
+  levelsGained?: number;
+  levelReward?: number;
+  missionsCompleted?: { id: string; label: string }[];
+  streak?: number;
+  streakSaved?: boolean;
 }
 
 export interface GenericBetResult {
@@ -137,12 +155,44 @@ export interface GenericBetResult {
 
 function announceProgression(progression?: Progression) {
   if (!progression) return;
+  if (progression.levelsGained) {
+    toast.success(`Niveau ${progression.level} !`, {
+      description: progression.levelReward ? `Coffre de niveau : +${progression.levelReward.toLocaleString('fr-FR')} ₶` : undefined,
+      duration: 5000,
+    });
+  }
+  if (progression.streakSaved) {
+    toast('Bouclier de série consommé — ta série tient bon.', { duration: 4000 });
+  }
+  for (const m of progression.missionsCompleted || []) {
+    toast.success('Mission terminée', { description: `${m.label} — à réclamer dans les missions.`, duration: 5000 });
+  }
   if (progression.jackpotWon) {
     toast.success(`JACKPOT ! +${progression.jackpotWon.toLocaleString('fr-FR')} ₶`, { duration: 6000 });
   }
   for (const a of progression.newAchievements) {
     toast.success(`Succès débloqué : ${a.name}`, { description: a.description, duration: 5000 });
   }
+}
+
+/** Move the XP bar and streak the moment the server answers. */
+function applyProgression(progression?: Progression) {
+  if (!progression) return;
+  const s = snapshot.stats;
+  const xp = s.xp + (progression.xpGained || 0);
+  const level = progression.level ?? s.level;
+  const patch: Partial<CasinoStats> = { xp, level };
+  if (progression.levelsGained) {
+    // The exact position inside the new level comes back on the next refresh.
+    patch.xpIntoLevel = 0;
+  } else {
+    patch.xpIntoLevel = s.xpIntoLevel + (progression.xpGained || 0);
+  }
+  if (progression.streak !== undefined) {
+    patch.currentStreak = progression.streak;
+    patch.bestStreak = Math.max(s.bestStreak, progression.streak);
+  }
+  setSnapshot({ stats: { ...s, ...patch } });
 }
 
 /** Fold a settled bet into the cached wallet immediately, no round-trip. */
@@ -192,6 +242,7 @@ export function useCasinoWallet() {
           balance: data.balance,
           history: data.history,
           stats: data.stats ?? EMPTY_STATS,
+          effects: data.effects ?? {},
           isLoaded: true,
         });
       }
@@ -206,7 +257,7 @@ export function useCasinoWallet() {
         ].slice(0, 50);
         saveLocalWallet(w);
       }
-      setSnapshot({ balance: w.balance, history: w.history, stats: EMPTY_STATS, isLoaded: true });
+      setSnapshot({ balance: w.balance, history: w.history, stats: EMPTY_STATS, effects: {}, isLoaded: true });
     }
   }, [user]);
 
@@ -234,7 +285,9 @@ export function useCasinoWallet() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  const maxBet = getMaxBet(store.balance);
+  // A "high roller" item widens the cap; the server enforces the same rule.
+  const betPct = store.effects.max_bet_pct?.magnitude;
+  const maxBet = betPct ? Math.max(1, Math.floor(store.balance * betPct)) : getMaxBet(store.balance);
 
   const spinWheelBet = useCallback(async (bet: WheelBet, amount: number): Promise<WheelSpinResult | { error: string }> => {
     if (inFlightRef.current) return { error: 'Une mise est déjà en cours.' };
@@ -249,6 +302,7 @@ export function useCasinoWallet() {
         const data = await res.json();
         if (!res.ok) return { error: data.error || 'Erreur du serveur' };
         applySettlement('wheel', data.netChange, data.newBalance, data.multiplier, { bet, landedNumber: data.landedNumber, amount });
+        applyProgression(data.progression);
         announceProgression(data.progression);
         scheduleRevalidate();
         return data as WheelSpinResult;
@@ -296,6 +350,7 @@ export function useCasinoWallet() {
         const data = await res.json();
         if (!res.ok) return { error: data.error || 'Erreur du serveur' };
         applySettlement(gameSlug, data.netChange, data.newBalance, data.multiplier, { ...data.meta, amount });
+        applyProgression(data.progression);
         announceProgression(data.progression);
         scheduleRevalidate();
         return data as GenericBetResult;
@@ -412,6 +467,7 @@ export function useCasinoWallet() {
     balance: store.balance,
     history: store.history,
     stats: store.stats,
+    effects: store.effects,
     isLoaded: store.isLoaded,
     isLocal,
     maxBet,

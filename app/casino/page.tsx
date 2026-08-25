@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Coins, Dices, Spade, CircleDot, Rocket, Bomb, Circle, ArrowUpDown, Ticket,
   Egg, Building2, Grid3x3, Gift, Zap, Flag, GlassWater, LayoutGrid, Layers, Hand, Dice5,
-  ArrowLeft, Info, Flame, Trophy, Award, Sparkles, Gift as GiftIcon, Gem,
+  ArrowLeft, Info, Flame, Trophy, Award, Sparkles, Gift as GiftIcon, Gem, Target, ShoppingBag, Banknote,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -15,7 +15,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { supabase } from '@/lib/supabase/client';
 import { PRESTIGE_THRESHOLD, getPrestigeTitle } from '@/lib/casino/meta';
-import { CountUp } from './_components/CasinoUI';
+import { CountUp, LevelBar } from './_components/CasinoUI';
+import MissionsModal, { useMissions } from './_components/MissionsModal';
+import FeedTicker from './_components/FeedTicker';
 import DailyWheelModal from './_components/DailyWheelModal';
 import Confetti from './_components/Confetti';
 
@@ -49,13 +51,17 @@ const DISCLAIMER_KEY = 'itollec_casino_disclaimer_seen';
 export default function CasinoHub() {
   const router = useRouter();
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, stats, claimDaily, claimWheelOfFortune, prestige } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, stats, claimDaily, claimWheelOfFortune, prestige, refresh } = useCasinoWallet();
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [jackpot, setJackpot] = useState<number | null>(null);
   const [showWheel, setShowWheel] = useState(false);
   const [claimingDaily, setClaimingDaily] = useState(false);
   const [prestiging, setPrestiging] = useState(false);
   const [confetti, setConfetti] = useState(0);
+  const [showMissions, setShowMissions] = useState(false);
+  const { missions, reload: reloadMissions, claimable } = useMissions();
+  const [cashback, setCashback] = useState<{ amount: number; available: boolean } | null>(null);
+  const [claimingCashback, setClaimingCashback] = useState(false);
 
   useEffect(() => {
     try { if (!localStorage.getItem(DISCLAIMER_KEY)) setShowDisclaimer(true); } catch {}
@@ -72,6 +78,33 @@ export default function CasinoHub() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  // Cashback is computed from yesterday's play, so it only needs one fetch.
+  useEffect(() => {
+    if (!user) { setCashback(null); return; }
+    fetch(`/api/casino/cashback/claim?user_id=${user.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setCashback({ amount: d.amount, available: d.available }); })
+      .catch(() => {});
+  }, [user, stats.cashbackClaimedToday]);
+
+  const handleClaimCashback = async () => {
+    if (!user) { toast.error('Connecte-toi pour récupérer ton cashback.'); return; }
+    if (claimingCashback || !cashback?.available) return;
+    setClaimingCashback(true); vibrate(HAPTIC.MEDIUM);
+    const res = await fetch('/api/casino/cashback/claim', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: user.id }),
+    });
+    const data = await res.json();
+    setClaimingCashback(false);
+    if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
+    sfx.coin(); vibrate(HAPTIC.SUCCESS);
+    setCashback({ amount: 0, available: false });
+    toast.success(`Cashback : +${data.amount.toLocaleString('fr-FR')} ₶`, {
+      description: `${Math.round(data.rate * 100)}% de tes pertes d'hier.`,
+    });
+    void refresh();
+  };
 
   const dismissDisclaimer = () => {
     try { localStorage.setItem(DISCLAIMER_KEY, '1'); } catch {}
@@ -111,6 +144,13 @@ export default function CasinoHub() {
     <main className="lg:[@media(min-height:700px)]:h-[100dvh] lg:[@media(min-height:700px)]:overflow-hidden bg-transparent text-tx-base p-3 sm:p-4 flex flex-col">
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
       {showWheel && <DailyWheelModal onClose={() => setShowWheel(false)} onSpin={claimWheelOfFortune} />}
+      {showMissions && (
+        <MissionsModal
+          missions={missions}
+          onClose={() => setShowMissions(false)}
+          onClaimed={() => { void reloadMissions(); void refresh(); }}
+        />
+      )}
 
       {showDisclaimer && (
         <div className="fixed inset-0 z-[200] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
@@ -152,6 +192,9 @@ export default function CasinoHub() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <div className="h-11 hidden sm:flex items-center px-3 rounded-xl border-2 border-brand-border bg-brand-inner">
+              <LevelBar level={stats.level} into={stats.xpIntoLevel} needed={stats.xpForNext} />
+            </div>
             {stats.currentStreak > 1 && (
               <div className="h-11 flex items-center gap-1.5 px-3 rounded-xl border-2 border-accent-secondary bg-accent-secondary/10" title="Victoires d'affilée">
                 <Flame className="h-4 w-4 text-accent-secondary" />
@@ -168,7 +211,7 @@ export default function CasinoHub() {
         </header>
 
         {/* ACTION BAR — everything meta in one compact row */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-3 shrink-0">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mb-3 shrink-0">
           <button
             onClick={handleClaimDaily}
             disabled={stats.dailyClaimedToday || claimingDaily}
@@ -201,6 +244,53 @@ export default function CasinoHub() {
               <div className="text-[10px] text-tx-secondary truncate">{stats.wheelClaimedToday ? 'Déjà tournée' : 'Jusqu’à 10 000 ₶'}</div>
             </div>
             {!stats.wheelClaimedToday && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-accent-secondary animate-pulse" />}
+          </button>
+
+          <button
+            onClick={handleClaimCashback}
+            disabled={!cashback?.available || claimingCashback}
+            title="5% de tes pertes de la veille, à récupérer une fois par jour"
+            className={cn(
+              'relative h-14 rounded-xl border-2 flex items-center gap-2 px-3 transition-all focus:outline-none text-left',
+              cashback?.available ? 'border-accent-primary bg-accent-primary/10 hover:-translate-y-0.5 cursor-pointer'
+                : 'border-brand-border bg-brand-card opacity-50 cursor-default'
+            )}
+          >
+            <Banknote className={cn('h-5 w-5 shrink-0', cashback?.available ? 'text-accent-primary' : 'text-tx-muted')} />
+            <div className="min-w-0">
+              <div className="font-display font-black text-xs leading-tight">Cashback</div>
+              <div className="text-[10px] text-tx-secondary truncate">
+                {stats.cashbackClaimedToday ? 'Déjà pris'
+                  : cashback?.available ? `+${cashback.amount.toLocaleString('fr-FR')} ₶ à prendre`
+                  : 'Aucune perte hier'}
+              </div>
+            </div>
+            {cashback?.available && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-accent-secondary animate-pulse" />}
+          </button>
+
+          <button
+            onClick={() => { sfx.click(); setShowMissions(true); }}
+            className="relative h-14 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-2 px-3 hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none text-left"
+          >
+            <Target className="h-5 w-5 shrink-0 text-accent-primary" />
+            <div className="min-w-0">
+              <div className="font-display font-black text-xs leading-tight">Missions</div>
+              <div className="text-[10px] text-tx-secondary truncate">
+                {claimable > 0 ? `${claimable} récompense${claimable > 1 ? 's' : ''} à prendre` : `${missions.filter((m) => m.claimed).length}/${missions.length || 3} terminées`}
+              </div>
+            </div>
+            {claimable > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-accent-secondary animate-pulse" />}
+          </button>
+
+          <button
+            onClick={() => { sfx.click(); router.push('/casino/shop'); }}
+            className="h-14 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-2 px-3 hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none text-left"
+          >
+            <ShoppingBag className="h-5 w-5 shrink-0 text-accent-primary" />
+            <div className="min-w-0">
+              <div className="font-display font-black text-xs leading-tight">Boutique</div>
+              <div className="text-[10px] text-tx-secondary truncate">5 objets, renouvelés à minuit</div>
+            </div>
           </button>
 
           <div className="h-14 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-2 px-3" title="Alimenté par chaque mise perdue — 1 chance sur 3000 par mise de le rafler">
@@ -245,6 +335,8 @@ export default function CasinoHub() {
             </div>
           )}
         </div>
+
+        <FeedTicker />
 
         {/* GAMES — 5×4 grid that fills the remaining height exactly, so the
             cards stay big instead of being squeezed into a corner. */}

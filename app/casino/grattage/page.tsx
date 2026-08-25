@@ -185,6 +185,8 @@ export default function GrattagePage() {
 
   const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setFaces(null); setProgress(0); };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'grattage').slice(0, 10);
 
   const stage = (
@@ -251,7 +253,7 @@ export default function GrattagePage() {
 
   const panel = (
     <>
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'scratching' || buying} step={1} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'scratching' || buying} step={1} />
 
       {phase === 'scratching' ? (
         <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
@@ -291,6 +293,9 @@ export default function GrattagePage() {
       isLoaded={isLoaded}
       isLocal={isLocal}
       streak={stats.currentStreak}
+      level={stats.level}
+      xpIntoLevel={stats.xpIntoLevel}
+      xpForNext={stats.xpForNext}
       stage={stage}
       panel={panel}
     />

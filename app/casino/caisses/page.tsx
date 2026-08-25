@@ -12,6 +12,7 @@ import {
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtCrate, ArtCrateEmpty } from '../_components/CasinoArt';
+import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -49,7 +50,7 @@ export default function CaissesPage() {
         const jackpotCrate = hideJackpot();
         return { ...resolveCaisses(jackpotCrate, crate), meta: { jackpotCrate, chosenCrate: crate } };
       }),
-      new Promise((res) => setTimeout(res, 380)),
+      new Promise((res) => setTimeout(res, tempo(380))),
     ]);
 
     setBusy(false);
@@ -69,6 +70,8 @@ export default function CaissesPage() {
 
   const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setOpenedCrate(null); };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'caisses').slice(0, 10);
 
   const stage = (
@@ -129,7 +132,7 @@ export default function CaissesPage() {
 
   const panel = (
     <>
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'choosing' || phase === 'opening' || busy} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'choosing' || phase === 'opening' || busy} />
 
       {phase === 'choosing' ? (
         <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
@@ -151,6 +154,6 @@ export default function CaissesPage() {
   );
 
   return (
-    <GameShell title="Frenly Caisses" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
+    <GameShell title="Frenly Caisses" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
   );
 }

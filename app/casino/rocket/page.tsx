@@ -195,6 +195,8 @@ export default function RocketPage() {
     setCrashedAt(null); setPoints([{ x: 0, y: VIEW_H }]);
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'rocket').slice(0, 10);
   const flying = phase === 'flying';
   const potentialPayout = Math.round(lockedAmount * multiplier);
@@ -291,7 +293,7 @@ export default function RocketPage() {
     <>
       {!flying ? (
         <>
-          <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
+          <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
           <PlayButton onClick={phase === 'idle' ? handleStart : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
             {phase === 'idle' ? `DÉCOLLER · ${amount} ₶` : 'REJOUER'}
           </PlayButton>
@@ -325,6 +327,9 @@ export default function RocketPage() {
       isLoaded={isLoaded}
       isLocal={isLocal}
       streak={stats.currentStreak}
+      level={stats.level}
+      xpIntoLevel={stats.xpIntoLevel}
+      xpForNext={stats.xpForNext}
       stage={stage}
       panel={panel}
     />

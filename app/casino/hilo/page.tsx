@@ -13,6 +13,7 @@ import {
   GameShell, BetControls, PlayButton, PlayingCard, ResultBanner, HistoryStrip, rankLabel, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -73,7 +74,7 @@ export default function HiloPage() {
         const res = resolveHilo(currentCard, nextCard, direction);
         return { won: res.won, multiplier: res.multiplier, meta: { currentCard, nextCard, direction, push: res.push } };
       }),
-      new Promise((res) => setTimeout(res, 320)),
+      new Promise((res) => setTimeout(res, tempo(320))),
     ]);
 
     setPlaying(false);
@@ -94,6 +95,8 @@ export default function HiloPage() {
     await dealCard();
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'hilo').slice(0, 10);
 
   const stage = (
@@ -125,7 +128,7 @@ export default function HiloPage() {
 
   const panel = (
     <>
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
 
       <div className="grid grid-cols-2 gap-3">
         <button
@@ -161,6 +164,6 @@ export default function HiloPage() {
   );
 
   return (
-    <GameShell title="Frenly HiLo" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
+    <GameShell title="Frenly HiLo" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
   );
 }

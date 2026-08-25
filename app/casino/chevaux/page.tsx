@@ -90,6 +90,8 @@ export default function ChevauxPage() {
 
   const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setProgress(HORSES.map(() => 0)); };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'chevaux').slice(0, 10);
 
   const stage = (
@@ -152,7 +154,7 @@ export default function ChevauxPage() {
         </div>
       </div>
 
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'racing'} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'racing'} />
 
       <PlayButton
         onClick={phase === 'done' ? handleReset : handleRace}
@@ -167,6 +169,6 @@ export default function ChevauxPage() {
   );
 
   return (
-    <GameShell title="Frenly Chevaux" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
+    <GameShell title="Frenly Chevaux" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
   );
 }

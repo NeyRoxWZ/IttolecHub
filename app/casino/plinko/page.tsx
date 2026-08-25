@@ -11,6 +11,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -64,12 +65,12 @@ export default function PlinkoPage() {
     let offset = 0;
     for (let i = 0; i < path.length; i++) {
       offset += path[i] === 'R' ? 0.5 : -0.5;
-      await new Promise((res) => setTimeout(res, STEP_MS));
+      await new Promise((res) => setTimeout(res, tempo(STEP_MS)));
       setBall({ row: i + 1, offset });
       sfx.tick(); vibrate(HAPTIC.SOFT);
     }
 
-    await new Promise((res) => setTimeout(res, 130));
+    await new Promise((res) => setTimeout(res, tempo(130)));
     setLandedBucket(r.meta.bucket);
     setResult(r);
     setDropping(false);
@@ -85,6 +86,8 @@ export default function PlinkoPage() {
     }
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'plinko').slice(0, 10);
   const bucketColor = (m: number) => (m >= 11 ? '#FFD000' : m >= 2 ? '#00FF94' : m >= 1 ? '#4FC3F7' : '#FF2A55');
 
@@ -159,7 +162,7 @@ export default function PlinkoPage() {
 
   const panel = (
     <>
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={dropping} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={dropping} />
       <PlayButton onClick={handleDrop} loading={dropping} disabled={!isLoaded || amount < CASINO_MIN_BET}>
         {dropping ? 'ÇA TOMBE...' : `LÂCHER LA BILLE · ${amount} ₶`}
       </PlayButton>
@@ -184,6 +187,9 @@ export default function PlinkoPage() {
       isLoaded={isLoaded}
       isLocal={isLocal}
       streak={stats.currentStreak}
+      level={stats.level}
+      xpIntoLevel={stats.xpIntoLevel}
+      xpForNext={stats.xpForNext}
       stage={stage}
       panel={panel}
     />

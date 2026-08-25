@@ -11,6 +11,7 @@ import {
   GameShell, BetControls, PlayButton, PlayingCard, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -68,11 +69,11 @@ export default function BaccaratPage() {
       [p, b] = outcome === 'player' ? [hi, lo] : [lo, hi];
     }
 
-    await new Promise((res) => setTimeout(res, 200));
+    await new Promise((res) => setTimeout(res, tempo(200)));
     setScores({ player: p }); sfx.card();
-    await new Promise((res) => setTimeout(res, 260));
+    await new Promise((res) => setTimeout(res, tempo(260)));
     setScores({ player: p, banker: b }); sfx.reveal();
-    await new Promise((res) => setTimeout(res, 220));
+    await new Promise((res) => setTimeout(res, tempo(220)));
 
     setPlaying(false);
     setResult({ ...r, outcome });
@@ -91,6 +92,8 @@ export default function BaccaratPage() {
     }
   };
 
+  // Stake of the previous round, for the one-tap rebet chip.
+  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'baccarat').slice(0, 10);
 
   const stage = (
@@ -160,7 +163,7 @@ export default function BaccaratPage() {
         </div>
       </div>
 
-      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
+      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
 
       <PlayButton onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET}>
         {playing ? 'DISTRIBUTION...' : `PARIER · ${amount} ₶`}
@@ -173,6 +176,6 @@ export default function BaccaratPage() {
   );
 
   return (
-    <GameShell title="Frenly Baccarat" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
+    <GameShell title="Frenly Baccarat" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
   );
 }
