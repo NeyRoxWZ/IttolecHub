@@ -1,21 +1,43 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus, Bomb, Gem } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { sfx } from '@/lib/casino/sfx';
 import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
-import { generateMinePositions, multiplierAfterReveals, MINES_TOTAL_CELLS, MINES_MIN_COUNT, MINES_MAX_COUNT, CASINO_MIN_BET } from '@/lib/casino/mines';
+import {
+  generateMinePositions, multiplierAfterReveals,
+  MINES_TOTAL_CELLS, MINES_MIN_COUNT, MINES_MAX_COUNT, CASINO_MIN_BET,
+} from '@/lib/casino/mines';
+import {
+  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
+} from '../_components/CasinoUI';
+import Confetti from '../_components/Confetti';
+
+const RULES: RulesSpec = {
+  howTo: [
+    'Choisis ta mise et le nombre de mines cachées dans la grille de 25 cases.',
+    'Retourne les cases une par une. Chaque case sûre fait monter ton multiplicateur.',
+    'Plus tu mets de mines, plus chaque case sûre rapporte — mais plus le risque est grand.',
+    'Encaisse quand tu veux pour repartir avec ta mise multipliée.',
+    'Si tu tombes sur une mine, tu perds ta mise et toutes les positions sont révélées.',
+  ],
+  payouts: [
+    { label: '3 mines · 1 case sûre', value: `×${multiplierAfterReveals(3, 1)}` },
+    { label: '3 mines · 5 cases sûres', value: `×${multiplierAfterReveals(3, 5)}` },
+    { label: '3 mines · 10 cases sûres', value: `×${multiplierAfterReveals(3, 10)}` },
+    { label: '10 mines · 5 cases sûres', value: `×${multiplierAfterReveals(10, 5)}` },
+  ],
+  rtp: '~96%',
+};
 
 type Phase = 'idle' | 'active' | 'busted' | 'cashed';
 
 export default function MinesPage() {
-  const router = useRouter();
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [mineCount, setMineCount] = useState(3);
@@ -24,267 +46,256 @@ export default function MinesPage() {
   const [lockedAmount, setLockedAmount] = useState(0);
   const [lockedMineCount, setLockedMineCount] = useState(3);
   const [revealed, setRevealed] = useState<number[]>([]);
-  const [minePositions, setMinePositions] = useState<number[] | null>(null); // only known locally (anon) or after bust
+  const [minePositions, setMinePositions] = useState<number[] | null>(null);
+  const [hitCell, setHitCell] = useState<number | null>(null);
   const [multiplier, setMultiplier] = useState(1);
   const [busy, setBusy] = useState(false);
+  const [confetti, setConfetti] = useState(0);
 
-  const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
-  const maxSafeReveals = MINES_TOTAL_CELLS - lockedMineCount;
+  const active = phase === 'active';
+  const potentialPayout = Math.round(lockedAmount * multiplier);
+  const maxSafe = MINES_TOTAL_CELLS - lockedMineCount;
+  const nextMultiplier = multiplierAfterReveals(lockedMineCount, revealed.length + 1);
+  const previewMultiplier = multiplierAfterReveals(mineCount, 1);
 
   const handleStart = async () => {
     if (busy) return;
     if (amount > balance) { toast.error('Solde insuffisant.'); return; }
-    if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
 
-    setBusy(true);
-    vibrate(HAPTIC.MEDIUM);
+    setBusy(true); vibrate(HAPTIC.MEDIUM); sfx.bet();
 
     if (user) {
       const res = await fetch('/api/casino/mines/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.id, amount, payload: { mineCount } }),
       });
       const data = await res.json();
       setBusy(false);
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
       setRoundId(data.roundId);
-      setLockedAmount(amount);
-      setLockedMineCount(mineCount);
-      setRevealed([]);
-      setMinePositions(null);
-      setMultiplier(1);
-      setPhase('active');
+      setLockedAmount(amount); setLockedMineCount(mineCount);
+      setRevealed([]); setMinePositions(null); setHitCell(null);
+      setMultiplier(1); setPhase('active');
       await refresh();
     } else {
       const result = startLocalBet('mines', amount);
       setBusy(false);
       if ('error' in result) { toast.error(result.error); return; }
       setRoundId('local');
-      setLockedAmount(amount);
-      setLockedMineCount(mineCount);
-      setRevealed([]);
-      setMinePositions(generateMinePositions(mineCount));
-      setMultiplier(1);
-      setPhase('active');
+      setLockedAmount(amount); setLockedMineCount(mineCount);
+      setRevealed([]); setMinePositions(generateMinePositions(mineCount)); setHitCell(null);
+      setMultiplier(1); setPhase('active');
     }
   };
 
   const handleReveal = async (cellIndex: number) => {
-    if (busy || phase !== 'active' || revealed.includes(cellIndex)) return;
+    if (busy || !active || revealed.includes(cellIndex)) return;
     setBusy(true);
-    vibrate(HAPTIC.SOFT);
 
     if (user && roundId) {
       const res = await fetch('/api/casino/mines/step', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.id, round_id: roundId, payload: { cellIndex } }),
       });
       const data = await res.json();
       setBusy(false);
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
       if (!data.safe) {
-        setMinePositions(data.minePositions);
-        setPhase('busted');
-        vibrate(HAPTIC.ERROR);
+        setHitCell(cellIndex); setMinePositions(data.minePositions); setPhase('busted');
+        vibrate(HAPTIC.ERROR); sfx.bust();
         toast.error('Boum ! Mine touchée.');
         announceProgression(data.progression);
         return;
       }
-      setRevealed(data.revealed);
-      setMultiplier(data.multiplier);
-      vibrate(HAPTIC.SUCCESS);
-      if (data.allCleared) toast.success('Toutes les cases sûres révélées !');
+      setRevealed(data.revealed); setMultiplier(data.multiplier);
+      vibrate(HAPTIC.SOFT); sfx.step(Math.min(8, data.revealed.length));
+      if (data.allCleared) toast.success('Grille nettoyée ! Encaisse maintenant.');
     } else {
       const mines = minePositions!;
       setBusy(false);
       if (mines.includes(cellIndex)) {
-        setPhase('busted');
-        vibrate(HAPTIC.ERROR);
+        setHitCell(cellIndex); setPhase('busted');
+        vibrate(HAPTIC.ERROR); sfx.bust();
         toast.error('Boum ! Mine touchée.');
         return;
       }
-      const newRevealed = [...revealed, cellIndex];
-      setRevealed(newRevealed);
-      setMultiplier(multiplierAfterReveals(lockedMineCount, newRevealed.length));
-      vibrate(HAPTIC.SUCCESS);
+      const next = [...revealed, cellIndex];
+      setRevealed(next);
+      setMultiplier(multiplierAfterReveals(lockedMineCount, next.length));
+      vibrate(HAPTIC.SOFT); sfx.step(Math.min(8, next.length));
     }
   };
 
   const handleCashout = async () => {
-    if (busy || phase !== 'active' || revealed.length === 0) return;
-    setBusy(true);
-    vibrate(HAPTIC.MEDIUM);
+    if (busy || !active || revealed.length === 0) return;
+    setBusy(true); vibrate(HAPTIC.MEDIUM);
 
     if (user && roundId) {
       const res = await fetch('/api/casino/mines/cashout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.id, round_id: roundId }),
       });
       const data = await res.json();
       setBusy(false);
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
-      setPhase('cashed');
-      vibrate(HAPTIC.SUCCESS);
-      toast.success(`Encaissé +${data.payout} ₶`);
+      setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
+      if (multiplier >= 3) setConfetti((c) => c + 1);
+      toast.success(`Encaissé +${data.payout} ₶ à ×${multiplier}`);
       await refresh();
       announceProgression(data.progression);
     } else {
-      const payout = Math.round(lockedAmount * multiplier);
-      creditLocal('mines', payout, multiplier);
-      setBusy(false);
-      setPhase('cashed');
-      vibrate(HAPTIC.SUCCESS);
-      toast.success(`Encaissé +${payout} ₶`);
+      const p = Math.round(lockedAmount * multiplier);
+      creditLocal('mines', p, multiplier);
+      setBusy(false); setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
+      if (multiplier >= 3) setConfetti((c) => c + 1);
+      toast.success(`Encaissé +${p} ₶ à ×${multiplier}`);
     }
   };
 
   const handleReset = () => {
-    setPhase('idle');
-    setRevealed([]);
-    setMinePositions(null);
-    setMultiplier(1);
-    setRoundId(null);
+    sfx.click();
+    setPhase('idle'); setRevealed([]); setMinePositions(null);
+    setHitCell(null); setMultiplier(1); setRoundId(null);
   };
 
-  const gameHistory = history.filter((h) => h.game_slug === 'mines').slice(0, 12);
-  const potentialPayout = Math.round(lockedAmount * multiplier);
+  const gameHistory = history.filter((h) => h.game_slug === 'mines').slice(0, 10);
+  const finished = phase === 'busted' || phase === 'cashed';
+
+  const stage = (
+    <div className="w-full flex flex-col items-center gap-4">
+      {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
+      <style jsx global>{`
+        @keyframes minePop { 0% { transform: scale(0.3) rotate(-25deg); opacity: 0; } 60% { transform: scale(1.18) rotate(5deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+        @keyframes mineShake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+      `}</style>
+
+      <div className="flex items-baseline gap-3">
+        <span className={cn('font-display text-4xl font-black tabular-nums', phase === 'busted' ? 'text-accent-secondary' : 'text-accent-primary')}>
+          ×{multiplier.toFixed(2)}
+        </span>
+        {active && revealed.length > 0 && (
+          <span className="text-sm font-bold text-tx-secondary">
+            = <CountUp value={potentialPayout} className="text-accent-success" /> ₶
+          </span>
+        )}
+      </div>
+
+      <div
+        className={cn('grid grid-cols-5 gap-2 p-3 rounded-2xl border-4 border-brand-border', phase === 'busted' && 'animate-[mineShake_400ms_ease-out]')}
+        style={{ background: 'linear-gradient(160deg, #16203A 0%, #0D1425 100%)' }}
+      >
+        {Array.from({ length: MINES_TOTAL_CELLS }, (_, i) => {
+          const isRevealed = revealed.includes(i);
+          const isMine = finished && minePositions?.includes(i);
+          const isHit = hitCell === i;
+
+          return (
+            <button
+              key={i}
+              onClick={() => handleReveal(i)}
+              disabled={!active || isRevealed || busy}
+              className={cn(
+                'w-[52px] h-[52px] sm:w-[58px] sm:h-[58px] rounded-xl border-2 flex items-center justify-center text-2xl transition-all duration-200 focus:outline-none',
+                isHit ? 'border-accent-secondary bg-accent-secondary/35'
+                  : isMine ? 'border-accent-secondary/50 bg-accent-secondary/12'
+                  : isRevealed ? 'border-accent-success bg-accent-success/18'
+                  : active ? 'border-white/15 bg-white/[0.06] hover:bg-white/[0.14] hover:border-accent-primary hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+                  : 'border-white/10 bg-white/[0.03]'
+              )}
+            >
+              {isHit ? <span style={{ animation: 'minePop 300ms ease-out' }}>💥</span>
+                : isMine ? <span className="opacity-55">💣</span>
+                : isRevealed ? <span style={{ animation: 'minePop 260ms ease-out' }}>💎</span>
+                : null}
+            </button>
+          );
+        })}
+      </div>
+
+      {active && (
+        <p className="text-xs text-tx-secondary font-bold">
+          {revealed.length}/{maxSafe} cases sûres · prochaine ×{nextMultiplier}
+        </p>
+      )}
+
+      <ResultBanner state={phase === 'busted' ? 'lose' : phase === 'cashed' ? 'win' : 'idle'}>
+        {phase === 'busted' ? 'Mine touchée — mise perdue' : `Encaissé +${potentialPayout} ₶`}
+      </ResultBanner>
+    </div>
+  );
+
+  const panel = (
+    <>
+      {!active ? (
+        <>
+          <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-black tracking-widest uppercase text-tx-muted">Mines</span>
+              <span className="text-xs font-bold text-accent-primary">1<sup>re</sup> case ×{previewMultiplier}</span>
+            </div>
+            <div className="grid grid-cols-5 gap-1.5 mb-2">
+              {[1, 3, 5, 10, 24].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => { sfx.select(); setMineCount(n); }}
+                  className={cn(
+                    'h-10 rounded-lg border-2 text-xs font-black transition-colors focus:outline-none',
+                    mineCount === n ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-brand-inner border-brand-border text-tx-secondary hover:border-tx-base'
+                  )}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <input
+              type="range" min={MINES_MIN_COUNT} max={MINES_MAX_COUNT} value={mineCount}
+              onChange={(e) => setMineCount(Number(e.target.value))}
+              className="w-full accent-accent-primary"
+            />
+            <p className="text-[11px] text-tx-muted mt-1">{mineCount} mine{mineCount > 1 ? 's' : ''} · {MINES_TOTAL_CELLS - mineCount} cases sûres</p>
+          </div>
+
+          <PlayButton onClick={phase === 'idle' ? handleStart : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+            {phase === 'idle' ? `MISER · ${amount} ₶` : 'REJOUER'}
+          </PlayButton>
+        </>
+      ) : (
+        <>
+          <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 flex items-center justify-between">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise</div>
+              <div className="font-display text-xl font-black">{lockedAmount} ₶</div>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mines</div>
+              <div className="font-display text-xl font-black text-accent-secondary">{lockedMineCount}</div>
+            </div>
+          </div>
+
+          <PlayButton onClick={handleCashout} disabled={busy || revealed.length === 0} variant="success">
+            {revealed.length === 0 ? 'RETOURNE UNE CASE' : `ENCAISSER ${potentialPayout} ₶`}
+          </PlayButton>
+
+          <p className="text-[11px] text-tx-muted -mt-2">Clique les cases de la grille pour continuer.</p>
+        </>
+      )}
+
+      <HistoryStrip history={gameHistory} />
+    </>
+  );
 
   return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/casino')} className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Frenly Mines</h1>
-          </div>
-          <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-5 w-5 text-accent-primary" />
-            <span className="font-display font-black text-lg tabular-nums">{isLoaded ? balance.toLocaleString('fr-FR') : '...'}</span>
-            <span className="text-tx-secondary font-bold">₶</span>
-            {isLocal && <span className="ml-1 text-[9px] font-black uppercase bg-brand-card border border-brand-border px-1.5 py-0.5 rounded text-tx-muted">Local</span>}
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* GRID */}
-          <div className="flex flex-col items-center justify-center bg-brand-card border-4 border-brand-border rounded-[32px] p-6">
-            <div className="grid grid-cols-5 gap-1.5 w-full max-w-[280px]">
-              {Array.from({ length: MINES_TOTAL_CELLS }, (_, i) => {
-                const isRevealed = revealed.includes(i);
-                const isMine = phase === 'busted' && minePositions?.includes(i);
-                const isPlayable = phase === 'active';
-                return (
-                  <button
-                    key={i}
-                    onClick={() => handleReveal(i)}
-                    disabled={!isPlayable || isRevealed || busy}
-                    className={cn(
-                      'aspect-square rounded-lg border-2 flex items-center justify-center transition-all focus:outline-none',
-                      isMine ? 'border-accent-secondary bg-accent-secondary/20' :
-                      isRevealed ? 'border-accent-success bg-accent-success/15' :
-                      'border-brand-border bg-brand-inner',
-                      isPlayable && !isRevealed && 'hover:border-accent-primary'
-                    )}
-                  >
-                    {isMine ? <Bomb className="w-4 h-4 text-accent-secondary" /> : isRevealed ? <Gem className="w-4 h-4 text-accent-success" /> : null}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 flex items-center gap-3">
-              <span className="font-display font-black text-xl">x{multiplier}</span>
-              {phase === 'active' && revealed.length > 0 && <span className="text-xs text-tx-secondary">Encaisser = +{potentialPayout} ₶</span>}
-            </div>
-
-            <div className="mt-2 h-10 flex items-center">
-              {phase === 'busted' && (
-                <div className="px-4 py-2 rounded-xl border-2 border-accent-secondary text-accent-secondary bg-accent-secondary/10 font-bold text-sm animate-in fade-in duration-200">
-                  Boum ! Perdu.
-                </div>
-              )}
-              {phase === 'cashed' && (
-                <div className="px-4 py-2 rounded-xl border-2 border-accent-success text-accent-success bg-accent-success/10 font-bold text-sm animate-in fade-in duration-200">
-                  Encaissé +{potentialPayout} ₶
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* CONTROLS */}
-          <div className="flex flex-col gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
-            {phase === 'idle' || phase === 'busted' || phase === 'cashed' ? (
-              <>
-                <div>
-                  <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Mise (max {maxBet} ₶)</label>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setAmount((a) => clampAmount(a - 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <input type="number" value={amount} onChange={(e) => setAmount(clampAmount(Number(e.target.value) || 0))} className="flex-1 h-11 bg-brand-inner border-2 border-brand-border rounded-lg px-3 text-center font-display font-black" />
-                    <button onClick={() => setAmount((a) => clampAmount(a + 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                      <Plus className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => setAmount(maxBet)} className="h-11 px-3 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-xs font-bold hover:border-tx-base">MAX</button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Nombre de mines: {mineCount}</label>
-                  <input
-                    type="range"
-                    min={MINES_MIN_COUNT}
-                    max={MINES_MAX_COUNT}
-                    value={mineCount}
-                    onChange={(e) => setMineCount(Number(e.target.value))}
-                    className="w-full accent-accent-primary"
-                  />
-                </div>
-
-                <button
-                  onClick={phase === 'idle' ? handleStart : handleReset}
-                  disabled={busy || !isLoaded || amount < CASINO_MIN_BET}
-                  className={cn('h-16 rounded-2xl font-display text-xl font-black tracking-wider border-4 border-brand-border transition-colors shadow-brutal', busy ? 'bg-brand-inner text-tx-muted cursor-not-allowed' : 'bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary')}
-                >
-                  {phase === 'idle' ? (busy ? 'DÉMARRAGE...' : `MISER ${amount} ₶`) : 'REJOUER'}
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-tx-secondary">
-                  Mise verrouillée: <span className="font-bold text-tx-base">{lockedAmount} ₶</span> · {lockedMineCount} mines. Révèle des cases sûres pour monter le multiplicateur, ou encaisse.
-                </p>
-                <button
-                  onClick={handleCashout}
-                  disabled={busy || revealed.length === 0}
-                  className={cn('h-16 rounded-2xl font-display text-xl font-black tracking-wider border-4 border-brand-border transition-colors shadow-brutal', (busy || revealed.length === 0) ? 'bg-brand-inner text-tx-muted cursor-not-allowed' : 'bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success')}
-                >
-                  ENCAISSER {revealed.length > 0 ? `(+${potentialPayout} ₶)` : ''}
-                </button>
-                <p className="text-xs text-tx-muted">{revealed.length}/{maxSafeReveals} cases sûres révélées</p>
-              </>
-            )}
-
-            {gameHistory.length > 0 && (
-              <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Dernières parties</span>
-                <div className="flex flex-wrap gap-2">
-                  {gameHistory.map((h) => (
-                    <span key={h.id} className={cn('text-xs font-bold px-2 py-1 rounded-md border-2', h.amount >= 0 ? 'border-accent-success text-accent-success' : 'border-accent-secondary text-accent-secondary')}>
-                      {h.amount >= 0 ? '+' : ''}{h.amount}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </main>
+    <GameShell
+      title="Frenly Mines"
+      rules={RULES}
+      balance={balance}
+      isLoaded={isLoaded}
+      isLocal={isLocal}
+      streak={stats.currentStreak}
+      stage={stage}
+      panel={panel}
+    />
   );
 }

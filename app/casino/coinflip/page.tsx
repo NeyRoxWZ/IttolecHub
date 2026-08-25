@@ -1,26 +1,41 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { flipCoin, resolveCoinflip, COINFLIP_PAYOUT, CASINO_MIN_BET, type CoinSide } from '@/lib/casino/coinflip';
+import {
+  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+} from '../_components/CasinoUI';
+import Confetti from '../_components/Confetti';
 
-const PRESPIN_SPEED = 900; // deg/sec while waiting on the result
-const SETTLE_DURATION_MS = 1400;
-const SETTLE_EXTRA_TURNS = 4;
+const RULES: RulesSpec = {
+  howTo: [
+    'Choisis Pile ou Face, place ta mise et lance la pièce.',
+    'La pièce est parfaitement équilibrée : 50% de chances de chaque côté.',
+    'Si le côté sorti est celui que tu as choisi, tu récupères ta mise multipliée par 1,94.',
+  ],
+  payouts: [
+    { label: 'Bon côté', value: '×1,94' },
+    { label: 'Mauvais côté', value: 'Mise perdue' },
+  ],
+  rtp: '~97%',
+};
+
+const SPIN_SPEED = 1100;
+const SETTLE_MS = 1300;
 
 export default function CoinflipPage() {
-  const router = useRouter();
-  const { balance, isLoaded, isLocal, maxBet, placeBet, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, placeBet, history } = useCasinoWallet();
 
   const [choice, setChoice] = useState<CoinSide>('pile');
   const [amount, setAmount] = useState(10);
   const [flipping, setFlipping] = useState(false);
-  const [lastResult, setLastResult] = useState<(GenericBetResult & { landed: CoinSide }) | null>(null);
+  const [result, setResult] = useState<(GenericBetResult & { landed: CoinSide }) | null>(null);
+  const [confetti, setConfetti] = useState(0);
 
   const coinRef = useRef<HTMLDivElement>(null);
   const angleRef = useRef(0);
@@ -28,208 +43,139 @@ export default function CoinflipPage() {
 
   useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
 
-  const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
-
-  const startPreSpin = () => {
-    let last = performance.now();
-    const loop = (now: number) => {
-      const dt = (now - last) / 1000;
-      last = now;
-      angleRef.current += PRESPIN_SPEED * dt;
-      if (coinRef.current) {
-        coinRef.current.style.transition = 'none';
-        coinRef.current.style.transform = `rotateY(${angleRef.current}deg)`;
-      }
-      rafRef.current = requestAnimationFrame(loop);
-    };
-    rafRef.current = requestAnimationFrame(loop);
-  };
-
-  const settleOnFace = (landed: CoinSide) => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    const desiredMod = landed === 'pile' ? 0 : 180;
-    const currentMod = ((angleRef.current % 360) + 360) % 360;
-    let delta = desiredMod - currentMod;
-    if (delta < 0) delta += 360;
-    const target = angleRef.current + delta + SETTLE_EXTRA_TURNS * 360;
-    angleRef.current = target;
-    if (coinRef.current) {
-      coinRef.current.style.transition = `transform ${SETTLE_DURATION_MS}ms cubic-bezier(0.15, 0.65, 0.1, 1)`;
-      coinRef.current.style.transform = `rotateY(${target}deg)`;
-    }
+  const apply = (deg: number, transition?: string) => {
+    if (!coinRef.current) return;
+    coinRef.current.style.transition = transition || 'none';
+    coinRef.current.style.transform = `rotateX(-12deg) rotateY(${deg}deg)`;
   };
 
   const handleFlip = async () => {
     if (flipping) return;
     if (amount > balance) { toast.error('Solde insuffisant.'); return; }
-    if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
 
-    setFlipping(true);
-    setLastResult(null);
-    vibrate(HAPTIC.MEDIUM);
-    startPreSpin();
+    setFlipping(true); setResult(null);
+    vibrate(HAPTIC.MEDIUM); sfx.bet();
 
-    const result = await placeBet('coinflip', amount, { choice }, () => {
+    let last = performance.now();
+    const loop = (now: number) => {
+      const dt = (now - last) / 1000; last = now;
+      angleRef.current += SPIN_SPEED * dt;
+      apply(angleRef.current);
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
+
+    const r = await placeBet('coinflip', amount, { choice }, () => {
       const landed = flipCoin();
-      const r = resolveCoinflip(landed, choice);
-      return { ...r, meta: { landed, choice } };
+      return { ...resolveCoinflip(landed, choice), meta: { landed, choice } };
     });
 
-    if ('error' in result) {
+    if ('error' in r) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      toast.error(result.error);
-      setFlipping(false);
-      return;
+      setFlipping(false); toast.error(r.error); return;
     }
 
-    const landed: CoinSide = result.meta.landed;
-    settleOnFace(landed);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    const landed: CoinSide = r.meta.landed;
+    const targetMod = landed === 'pile' ? 0 : 180;
+    const current = ((angleRef.current % 360) + 360) % 360;
+    let delta = targetMod - current;
+    if (delta < 0) delta += 360;
+    angleRef.current += delta + 360 * 3;
+    apply(angleRef.current, `transform ${SETTLE_MS}ms cubic-bezier(0.18, 0.72, 0.1, 1)`);
 
-    setTimeout(() => {
-      setLastResult({ ...result, landed });
-      setFlipping(false);
-      if (result.won) {
-        vibrate(HAPTIC.SUCCESS);
-        toast.success(`${landed === 'pile' ? 'Pile' : 'Face'} ! Gain: +${result.payout} ₶`);
-      } else {
-        vibrate(HAPTIC.ERROR);
-        toast.error(`${landed === 'pile' ? 'Pile' : 'Face'}. Perdu.`);
-      }
-    }, SETTLE_DURATION_MS);
+    await new Promise((res) => setTimeout(res, SETTLE_MS));
+    setResult({ ...r, landed });
+    setFlipping(false);
+
+    if (r.won) {
+      vibrate(HAPTIC.SUCCESS); sfx.win(); setConfetti((c) => c + 1);
+      toast.success(`${landed === 'pile' ? 'Pile' : 'Face'} — +${r.payout} ₶`);
+    } else {
+      vibrate(HAPTIC.ERROR); sfx.lose();
+      toast.error(`${landed === 'pile' ? 'Pile' : 'Face'} — perdu`);
+    }
   };
 
-  const coinHistory = history.filter((h) => h.game_slug === 'coinflip').slice(0, 12);
+  const gameHistory = history.filter((h) => h.game_slug === 'coinflip').slice(0, 10);
 
-  return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push('/casino')}
-              className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Frenly Coinflip</h1>
+  const stage = (
+    <div className="w-full flex flex-col items-center gap-6">
+      {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
+
+      <div style={{ perspective: 900 }}>
+        <div ref={coinRef} className="relative w-40 h-40" style={{ transformStyle: 'preserve-3d', transform: 'rotateX(-12deg) rotateY(0deg)' }}>
+          {/* Pile */}
+          <div
+            className="absolute inset-0 rounded-full border-8 flex flex-col items-center justify-center font-display font-black"
+            style={{
+              backfaceVisibility: 'hidden',
+              background: 'radial-gradient(circle at 35% 30%, #FFE680, #FFD000 45%, #C79A00 100%)',
+              borderColor: '#8A6B00', color: '#4A3800',
+            }}
+          >
+            <span className="text-3xl">₶</span>
+            <span className="text-xs tracking-widest">PILE</span>
           </div>
-
-          <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-5 w-5 text-accent-primary" />
-            <span className="font-display font-black text-lg tabular-nums">{isLoaded ? balance.toLocaleString('fr-FR') : '...'}</span>
-            <span className="text-tx-secondary font-bold">₶</span>
-            {isLocal && <span className="ml-1 text-[9px] font-black uppercase bg-brand-card border border-brand-border px-1.5 py-0.5 rounded text-tx-muted">Local</span>}
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* COIN */}
-          <div className="flex flex-col items-center justify-center bg-brand-card border-4 border-brand-border rounded-[32px] p-6">
-            <div className="relative w-48 h-48" style={{ perspective: '800px' }}>
-              <div
-                ref={coinRef}
-                className="relative w-full h-full"
-                style={{ transformStyle: 'preserve-3d' }}
-              >
-                <div
-                  className="absolute inset-0 rounded-full border-4 border-brand-border bg-accent-primary flex items-center justify-center font-display font-black text-3xl text-brand-bg"
-                  style={{ backfaceVisibility: 'hidden' }}
-                >
-                  PILE
-                </div>
-                <div
-                  className="absolute inset-0 rounded-full border-4 border-brand-border bg-tx-base flex items-center justify-center font-display font-black text-3xl text-brand-bg"
-                  style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-                >
-                  FACE
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 h-10 flex items-center">
-              {lastResult && !flipping && (
-                <div className={cn('px-4 py-2 rounded-xl border-2 font-bold text-sm animate-in fade-in duration-200', lastResult.won ? 'border-accent-success text-accent-success bg-accent-success/10' : 'border-accent-secondary text-accent-secondary bg-accent-secondary/10')}>
-                  {lastResult.won ? `Gagné +${lastResult.payout} ₶` : 'Perdu'}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* BETTING */}
-          <div className="flex flex-col gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Ton choix</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => { setChoice('pile'); vibrate(HAPTIC.SOFT); }}
-                  className={cn('h-14 rounded-lg font-display font-black border-2 transition-all focus:outline-none', choice === 'pile' ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-brand-inner text-tx-secondary border-brand-border')}
-                >
-                  PILE
-                </button>
-                <button
-                  onClick={() => { setChoice('face'); vibrate(HAPTIC.SOFT); }}
-                  className={cn('h-14 rounded-lg font-display font-black border-2 transition-all focus:outline-none', choice === 'face' ? 'bg-tx-base text-brand-bg border-tx-base' : 'bg-brand-inner text-tx-secondary border-brand-border')}
-                >
-                  FACE
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">
-                Mise (max {maxBet} ₶)
-              </label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setAmount((a) => clampAmount(a - 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(clampAmount(Number(e.target.value) || 0))}
-                  className="flex-1 h-11 bg-brand-inner border-2 border-brand-border rounded-lg px-3 text-center font-display font-black"
-                />
-                <button onClick={() => setAmount((a) => clampAmount(a + 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button onClick={() => setAmount(maxBet)} className="h-11 px-3 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-xs font-bold hover:border-tx-base">
-                  MAX
-                </button>
-              </div>
-            </div>
-
-            <button
-              onClick={handleFlip}
-              disabled={flipping || !isLoaded || amount < CASINO_MIN_BET}
-              className={cn(
-                'h-16 rounded-2xl font-display text-xl font-black tracking-wider border-4 border-brand-border transition-colors shadow-brutal',
-                flipping ? 'bg-brand-inner text-tx-muted cursor-not-allowed' : 'bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary'
-              )}
-            >
-              {flipping ? 'ÇA TOURNE...' : `MISER ${amount} ₶ (x${COINFLIP_PAYOUT})`}
-            </button>
-
-            {coinHistory.length > 0 && (
-              <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Derniers flips</span>
-                <div className="flex flex-wrap gap-2">
-                  {coinHistory.map((h) => (
-                    <span
-                      key={h.id}
-                      className={cn(
-                        'text-xs font-bold px-2 py-1 rounded-md border-2',
-                        h.amount >= 0 ? 'border-accent-success text-accent-success' : 'border-accent-secondary text-accent-secondary'
-                      )}
-                    >
-                      {h.amount >= 0 ? '+' : ''}{h.amount}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+          {/* Face */}
+          <div
+            className="absolute inset-0 rounded-full border-8 flex flex-col items-center justify-center font-display font-black"
+            style={{
+              backfaceVisibility: 'hidden', transform: 'rotateY(180deg)',
+              background: 'radial-gradient(circle at 35% 30%, #F5F7FA, #C9CFD8 45%, #8C939E 100%)',
+              borderColor: '#5A616B', color: '#2A2F38',
+            }}
+          >
+            <span className="text-3xl">★</span>
+            <span className="text-xs tracking-widest">FACE</span>
           </div>
         </div>
       </div>
-    </main>
+
+      <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
+        {result?.won ? `${result.landed === 'pile' ? 'Pile' : 'Face'} — +${result.payout} ₶` : `${result?.landed === 'pile' ? 'Pile' : 'Face'} — perdu`}
+      </ResultBanner>
+    </div>
+  );
+
+  const panel = (
+    <>
+      <div>
+        <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Ton choix</div>
+        <div className="grid grid-cols-2 gap-2">
+          {(['pile', 'face'] as const).map((c) => (
+            <button
+              key={c}
+              onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setChoice(c); }}
+              disabled={flipping}
+              className={cn(
+                'h-20 rounded-xl border-4 font-display font-black flex flex-col items-center justify-center gap-1 transition-all focus:outline-none disabled:opacity-50',
+                choice === c ? 'border-accent-primary scale-[1.03]' : 'border-brand-border'
+              )}
+              style={
+                c === 'pile'
+                  ? { background: 'radial-gradient(circle at 40% 30%, #FFE680, #FFD000 60%)', color: '#4A3800' }
+                  : { background: 'radial-gradient(circle at 40% 30%, #F5F7FA, #C0C6D0 60%)', color: '#2A2F38' }
+              }
+            >
+              <span className="text-2xl">{c === 'pile' ? '₶' : '★'}</span>
+              {c === 'pile' ? 'PILE' : 'FACE'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={flipping} />
+
+      <PlayButton onClick={handleFlip} loading={flipping} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+        {flipping ? 'ÇA TOURNE...' : `LANCER · ${amount} ₶ (×${COINFLIP_PAYOUT})`}
+      </PlayButton>
+
+      <HistoryStrip history={gameHistory} />
+    </>
+  );
+
+  return (
+    <GameShell title="Frenly Coinflip" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
   );
 }

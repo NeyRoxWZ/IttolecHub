@@ -1,166 +1,171 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus, Flag } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { runRace, resolveChevaux, HORSES, CASINO_MIN_BET } from '@/lib/casino/chevaux';
+import {
+  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+} from '../_components/CasinoUI';
+import Confetti from '../_components/Confetti';
 
-const RACE_MS = 1600;
+const RULES: RulesSpec = {
+  howTo: [
+    'Choisis un cheval et place ta mise avant le départ.',
+    'Chaque cheval a une cote : plus il est favori, moins il rapporte.',
+    'Si ton cheval finit premier, tu récupères ta mise multipliée par sa cote.',
+    'Les cotes sont calculées pour que chaque cheval ait exactement la même espérance de gain — aucun n’est un meilleur pari qu’un autre.',
+  ],
+  payouts: HORSES.map((h) => ({ label: `${h.name} (${Math.round(h.probability * 100)}%)`, value: `×${h.payout}` })),
+  rtp: '~94%',
+};
 
-type ChevauxResult = GenericBetResult & { winnerId: number; betHorseId: number };
+const RACE_MS = 3200;
+type Phase = 'idle' | 'racing' | 'done';
 
 export default function ChevauxPage() {
-  const router = useRouter();
-  const { balance, isLoaded, isLocal, maxBet, placeBet, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, placeBet, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
-  const [selectedHorse, setSelectedHorse] = useState<number | null>(null);
-  const [racing, setRacing] = useState(false);
-  const [lastResult, setLastResult] = useState<ChevauxResult | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [progress, setProgress] = useState<number[]>(HORSES.map(() => 0));
+  const [result, setResult] = useState<(GenericBetResult & { winnerId: number }) | null>(null);
+  const [confetti, setConfetti] = useState(0);
+  const rafRef = useRef<number | null>(null);
 
-  const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
+  useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
+
+  /** Animate a race whose winner is already decided; the others jostle behind. */
+  const animateRace = (winnerId: number) => new Promise<void>((resolve) => {
+    const start = performance.now();
+    // Give each horse a wobbly pace, then force the winner across first.
+    const paces = HORSES.map((h) => (h.id === winnerId ? 1 : 0.72 + Math.random() * 0.2));
+    const wobble = HORSES.map(() => Math.random() * Math.PI * 2);
+
+    const loop = (now: number) => {
+      const t = Math.min(1, (now - start) / RACE_MS);
+      setProgress(HORSES.map((h, i) => {
+        const jitter = Math.sin(t * 9 + wobble[i]) * 0.03;
+        return Math.max(0, Math.min(1, t * paces[i] + jitter * (1 - t)));
+      }));
+      if (t < 1) rafRef.current = requestAnimationFrame(loop);
+      else { setProgress(HORSES.map((h) => (h.id === winnerId ? 1 : 0.8 + Math.random() * 0.12))); resolve(); }
+    };
+    rafRef.current = requestAnimationFrame(loop);
+  });
 
   const handleRace = async () => {
-    if (racing || selectedHorse === null) return;
+    if (phase === 'racing' || selected === null) return;
     if (amount > balance) { toast.error('Solde insuffisant.'); return; }
-    if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
 
-    setRacing(true);
-    setLastResult(null);
-    vibrate(HAPTIC.MEDIUM);
+    setPhase('racing'); setResult(null); setProgress(HORSES.map(() => 0));
+    vibrate(HAPTIC.MEDIUM); sfx.bet();
 
-    const [result] = await Promise.all([
-      placeBet('chevaux', amount, { horseId: selectedHorse }, () => {
-        const winnerId = runRace();
-        const r = resolveChevaux(winnerId, selectedHorse);
-        return { ...r, meta: { winnerId, betHorseId: selectedHorse } };
-      }),
-      new Promise((r) => setTimeout(r, RACE_MS)),
-    ]);
+    const r = await placeBet('chevaux', amount, { horseId: selected }, () => {
+      const winnerId = runRace();
+      return { ...resolveChevaux(winnerId, selected), meta: { winnerId, betHorseId: selected } };
+    });
 
-    setRacing(false);
+    if ('error' in r) { setPhase('idle'); toast.error(r.error); return; }
 
-    if ('error' in result) {
-      toast.error(result.error);
-      return;
-    }
+    await animateRace(r.meta.winnerId);
 
-    const full: ChevauxResult = { ...result, winnerId: result.meta.winnerId, betHorseId: result.meta.betHorseId };
-    setLastResult(full);
-    const winnerName = HORSES.find((h) => h.id === full.winnerId)?.name;
+    setResult({ ...r, winnerId: r.meta.winnerId });
+    setPhase('done');
+    const winnerName = HORSES.find((h) => h.id === r.meta.winnerId)?.name;
 
-    if (full.won) {
-      vibrate(HAPTIC.SUCCESS);
-      toast.success(`${winnerName} gagne ! +${full.payout} ₶`);
+    if (r.won) {
+      vibrate(HAPTIC.SUCCESS); sfx.bigWin(); setConfetti((c) => c + 1);
+      toast.success(`${winnerName} gagne — +${r.payout} ₶`);
     } else {
-      vibrate(HAPTIC.ERROR);
-      toast.error(`${winnerName} gagne. Perdu.`);
+      vibrate(HAPTIC.ERROR); sfx.lose();
+      toast.error(`${winnerName} gagne — perdu`);
     }
   };
 
-  const gameHistory = history.filter((h) => h.game_slug === 'chevaux').slice(0, 12);
+  const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setProgress(HORSES.map(() => 0)); };
 
-  return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/casino')} className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Frenly Chevaux</h1>
-          </div>
-          <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-5 w-5 text-accent-primary" />
-            <span className="font-display font-black text-lg tabular-nums">{isLoaded ? balance.toLocaleString('fr-FR') : '...'}</span>
-            <span className="text-tx-secondary font-bold">₶</span>
-            {isLocal && <span className="ml-1 text-[9px] font-black uppercase bg-brand-card border border-brand-border px-1.5 py-0.5 rounded text-tx-muted">Local</span>}
-          </div>
-        </header>
+  const gameHistory = history.filter((h) => h.game_slug === 'chevaux').slice(0, 10);
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="flex flex-col items-center justify-center bg-brand-card border-4 border-brand-border rounded-[32px] p-6">
-            <div className="w-full space-y-2">
-              {HORSES.map((h) => {
-                const isWinner = lastResult?.winnerId === h.id;
-                const revealed = !!lastResult && !racing;
-                return (
-                  <div key={h.id} className={cn('flex items-center gap-3 p-2 rounded-lg border-2', revealed && isWinner ? 'border-accent-success bg-accent-success/10' : 'border-brand-border bg-brand-inner')}>
-                    <Flag className={cn('w-4 h-4 shrink-0', revealed && isWinner ? 'text-accent-success' : 'text-tx-muted', racing && 'animate-pulse')} />
-                    <span className="text-xs font-bold flex-1 truncate">{h.name}</span>
-                    <span className="text-[10px] text-tx-secondary font-bold">x{h.payout}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-6 h-10 flex items-center">
-              {lastResult && !racing && (
-                <div className={cn('px-4 py-2 rounded-xl border-2 font-bold text-sm animate-in fade-in duration-200', lastResult.won ? 'border-accent-success text-accent-success bg-accent-success/10' : 'border-accent-secondary text-accent-secondary bg-accent-secondary/10')}>
-                  {lastResult.won ? `Gagné +${lastResult.payout} ₶` : 'Perdu'}
-                </div>
-              )}
-            </div>
-          </div>
+  const stage = (
+    <div className="w-full flex flex-col items-center gap-4">
+      {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
 
-          <div className="flex flex-col gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Mise (max {maxBet} ₶)</label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setAmount((a) => clampAmount(a - 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input type="number" value={amount} onChange={(e) => setAmount(clampAmount(Number(e.target.value) || 0))} className="flex-1 h-11 bg-brand-inner border-2 border-brand-border rounded-lg px-3 text-center font-display font-black" />
-                <button onClick={() => setAmount((a) => clampAmount(a + 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button onClick={() => setAmount(maxBet)} className="h-11 px-3 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-xs font-bold hover:border-tx-base">MAX</button>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Choisis ton cheval</label>
-              <div className="grid grid-cols-1 gap-2">
-                {HORSES.map((h) => (
-                  <button
-                    key={h.id}
-                    onClick={() => { setSelectedHorse(h.id); vibrate(HAPTIC.SOFT); }}
-                    disabled={racing}
-                    className={cn('h-12 rounded-lg border-2 flex items-center justify-between px-4 font-bold text-sm transition-colors focus:outline-none', selectedHorse === h.id ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-brand-inner text-tx-secondary border-brand-border hover:border-tx-base/50')}
+      <div
+        className="w-full rounded-2xl border-4 border-brand-border p-3 space-y-1.5"
+        style={{ background: 'linear-gradient(180deg, #2F6B3A 0%, #23512C 100%)' }}
+      >
+        {HORSES.map((h, i) => {
+          const isPick = selected === h.id;
+          const isWinner = result?.winnerId === h.id;
+          return (
+            <div key={h.id} className={cn('relative rounded-lg overflow-hidden border-2', isWinner ? 'border-accent-primary' : isPick ? 'border-white/50' : 'border-white/10')}
+              style={{ background: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 22px, transparent 22px 44px)' }}>
+              <div className="flex items-center h-11 px-2 gap-2">
+                <span className={cn('text-[10px] font-black w-[92px] shrink-0 truncate', isPick ? 'text-white' : 'text-white/60')}>{h.name}</span>
+                <div className="relative flex-1 h-full">
+                  <span
+                    className="absolute top-1/2 -translate-y-1/2 text-xl"
+                    style={{ left: `calc(${progress[i] * 100}% - 12px)`, transition: phase === 'racing' ? 'none' : 'left 300ms ease-out' }}
                   >
-                    <span>{h.name}</span>
-                    <span>x{h.payout}</span>
-                  </button>
-                ))}
+                    🐎
+                  </span>
+                </div>
+                <span className={cn('text-[10px] font-black shrink-0', isWinner ? 'text-accent-primary' : 'text-white/50')}>×{h.payout}</span>
+                <span className="text-sm shrink-0">🏁</span>
               </div>
             </div>
+          );
+        })}
+      </div>
 
+      <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
+        {result?.won ? `+${result.payout} ₶` : `${HORSES.find((h) => h.id === result?.winnerId)?.name} l'emporte`}
+      </ResultBanner>
+    </div>
+  );
+
+  const panel = (
+    <>
+      <div>
+        <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Ton cheval</div>
+        <div className="space-y-1.5">
+          {HORSES.map((h) => (
             <button
-              onClick={handleRace}
-              disabled={racing || !isLoaded || amount < CASINO_MIN_BET || selectedHorse === null}
-              className={cn('h-16 rounded-2xl font-display text-xl font-black tracking-wider border-4 border-brand-border transition-colors shadow-brutal', racing || selectedHorse === null ? 'bg-brand-inner text-tx-muted cursor-not-allowed' : 'bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary')}
+              key={h.id}
+              onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setSelected(h.id); }}
+              disabled={phase === 'racing'}
+              className={cn(
+                'w-full h-11 rounded-xl border-2 flex items-center justify-between px-3 text-sm font-bold transition-all focus:outline-none disabled:opacity-50',
+                selected === h.id ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-brand-inner border-brand-border text-tx-secondary hover:border-tx-base/60'
+              )}
             >
-              {racing ? 'COURSE...' : `MISER ${amount} ₶`}
+              <span className="truncate">{h.name}</span>
+              <span className="shrink-0 ml-2">×{h.payout}</span>
             </button>
-
-            {gameHistory.length > 0 && (
-              <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Dernières courses</span>
-                <div className="flex flex-wrap gap-2">
-                  {gameHistory.map((h) => (
-                    <span key={h.id} className={cn('text-xs font-bold px-2 py-1 rounded-md border-2', h.amount >= 0 ? 'border-accent-success text-accent-success' : 'border-accent-secondary text-accent-secondary')}>
-                      {h.amount >= 0 ? '+' : ''}{h.amount}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          ))}
         </div>
       </div>
-    </main>
+
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'racing'} />
+
+      <PlayButton
+        onClick={phase === 'done' ? handleReset : handleRace}
+        loading={phase === 'racing'}
+        disabled={!isLoaded || amount < CASINO_MIN_BET || (phase !== 'done' && selected === null)}
+      >
+        {phase === 'done' ? 'REJOUER' : selected === null ? 'CHOISIS UN CHEVAL' : `PARIER · ${amount} ₶`}
+      </PlayButton>
+
+      <HistoryStrip history={gameHistory} />
+    </>
+  );
+
+  return (
+    <GameShell title="Frenly Chevaux" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
   );
 }

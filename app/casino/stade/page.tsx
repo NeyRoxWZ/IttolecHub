@@ -1,183 +1,164 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus, LayoutGrid } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { drawStadeOutcome, resolveStade, STADE_PAYOUTS, CASINO_MIN_BET, type StadeBet, type StadeOutcome } from '@/lib/casino/stade';
+import {
+  GameShell, BetControls, PlayButton, PlayingCard, ResultBanner, HistoryStrip, type RulesSpec,
+} from '../_components/CasinoUI';
+import Confetti from '../_components/Confetti';
 
-const REVEAL_SUSPENSE_MS = 1000;
+const RULES: RulesSpec = {
+  howTo: [
+    'Deux cartes sont tirées : une pour Domicile, une pour Extérieur.',
+    'Parie sur l’équipe qui tirera la carte la plus haute, ou sur le match nul.',
+    'Domicile et Extérieur ont exactement les mêmes chances (48% chacun).',
+    'Le match nul est rare (4%) mais paie très gros.',
+  ],
+  payouts: [
+    { label: 'Domicile', value: `×${STADE_PAYOUTS.home}` },
+    { label: 'Extérieur', value: `×${STADE_PAYOUTS.away}` },
+    { label: 'Match nul', value: `×${STADE_PAYOUTS.draw}` },
+  ],
+  rtp: '~96%',
+};
 
-const BETS: { value: StadeBet; label: string }[] = [
-  { value: 'home', label: 'Domicile' },
-  { value: 'away', label: 'Extérieur' },
-  { value: 'draw', label: 'Match nul' },
+const BETS: { value: StadeBet; label: string; emoji: string }[] = [
+  { value: 'home', label: 'Domicile', emoji: '🏠' },
+  { value: 'draw', label: 'Match nul', emoji: '🤝' },
+  { value: 'away', label: 'Extérieur', emoji: '✈️' },
 ];
-
-const OUTCOME_LABEL: Record<StadeOutcome, string> = { home: 'Domicile', away: 'Extérieur', draw: 'Match nul' };
-
-type StadeResult = GenericBetResult & { outcome: StadeOutcome; bet: StadeBet };
+const LABEL: Record<StadeOutcome, string> = { home: 'Domicile', away: 'Extérieur', draw: 'Match nul' };
 
 export default function StadePage() {
-  const router = useRouter();
-  const { balance, isLoaded, isLocal, maxBet, placeBet, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, placeBet, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
+  const [bet, setBet] = useState<StadeBet>('home');
   const [playing, setPlaying] = useState(false);
-  const [lastResult, setLastResult] = useState<StadeResult | null>(null);
+  const [cards, setCards] = useState<{ home?: number; away?: number }>({});
+  const [result, setResult] = useState<(GenericBetResult & { outcome: StadeOutcome }) | null>(null);
+  const [confetti, setConfetti] = useState(0);
 
-  const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
-
-  const handlePlay = async (bet: StadeBet) => {
+  const handlePlay = async () => {
     if (playing) return;
     if (amount > balance) { toast.error('Solde insuffisant.'); return; }
-    if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
 
-    setPlaying(true);
-    setLastResult(null);
-    vibrate(HAPTIC.MEDIUM);
+    setPlaying(true); setResult(null); setCards({});
+    vibrate(HAPTIC.MEDIUM); sfx.bet();
 
-    const [result] = await Promise.all([
-      placeBet('stade', amount, { bet }, () => {
-        const outcome = drawStadeOutcome();
-        const r = resolveStade(outcome, bet);
-        return { ...r, meta: { outcome, bet } };
-      }),
-      new Promise((r) => setTimeout(r, REVEAL_SUSPENSE_MS)),
-    ]);
+    const r = await placeBet('stade', amount, { bet }, () => {
+      const outcome = drawStadeOutcome();
+      return { ...resolveStade(outcome, bet), meta: { outcome, bet } };
+    });
 
-    setPlaying(false);
+    if ('error' in r) { setPlaying(false); toast.error(r.error); return; }
 
-    if ('error' in result) {
-      toast.error(result.error);
-      return;
+    // Pick two card values consistent with the outcome the server chose.
+    const outcome: StadeOutcome = r.meta.outcome;
+    let home: number, away: number;
+    if (outcome === 'draw') { home = 1 + Math.floor(Math.random() * 13); away = home; }
+    else {
+      const hi = 2 + Math.floor(Math.random() * 12);
+      const lo = 1 + Math.floor(Math.random() * (hi - 1));
+      [home, away] = outcome === 'home' ? [hi, lo] : [lo, hi];
     }
 
-    const full: StadeResult = { ...result, outcome: result.meta.outcome, bet: result.meta.bet };
-    setLastResult(full);
+    await new Promise((res) => setTimeout(res, 380));
+    setCards({ home }); sfx.card();
+    await new Promise((res) => setTimeout(res, 520));
+    setCards({ home, away }); sfx.reveal();
+    await new Promise((res) => setTimeout(res, 420));
 
-    if (full.won) {
+    setPlaying(false);
+    setResult({ ...r, outcome });
+
+    if (r.won) {
       vibrate(HAPTIC.SUCCESS);
-      toast.success(`${OUTCOME_LABEL[full.outcome]} ! Gain: +${full.payout} ₶`);
+      if (outcome === 'draw') { sfx.jackpot(); setConfetti((c) => c + 1); }
+      else { sfx.win(); setConfetti((c) => c + 1); }
+      toast.success(`${LABEL[outcome]} — +${r.payout} ₶`);
     } else {
-      vibrate(HAPTIC.ERROR);
-      toast.error(`${OUTCOME_LABEL[full.outcome]}. Perdu.`);
+      vibrate(HAPTIC.ERROR); sfx.lose();
+      toast.error(`${LABEL[outcome]} — perdu`);
     }
   };
 
-  const gameHistory = history.filter((h) => h.game_slug === 'stade').slice(0, 12);
+  const gameHistory = history.filter((h) => h.game_slug === 'stade').slice(0, 10);
 
-  return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
+  const stage = (
+    <div className="w-full flex flex-col items-center gap-5">
+      {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
+
+      <div
+        className="w-full rounded-2xl border-4 border-brand-border p-6"
+        style={{ background: 'radial-gradient(ellipse at 50% 30%, #1B5E3F 0%, #0E3524 70%, #0A2419 100%)' }}
+      >
+        <div className="flex items-center justify-around">
+          {(['home', 'away'] as const).map((side) => {
+            const value = cards[side];
+            const isWinnerSide = result && result.outcome === side;
+            return (
+              <div key={side} className="flex flex-col items-center gap-2">
+                <span className={cn('text-[10px] font-black uppercase tracking-widest', isWinnerSide ? 'text-accent-primary' : 'text-white/60')}>
+                  {side === 'home' ? '🏠 Domicile' : '✈️ Extérieur'}
+                </span>
+                {value !== undefined
+                  ? <PlayingCard rank={value} index={side === 'home' ? 0 : 2} size="lg" highlight={!!isWinnerSide} />
+                  : <PlayingCard hidden size="lg" />}
+              </div>
+            );
+          })}
+        </div>
+
+        {result?.outcome === 'draw' && (
+          <div className="text-center mt-4 font-display font-black text-accent-primary tracking-widest">MATCH NUL</div>
+        )}
+      </div>
+
+      <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
+        {result?.won ? `${LABEL[result.outcome]} — +${result.payout} ₶` : result ? `${LABEL[result.outcome]} — perdu` : ''}
+      </ResultBanner>
+    </div>
+  );
+
+  const panel = (
+    <>
+      <div>
+        <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Ton pari</div>
+        <div className="space-y-2">
+          {BETS.map((b) => (
             <button
-              onClick={() => router.push('/casino')}
-              className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors"
+              key={b.value}
+              onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setBet(b.value); }}
+              disabled={playing}
+              className={cn(
+                'w-full h-14 rounded-xl border-2 flex items-center justify-between px-4 font-bold transition-all focus:outline-none disabled:opacity-50',
+                bet === b.value ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-brand-inner border-brand-border text-tx-secondary hover:border-tx-base/60'
+              )}
             >
-              <ArrowLeft className="h-5 w-5" />
+              <span className="flex items-center gap-2"><span className="text-lg">{b.emoji}</span>{b.label}</span>
+              <span>×{STADE_PAYOUTS[b.value]}</span>
             </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Frenly Stade</h1>
-          </div>
-
-          <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-5 w-5 text-accent-primary" />
-            <span className="font-display font-black text-lg tabular-nums">{isLoaded ? balance.toLocaleString('fr-FR') : '...'}</span>
-            <span className="text-tx-secondary font-bold">₶</span>
-            {isLocal && <span className="ml-1 text-[9px] font-black uppercase bg-brand-card border border-brand-border px-1.5 py-0.5 rounded text-tx-muted">Local</span>}
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* SCOREBOARD */}
-          <div className="flex flex-col items-center justify-center bg-brand-card border-4 border-brand-border rounded-[32px] p-6">
-            <div className={cn('w-full max-w-xs h-28 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center', playing && 'animate-pulse')}>
-              {lastResult ? (
-                <span className="font-display font-black text-2xl text-accent-primary">{OUTCOME_LABEL[lastResult.outcome]}</span>
-              ) : (
-                <LayoutGrid className="w-10 h-10 text-tx-muted opacity-40" />
-              )}
-            </div>
-
-            <div className="mt-6 h-10 flex items-center">
-              {lastResult && !playing && (
-                <div className={cn('px-4 py-2 rounded-xl border-2 font-bold text-sm animate-in fade-in duration-200', lastResult.won ? 'border-accent-success text-accent-success bg-accent-success/10' : 'border-accent-secondary text-accent-secondary bg-accent-secondary/10')}>
-                  {lastResult.won ? `Gagné +${lastResult.payout} ₶` : 'Perdu'}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* BETTING */}
-          <div className="flex flex-col gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">
-                Mise (max {maxBet} ₶)
-              </label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setAmount((a) => clampAmount(a - 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(clampAmount(Number(e.target.value) || 0))}
-                  className="flex-1 h-11 bg-brand-inner border-2 border-brand-border rounded-lg px-3 text-center font-display font-black"
-                />
-                <button onClick={() => setAmount((a) => clampAmount(a + 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button onClick={() => setAmount(maxBet)} className="h-11 px-3 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-xs font-bold hover:border-tx-base">
-                  MAX
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Ton pari</label>
-              <div className="grid grid-cols-1 gap-2">
-                {BETS.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => handlePlay(value)}
-                    disabled={playing || !isLoaded || amount < CASINO_MIN_BET}
-                    className={cn(
-                      'h-14 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-between px-5 font-bold transition-colors focus:outline-none',
-                      playing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                    )}
-                  >
-                    <span>{label}</span>
-                    <span className="text-sm text-tx-secondary">x{STADE_PAYOUTS[value]}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {gameHistory.length > 0 && (
-              <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Dernières parties</span>
-                <div className="flex flex-wrap gap-2">
-                  {gameHistory.map((h) => (
-                    <span
-                      key={h.id}
-                      className={cn(
-                        'text-xs font-bold px-2 py-1 rounded-md border-2',
-                        h.amount >= 0 ? 'border-accent-success text-accent-success' : 'border-accent-secondary text-accent-secondary'
-                      )}
-                    >
-                      {h.amount >= 0 ? '+' : ''}{h.amount}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          ))}
         </div>
       </div>
-    </main>
+
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
+
+      <PlayButton onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+        {playing ? 'TIRAGE...' : `PARIER · ${amount} ₶`}
+      </PlayButton>
+
+      <HistoryStrip history={gameHistory} />
+    </>
+  );
+
+  return (
+    <GameShell title="Frenly Stade" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
   );
 }

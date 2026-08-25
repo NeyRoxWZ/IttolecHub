@@ -1,179 +1,191 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
-import { hideBall, resolveBonneteau, BONNETEAU_PAYOUT, BONNETEAU_CUPS, CASINO_MIN_BET } from '@/lib/casino/bonneteau';
+import { hideBall, resolveBonneteau, BONNETEAU_CUPS, BONNETEAU_PAYOUT, CASINO_MIN_BET } from '@/lib/casino/bonneteau';
+import {
+  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+} from '../_components/CasinoUI';
+import Confetti from '../_components/Confetti';
 
-const SHUFFLE_MS = 1100;
+const RULES: RulesSpec = {
+  howTo: [
+    'Place ta mise et lance la partie : les gobelets se mélangent.',
+    'Une fois le mélange terminé, choisis le gobelet sous lequel tu penses que la bille se trouve.',
+    `Tu as 1 chance sur ${BONNETEAU_CUPS} de tomber juste.`,
+    'Le mélange est purement visuel : la position de la bille est tirée au sort à la mise, pas influencée par ton choix.',
+  ],
+  payouts: [
+    { label: 'Bon gobelet', value: `×${BONNETEAU_PAYOUT}` },
+    { label: 'Mauvais gobelet', value: 'Mise perdue' },
+  ],
+  rtp: '~93%',
+};
 
-type BonneteauResult = GenericBetResult & { ballCup: number; chosenCup: number };
+const SLOT_W = 96;
+type Phase = 'idle' | 'shuffling' | 'choosing' | 'revealed';
 
 export default function BonneteauPage() {
-  const router = useRouter();
-  const { balance, isLoaded, isLocal, maxBet, placeBet, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, placeBet, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
-  const [shuffling, setShuffling] = useState(false);
-  const [lastResult, setLastResult] = useState<BonneteauResult | null>(null);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [positions, setPositions] = useState<number[]>([0, 1, 2]); // cup id -> slot
+  const [result, setResult] = useState<(GenericBetResult & { ballCup: number; chosenCup: number }) | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [confetti, setConfetti] = useState(0);
+  const [pending, setPending] = useState<GenericBetResult | null>(null);
 
-  const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
-
-  const handlePick = async (cup: number) => {
-    if (shuffling) return;
-    if (amount > balance) { toast.error('Solde insuffisant.'); return; }
-    if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
-
-    setShuffling(true);
-    setLastResult(null);
-    vibrate(HAPTIC.MEDIUM);
-
-    const [result] = await Promise.all([
-      placeBet('bonneteau', amount, { cup }, () => {
-        const ballCup = hideBall();
-        const r = resolveBonneteau(ballCup, cup);
-        return { ...r, meta: { ballCup, chosenCup: cup } };
-      }),
-      new Promise((r) => setTimeout(r, SHUFFLE_MS)), // shuffle animation plays during this, not a dead wait
-    ]);
-
-    setShuffling(false);
-
-    if ('error' in result) {
-      toast.error(result.error);
-      return;
-    }
-
-    const full: BonneteauResult = { ...result, ballCup: result.meta.ballCup, chosenCup: result.meta.chosenCup };
-    setLastResult(full);
-
-    if (full.won) {
-      vibrate(HAPTIC.SUCCESS);
-      toast.success(`Bonne pioche ! Gain: +${full.payout} ₶`);
-    } else {
-      vibrate(HAPTIC.ERROR);
-      toast.error(`La bille était sous le gobelet ${full.ballCup + 1}. Perdu.`);
+  const shuffle = async () => {
+    const pos = [...positions];
+    for (let i = 0; i < 7; i++) {
+      const a = Math.floor(Math.random() * BONNETEAU_CUPS);
+      let b = Math.floor(Math.random() * BONNETEAU_CUPS);
+      while (b === a) b = Math.floor(Math.random() * BONNETEAU_CUPS);
+      [pos[a], pos[b]] = [pos[b], pos[a]];
+      setPositions([...pos]);
+      sfx.tick();
+      await new Promise((r) => setTimeout(r, 280));
     }
   };
 
-  const cupsHistory = history.filter((h) => h.game_slug === 'bonneteau').slice(0, 12);
+  const handleStart = async () => {
+    if (busy) return;
+    if (amount > balance) { toast.error('Solde insuffisant.'); return; }
 
-  return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
+    setBusy(true); setResult(null); setPhase('shuffling');
+    vibrate(HAPTIC.MEDIUM); sfx.bet();
+
+    // Resolve first (server decides), then shuffle purely for show.
+    const r = await placeBet('bonneteau', amount, { cup: 0 }, () => {
+      const ballCup = hideBall();
+      return { ...resolveBonneteau(ballCup, 0), meta: { ballCup, chosenCup: 0 } };
+    });
+
+    if ('error' in r) { setBusy(false); setPhase('idle'); toast.error(r.error); return; }
+
+    await shuffle();
+    setPending(r);
+    setBusy(false);
+    setPhase('choosing');
+  };
+
+  /**
+   * The server already rolled the ball's cup for a nominal pick of 0. We keep
+   * that exact outcome and just relabel which cup the player pointed at, so
+   * the odds stay 1-in-3 and the payout already settled stays correct.
+   */
+  const handlePick = (slot: number) => {
+    if (phase !== 'choosing' || !pending) return;
+    sfx.reveal(); vibrate(HAPTIC.MEDIUM);
+
+    const won = pending.won;
+    const ballCup = won ? slot : (slot + 1 + Math.floor(Math.random() * (BONNETEAU_CUPS - 1))) % BONNETEAU_CUPS;
+
+    setResult({ ...pending, ballCup, chosenCup: slot });
+    setPhase('revealed');
+    setPending(null);
+
+    if (won) {
+      vibrate(HAPTIC.SUCCESS); sfx.win(); setConfetti((c) => c + 1);
+      toast.success(`Bonne pioche — +${pending.payout} ₶`);
+    } else {
+      vibrate(HAPTIC.ERROR); sfx.lose();
+      toast.error(`La bille était sous le gobelet ${ballCup + 1}.`);
+    }
+  };
+
+  const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setPending(null); setPositions([0, 1, 2]); };
+
+  const gameHistory = history.filter((h) => h.game_slug === 'bonneteau').slice(0, 10);
+
+  const stage = (
+    <div className="w-full flex flex-col items-center gap-5">
+      {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
+
+      <div
+        className="relative rounded-2xl border-4 border-brand-border px-4 pt-10 pb-6"
+        style={{ width: SLOT_W * BONNETEAU_CUPS + 32, background: 'linear-gradient(180deg, #3B2416 0%, #24160E 100%)' }}
+      >
+        {Array.from({ length: BONNETEAU_CUPS }, (_, cupId) => {
+          const slot = positions[cupId];
+          const revealed = phase === 'revealed' && result;
+          const hasBall = revealed && result.ballCup === slot;
+          const isChosen = revealed && result.chosenCup === slot;
+
+          return (
             <button
-              onClick={() => router.push('/casino')}
-              className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors"
+              key={cupId}
+              onClick={() => handlePick(slot)}
+              disabled={phase !== 'choosing'}
+              className="absolute focus:outline-none"
+              style={{
+                left: 16 + slot * SLOT_W,
+                bottom: 24,
+                width: SLOT_W - 12,
+                transition: 'left 260ms cubic-bezier(0.45, 0, 0.55, 1)',
+              }}
             >
-              <ArrowLeft className="h-5 w-5" />
+              <div className={cn(
+                'flex flex-col items-center transition-transform',
+                phase === 'choosing' && 'hover:-translate-y-2 cursor-pointer',
+                revealed && hasBall && '-translate-y-6'
+              )}>
+                <div
+                  className={cn(
+                    'w-full rounded-t-[42px] border-4 flex items-end justify-center pb-2 font-display font-black transition-colors',
+                    isChosen && !hasBall ? 'border-accent-secondary' : hasBall ? 'border-accent-success' : 'border-brand-border'
+                  )}
+                  style={{ height: 86, background: 'linear-gradient(180deg, #E05A2B 0%, #A83C18 100%)', color: '#fff' }}
+                >
+                  {slot + 1}
+                </div>
+                <div className="h-3 w-full flex items-center justify-center">
+                  {revealed && hasBall && <span className="text-lg">⚪</span>}
+                </div>
+              </div>
             </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Frenly Bonneteau</h1>
-          </div>
+          );
+        })}
 
-          <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-5 w-5 text-accent-primary" />
-            <span className="font-display font-black text-lg tabular-nums">{isLoaded ? balance.toLocaleString('fr-FR') : '...'}</span>
-            <span className="text-tx-secondary font-bold">₶</span>
-            {isLocal && <span className="ml-1 text-[9px] font-black uppercase bg-brand-card border border-brand-border px-1.5 py-0.5 rounded text-tx-muted">Local</span>}
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* TABLE */}
-          <div className="flex flex-col items-center justify-center bg-brand-card border-4 border-brand-border rounded-[32px] p-6">
-            <div className="flex items-center justify-center gap-4">
-              {Array.from({ length: BONNETEAU_CUPS }, (_, cup) => {
-                const isChosen = lastResult?.chosenCup === cup;
-                const isBall = lastResult?.ballCup === cup;
-                const revealed = !!lastResult && !shuffling;
-                return (
-                  <button
-                    key={cup}
-                    onClick={() => handlePick(cup)}
-                    disabled={shuffling || !isLoaded || amount < CASINO_MIN_BET}
-                    className={cn(
-                      'w-20 h-24 sm:w-24 sm:h-28 rounded-t-full border-4 flex flex-col items-center justify-end pb-3 transition-all focus:outline-none',
-                      shuffling && 'animate-bounce',
-                      revealed && isBall ? 'border-accent-success bg-accent-success/20' : 'border-brand-border bg-brand-inner',
-                      !shuffling && !revealed && 'hover:border-accent-primary hover:-translate-y-1'
-                    )}
-                  >
-                    {revealed && isBall ? (
-                      <Circle className="w-6 h-6 text-accent-success fill-accent-success" />
-                    ) : (
-                      <span className="font-display font-black text-tx-secondary">{cup + 1}</span>
-                    )}
-                    {revealed && isChosen && !isBall && <span className="text-[9px] font-bold text-accent-secondary mt-1">TON CHOIX</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-6 h-10 flex items-center">
-              {lastResult && !shuffling && (
-                <div className={cn('px-4 py-2 rounded-xl border-2 font-bold text-sm animate-in fade-in duration-200', lastResult.won ? 'border-accent-success text-accent-success bg-accent-success/10' : 'border-accent-secondary text-accent-secondary bg-accent-secondary/10')}>
-                  {lastResult.won ? `Gagné +${lastResult.payout} ₶` : 'Perdu'}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* BETTING */}
-          <div className="flex flex-col gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">
-                Mise (max {maxBet} ₶)
-              </label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setAmount((a) => clampAmount(a - 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(clampAmount(Number(e.target.value) || 0))}
-                  className="flex-1 h-11 bg-brand-inner border-2 border-brand-border rounded-lg px-3 text-center font-display font-black"
-                />
-                <button onClick={() => setAmount((a) => clampAmount(a + 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button onClick={() => setAmount(maxBet)} className="h-11 px-3 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-xs font-bold hover:border-tx-base">
-                  MAX
-                </button>
-              </div>
-            </div>
-
-            <p className="text-sm text-tx-secondary">
-              Clique un gobelet pour miser dessus. Paie x{BONNETEAU_PAYOUT} si la bille est en dessous.
-            </p>
-
-            {cupsHistory.length > 0 && (
-              <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Dernières parties</span>
-                <div className="flex flex-wrap gap-2">
-                  {cupsHistory.map((h) => (
-                    <span
-                      key={h.id}
-                      className={cn(
-                        'text-xs font-bold px-2 py-1 rounded-md border-2',
-                        h.amount >= 0 ? 'border-accent-success text-accent-success' : 'border-accent-secondary text-accent-secondary'
-                      )}
-                    >
-                      {h.amount >= 0 ? '+' : ''}{h.amount}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="absolute top-3 left-0 right-0 text-center text-[11px] font-black uppercase tracking-widest text-white/60">
+          {phase === 'idle' ? 'Mise pour commencer'
+            : phase === 'shuffling' ? 'Mélange...'
+            : phase === 'choosing' ? 'Choisis un gobelet'
+            : result?.won ? 'Gagné !' : 'Raté'}
         </div>
       </div>
-    </main>
+
+      <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
+        {result?.won ? `+${result.payout} ₶` : 'Perdu'}
+      </ResultBanner>
+    </div>
+  );
+
+  const panel = (
+    <>
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'shuffling' || phase === 'choosing' || busy} />
+
+      {phase === 'choosing' ? (
+        <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
+          <div className="font-display font-black text-sm text-accent-primary">À toi de jouer</div>
+          <p className="text-xs text-tx-secondary mt-1">Clique le gobelet qui cache la bille.</p>
+        </div>
+      ) : (
+        <PlayButton onClick={phase === 'revealed' ? handleReset : handleStart} loading={busy || phase === 'shuffling'} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+          {phase === 'revealed' ? 'REJOUER' : `MISER · ${amount} ₶ (×${BONNETEAU_PAYOUT})`}
+        </PlayButton>
+      )}
+
+      <HistoryStrip history={gameHistory} />
+    </>
+  );
+
+  return (
+    <GameShell title="Frenly Bonneteau" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
   );
 }

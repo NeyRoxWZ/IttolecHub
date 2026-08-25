@@ -1,159 +1,191 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
-import { dropBall, resolvePlinko, PLINKO_MULTIPLIERS, CASINO_MIN_BET } from '@/lib/casino/plinko';
+import { dropBall, resolvePlinko, PLINKO_MULTIPLIERS, PLINKO_ROWS, CASINO_MIN_BET } from '@/lib/casino/plinko';
+import {
+  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+} from '../_components/CasinoUI';
+import Confetti from '../_components/Confetti';
 
-const DROP_MS = 1400;
+const RULES: RulesSpec = {
+  howTo: [
+    'Mise, puis lâche la bille en haut du plateau.',
+    `Elle rebondit sur ${PLINKO_ROWS} rangées de picots, partant à gauche ou à droite à chaque fois.`,
+    'Elle finit dans une des 9 cases du bas, chacune avec son multiplicateur.',
+    'Les cases du centre sont les plus probables mais paient peu ; les extrêmes sont rares et paient ×11.',
+  ],
+  payouts: [
+    { label: 'Cases extrêmes (bords)', value: '×11' },
+    { label: 'Cases intermédiaires', value: '×2 / ×1,3' },
+    { label: 'Cases centrales', value: '×0,9 / ×0,3' },
+  ],
+  rtp: '~97%',
+};
 
-type PlinkoResult = GenericBetResult & { bucket: number };
+const SPACING = 34;
+const ROW_H = 30;
+const BOARD_W = SPACING * (PLINKO_ROWS + 1);
+const BOARD_H = ROW_H * (PLINKO_ROWS + 1) + 20;
+const STEP_MS = 130;
 
 export default function PlinkoPage() {
-  const router = useRouter();
-  const { balance, isLoaded, isLocal, maxBet, placeBet, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, placeBet, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [dropping, setDropping] = useState(false);
-  const [lastResult, setLastResult] = useState<PlinkoResult | null>(null);
-
-  const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
+  const [ball, setBall] = useState<{ row: number; offset: number } | null>(null);
+  const [result, setResult] = useState<GenericBetResult | null>(null);
+  const [landedBucket, setLandedBucket] = useState<number | null>(null);
+  const [confetti, setConfetti] = useState(0);
 
   const handleDrop = async () => {
     if (dropping) return;
     if (amount > balance) { toast.error('Solde insuffisant.'); return; }
-    if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
 
-    setDropping(true);
-    setLastResult(null);
-    vibrate(HAPTIC.MEDIUM);
+    setDropping(true); setResult(null); setLandedBucket(null);
+    vibrate(HAPTIC.MEDIUM); sfx.bet();
+    setBall({ row: 0, offset: 0 });
 
-    const [result] = await Promise.all([
-      placeBet('plinko', amount, {}, () => {
-        const { bucket, multiplier } = dropBall();
-        const r = resolvePlinko(multiplier);
-        return { ...r, meta: { bucket } };
-      }),
-      new Promise((r) => setTimeout(r, DROP_MS)),
-    ]);
+    const r = await placeBet('plinko', amount, {}, () => {
+      const { bucket, path, multiplier } = dropBall();
+      return { ...resolvePlinko(multiplier), meta: { bucket, path } };
+    });
 
-    setDropping(false);
+    if ('error' in r) { setDropping(false); setBall(null); toast.error(r.error); return; }
 
-    if ('error' in result) {
-      toast.error(result.error);
-      return;
+    // Walk the exact path the server rolled — the animation reports the
+    // result, it never produces it.
+    const path: ('L' | 'R')[] = r.meta.path;
+    let offset = 0;
+    for (let i = 0; i < path.length; i++) {
+      offset += path[i] === 'R' ? 0.5 : -0.5;
+      await new Promise((res) => setTimeout(res, STEP_MS));
+      setBall({ row: i + 1, offset });
+      sfx.tick(); vibrate(HAPTIC.SOFT);
     }
 
-    const full: PlinkoResult = { ...result, bucket: result.meta.bucket };
-    setLastResult(full);
+    await new Promise((res) => setTimeout(res, 220));
+    setLandedBucket(r.meta.bucket);
+    setResult(r);
+    setDropping(false);
 
-    if (full.won) {
+    if (r.won) {
       vibrate(HAPTIC.SUCCESS);
-      toast.success(`Case x${full.multiplier} ! Gain: +${full.payout} ₶`);
+      if (r.multiplier >= 11) { sfx.jackpot(); setConfetti((c) => c + 1); }
+      else { sfx.win(); }
+      toast.success(`×${r.multiplier} — +${r.payout} ₶`);
     } else {
-      vibrate(HAPTIC.ERROR);
-      toast.error(`Case x${full.multiplier}. Perdu.`);
+      vibrate(HAPTIC.ERROR); sfx.lose();
+      toast.error(`×${r.multiplier} — tu récupères ${r.payout} ₶`);
     }
   };
 
-  const gameHistory = history.filter((h) => h.game_slug === 'plinko').slice(0, 12);
+  const gameHistory = history.filter((h) => h.game_slug === 'plinko').slice(0, 10);
+  const bucketColor = (m: number) => (m >= 11 ? '#FFD000' : m >= 2 ? '#00FF94' : m >= 1 ? '#4FC3F7' : '#FF2A55');
 
-  return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/casino')} className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Frenly Plinko</h1>
-          </div>
-          <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-5 w-5 text-accent-primary" />
-            <span className="font-display font-black text-lg tabular-nums">{isLoaded ? balance.toLocaleString('fr-FR') : '...'}</span>
-            <span className="text-tx-secondary font-bold">₶</span>
-            {isLocal && <span className="ml-1 text-[9px] font-black uppercase bg-brand-card border border-brand-border px-1.5 py-0.5 rounded text-tx-muted">Local</span>}
-          </div>
-        </header>
+  const stage = (
+    <div className="w-full flex flex-col items-center gap-4">
+      {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="flex flex-col items-center justify-center bg-brand-card border-4 border-brand-border rounded-[32px] p-6">
-            <div className="relative w-full h-40 flex items-start justify-center overflow-hidden">
-              <Circle
-                className={cn('w-6 h-6 fill-accent-primary text-accent-primary absolute top-0', dropping && 'animate-bounce')}
-                style={{
-                  left: lastResult && !dropping ? `${(lastResult.bucket / (PLINKO_MULTIPLIERS.length - 1)) * 90 + 5}%` : '50%',
-                  transform: 'translateX(-50%)',
-                  transition: 'left 1.2s cubic-bezier(0.3,0.6,0.2,1), top 1.2s ease-in',
-                  top: dropping || lastResult ? '85%' : '0%',
-                }}
-              />
-            </div>
-            <div className="flex w-full gap-1 mt-2">
-              {PLINKO_MULTIPLIERS.map((m, i) => (
+      <div
+        className="relative rounded-2xl border-4 border-brand-border p-3"
+        style={{ background: 'linear-gradient(180deg, #141B33 0%, #0C1122 100%)' }}
+      >
+        <div className="relative" style={{ width: BOARD_W, height: BOARD_H }}>
+          {/* Pegs */}
+          {Array.from({ length: PLINKO_ROWS }, (_, row) => {
+            const pegCount = row + 2;
+            return Array.from({ length: pegCount }, (_, p) => {
+              const x = BOARD_W / 2 + (p - (pegCount - 1) / 2) * SPACING;
+              const y = (row + 1) * ROW_H;
+              const active = ball !== null && ball.row === row + 1;
+              return (
                 <div
-                  key={i}
-                  className={cn(
-                    'flex-1 h-10 rounded-md border-2 flex items-center justify-center text-[10px] sm:text-xs font-bold transition-colors',
-                    lastResult && !dropping && lastResult.bucket === i ? 'border-accent-primary bg-accent-primary text-brand-bg' : 'border-brand-border bg-brand-inner text-tx-secondary'
-                  )}
-                >
-                  x{m}
-                </div>
-              ))}
-            </div>
+                  key={`${row}-${p}`}
+                  className={cn('absolute rounded-full transition-colors duration-150', active ? 'bg-accent-primary' : 'bg-white/35')}
+                  style={{ width: 6, height: 6, left: x - 3, top: y - 3 }}
+                />
+              );
+            });
+          })}
 
-            <div className="mt-6 h-10 flex items-center">
-              {lastResult && !dropping && (
-                <div className={cn('px-4 py-2 rounded-xl border-2 font-bold text-sm animate-in fade-in duration-200', lastResult.won ? 'border-accent-success text-accent-success bg-accent-success/10' : 'border-accent-secondary text-accent-secondary bg-accent-secondary/10')}>
-                  {lastResult.won ? `Gagné +${lastResult.payout} ₶` : 'Perdu'}
-                </div>
+          {/* Ball */}
+          {ball && (
+            <div
+              className="absolute rounded-full bg-accent-primary z-10"
+              style={{
+                width: 14, height: 14,
+                left: BOARD_W / 2 + ball.offset * SPACING - 7,
+                top: ball.row * ROW_H + 2,
+                transition: `left ${STEP_MS}ms cubic-bezier(0.4,0,0.6,1), top ${STEP_MS}ms cubic-bezier(0.3,0,0.7,1)`,
+                boxShadow: '0 0 10px rgba(255,208,0,0.8)',
+              }}
+            />
+          )}
+        </div>
+
+        {/* Buckets */}
+        <div className="flex gap-0.5 mt-1">
+          {PLINKO_MULTIPLIERS.map((m, i) => (
+            <div
+              key={i}
+              className={cn(
+                'flex-1 h-9 rounded-md border-2 flex items-center justify-center text-[10px] font-black transition-all duration-300',
+                landedBucket === i ? 'scale-110 z-10' : ''
               )}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Mise (max {maxBet} ₶)</label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setAmount((a) => clampAmount(a - 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input type="number" value={amount} onChange={(e) => setAmount(clampAmount(Number(e.target.value) || 0))} className="flex-1 h-11 bg-brand-inner border-2 border-brand-border rounded-lg px-3 text-center font-display font-black" />
-                <button onClick={() => setAmount((a) => clampAmount(a + 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button onClick={() => setAmount(maxBet)} className="h-11 px-3 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-xs font-bold hover:border-tx-base">MAX</button>
-              </div>
-            </div>
-
-            <button
-              onClick={handleDrop}
-              disabled={dropping || !isLoaded || amount < CASINO_MIN_BET}
-              className={cn('h-16 rounded-2xl font-display text-xl font-black tracking-wider border-4 border-brand-border transition-colors shadow-brutal', dropping ? 'bg-brand-inner text-tx-muted cursor-not-allowed' : 'bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary')}
+              style={{
+                width: SPACING,
+                borderColor: landedBucket === i ? bucketColor(m) : 'rgba(255,255,255,0.15)',
+                background: landedBucket === i ? bucketColor(m) : 'rgba(255,255,255,0.05)',
+                color: landedBucket === i ? '#13131A' : bucketColor(m),
+              }}
             >
-              {dropping ? 'ÇA TOMBE...' : `LÂCHER LA BILLE (${amount} ₶)`}
-            </button>
-
-            {gameHistory.length > 0 && (
-              <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Derniers drops</span>
-                <div className="flex flex-wrap gap-2">
-                  {gameHistory.map((h) => (
-                    <span key={h.id} className={cn('text-xs font-bold px-2 py-1 rounded-md border-2', h.amount >= 0 ? 'border-accent-success text-accent-success' : 'border-accent-secondary text-accent-secondary')}>
-                      {h.amount >= 0 ? '+' : ''}{h.amount}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+              ×{m}
+            </div>
+          ))}
         </div>
       </div>
-    </main>
+
+      <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
+        {result ? `×${result.multiplier} — ${result.payout > 0 ? `+${result.payout}` : result.payout} ₶` : ''}
+      </ResultBanner>
+    </div>
+  );
+
+  const panel = (
+    <>
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={dropping} />
+      <PlayButton onClick={handleDrop} loading={dropping} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+        {dropping ? 'ÇA TOMBE...' : `LÂCHER LA BILLE · ${amount} ₶`}
+      </PlayButton>
+
+      <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">
+        <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">Cases du bas</div>
+        <p className="text-xs text-tx-secondary leading-relaxed">
+          Les bords paient <span className="font-black text-accent-primary">×11</span> mais sont rares :
+          la bille finit le plus souvent au centre, où les cases rendent moins que la mise.
+        </p>
+      </div>
+
+      <HistoryStrip history={gameHistory} />
+    </>
+  );
+
+  return (
+    <GameShell
+      title="Frenly Plinko"
+      rules={RULES}
+      balance={balance}
+      isLoaded={isLoaded}
+      isLocal={isLocal}
+      streak={stats.currentStreak}
+      stage={stage}
+      panel={panel}
+    />
   );
 }

@@ -1,38 +1,56 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
-import { drawKenoNumbers, resolveKeno, KENO_PAYTABLE, KENO_PICK_COUNT, KENO_POOL_SIZE, CASINO_MIN_BET } from '@/lib/casino/keno';
+import {
+  drawKenoNumbers, resolveKeno, KENO_PAYTABLE,
+  KENO_PICK_COUNT, KENO_POOL_SIZE, KENO_DRAW_COUNT, CASINO_MIN_BET,
+} from '@/lib/casino/keno';
+import {
+  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+} from '../_components/CasinoUI';
+import Confetti from '../_components/Confetti';
 
-const DRAW_MS = 1200;
+const RULES: RulesSpec = {
+  howTo: [
+    `Coche exactement ${KENO_PICK_COUNT} numéros parmi ${KENO_POOL_SIZE} (ou utilise le bouton Auto).`,
+    `Place ta mise et lance le tirage : ${KENO_DRAW_COUNT} numéros sortent au hasard.`,
+    'Chaque numéro que tu avais coché ET qui sort compte comme une correspondance.',
+    `Il faut au moins 5 correspondances pour gagner quelque chose. En dessous, la mise est perdue.`,
+  ],
+  payouts: Object.entries(KENO_PAYTABLE).map(([k, v]) => ({
+    label: `${k} correspondances`,
+    value: v === 1 ? 'Mise remboursée' : `×${v}`,
+  })),
+  rtp: '~95%',
+};
 
-type KenoResult = GenericBetResult & { drawn: number[]; matches: number; picks: number[] };
+type Phase = 'picking' | 'drawing' | 'done';
 
 export default function KenoPage() {
-  const router = useRouter();
-  const { balance, isLoaded, isLocal, maxBet, placeBet, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, placeBet, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [picks, setPicks] = useState<number[]>([]);
-  const [drawing, setDrawing] = useState(false);
-  const [lastResult, setLastResult] = useState<KenoResult | null>(null);
+  const [phase, setPhase] = useState<Phase>('picking');
+  const [drawn, setDrawn] = useState<number[]>([]);
+  const [result, setResult] = useState<(GenericBetResult & { matches: number }) | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [confetti, setConfetti] = useState(0);
 
-  const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
+  const picksComplete = picks.length === KENO_PICK_COUNT;
+  const liveMatches = drawn.filter((n) => picks.includes(n)).length;
 
   const togglePick = (n: number) => {
-    if (drawing) return;
+    if (phase !== 'picking') return;
     setPicks((prev) => {
-      if (prev.includes(n)) return prev.filter((x) => x !== n);
-      if (prev.length >= KENO_PICK_COUNT) {
-        toast.error(`Maximum ${KENO_PICK_COUNT} numéros.`);
-        return prev;
-      }
-      vibrate(HAPTIC.SOFT);
+      if (prev.includes(n)) { sfx.click(); return prev.filter((x) => x !== n); }
+      if (prev.length >= KENO_PICK_COUNT) { toast.error(`Tu as déjà coché ${KENO_PICK_COUNT} numéros.`); return prev; }
+      sfx.select(); vibrate(HAPTIC.SOFT);
       return [...prev, n];
     });
   };
@@ -40,160 +58,167 @@ export default function KenoPage() {
   const quickPick = () => {
     const pool = Array.from({ length: KENO_POOL_SIZE }, (_, i) => i + 1);
     const picked: number[] = [];
-    while (picked.length < KENO_PICK_COUNT) {
-      const idx = Math.floor(Math.random() * pool.length);
-      picked.push(pool.splice(idx, 1)[0]);
-    }
-    setPicks(picked);
-    vibrate(HAPTIC.SOFT);
+    while (picked.length < KENO_PICK_COUNT) picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    setPicks(picked); sfx.select(); vibrate(HAPTIC.SOFT);
   };
+
+  const clearPicks = () => { setPicks([]); sfx.click(); };
 
   const handleDraw = async () => {
-    if (drawing) return;
-    if (picks.length !== KENO_PICK_COUNT) { toast.error(`Choisis ${KENO_PICK_COUNT} numéros.`); return; }
+    if (busy || !picksComplete) return;
     if (amount > balance) { toast.error('Solde insuffisant.'); return; }
-    if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
 
-    setDrawing(true);
-    setLastResult(null);
-    vibrate(HAPTIC.MEDIUM);
+    setBusy(true); setPhase('drawing'); setDrawn([]); setResult(null);
+    vibrate(HAPTIC.MEDIUM); sfx.bet();
 
-    const [result] = await Promise.all([
-      placeBet('keno', amount, { picks }, () => {
-        const drawn = drawKenoNumbers();
-        const r = resolveKeno(picks, drawn);
-        return { won: r.won, multiplier: r.multiplier, meta: { drawn, matches: r.matches, picks } };
-      }),
-      new Promise((r) => setTimeout(r, DRAW_MS)),
-    ]);
+    const r = await placeBet('keno', amount, { picks }, () => {
+      const d = drawKenoNumbers();
+      const res = resolveKeno(picks, d);
+      return { won: res.won, multiplier: res.multiplier, meta: { drawn: d, matches: res.matches, picks } };
+    });
 
-    setDrawing(false);
+    if ('error' in r) { setBusy(false); setPhase('picking'); toast.error(r.error); return; }
 
-    if ('error' in result) {
-      toast.error(result.error);
-      return;
+    // Reveal the draw one ball at a time so matches land visibly.
+    const all: number[] = r.meta.drawn;
+    for (let i = 0; i < all.length; i++) {
+      await new Promise((res) => setTimeout(res, 105));
+      setDrawn(all.slice(0, i + 1));
+      if (picks.includes(all[i])) { sfx.step(Math.min(8, i)); vibrate(HAPTIC.SOFT); }
+      else sfx.tick();
     }
 
-    const full: KenoResult = { ...result, drawn: result.meta.drawn, matches: result.meta.matches, picks: result.meta.picks };
-    setLastResult(full);
+    await new Promise((res) => setTimeout(res, 350));
+    setBusy(false); setPhase('done');
+    setResult({ ...r, matches: r.meta.matches });
 
-    if (full.won) {
+    if (r.won) {
       vibrate(HAPTIC.SUCCESS);
-      toast.success(`${full.matches} bons numéros ! Gain: +${full.payout} ₶`);
+      if (r.multiplier >= 90) { sfx.jackpot(); setConfetti((c) => c + 1); }
+      else { sfx.win(); setConfetti((c) => c + 1); }
+      toast.success(`${r.meta.matches} correspondances — +${r.payout} ₶`);
     } else {
-      vibrate(HAPTIC.ERROR);
-      toast.error(`${full.matches} bons numéros. Perdu.`);
+      vibrate(HAPTIC.ERROR); sfx.lose();
+      toast.error(`${r.meta.matches} correspondances — il en faut 5.`);
     }
   };
 
-  const gameHistory = history.filter((h) => h.game_slug === 'keno').slice(0, 12);
+  const handleReset = () => { sfx.click(); setPhase('picking'); setDrawn([]); setResult(null); };
 
-  return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/casino')} className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Frenly Keno</h1>
-          </div>
-          <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-5 w-5 text-accent-primary" />
-            <span className="font-display font-black text-lg tabular-nums">{isLoaded ? balance.toLocaleString('fr-FR') : '...'}</span>
-            <span className="text-tx-secondary font-bold">₶</span>
-            {isLocal && <span className="ml-1 text-[9px] font-black uppercase bg-brand-card border border-brand-border px-1.5 py-0.5 rounded text-tx-muted">Local</span>}
-          </div>
-        </header>
+  const gameHistory = history.filter((h) => h.game_slug === 'keno').slice(0, 10);
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[32px] p-6">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-bold text-tx-secondary">{picks.length}/{KENO_PICK_COUNT} choisis</span>
-              <button onClick={quickPick} disabled={drawing} className="text-xs font-bold px-3 py-1.5 rounded-lg border-2 border-brand-border bg-brand-inner hover:border-tx-base focus:outline-none">
-                Auto
-              </button>
-            </div>
-            <div className="grid grid-cols-8 gap-1 p-1">
-              {Array.from({ length: KENO_POOL_SIZE }, (_, i) => i + 1).map((n) => {
-                const isPicked = picks.includes(n);
-                const isDrawn = lastResult?.drawn.includes(n);
-                const isMatch = isPicked && isDrawn;
-                return (
-                  <button
-                    key={n}
-                    onClick={() => togglePick(n)}
-                    disabled={drawing}
-                    className={cn(
-                      'h-8 rounded-md border-2 text-[10px] font-bold flex items-center justify-center transition-colors focus:outline-none',
-                      isMatch ? 'bg-accent-success border-accent-success text-brand-bg' :
-                      isDrawn ? 'bg-accent-secondary/30 border-accent-secondary text-tx-base' :
-                      isPicked ? 'bg-accent-primary border-accent-primary text-brand-bg' :
-                      'bg-brand-inner border-brand-border text-tx-secondary hover:border-tx-base/50'
-                    )}
-                  >
-                    {n}
-                  </button>
-                );
-              })}
-            </div>
+  const stage = (
+    <div className="w-full flex flex-col items-center gap-4">
+      {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
 
-            <div className="mt-4 h-10 flex items-center justify-center">
-              {lastResult && !drawing && (
-                <div className={cn('px-4 py-2 rounded-xl border-2 font-bold text-sm animate-in fade-in duration-200', lastResult.won ? 'border-accent-success text-accent-success bg-accent-success/10' : 'border-accent-secondary text-accent-secondary bg-accent-secondary/10')}>
-                  {lastResult.won ? `${lastResult.matches} bons — +${lastResult.payout} ₶` : `${lastResult.matches} bons — perdu`}
-                </div>
-              )}
-            </div>
-          </div>
+      {/* Instruction bar — the thing that was missing */}
+      <div className={cn(
+        'w-full rounded-xl border-2 px-4 py-2.5 flex items-center justify-between gap-3',
+        phase === 'picking' && !picksComplete ? 'border-accent-primary bg-accent-primary/10' : 'border-brand-border bg-brand-inner'
+      )}>
+        <span className="text-sm font-bold">
+          {phase === 'picking'
+            ? picksComplete ? 'Grille complète — lance le tirage !' : `Coche ${KENO_PICK_COUNT} numéros`
+            : phase === 'drawing' ? `Tirage en cours... ${drawn.length}/${KENO_DRAW_COUNT}`
+            : `${result?.matches ?? 0} correspondances`}
+        </span>
+        <span className={cn('font-display font-black text-lg', picksComplete ? 'text-accent-success' : 'text-accent-primary')}>
+          {phase === 'picking' ? `${picks.length}/${KENO_PICK_COUNT}` : `${liveMatches} ✓`}
+        </span>
+      </div>
 
-          <div className="flex flex-col gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Mise (max {maxBet} ₶)</label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setAmount((a) => clampAmount(a - 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input type="number" value={amount} onChange={(e) => setAmount(clampAmount(Number(e.target.value) || 0))} className="flex-1 h-11 bg-brand-inner border-2 border-brand-border rounded-lg px-3 text-center font-display font-black" />
-                <button onClick={() => setAmount((a) => clampAmount(a + 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button onClick={() => setAmount(maxBet)} className="h-11 px-3 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-xs font-bold hover:border-tx-base">MAX</button>
-              </div>
-            </div>
+      {/* Grid */}
+      <div className="grid grid-cols-8 gap-1.5 w-full max-w-[380px]">
+        {Array.from({ length: KENO_POOL_SIZE }, (_, i) => i + 1).map((n) => {
+          const picked = picks.includes(n);
+          const isDrawn = drawn.includes(n);
+          const isMatch = picked && isDrawn;
 
-            <div className="text-xs text-tx-secondary space-y-1">
-              {Object.entries(KENO_PAYTABLE).map(([k, m]) => (
-                <div key={k} className="flex justify-between border-b border-brand-border pb-1">
-                  <span>{k} bons numéros</span>
-                  <span className="font-bold text-tx-base">x{m}</span>
-                </div>
-              ))}
-            </div>
-
+          return (
             <button
-              onClick={handleDraw}
-              disabled={drawing || !isLoaded || amount < CASINO_MIN_BET || picks.length !== KENO_PICK_COUNT}
-              className={cn('h-16 rounded-2xl font-display text-xl font-black tracking-wider border-4 border-brand-border transition-colors shadow-brutal', drawing || picks.length !== KENO_PICK_COUNT ? 'bg-brand-inner text-tx-muted cursor-not-allowed' : 'bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary')}
+              key={n}
+              onClick={() => togglePick(n)}
+              disabled={phase !== 'picking'}
+              className={cn(
+                'aspect-square rounded-lg border-2 text-xs font-black flex items-center justify-center transition-all duration-200 focus:outline-none',
+                isMatch ? 'bg-accent-success border-accent-success text-brand-bg scale-110 z-10'
+                  : isDrawn ? 'bg-accent-secondary/25 border-accent-secondary text-tx-base'
+                  : picked ? 'bg-accent-primary border-accent-primary text-brand-bg'
+                  : 'bg-brand-inner border-brand-border text-tx-secondary hover:border-tx-base/60'
+              )}
             >
-              {drawing ? 'TIRAGE...' : `MISER ${amount} ₶`}
+              {n}
             </button>
+          );
+        })}
+      </div>
 
-            {gameHistory.length > 0 && (
-              <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Derniers tirages</span>
-                <div className="flex flex-wrap gap-2">
-                  {gameHistory.map((h) => (
-                    <span key={h.id} className={cn('text-xs font-bold px-2 py-1 rounded-md border-2', h.amount >= 0 ? 'border-accent-success text-accent-success' : 'border-accent-secondary text-accent-secondary')}>
-                      {h.amount >= 0 ? '+' : ''}{h.amount}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+      <div className="flex items-center gap-4 text-[10px] font-bold text-tx-muted">
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-accent-primary inline-block" /> Ton choix</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-accent-secondary/60 inline-block" /> Tiré</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-accent-success inline-block" /> Correspondance</span>
+      </div>
+
+      <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
+        {result?.won ? `${result.matches} bons — +${result.payout} ₶` : `${result?.matches ?? 0} bons — perdu`}
+      </ResultBanner>
+    </div>
+  );
+
+  const panel = (
+    <>
+      {phase === 'picking' ? (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={quickPick} className="h-11 rounded-xl border-2 border-brand-border bg-brand-inner text-sm font-bold hover:border-accent-primary focus:outline-none">
+              Auto ({KENO_PICK_COUNT})
+            </button>
+            <button onClick={clearPicks} disabled={picks.length === 0} className="h-11 rounded-xl border-2 border-brand-border bg-brand-inner text-sm font-bold hover:border-tx-base disabled:opacity-40 focus:outline-none">
+              Effacer
+            </button>
+          </div>
+
+          <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
+
+          <PlayButton onClick={handleDraw} loading={busy} disabled={!isLoaded || !picksComplete || amount < CASINO_MIN_BET}>
+            {picksComplete ? `LANCER LE TIRAGE · ${amount} ₶` : `ENCORE ${KENO_PICK_COUNT - picks.length} NUMÉRO${KENO_PICK_COUNT - picks.length > 1 ? 'S' : ''}`}
+          </PlayButton>
+        </>
+      ) : (
+        <PlayButton onClick={handleReset} disabled={phase === 'drawing'}>
+          {phase === 'drawing' ? 'TIRAGE...' : 'NOUVELLE GRILLE'}
+        </PlayButton>
+      )}
+
+      <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">
+        <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">Gains selon correspondances</div>
+        <div className="space-y-1 text-xs">
+          {Object.entries(KENO_PAYTABLE).map(([k, v]) => (
+            <div key={k} className={cn('flex justify-between items-center rounded px-1.5 py-0.5', result && result.matches === Number(k) && 'bg-accent-success/20')}>
+              <span className="text-tx-secondary">{k} bons</span>
+              <span className="font-display font-black text-accent-primary">{v === 1 ? 'remboursé' : `×${v}`}</span>
+            </div>
+          ))}
+          <div className="flex justify-between items-center text-tx-muted px-1.5 pt-1 border-t border-brand-border">
+            <span>0 à 4 bons</span><span className="font-bold">rien</span>
           </div>
         </div>
       </div>
-    </main>
+
+      <HistoryStrip history={gameHistory} />
+    </>
+  );
+
+  return (
+    <GameShell
+      title="Frenly Keno"
+      rules={RULES}
+      balance={balance}
+      isLoaded={isLoaded}
+      isLocal={isLocal}
+      streak={stats.currentStreak}
+      stage={stage}
+      panel={panel}
+    />
   );
 }

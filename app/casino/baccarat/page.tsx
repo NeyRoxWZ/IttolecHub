@@ -1,191 +1,178 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { drawBaccaratOutcome, resolveBaccarat, BACCARAT_PAYOUTS, CASINO_MIN_BET, type BaccaratBet, type BaccaratOutcome } from '@/lib/casino/baccarat';
+import {
+  GameShell, BetControls, PlayButton, PlayingCard, ResultBanner, HistoryStrip, type RulesSpec,
+} from '../_components/CasinoUI';
+import Confetti from '../_components/Confetti';
 
-const REVEAL_SUSPENSE_MS = 1000;
+const RULES: RulesSpec = {
+  howTo: [
+    'Tu ne joues pas les cartes : tu paries seulement sur qui va gagner.',
+    'Deux mains sont distribuées — Joueur et Banque. Celle qui approche le plus de 9 gagne.',
+    'Parie sur Joueur, Banque, ou Égalité. La Banque gagne un peu plus souvent (45,9% contre 44,6%), d’où la commission de 5% sur ses gains.',
+    'Si tu paries Joueur ou Banque et que c’est une égalité, ta mise est remboursée.',
+  ],
+  payouts: [
+    { label: 'Joueur', value: `×${BACCARAT_PAYOUTS.player}` },
+    { label: 'Banque (commission 5%)', value: `×${BACCARAT_PAYOUTS.banker}` },
+    { label: 'Égalité', value: `×${BACCARAT_PAYOUTS.tie}` },
+  ],
+  rtp: '~98,9% (Banque) · ~98,8% (Joueur) · ~85,7% (Égalité)',
+};
 
-const BETS: { value: BaccaratBet; label: string }[] = [
-  { value: 'player', label: 'Joueur' },
-  { value: 'banker', label: 'Banque' },
-  { value: 'tie', label: 'Égalité' },
+const BETS: { value: BaccaratBet; label: string; hint: string }[] = [
+  { value: 'player', label: 'Joueur', hint: '44,6%' },
+  { value: 'banker', label: 'Banque', hint: '45,9%' },
+  { value: 'tie', label: 'Égalité', hint: '9,5%' },
 ];
-
-const OUTCOME_LABEL: Record<BaccaratOutcome, string> = { player: 'Joueur', banker: 'Banque', tie: 'Égalité' };
-
-type BaccaratResult = GenericBetResult & { outcome: BaccaratOutcome; bet: BaccaratBet };
+const LABEL: Record<BaccaratOutcome, string> = { player: 'Joueur', banker: 'Banque', tie: 'Égalité' };
 
 export default function BaccaratPage() {
-  const router = useRouter();
-  const { balance, isLoaded, isLocal, maxBet, placeBet, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, placeBet, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
+  const [bet, setBet] = useState<BaccaratBet>('banker');
   const [playing, setPlaying] = useState(false);
-  const [lastResult, setLastResult] = useState<BaccaratResult | null>(null);
+  const [scores, setScores] = useState<{ player?: number; banker?: number }>({});
+  const [result, setResult] = useState<(GenericBetResult & { outcome: BaccaratOutcome }) | null>(null);
+  const [confetti, setConfetti] = useState(0);
 
-  const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
-
-  const handlePlay = async (bet: BaccaratBet) => {
+  const handlePlay = async () => {
     if (playing) return;
     if (amount > balance) { toast.error('Solde insuffisant.'); return; }
-    if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
 
-    setPlaying(true);
-    setLastResult(null);
-    vibrate(HAPTIC.MEDIUM);
+    setPlaying(true); setResult(null); setScores({});
+    vibrate(HAPTIC.MEDIUM); sfx.bet();
 
-    const [result] = await Promise.all([
-      placeBet('baccarat', amount, { bet }, () => {
-        const outcome = drawBaccaratOutcome();
-        const r = resolveBaccarat(outcome, bet);
-        return { ...r, meta: { outcome, bet } };
-      }),
-      new Promise((r) => setTimeout(r, REVEAL_SUSPENSE_MS)),
-    ]);
+    const r = await placeBet('baccarat', amount, { bet }, () => {
+      const outcome = drawBaccaratOutcome();
+      return { ...resolveBaccarat(outcome, bet), meta: { outcome, bet } };
+    });
 
-    setPlaying(false);
+    if ('error' in r) { setPlaying(false); toast.error(r.error); return; }
 
-    if ('error' in result) {
-      toast.error(result.error);
-      return;
+    // Show baccarat totals (0-9) consistent with the outcome already drawn.
+    const outcome: BaccaratOutcome = r.meta.outcome;
+    let p: number, b: number;
+    if (outcome === 'tie') { p = Math.floor(Math.random() * 10); b = p; }
+    else {
+      const hi = 1 + Math.floor(Math.random() * 9);
+      const lo = Math.floor(Math.random() * hi);
+      [p, b] = outcome === 'player' ? [hi, lo] : [lo, hi];
     }
 
-    const full: BaccaratResult = { ...result, outcome: result.meta.outcome, bet: result.meta.bet };
-    setLastResult(full);
+    await new Promise((res) => setTimeout(res, 380));
+    setScores({ player: p }); sfx.card();
+    await new Promise((res) => setTimeout(res, 480));
+    setScores({ player: p, banker: b }); sfx.reveal();
+    await new Promise((res) => setTimeout(res, 420));
 
-    if (full.multiplier > 1) {
+    setPlaying(false);
+    setResult({ ...r, outcome });
+
+    if (r.multiplier > 1) {
       vibrate(HAPTIC.SUCCESS);
-      toast.success(`${OUTCOME_LABEL[full.outcome]} gagne ! +${full.payout} ₶`);
-    } else if (full.multiplier === 1) {
-      vibrate(HAPTIC.WARNING);
+      if (outcome === 'tie') { sfx.jackpot(); setConfetti((c) => c + 1); }
+      else { sfx.win(); setConfetti((c) => c + 1); }
+      toast.success(`${LABEL[outcome]} — +${r.payout} ₶`);
+    } else if (r.multiplier === 1) {
+      vibrate(HAPTIC.WARNING); sfx.reveal();
       toast.info('Égalité — mise remboursée.');
     } else {
-      vibrate(HAPTIC.ERROR);
-      toast.error(`${OUTCOME_LABEL[full.outcome]} gagne. Perdu.`);
+      vibrate(HAPTIC.ERROR); sfx.lose();
+      toast.error(`${LABEL[outcome]} — perdu`);
     }
   };
 
-  const gameHistory = history.filter((h) => h.game_slug === 'baccarat').slice(0, 12);
+  const gameHistory = history.filter((h) => h.game_slug === 'baccarat').slice(0, 10);
 
-  return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push('/casino')}
-              className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Frenly Baccarat</h1>
-          </div>
+  const stage = (
+    <div className="w-full flex flex-col items-center gap-5">
+      {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
 
-          <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-5 w-5 text-accent-primary" />
-            <span className="font-display font-black text-lg tabular-nums">{isLoaded ? balance.toLocaleString('fr-FR') : '...'}</span>
-            <span className="text-tx-secondary font-bold">₶</span>
-            {isLocal && <span className="ml-1 text-[9px] font-black uppercase bg-brand-card border border-brand-border px-1.5 py-0.5 rounded text-tx-muted">Local</span>}
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* TABLE */}
-          <div className="flex flex-col items-center justify-center bg-brand-card border-4 border-brand-border rounded-[32px] p-6">
-            <div className={cn('w-28 h-28 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center', playing && 'animate-pulse')}>
-              {lastResult ? (
-                <span className="font-display font-black text-xl text-accent-primary">{OUTCOME_LABEL[lastResult.outcome]}</span>
-              ) : (
-                <Layers className="w-10 h-10 text-tx-muted opacity-40" />
-              )}
-            </div>
-
-            <div className="mt-6 h-10 flex items-center">
-              {lastResult && !playing && (
-                <div className={cn(
-                  'px-4 py-2 rounded-xl border-2 font-bold text-sm animate-in fade-in duration-200',
-                  lastResult.multiplier > 1 ? 'border-accent-success text-accent-success bg-accent-success/10' :
-                  lastResult.multiplier === 1 ? 'border-tx-secondary text-tx-secondary bg-brand-inner' :
-                  'border-accent-secondary text-accent-secondary bg-accent-secondary/10'
+      <div
+        className="w-full rounded-2xl border-4 border-brand-border p-6"
+        style={{ background: 'radial-gradient(ellipse at 50% 30%, #1B5E3F 0%, #0E3524 70%, #0A2419 100%)' }}
+      >
+        <div className="flex items-center justify-around">
+          {(['player', 'banker'] as const).map((side) => {
+            const score = scores[side];
+            const isWinner = result && result.outcome === side;
+            return (
+              <div key={side} className="flex flex-col items-center gap-2">
+                <span className={cn('text-[10px] font-black uppercase tracking-widest', isWinner ? 'text-accent-primary' : 'text-white/60')}>
+                  {side === 'player' ? 'Joueur' : 'Banque'}
+                </span>
+                <div className="flex gap-1">
+                  <PlayingCard rank={score !== undefined ? Math.max(1, score) : undefined} hidden={score === undefined} index={side === 'player' ? 0 : 2} />
+                  <PlayingCard rank={score !== undefined ? Math.max(1, 10 - score) : undefined} hidden={score === undefined} index={side === 'player' ? 1 : 3} />
+                </div>
+                <span className={cn(
+                  'px-3 py-0.5 rounded-md font-display font-black text-lg border-2',
+                  isWinner ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-black/40 text-white border-white/25'
                 )}>
-                  {lastResult.multiplier > 1 ? `Gagné +${lastResult.payout} ₶` : lastResult.multiplier === 1 ? 'Remboursé' : 'Perdu'}
-                </div>
+                  {score !== undefined ? score : '—'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {result?.outcome === 'tie' && (
+          <div className="text-center mt-4 font-display font-black text-accent-primary tracking-widest">ÉGALITÉ</div>
+        )}
+      </div>
+
+      <ResultBanner state={!result ? 'idle' : result.multiplier === 1 ? 'push' : result.multiplier > 1 ? 'win' : 'lose'}>
+        {result && result.multiplier > 1 ? `${LABEL[result.outcome]} — +${result.payout} ₶`
+          : result?.multiplier === 1 ? 'Égalité — remboursé'
+          : result ? `${LABEL[result.outcome]} — perdu` : ''}
+      </ResultBanner>
+    </div>
+  );
+
+  const panel = (
+    <>
+      <div>
+        <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Ton pari</div>
+        <div className="space-y-2">
+          {BETS.map((b) => (
+            <button
+              key={b.value}
+              onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setBet(b.value); }}
+              disabled={playing}
+              className={cn(
+                'w-full h-14 rounded-xl border-2 flex items-center justify-between px-4 font-bold transition-all focus:outline-none disabled:opacity-50',
+                bet === b.value ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-brand-inner border-brand-border text-tx-secondary hover:border-tx-base/60'
               )}
-            </div>
-          </div>
-
-          {/* BETTING */}
-          <div className="flex flex-col gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">
-                Mise (max {maxBet} ₶)
-              </label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setAmount((a) => clampAmount(a - 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(clampAmount(Number(e.target.value) || 0))}
-                  className="flex-1 h-11 bg-brand-inner border-2 border-brand-border rounded-lg px-3 text-center font-display font-black"
-                />
-                <button onClick={() => setAmount((a) => clampAmount(a + 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button onClick={() => setAmount(maxBet)} className="h-11 px-3 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-xs font-bold hover:border-tx-base">
-                  MAX
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Ton pari</label>
-              <div className="grid grid-cols-1 gap-2">
-                {BETS.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => handlePlay(value)}
-                    disabled={playing || !isLoaded || amount < CASINO_MIN_BET}
-                    className={cn(
-                      'h-14 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-between px-5 font-bold transition-colors focus:outline-none',
-                      playing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
-                    )}
-                  >
-                    <span>{label}</span>
-                    <span className="text-sm text-tx-secondary">x{BACCARAT_PAYOUTS[value]}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {gameHistory.length > 0 && (
-              <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Dernières parties</span>
-                <div className="flex flex-wrap gap-2">
-                  {gameHistory.map((h) => (
-                    <span
-                      key={h.id}
-                      className={cn(
-                        'text-xs font-bold px-2 py-1 rounded-md border-2',
-                        h.amount > 0 ? 'border-accent-success text-accent-success' : h.amount === 0 ? 'border-tx-secondary text-tx-secondary' : 'border-accent-secondary text-accent-secondary'
-                      )}
-                    >
-                      {h.amount > 0 ? '+' : ''}{h.amount}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+            >
+              <span>{b.label}<span className={cn('ml-2 text-[10px] font-bold', bet === b.value ? 'text-brand-bg/70' : 'text-tx-muted')}>{b.hint}</span></span>
+              <span>×{BACCARAT_PAYOUTS[b.value]}</span>
+            </button>
+          ))}
         </div>
       </div>
-    </main>
+
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
+
+      <PlayButton onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+        {playing ? 'DISTRIBUTION...' : `PARIER · ${amount} ₶`}
+      </PlayButton>
+
+      <p className="text-[11px] text-tx-muted">Sur Joueur ou Banque, une égalité rembourse ta mise.</p>
+
+      <HistoryStrip history={gameHistory} />
+    </>
+  );
+
+  return (
+    <GameShell title="Frenly Baccarat" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
   );
 }

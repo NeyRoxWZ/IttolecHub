@@ -1,46 +1,58 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus, ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { sfx } from '@/lib/casino/sfx';
 import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { drawCard, resolveHilo, getHiloPayout, CASINO_MIN_BET, type HiloDirection } from '@/lib/casino/hilo';
+import {
+  GameShell, BetControls, PlayButton, PlayingCard, ResultBanner, HistoryStrip, rankLabel, type RulesSpec,
+} from '../_components/CasinoUI';
+import Confetti from '../_components/Confetti';
 
-const CARD_LABEL = (n: number) => (n === 1 ? 'A' : n === 11 ? 'J' : n === 12 ? 'Q' : n === 13 ? 'K' : String(n));
-const REVEAL_MS = 900;
+const RULES: RulesSpec = {
+  howTo: [
+    'Une carte est retournée (As = 1, Valet = 11, Dame = 12, Roi = 13).',
+    'Parie sur le fait que la carte suivante sera plus haute ou plus basse.',
+    'La cote s’adapte à la carte affichée : parier "plus haut" sur un 2 paie peu, sur un Roi c’est impossible.',
+    'Si la carte suivante a exactement la même valeur, ta mise est remboursée.',
+  ],
+  payouts: [
+    { label: 'Plus haut sur un 2', value: '≈ ×1,13' },
+    { label: 'Plus haut sur un 10', value: '≈ ×4,16' },
+    { label: 'Même valeur', value: 'Mise remboursée' },
+  ],
+  rtp: '~96%',
+};
 
 type HiloResult = GenericBetResult & { currentCard: number; nextCard: number; direction: HiloDirection; push: boolean };
 
 export default function HiloPage() {
-  const router = useRouter();
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, placeBet, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, placeBet, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [card, setCard] = useState<number | null>(null);
-  const [token, setToken] = useState<string>('');
+  const [token, setToken] = useState('');
   const [playing, setPlaying] = useState(false);
-  const [lastResult, setLastResult] = useState<HiloResult | null>(null);
+  const [result, setResult] = useState<HiloResult | null>(null);
+  const [confetti, setConfetti] = useState(0);
 
   const dealCard = useCallback(async () => {
     if (user) {
       const res = await fetch('/api/casino/hilo/deal');
       const data = await res.json();
-      setCard(data.card);
-      setToken(data.token);
+      setCard(data.card); setToken(data.token);
     } else {
-      setCard(drawCard());
-      setToken('');
+      setCard(drawCard()); setToken('');
     }
   }, [user]);
 
   useEffect(() => { dealCard(); }, [dealCard]);
-
-  const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
 
   const higherPayout = card ? getHiloPayout(card, 'higher') : null;
   const lowerPayout = card ? getHiloPayout(card, 'lower') : null;
@@ -50,140 +62,105 @@ export default function HiloPage() {
     const payout = direction === 'higher' ? higherPayout : lowerPayout;
     if (payout === null) { toast.error('Pari impossible sur cette carte.'); return; }
     if (amount > balance) { toast.error('Solde insuffisant.'); return; }
-    if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
 
-    setPlaying(true);
-    setLastResult(null);
-    vibrate(HAPTIC.MEDIUM);
-
+    setPlaying(true); setResult(null);
+    vibrate(HAPTIC.MEDIUM); sfx.bet();
     const currentCard = card;
-    const [result] = await Promise.all([
+
+    const [r] = await Promise.all([
       placeBet('hilo', amount, { card: currentCard, token, direction }, () => {
         const nextCard = drawCard();
-        const r = resolveHilo(currentCard, nextCard, direction);
-        return { won: r.won, multiplier: r.multiplier, meta: { currentCard, nextCard, direction, push: r.push } };
+        const res = resolveHilo(currentCard, nextCard, direction);
+        return { won: res.won, multiplier: res.multiplier, meta: { currentCard, nextCard, direction, push: res.push } };
       }),
-      new Promise((r) => setTimeout(r, REVEAL_MS)),
+      new Promise((res) => setTimeout(res, 620)),
     ]);
 
     setPlaying(false);
+    if ('error' in r) { toast.error(r.error); await dealCard(); return; }
 
-    if ('error' in result) {
-      toast.error(result.error);
-      await dealCard();
-      return;
-    }
-
-    const full: HiloResult = { ...result, currentCard: result.meta.currentCard, nextCard: result.meta.nextCard, direction: result.meta.direction, push: result.meta.push };
-    setLastResult(full);
-
-    if (full.push) {
-      vibrate(HAPTIC.WARNING);
-      toast.info(`Égalité (${CARD_LABEL(full.nextCard)}) — remboursé.`);
-    } else if (full.won) {
-      vibrate(HAPTIC.SUCCESS);
-      toast.success(`${CARD_LABEL(full.nextCard)} ! Gain: +${full.payout} ₶`);
-    } else {
-      vibrate(HAPTIC.ERROR);
-      toast.error(`${CARD_LABEL(full.nextCard)}. Perdu.`);
-    }
-
+    const full: HiloResult = { ...r, currentCard: r.meta.currentCard, nextCard: r.meta.nextCard, direction: r.meta.direction, push: r.meta.push };
+    setResult(full);
     setCard(full.nextCard);
+    sfx.card();
+
+    if (full.push) { vibrate(HAPTIC.WARNING); sfx.reveal(); toast.info(`${rankLabel(full.nextCard)} — égalité, remboursé.`); }
+    else if (full.won) {
+      vibrate(HAPTIC.SUCCESS); sfx.win();
+      if (full.multiplier >= 4) setConfetti((c) => c + 1);
+      toast.success(`${rankLabel(full.nextCard)} — +${full.payout} ₶`);
+    } else { vibrate(HAPTIC.ERROR); sfx.lose(); toast.error(`${rankLabel(full.nextCard)} — perdu`); }
+
     await dealCard();
   };
 
-  const gameHistory = history.filter((h) => h.game_slug === 'hilo').slice(0, 12);
+  const gameHistory = history.filter((h) => h.game_slug === 'hilo').slice(0, 10);
 
-  return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/casino')} className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Frenly HiLo</h1>
+  const stage = (
+    <div className="w-full flex flex-col items-center gap-5">
+      {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
+
+      <div className="flex items-center gap-6">
+        {result && (
+          <div className="flex flex-col items-center gap-1.5 opacity-60">
+            <PlayingCard rank={result.currentCard} index={1} size="md" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">Précédente</span>
           </div>
-          <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-5 w-5 text-accent-primary" />
-            <span className="font-display font-black text-lg tabular-nums">{isLoaded ? balance.toLocaleString('fr-FR') : '...'}</span>
-            <span className="text-tx-secondary font-bold">₶</span>
-            {isLocal && <span className="ml-1 text-[9px] font-black uppercase bg-brand-card border border-brand-border px-1.5 py-0.5 rounded text-tx-muted">Local</span>}
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="flex flex-col items-center justify-center bg-brand-card border-4 border-brand-border rounded-[32px] p-6">
-            <div className={cn('w-24 h-32 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center font-display font-black text-4xl', playing && 'animate-pulse')}>
-              {card !== null ? CARD_LABEL(card) : '?'}
-            </div>
-            <div className="mt-6 h-10 flex items-center">
-              {lastResult && !playing && (
-                <div className={cn(
-                  'px-4 py-2 rounded-xl border-2 font-bold text-sm animate-in fade-in duration-200',
-                  lastResult.push ? 'border-tx-secondary text-tx-secondary bg-brand-inner' :
-                  lastResult.won ? 'border-accent-success text-accent-success bg-accent-success/10' :
-                  'border-accent-secondary text-accent-secondary bg-accent-secondary/10'
-                )}>
-                  {lastResult.push ? 'Égalité — remboursé' : lastResult.won ? `Gagné +${lastResult.payout} ₶` : 'Perdu'}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Mise (max {maxBet} ₶)</label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setAmount((a) => clampAmount(a - 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input type="number" value={amount} onChange={(e) => setAmount(clampAmount(Number(e.target.value) || 0))} className="flex-1 h-11 bg-brand-inner border-2 border-brand-border rounded-lg px-3 text-center font-display font-black" />
-                <button onClick={() => setAmount((a) => clampAmount(a + 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button onClick={() => setAmount(maxBet)} className="h-11 px-3 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-xs font-bold hover:border-tx-base">MAX</button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => handleGuess('higher')}
-                disabled={playing || !isLoaded || amount < CASINO_MIN_BET || higherPayout === null}
-                className={cn('h-20 rounded-2xl border-4 border-brand-border bg-brand-inner flex flex-col items-center justify-center gap-1 font-bold transition-colors focus:outline-none', (playing || higherPayout === null) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-tx-base hover:text-brand-bg hover:border-tx-base')}
-              >
-                <ChevronUp className="w-6 h-6" />
-                <span className="text-sm">Plus haut</span>
-                <span className="text-xs text-tx-secondary">{higherPayout ? `x${higherPayout}` : '—'}</span>
-              </button>
-              <button
-                onClick={() => handleGuess('lower')}
-                disabled={playing || !isLoaded || amount < CASINO_MIN_BET || lowerPayout === null}
-                className={cn('h-20 rounded-2xl border-4 border-brand-border bg-brand-inner flex flex-col items-center justify-center gap-1 font-bold transition-colors focus:outline-none', (playing || lowerPayout === null) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-tx-base hover:text-brand-bg hover:border-tx-base')}
-              >
-                <ChevronDown className="w-6 h-6" />
-                <span className="text-sm">Plus bas</span>
-                <span className="text-xs text-tx-secondary">{lowerPayout ? `x${lowerPayout}` : '—'}</span>
-              </button>
-            </div>
-
-            <p className="text-xs text-tx-muted">Égalité (même valeur) = mise remboursée.</p>
-
-            {gameHistory.length > 0 && (
-              <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Dernières parties</span>
-                <div className="flex flex-wrap gap-2">
-                  {gameHistory.map((h) => (
-                    <span key={h.id} className={cn('text-xs font-bold px-2 py-1 rounded-md border-2', h.amount > 0 ? 'border-accent-success text-accent-success' : h.amount === 0 ? 'border-tx-secondary text-tx-secondary' : 'border-accent-secondary text-accent-secondary')}>
-                      {h.amount > 0 ? '+' : ''}{h.amount}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+        )}
+        <div className="flex flex-col items-center gap-1.5">
+          {card !== null ? <PlayingCard rank={card} index={0} size="lg" highlight={!!result?.won} /> : <PlayingCard hidden size="lg" />}
+          <span className="text-[9px] font-black uppercase tracking-widest text-tx-secondary">Carte en jeu</span>
         </div>
       </div>
-    </main>
+
+      <div className="flex gap-1 text-[10px] font-bold text-tx-muted">
+        <span>A=1</span><span>·</span><span>V=11</span><span>·</span><span>D=12</span><span>·</span><span>R=13</span>
+      </div>
+
+      <ResultBanner state={!result ? 'idle' : result.push ? 'push' : result.won ? 'win' : 'lose'}>
+        {result?.push ? 'Égalité — remboursé' : result?.won ? `+${result.payout} ₶` : 'Perdu'}
+      </ResultBanner>
+    </div>
+  );
+
+  const panel = (
+    <>
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
+
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => handleGuess('higher')}
+          disabled={playing || !isLoaded || amount < CASINO_MIN_BET || higherPayout === null}
+          className={cn(
+            'h-24 rounded-2xl border-4 border-brand-border bg-brand-inner flex flex-col items-center justify-center gap-1 font-bold transition-all shadow-brutal focus:outline-none',
+            (playing || higherPayout === null) ? 'opacity-40 cursor-not-allowed' : 'hover:border-accent-success hover:-translate-y-1 active:translate-y-0'
+          )}
+        >
+          <ChevronUp className="w-6 h-6 text-accent-success" />
+          <span className="text-sm">Plus haut</span>
+          <span className="text-xs font-black text-accent-success">{higherPayout ? `×${higherPayout}` : 'impossible'}</span>
+        </button>
+        <button
+          onClick={() => handleGuess('lower')}
+          disabled={playing || !isLoaded || amount < CASINO_MIN_BET || lowerPayout === null}
+          className={cn(
+            'h-24 rounded-2xl border-4 border-brand-border bg-brand-inner flex flex-col items-center justify-center gap-1 font-bold transition-all shadow-brutal focus:outline-none',
+            (playing || lowerPayout === null) ? 'opacity-40 cursor-not-allowed' : 'hover:border-accent-secondary hover:-translate-y-1 active:translate-y-0'
+          )}
+        >
+          <ChevronDown className="w-6 h-6 text-accent-secondary" />
+          <span className="text-sm">Plus bas</span>
+          <span className="text-xs font-black text-accent-secondary">{lowerPayout ? `×${lowerPayout}` : 'impossible'}</span>
+        </button>
+      </div>
+
+      <p className="text-[11px] text-tx-muted">La cote change à chaque carte : plus le pari est probable, moins il paie.</p>
+
+      <HistoryStrip history={gameHistory} />
+    </>
+  );
+
+  return (
+    <GameShell title="Frenly HiLo" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
   );
 }

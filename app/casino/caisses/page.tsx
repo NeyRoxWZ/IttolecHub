@@ -1,152 +1,155 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { hideJackpot, resolveCaisses, CAISSES_COUNT, CAISSES_PAYOUT, CASINO_MIN_BET } from '@/lib/casino/caisses';
+import {
+  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+} from '../_components/CasinoUI';
+import Confetti from '../_components/Confetti';
 
-const SHUFFLE_MS = 1000;
+const RULES: RulesSpec = {
+  howTo: [
+    `Place ta mise, puis choisis une des ${CAISSES_COUNT} caisses.`,
+    'Une seule contient le jackpot, les autres sont vides.',
+    `Tu as 1 chance sur ${CAISSES_COUNT} de tomber dessus.`,
+    'Toutes les caisses sont ouvertes après ton choix pour que tu voies où était le lot.',
+  ],
+  payouts: [
+    { label: 'Caisse au jackpot', value: `×${CAISSES_PAYOUT}` },
+    { label: 'Caisse vide', value: 'Mise perdue' },
+  ],
+  rtp: '~93%',
+};
 
-type CaissesResult = GenericBetResult & { jackpotCrate: number; chosenCrate: number };
+type Phase = 'idle' | 'choosing' | 'opening' | 'revealed';
 
 export default function CaissesPage() {
-  const router = useRouter();
-  const { balance, isLoaded, isLocal, maxBet, placeBet, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, placeBet, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
-  const [opening, setOpening] = useState(false);
-  const [lastResult, setLastResult] = useState<CaissesResult | null>(null);
-
-  const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [result, setResult] = useState<(GenericBetResult & { jackpotCrate: number; chosenCrate: number }) | null>(null);
+  const [openedCrate, setOpenedCrate] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [confetti, setConfetti] = useState(0);
 
   const handlePick = async (crate: number) => {
-    if (opening) return;
-    if (amount > balance) { toast.error('Solde insuffisant.'); return; }
-    if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
+    if (busy || phase !== 'choosing') return;
+    setBusy(true); setOpenedCrate(crate); setPhase('opening');
+    vibrate(HAPTIC.MEDIUM); sfx.click();
 
-    setOpening(true);
-    setLastResult(null);
-    vibrate(HAPTIC.MEDIUM);
-
-    const [result] = await Promise.all([
+    const [r] = await Promise.all([
       placeBet('caisses', amount, { crate }, () => {
         const jackpotCrate = hideJackpot();
-        const r = resolveCaisses(jackpotCrate, crate);
-        return { ...r, meta: { jackpotCrate, chosenCrate: crate } };
+        return { ...resolveCaisses(jackpotCrate, crate), meta: { jackpotCrate, chosenCrate: crate } };
       }),
-      new Promise((r) => setTimeout(r, SHUFFLE_MS)),
+      new Promise((res) => setTimeout(res, 700)),
     ]);
 
-    setOpening(false);
+    setBusy(false);
+    if ('error' in r) { setPhase('choosing'); setOpenedCrate(null); toast.error(r.error); return; }
 
-    if ('error' in result) {
-      toast.error(result.error);
-      return;
-    }
+    setResult({ ...r, jackpotCrate: r.meta.jackpotCrate, chosenCrate: r.meta.chosenCrate });
+    setPhase('revealed');
 
-    const full: CaissesResult = { ...result, jackpotCrate: result.meta.jackpotCrate, chosenCrate: result.meta.chosenCrate };
-    setLastResult(full);
-
-    if (full.won) {
-      vibrate(HAPTIC.SUCCESS);
-      toast.success(`Jackpot ! Gain: +${full.payout} ₶`);
+    if (r.won) {
+      vibrate(HAPTIC.SUCCESS); sfx.bigWin(); setConfetti((c) => c + 1);
+      toast.success(`Jackpot ! +${r.payout} ₶`);
     } else {
-      vibrate(HAPTIC.ERROR);
-      toast.error('Caisse vide. Perdu.');
+      vibrate(HAPTIC.ERROR); sfx.lose();
+      toast.error(`Vide. Le lot était dans la caisse ${r.meta.jackpotCrate + 1}.`);
     }
   };
 
-  const gameHistory = history.filter((h) => h.game_slug === 'caisses').slice(0, 12);
+  const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setOpenedCrate(null); };
+
+  const gameHistory = history.filter((h) => h.game_slug === 'caisses').slice(0, 10);
+
+  const stage = (
+    <div className="w-full flex flex-col items-center gap-5">
+      {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
+      <style jsx global>{`
+        @keyframes crateShake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
+        @keyframes cratePop { 0% { transform: scale(0.5) translateY(10px); opacity: 0; } 100% { transform: scale(1) translateY(-6px); opacity: 1; } }
+      `}</style>
+
+      <div className="flex flex-wrap gap-3 justify-center">
+        {Array.from({ length: CAISSES_COUNT }, (_, i) => {
+          const revealed = phase === 'revealed' && result;
+          const hasJackpot = revealed && result.jackpotCrate === i;
+          const isChosen = openedCrate === i;
+          const isOpening = phase === 'opening' && isChosen;
+
+          return (
+            <button
+              key={i}
+              onClick={() => handlePick(i)}
+              disabled={phase !== 'choosing'}
+              className={cn(
+                'relative w-[74px] h-[74px] rounded-xl border-4 flex items-center justify-center text-3xl transition-all focus:outline-none',
+                hasJackpot ? 'border-accent-success bg-accent-success/25'
+                  : isChosen && revealed ? 'border-accent-secondary bg-accent-secondary/20'
+                  : revealed ? 'border-brand-border opacity-45'
+                  : phase === 'choosing' ? 'border-brand-border hover:border-accent-primary hover:-translate-y-1 cursor-pointer'
+                  : 'border-brand-border'
+              )}
+              style={{
+                background: hasJackpot ? undefined : 'linear-gradient(160deg, #6B4A2A 0%, #4A3018 100%)',
+                animation: isOpening ? 'crateShake 180ms ease-in-out 3' : undefined,
+              }}
+            >
+              {revealed
+                ? (hasJackpot
+                  ? <span style={{ animation: 'cratePop 320ms ease-out forwards' }}>💰</span>
+                  : <span className="opacity-40 text-2xl">📭</span>)
+                : <span>📦</span>}
+              {!revealed && phase === 'choosing' && (
+                <span className="absolute bottom-1 right-1.5 text-[10px] font-black text-white/60">{i + 1}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="text-xs font-bold text-tx-secondary">
+        {phase === 'idle' ? 'Règle ta mise puis lance' : phase === 'choosing' ? 'Choisis une caisse' : phase === 'opening' ? 'Ouverture...' : result?.won ? 'Jackpot !' : 'Caisse vide'}
+      </p>
+
+      <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
+        {result?.won ? `+${result.payout} ₶` : 'Perdu'}
+      </ResultBanner>
+    </div>
+  );
+
+  const panel = (
+    <>
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'choosing' || phase === 'opening' || busy} />
+
+      {phase === 'choosing' ? (
+        <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
+          <div className="font-display font-black text-sm text-accent-primary">Choisis ta caisse</div>
+          <p className="text-xs text-tx-secondary mt-1">Une seule des {CAISSES_COUNT} contient le lot.</p>
+        </div>
+      ) : (
+        <PlayButton
+          onClick={() => { if (phase === 'revealed') handleReset(); else { sfx.bet(); setPhase('choosing'); } }}
+          loading={busy}
+          disabled={!isLoaded || amount < CASINO_MIN_BET}
+        >
+          {phase === 'revealed' ? 'REJOUER' : `MISER · ${amount} ₶ (×${CAISSES_PAYOUT})`}
+        </PlayButton>
+      )}
+
+      <HistoryStrip history={gameHistory} />
+    </>
+  );
 
   return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/casino')} className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Frenly Caisses</h1>
-          </div>
-          <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-5 w-5 text-accent-primary" />
-            <span className="font-display font-black text-lg tabular-nums">{isLoaded ? balance.toLocaleString('fr-FR') : '...'}</span>
-            <span className="text-tx-secondary font-bold">₶</span>
-            {isLocal && <span className="ml-1 text-[9px] font-black uppercase bg-brand-card border border-brand-border px-1.5 py-0.5 rounded text-tx-muted">Local</span>}
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="flex flex-col items-center justify-center bg-brand-card border-4 border-brand-border rounded-[32px] p-6">
-            <div className="grid grid-cols-5 gap-3">
-              {Array.from({ length: CAISSES_COUNT }, (_, crate) => {
-                const isChosen = lastResult?.chosenCrate === crate;
-                const isJackpot = lastResult?.jackpotCrate === crate;
-                const revealed = !!lastResult && !opening;
-                return (
-                  <button
-                    key={crate}
-                    onClick={() => handlePick(crate)}
-                    disabled={opening || !isLoaded || amount < CASINO_MIN_BET}
-                    className={cn(
-                      'w-14 h-14 sm:w-16 sm:h-16 rounded-xl border-4 flex items-center justify-center transition-all focus:outline-none',
-                      opening && 'animate-pulse',
-                      revealed && isJackpot ? 'border-accent-success bg-accent-success/20' : 'border-brand-border bg-brand-inner',
-                      !opening && !revealed && 'hover:border-accent-primary hover:-translate-y-1'
-                    )}
-                  >
-                    <Gift className={cn('w-6 h-6', revealed && isJackpot ? 'text-accent-success' : 'text-tx-secondary')} />
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-6 h-10 flex items-center">
-              {lastResult && !opening && (
-                <div className={cn('px-4 py-2 rounded-xl border-2 font-bold text-sm animate-in fade-in duration-200', lastResult.won ? 'border-accent-success text-accent-success bg-accent-success/10' : 'border-accent-secondary text-accent-secondary bg-accent-secondary/10')}>
-                  {lastResult.won ? `Gagné +${lastResult.payout} ₶` : 'Perdu'}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Mise (max {maxBet} ₶)</label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setAmount((a) => clampAmount(a - 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input type="number" value={amount} onChange={(e) => setAmount(clampAmount(Number(e.target.value) || 0))} className="flex-1 h-11 bg-brand-inner border-2 border-brand-border rounded-lg px-3 text-center font-display font-black" />
-                <button onClick={() => setAmount((a) => clampAmount(a + 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button onClick={() => setAmount(maxBet)} className="h-11 px-3 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-xs font-bold hover:border-tx-base">MAX</button>
-              </div>
-            </div>
-
-            <p className="text-sm text-tx-secondary">
-              Clique une caisse. Une seule cache le jackpot, paie x{CAISSES_PAYOUT}.
-            </p>
-
-            {gameHistory.length > 0 && (
-              <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Dernières parties</span>
-                <div className="flex flex-wrap gap-2">
-                  {gameHistory.map((h) => (
-                    <span key={h.id} className={cn('text-xs font-bold px-2 py-1 rounded-md border-2', h.amount >= 0 ? 'border-accent-success text-accent-success' : 'border-accent-secondary text-accent-secondary')}>
-                      {h.amount >= 0 ? '+' : ''}{h.amount}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </main>
+    <GameShell title="Frenly Caisses" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} stage={stage} panel={panel} />
   );
 }
