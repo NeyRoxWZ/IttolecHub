@@ -27,11 +27,11 @@ const RULES: RulesSpec = {
   rtp: '~97%',
 };
 
-const SPACING = 34;
-const ROW_H = 30;
+const SPACING = 46;
+const ROW_H = 40;
 const BOARD_W = SPACING * (PLINKO_ROWS + 1);
 const BOARD_H = ROW_H * (PLINKO_ROWS + 1) + 20;
-const STEP_MS = 130;
+const STEP_MS = 78;
 
 export default function PlinkoPage() {
   const { balance, isLoaded, isLocal, maxBet, stats, placeBet, history } = useCasinoWallet();
@@ -69,7 +69,7 @@ export default function PlinkoPage() {
       sfx.tick(); vibrate(HAPTIC.SOFT);
     }
 
-    await new Promise((res) => setTimeout(res, 220));
+    await new Promise((res) => setTimeout(res, 130));
     setLandedBucket(r.meta.bucket);
     setResult(r);
     setDropping(false);
@@ -108,7 +108,7 @@ export default function PlinkoPage() {
                 <div
                   key={`${row}-${p}`}
                   className={cn('absolute rounded-full transition-colors duration-150', active ? 'bg-accent-primary' : 'bg-white/35')}
-                  style={{ width: 6, height: 6, left: x - 3, top: y - 3 }}
+                  style={{ width: 8, height: 8, left: x - 4, top: y - 4 }}
                 />
               );
             });
@@ -119,8 +119,8 @@ export default function PlinkoPage() {
             <div
               className="absolute rounded-full bg-accent-primary z-10"
               style={{
-                width: 14, height: 14,
-                left: BOARD_W / 2 + ball.offset * SPACING - 7,
+                width: 20, height: 20,
+                left: BOARD_W / 2 + ball.offset * SPACING - 10,
                 top: ball.row * ROW_H + 2,
                 transition: `left ${STEP_MS}ms cubic-bezier(0.4,0,0.6,1), top ${STEP_MS}ms cubic-bezier(0.3,0,0.7,1)`,
                 boxShadow: '0 0 10px rgba(255,208,0,0.8)',
@@ -135,7 +135,7 @@ export default function PlinkoPage() {
             <div
               key={i}
               className={cn(
-                'flex-1 h-9 rounded-md border-2 flex items-center justify-center text-[10px] font-black transition-all duration-300',
+                'flex-1 h-12 rounded-md border-2 flex items-center justify-center text-xs font-black transition-all duration-300',
                 landedBucket === i ? 'scale-110 z-10' : ''
               )}
               style={{

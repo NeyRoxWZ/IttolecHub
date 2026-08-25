@@ -49,7 +49,7 @@ export default function CaissesPage() {
         const jackpotCrate = hideJackpot();
         return { ...resolveCaisses(jackpotCrate, crate), meta: { jackpotCrate, chosenCrate: crate } };
       }),
-      new Promise((res) => setTimeout(res, 700)),
+      new Promise((res) => setTimeout(res, 380)),
     ]);
 
     setBusy(false);
@@ -79,7 +79,7 @@ export default function CaissesPage() {
         @keyframes cratePop { 0% { transform: scale(0.5) translateY(10px); opacity: 0; } 100% { transform: scale(1) translateY(-6px); opacity: 1; } }
       `}</style>
 
-      <div className="flex flex-wrap gap-3 justify-center">
+      <div className="flex flex-wrap gap-4 justify-center">
         {Array.from({ length: CAISSES_COUNT }, (_, i) => {
           const revealed = phase === 'revealed' && result;
           const hasJackpot = revealed && result.jackpotCrate === i;
@@ -92,7 +92,7 @@ export default function CaissesPage() {
               onClick={() => handlePick(i)}
               disabled={phase !== 'choosing'}
               className={cn(
-                'relative w-[74px] h-[74px] rounded-xl border-4 flex items-center justify-center transition-all focus:outline-none overflow-hidden',
+                'relative w-[104px] h-[104px] rounded-2xl border-4 flex items-center justify-center transition-all focus:outline-none overflow-hidden',
                 hasJackpot ? 'border-accent-success bg-accent-success/25'
                   : isChosen && revealed ? 'border-accent-secondary bg-accent-secondary/20'
                   : revealed ? 'border-brand-border opacity-45'
@@ -106,9 +106,9 @@ export default function CaissesPage() {
             >
               {revealed
                 ? (hasJackpot
-                  ? <span style={{ animation: 'cratePop 320ms ease-out forwards' }}><ArtCrate size={44} open /></span>
-                  : <ArtCrateEmpty size={40} />)
-                : <ArtCrate size={44} />}
+                  ? <span style={{ animation: 'cratePop 320ms ease-out forwards' }}><ArtCrate size={64} open /></span>
+                  : <ArtCrateEmpty size={58} />)
+                : <ArtCrate size={64} />}
               {!revealed && phase === 'choosing' && (
                 <span className="absolute bottom-1 right-1.5 text-[10px] font-black text-white/60">{i + 1}</span>
               )}

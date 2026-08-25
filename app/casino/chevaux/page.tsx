@@ -24,7 +24,7 @@ const RULES: RulesSpec = {
   rtp: '~94%',
 };
 
-const RACE_MS = 3200;
+const RACE_MS = 1900;
 type Phase = 'idle' | 'racing' | 'done';
 
 export default function ChevauxPage() {
@@ -106,18 +106,18 @@ export default function ChevauxPage() {
           return (
             <div key={h.id} className={cn('relative rounded-lg overflow-hidden border-2', isWinner ? 'border-accent-primary' : isPick ? 'border-white/50' : 'border-white/10')}
               style={{ background: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 22px, transparent 22px 44px)' }}>
-              <div className="flex items-center h-11 px-2 gap-2">
-                <span className={cn('text-[10px] font-black w-[92px] shrink-0 truncate', isPick ? 'text-white' : 'text-white/60')}>{h.name}</span>
+              <div className="flex items-center h-14 px-3 gap-3">
+                <span className={cn('text-xs font-black w-[110px] shrink-0 truncate', isPick ? 'text-white' : 'text-white/60')}>{h.name}</span>
                 <div className="relative flex-1 h-full">
                   <span
                     className="absolute top-1/2 -translate-y-1/2"
-                    style={{ left: `calc(${progress[i] * 100}% - 14px)`, transition: phase === 'racing' ? 'none' : 'left 300ms ease-out' }}
+                    style={{ left: `calc(${progress[i] * 100}% - 22px)`, transition: phase === 'racing' ? 'none' : 'left 300ms ease-out' }}
                   >
-                    <ArtHorse size={22} />
+                    <ArtHorse size={34} />
                   </span>
                 </div>
-                <span className={cn('text-[10px] font-black shrink-0', isWinner ? 'text-accent-primary' : 'text-white/50')}>×{h.payout}</span>
-                <span className="shrink-0"><ArtFinishFlag size={16} /></span>
+                <span className={cn('text-xs font-black shrink-0', isWinner ? 'text-accent-primary' : 'text-white/50')}>×{h.payout}</span>
+                <span className="shrink-0"><ArtFinishFlag size={22} /></span>
               </div>
             </div>
           );

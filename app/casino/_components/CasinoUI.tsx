@@ -225,7 +225,8 @@ export function PlayingCard({
 }: {
   rank?: number; hidden?: boolean; index?: number; size?: 'sm' | 'md' | 'lg'; highlight?: boolean;
 }) {
-  const dims = { sm: 'w-10 h-14 text-base', md: 'w-14 h-20 text-xl', lg: 'w-20 h-28 text-3xl' }[size];
+  const dims = { sm: 'w-12 h-16 text-lg', md: 'w-[72px] h-[104px] text-3xl', lg: 'w-[104px] h-[148px] text-5xl' }[size];
+  const corner = { sm: 'text-[11px]', md: 'text-sm', lg: 'text-lg' }[size];
   const suit = SUITS[(index * 3 + (rank ?? 0)) % 4];
   const red = suit === '♥' || suit === '♦';
 
@@ -248,9 +249,9 @@ export function PlayingCard({
       )}
       style={{ color: red ? '#D32F2F' : '#111', boxShadow: '0 2px 6px rgba(0,0,0,0.45)' }}
     >
-      <span className="absolute top-1 left-1.5 text-[10px] leading-none">{rankLabel(rank)}</span>
+      <span className={cn('absolute top-1.5 left-2 leading-none', corner)}>{rankLabel(rank)}</span>
       <span>{suit}</span>
-      <span className="absolute bottom-1 right-1.5 text-[10px] leading-none rotate-180">{rankLabel(rank)}</span>
+      <span className={cn('absolute bottom-1.5 right-2 leading-none rotate-180', corner)}>{rankLabel(rank)}</span>
     </div>
   );
 }
@@ -286,12 +287,14 @@ export function GameShell({
 
   return (
     // Locked to the viewport on desktop so the whole game fits without any
-    // scrolling; on narrow screens the page itself scrolls (unavoidable when
-    // the two columns stack) but nothing scrolls *inside* it.
-    <main className="lg:h-[100dvh] lg:overflow-hidden bg-transparent text-tx-base p-3 sm:p-4 flex flex-col">
+    // scrolling. The min-height guard matters: on a short window we let the
+    // page scroll instead of clipping the game off the bottom. On narrow
+    // screens the columns stack and the page scrolls, but nothing ever
+    // scrolls *inside* the game.
+    <main className="lg:[@media(min-height:700px)]:h-[100dvh] lg:[@media(min-height:700px)]:overflow-hidden bg-transparent text-tx-base p-3 sm:p-4 flex flex-col">
       {showRules && <RulesModal title={title} rules={rules} onClose={() => setShowRules(false)} />}
 
-      <div className="max-w-5xl w-full mx-auto flex flex-col flex-1 min-h-0">
+      <div className="max-w-[1500px] w-full mx-auto flex flex-col flex-1 min-h-0">
         <header className="flex items-center justify-between gap-3 mb-3 flex-wrap shrink-0">
           <div className="flex items-center gap-3">
             <button
@@ -329,11 +332,11 @@ export function GameShell({
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 flex-1 min-h-0">
-          <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 flex flex-col items-center justify-center min-h-[300px] lg:min-h-0 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 flex-1 min-h-0">
+          <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 sm:p-6 flex flex-col items-center justify-center min-h-[380px] lg:min-h-0">
             {stage}
           </div>
-          <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 shadow-brutal flex flex-col gap-3 min-h-0 overflow-hidden">
+          <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 sm:p-5 shadow-brutal flex flex-col gap-4 min-h-0">
             {panel}
           </div>
         </div>

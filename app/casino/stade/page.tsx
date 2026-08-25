@@ -74,11 +74,11 @@ export default function StadePage() {
       [home, away] = outcome === 'home' ? [hi, lo] : [lo, hi];
     }
 
-    await new Promise((res) => setTimeout(res, 380));
+    await new Promise((res) => setTimeout(res, 200));
     setCards({ home }); sfx.card();
-    await new Promise((res) => setTimeout(res, 520));
+    await new Promise((res) => setTimeout(res, 280));
     setCards({ home, away }); sfx.reveal();
-    await new Promise((res) => setTimeout(res, 420));
+    await new Promise((res) => setTimeout(res, 220));
 
     setPlaying(false);
     setResult({ ...r, outcome });
@@ -110,8 +110,8 @@ export default function StadePage() {
             const isWinnerSide = result && result.outcome === side;
             return (
               <div key={side} className="flex flex-col items-center gap-2">
-                <span className={cn('text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5', isWinnerSide ? 'text-accent-primary' : 'text-white/60')}>
-                  <ArtShield size={14} away={side === 'away'} />
+                <span className={cn('text-xs font-black uppercase tracking-widest flex items-center gap-2', isWinnerSide ? 'text-accent-primary' : 'text-white/60')}>
+                  <ArtShield size={18} away={side === 'away'} />
                   {side === 'home' ? 'Domicile' : 'Extérieur'}
                 </span>
                 {value !== undefined

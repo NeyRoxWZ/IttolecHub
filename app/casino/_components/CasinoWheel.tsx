@@ -39,7 +39,7 @@ interface CasinoWheelProps {
  * segment the server actually chose. The visual never decides the outcome.
  */
 const CasinoWheel = forwardRef<CasinoWheelHandle, CasinoWheelProps>(function CasinoWheel(
-  { segments, size = 320, labelSize, className, hub, spinSpeed = 700, settleMs = 3400, settleTurns = 4 },
+  { segments, size = 320, labelSize, className, hub, spinSpeed = 900, settleMs = 2000, settleTurns = 3 },
   ref
 ) {
   const wheelRef = useRef<HTMLDivElement>(null);

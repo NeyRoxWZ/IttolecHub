@@ -60,7 +60,7 @@ export default function RpsPage() {
       }),
       // Three "shoot" beats before the reveal.
       (async () => {
-        for (let i = 0; i < 3; i++) { sfx.tick(); vibrate(HAPTIC.SOFT); await new Promise((res) => setTimeout(res, 280)); }
+        for (let i = 0; i < 3; i++) { sfx.tick(); vibrate(HAPTIC.SOFT); await new Promise((res) => setTimeout(res, 150)); }
       })(),
     ]);
 
@@ -94,19 +94,19 @@ export default function RpsPage() {
 
       <div className="flex items-center justify-center gap-6 sm:gap-10">
         <div className="flex flex-col items-center gap-2">
-          <div className="w-24 h-24 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center"
+          <div className="w-36 h-36 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center"
             style={{ animation: playing ? 'rpsShake 280ms ease-in-out infinite' : undefined }}>
-            <ArtRps move={result ? result.playerMove : 'pierre'} size={46} />
+            <ArtRps move={result ? result.playerMove : 'pierre'} size={70} />
           </div>
           <span className="text-[10px] font-black uppercase tracking-widest text-tx-secondary">Toi</span>
         </div>
 
-        <span className="font-display text-2xl font-black text-tx-muted">VS</span>
+        <span className="font-display text-3xl font-black text-tx-muted">VS</span>
 
         <div className="flex flex-col items-center gap-2">
-          <div className="w-24 h-24 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center"
+          <div className="w-36 h-36 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center"
             style={{ animation: playing ? 'rpsShakeMirror 280ms ease-in-out infinite' : undefined, transform: playing ? undefined : 'scaleX(-1)' }}>
-            <ArtRps move={result ? result.house : 'pierre'} size={46} />
+            <ArtRps move={result ? result.house : 'pierre'} size={70} />
           </div>
           <span className="text-[10px] font-black uppercase tracking-widest text-tx-secondary">Maison</span>
         </div>
@@ -131,11 +131,11 @@ export default function RpsPage() {
               onClick={() => handlePlay(value)}
               disabled={playing || !isLoaded || amount < CASINO_MIN_BET}
               className={cn(
-                'h-24 rounded-2xl border-4 border-brand-border bg-brand-inner flex flex-col items-center justify-center gap-1 font-bold text-xs transition-all focus:outline-none shadow-brutal',
+                'h-28 rounded-2xl border-4 border-brand-border bg-brand-inner flex flex-col items-center justify-center gap-1.5 font-bold text-sm transition-all focus:outline-none shadow-brutal',
                 playing ? 'opacity-50 cursor-not-allowed' : 'hover:border-accent-primary hover:-translate-y-1 active:translate-y-0'
               )}
             >
-              <ArtRps move={value} size={34} />
+              <ArtRps move={value} size={44} />
               {label}
             </button>
           ))}

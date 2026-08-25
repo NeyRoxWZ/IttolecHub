@@ -27,7 +27,7 @@ const RULES: RulesSpec = {
 };
 
 const SPIN_SPEED = 1100;
-const SETTLE_MS = 1300;
+const SETTLE_MS = 850;
 
 export default function CoinflipPage() {
   const { balance, isLoaded, isLocal, maxBet, stats, placeBet, history } = useCasinoWallet();
@@ -105,7 +105,7 @@ export default function CoinflipPage() {
       {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
 
       <div style={{ perspective: 900 }}>
-        <div ref={coinRef} className="relative w-40 h-40" style={{ transformStyle: 'preserve-3d', transform: 'rotateX(-12deg) rotateY(0deg)' }}>
+        <div ref={coinRef} className="relative w-56 h-56" style={{ transformStyle: 'preserve-3d', transform: 'rotateX(-12deg) rotateY(0deg)' }}>
           {/* Pile */}
           <div
             className="absolute inset-0 rounded-full border-8 flex flex-col items-center justify-center font-display font-black"
@@ -115,8 +115,8 @@ export default function CoinflipPage() {
               borderColor: '#8A6B00', color: '#4A3800',
             }}
           >
-            <ArtCoinFace side="pile" size={44} />
-            <span className="text-xs tracking-widest">PILE</span>
+            <ArtCoinFace side="pile" size={64} />
+            <span className="text-sm tracking-widest">PILE</span>
           </div>
           {/* Face */}
           <div
@@ -127,8 +127,8 @@ export default function CoinflipPage() {
               borderColor: '#5A616B', color: '#2A2F38',
             }}
           >
-            <ArtCoinFace side="face" size={44} />
-            <span className="text-xs tracking-widest">FACE</span>
+            <ArtCoinFace side="face" size={64} />
+            <span className="text-sm tracking-widest">FACE</span>
           </div>
         </div>
       </div>

@@ -29,7 +29,7 @@ const RULES: RulesSpec = {
   rtp: '~94%',
 };
 
-const CELL = 88;
+const CELL = 124;
 const SYMBOL_ART: Record<SlotSymbol, (p: { size?: number }) => JSX.Element> = {
   cherry: ArtCherry, bell: ArtBell, star: ArtStar,
   diamond: ArtDiamond, lemon: ArtLemon, seven: ArtSeven,
@@ -54,7 +54,7 @@ function Reel({ state, highlight }: { state: ReelState; highlight: boolean }) {
         className="absolute left-0 right-0 flex flex-col items-center"
         style={{
           transform: `translateY(${-state.offset}px)`,
-          transition: state.spinning ? 'none' : `transform 900ms cubic-bezier(0.15, 0.85, 0.2, 1.02)`,
+          transition: state.spinning ? 'none' : `transform 480ms cubic-bezier(0.15, 0.85, 0.2, 1.02)`,
           filter: state.spinning ? 'blur(3px)' : 'none',
         }}
       >
@@ -62,7 +62,7 @@ function Reel({ state, highlight }: { state: ReelState; highlight: boolean }) {
           const Art = SYMBOL_ART[s];
           return (
             <div key={i} className="flex items-center justify-center shrink-0" style={{ height: CELL }}>
-              <Art size={46} />
+              <Art size={68} />
             </div>
           );
         })}
@@ -137,7 +137,7 @@ export default function SlotsPage() {
         const { tier, multiplier, reels: r } = spinSlots();
         return { ...resolveSlots(multiplier), meta: { tier, reels: r } };
       }),
-      new Promise((r) => setTimeout(r, 900)),
+      new Promise((r) => setTimeout(r, 420)),
     ]);
 
     if ('error' in result) {
@@ -155,13 +155,13 @@ export default function SlotsPage() {
     // two already match — the classic near-miss tension, and it's honest:
     // the outcome was already decided server-side before the reels moved.
     stopReel(0, symbols[0]);
-    await new Promise((r) => setTimeout(r, 620));
+    await new Promise((r) => setTimeout(r, 300));
     stopReel(1, symbols[1]);
-    const suspense = symbols[0] === symbols[1] ? 1250 : 620;
+    const suspense = symbols[0] === symbols[1] ? 700 : 300;
     await new Promise((r) => setTimeout(r, suspense));
     stopReel(2, symbols[2]);
 
-    await new Promise((r) => setTimeout(r, 700));
+    await new Promise((r) => setTimeout(r, 260));
     setSpinning(false);
     setLastResult(result);
 
@@ -188,7 +188,7 @@ export default function SlotsPage() {
         className="rounded-3xl border-4 border-brand-border p-6"
         style={{ background: 'linear-gradient(180deg, #2A1B3D 0%, #1A1028 100%)' }}
       >
-        <div className="flex gap-3">
+        <div className="flex gap-4">
           {reels.map((r, i) => (
             <Reel key={i} state={r} highlight={isWinLine} />
           ))}

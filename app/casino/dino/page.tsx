@@ -29,11 +29,11 @@ const RULES: RulesSpec = {
 };
 
 /* ---- world tuning ---- */
-const WORLD_H = 190;
-const GROUND_H = 44;
-const DINO_X = 54;
-const DINO_SIZE = 34;
-const SPEED = 190;            // px/s the world scrolls
+const WORLD_H = 300;
+const GROUND_H = 64;
+const DINO_X = 76;
+const DINO_SIZE = 52;
+const SPEED = 210;            // px/s the world scrolls
 const OBSTACLE_GAP = 420;     // px between obstacles
 const GRAVITY = 2100;         // px/s²
 const JUMP_V0 = 620;          // px/s — clears an obstacle comfortably
@@ -54,7 +54,7 @@ interface Obstacle {
 
 export default function DinoPage() {
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, applyServerBalance, applyServerCashout, announceProgression, refresh, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -216,7 +216,7 @@ export default function DinoPage() {
       setBusy(false);
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
       roundIdRef.current = data.roundId;
-      await refresh();
+      applyServerBalance('dino', data.newBalance, amount);
     } else {
       const r = startLocalBet('dino', amount);
       setBusy(false);
@@ -247,10 +247,10 @@ export default function DinoPage() {
       const data = await res.json();
       setBusy(false);
       if (!res.ok) { toast.error(data.error || 'Erreur'); setPhase('dead'); return; }
+      applyServerCashout('dino', data.newBalance, data.payout, multiplier);
       setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (multiplier >= 3) setConfetti((c) => c + 1);
-      toast.success(`Encaissé +${data.payout} ₶ à ×${multiplier}`);
-      await refresh(); announceProgression(data.progression);
+      toast.success(`Encaissé +${data.payout} ₶ à ×${multiplier}`); announceProgression(data.progression);
     } else {
       const p = Math.round(lockedAmount * multiplier);
       creditLocal('dino', p, multiplier);
@@ -328,8 +328,8 @@ export default function DinoPage() {
               style={{ left: 0, bottom: GROUND_H - 4, willChange: 'transform' }}
             >
               <div className="relative">
-                <Art size={26} />
-                <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-display font-black text-white/85 whitespace-nowrap">
+                <Art size={38} />
+                <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[11px] font-display font-black text-white/90 whitespace-nowrap">
                   ×{multiplierAtStep(CONFIG, ob.index + 1)}
                 </span>
               </div>
@@ -339,7 +339,7 @@ export default function DinoPage() {
 
         {/* finish marker once everything is cleared */}
         {step >= CONFIG.totalSteps && (
-          <div className="absolute right-4" style={{ bottom: GROUND_H - 4 }}><ArtFinishFlag size={26} /></div>
+          <div className="absolute right-4" style={{ bottom: GROUND_H - 4 }}><ArtFinishFlag size={34} /></div>
         )}
 
         {phase === 'idle' && (

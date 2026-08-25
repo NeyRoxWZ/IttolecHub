@@ -35,7 +35,7 @@ type Phase = 'idle' | 'climbing' | 'dead' | 'cashed';
 
 export default function TowerPage() {
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, applyServerBalance, applyServerCashout, announceProgression, refresh, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -66,9 +66,9 @@ export default function TowerPage() {
       const data = await res.json();
       setBusy(false);
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
-      setRoundId(data.roundId); setLockedAmount(amount);
+      setRoundId(data.roundId);
+      applyServerBalance('tower', data.newBalance, amount); setLockedAmount(amount);
       setStep(0); setMultiplier(1); setPhase('climbing');
-      await refresh();
     } else {
       const r = startLocalBet('tower', amount);
       setBusy(false);
@@ -134,10 +134,10 @@ export default function TowerPage() {
       const data = await res.json();
       setBusy(false);
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
+      applyServerCashout('tower', data.newBalance, data.payout, multiplier);
       setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (multiplier >= 3) setConfetti((c) => c + 1);
-      toast.success(`Encaissé +${data.payout} ₶ à ×${multiplier}`);
-      await refresh(); announceProgression(data.progression);
+      toast.success(`Encaissé +${data.payout} ₶ à ×${multiplier}`); announceProgression(data.progression);
     } else {
       const p = Math.round(lockedAmount * multiplier);
       creditLocal('tower', p, multiplier);
@@ -168,7 +168,7 @@ export default function TowerPage() {
       </div>
 
       <div
-        className="w-full max-w-[380px] rounded-2xl border-4 border-brand-border p-2 flex flex-col-reverse gap-1"
+        className="w-full max-w-[460px] rounded-2xl border-4 border-brand-border p-3 flex flex-col-reverse gap-1.5"
         style={{ background: 'linear-gradient(180deg, #241C33 0%, #16111F 100%)' }}
       >
         {Array.from({ length: CONFIG.totalSteps }, (_, floor) => {
@@ -179,7 +179,7 @@ export default function TowerPage() {
 
           return (
             <div key={floor} className={cn('flex items-center gap-2 rounded-lg p-1 transition-colors', isCurrent && 'bg-accent-primary/10 ring-2 ring-accent-primary')}>
-              <span className={cn('w-10 shrink-0 text-[10px] font-black text-right', cleared ? 'text-accent-success' : isCurrent ? 'text-accent-primary' : 'text-tx-muted')}>
+              <span className={cn('w-12 shrink-0 text-xs font-black text-right', cleared ? 'text-accent-success' : isCurrent ? 'text-accent-primary' : 'text-tx-muted')}>
                 ×{multiplierAtStep(CONFIG, floorNumber)}
               </span>
               <div className="flex-1 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${DOORS}, minmax(0,1fr))` }}>
@@ -192,7 +192,7 @@ export default function TowerPage() {
                       onClick={() => handlePickDoor(d)}
                       disabled={!isCurrent || busy}
                       className={cn(
-                        'h-8 rounded-md border-2 flex items-center justify-center transition-all focus:outline-none',
+                        'h-11 rounded-lg border-2 flex items-center justify-center transition-all focus:outline-none',
                         isTrap ? 'border-accent-secondary bg-accent-secondary/30'
                           : isPicked ? 'border-accent-success bg-accent-success/25'
                           : rev ? 'border-white/10 bg-white/[0.04] opacity-45'
@@ -200,7 +200,7 @@ export default function TowerPage() {
                           : 'border-white/8 bg-white/[0.03]'
                       )}
                     >
-                      {isTrap ? <ArtSkull size={16} /> : isPicked ? <ArtCheck size={16} /> : isCurrent ? <ArtDoor size={16} /> : null}
+                      {isTrap ? <ArtSkull size={22} /> : isPicked ? <ArtCheck size={22} /> : isCurrent ? <ArtDoor size={22} /> : null}
                     </button>
                   );
                 })}

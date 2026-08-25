@@ -43,14 +43,14 @@ function Car({ lane, delay, danger }: { lane: number; delay: number; danger: boo
         filter: danger ? 'drop-shadow(0 0 6px #FF2A55)' : undefined,
       }}
     >
-      <ArtCar size={18} />
+      <ArtCar size={26} />
     </div>
   );
 }
 
 export default function PouletPage() {
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, applyServerBalance, applyServerCashout, announceProgression, refresh, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -83,8 +83,8 @@ export default function PouletPage() {
       setBusy(false);
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
       setRoundId(data.roundId);
+      applyServerBalance('poulet', data.newBalance, amount);
       setLockedAmount(amount); setStep(0); setMultiplier(1); setPhase('crossing');
-      await refresh();
     } else {
       const result = startLocalBet('poulet', amount);
       setBusy(false);
@@ -100,7 +100,7 @@ export default function PouletPage() {
     vibrate(HAPTIC.SOFT); sfx.step(step);
 
     // Brief hop animation before the outcome lands.
-    await new Promise((r) => setTimeout(r, 260));
+    await new Promise((r) => setTimeout(r, 140));
 
     const targetLane = step;
 
@@ -149,10 +149,10 @@ export default function PouletPage() {
       const data = await res.json();
       setBusy(false);
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
+      applyServerCashout('poulet', data.newBalance, data.payout, multiplier);
       setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (multiplier >= 3) setConfetti((c) => c + 1);
       toast.success(`Encaissé +${data.payout} ₶ à ×${multiplier}`);
-      await refresh();
       announceProgression(data.progression);
     } else {
       const p = Math.round(lockedAmount * multiplier);
@@ -205,12 +205,12 @@ export default function PouletPage() {
 
       {/* The road — every lane fits on screen, nothing scrolls */}
       <div className="w-full rounded-2xl border-4 border-brand-border overflow-hidden">
-        <div className="flex" style={{ height: 200 }}>
+        <div className="flex" style={{ height: 300 }}>
           {/* Start kerb */}
-          <div className="w-9 shrink-0 flex flex-col items-center justify-end pb-3" style={{ background: '#4A5057' }}>
+          <div className="w-12 shrink-0 flex flex-col items-center justify-end pb-4" style={{ background: '#4A5057' }}>
             {step === 0 && phase !== 'dead' && (
               <span style={{ animation: phase === 'hopping' ? 'pouletHop 260ms ease-out' : undefined }}>
-                <ArtChicken size={26} />
+                <ArtChicken size={40} />
               </span>
             )}
           </div>
@@ -230,7 +230,7 @@ export default function PouletPage() {
                 style={{ background: crossed ? '#2E3A32' : '#33383D' }}
               >
                 <div className={cn(
-                  'absolute top-1.5 left-1/2 -translate-x-1/2 px-1 py-0.5 rounded text-[9px] font-display font-black border z-20 whitespace-nowrap',
+                  'absolute top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[11px] font-display font-black border z-20 whitespace-nowrap',
                   crossed ? 'bg-accent-success text-brand-bg border-accent-success'
                     : isCurrent ? 'bg-accent-primary text-brand-bg border-accent-primary animate-pulse'
                     : 'bg-black/50 text-white/70 border-white/20'
@@ -241,7 +241,7 @@ export default function PouletPage() {
                 {active && !crossed && <Car lane={i} delay={i * 0.42} danger={isCurrent} />}
                 {isDeath && (
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-                    <ArtImpact size={40} />
+                    <ArtImpact size={56} />
                   </div>
                 )}
 
@@ -250,7 +250,7 @@ export default function PouletPage() {
                     className="mb-4 z-10"
                     style={{ animation: phase === 'dead' ? 'pouletSquash 400ms ease-out forwards' : phase === 'hopping' ? 'pouletHop 260ms ease-out' : undefined }}
                   >
-                    <ArtChicken size={26} dead={phase === 'dead'} />
+                    <ArtChicken size={40} dead={phase === 'dead'} />
                   </span>
                 )}
 
@@ -261,8 +261,8 @@ export default function PouletPage() {
           })}
 
           {/* Finish */}
-          <div className="w-9 shrink-0 flex items-center justify-center" style={{ background: 'repeating-conic-gradient(#fff 0% 25%, #222 0% 50%) 50%/10px 10px' }}>
-            <ArtFinishFlag size={22} />
+          <div className="w-12 shrink-0 flex items-center justify-center" style={{ background: 'repeating-conic-gradient(#fff 0% 25%, #222 0% 50%) 50%/12px 12px' }}>
+            <ArtFinishFlag size={30} />
           </div>
         </div>
       </div>

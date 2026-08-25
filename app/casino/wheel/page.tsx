@@ -96,11 +96,11 @@ export default function FrenlyWheelPage() {
       <CasinoWheel
         ref={wheelRef}
         segments={segments}
-        size={300}
-        settleMs={3600}
+        size={420}
+        settleMs={2000}
         hub={
           <div
-            className="w-[74px] h-[74px] rounded-full border-4 border-brand-border flex items-center justify-center font-display font-black text-2xl transition-colors duration-300"
+            className="w-[104px] h-[104px] rounded-full border-4 border-brand-border flex items-center justify-center font-display font-black text-4xl transition-colors duration-300"
             style={{
               background: landedColor && !spinning ? COLOR_HEX[landedColor] : '#1E1E28',
               color: '#fff',
@@ -197,7 +197,7 @@ export default function FrenlyWheelPage() {
                 onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setBetValue(n); }}
                 disabled={spinning}
                 className={cn(
-                  'h-9 rounded-md font-bold text-xs border-2 flex items-center justify-center transition-all focus:outline-none disabled:opacity-50',
+                  'h-10 rounded-md font-bold text-sm border-2 flex items-center justify-center transition-all focus:outline-none disabled:opacity-50',
                   betValue === n ? 'border-accent-primary scale-110 z-10' : 'border-black/40'
                 )}
                 style={{ backgroundColor: COLOR_HEX[getPocketColor(n)], color: '#fff' }}

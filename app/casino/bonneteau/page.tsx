@@ -27,7 +27,7 @@ const RULES: RulesSpec = {
   rtp: '~93%',
 };
 
-const SLOT_W = 96;
+const SLOT_W = 132;
 type Phase = 'idle' | 'shuffling' | 'choosing' | 'revealed';
 
 export default function BonneteauPage() {
@@ -43,14 +43,14 @@ export default function BonneteauPage() {
 
   const shuffle = async () => {
     const pos = [...positions];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 5; i++) {
       const a = Math.floor(Math.random() * BONNETEAU_CUPS);
       let b = Math.floor(Math.random() * BONNETEAU_CUPS);
       while (b === a) b = Math.floor(Math.random() * BONNETEAU_CUPS);
       [pos[a], pos[b]] = [pos[b], pos[a]];
       setPositions([...pos]);
       sfx.tick();
-      await new Promise((r) => setTimeout(r, 280));
+      await new Promise((r) => setTimeout(r, 150));
     }
   };
 
@@ -128,7 +128,7 @@ export default function BonneteauPage() {
                 left: 16 + slot * SLOT_W,
                 bottom: 24,
                 width: SLOT_W - 12,
-                transition: 'left 260ms cubic-bezier(0.45, 0, 0.55, 1)',
+                transition: 'left 140ms cubic-bezier(0.45, 0, 0.55, 1)',
               }}
             >
               <div className={cn(
@@ -141,12 +141,12 @@ export default function BonneteauPage() {
                     'w-full rounded-t-[42px] border-4 flex items-end justify-center pb-2 font-display font-black transition-colors',
                     isChosen && !hasBall ? 'border-accent-secondary' : hasBall ? 'border-accent-success' : 'border-brand-border'
                   )}
-                  style={{ height: 86, background: 'linear-gradient(180deg, #E05A2B 0%, #A83C18 100%)', color: '#fff' }}
+                  style={{ height: 124, background: 'linear-gradient(180deg, #E05A2B 0%, #A83C18 100%)', color: '#fff' }}
                 >
                   {slot + 1}
                 </div>
                 <div className="h-3 w-full flex items-center justify-center">
-                  {revealed && hasBall && <ArtBall size={16} />}
+                  {revealed && hasBall && <ArtBall size={24} />}
                 </div>
               </div>
             </button>

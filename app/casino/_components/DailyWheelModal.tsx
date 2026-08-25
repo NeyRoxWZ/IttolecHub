@@ -84,7 +84,7 @@ export default function DailyWheelModal({ onClose, onSpin }: Props) {
             segments={SEGMENTS}
             size={260}
             labelSize={12}
-            settleMs={3000}
+            settleMs={1900}
             hub={
               <div className="w-16 h-16 rounded-full bg-brand-card border-4 border-brand-border flex items-center justify-center">
                 {reward !== null

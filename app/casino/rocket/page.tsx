@@ -30,14 +30,14 @@ const RULES: RulesSpec = {
 };
 
 type Phase = 'idle' | 'flying' | 'crashed' | 'cashed';
-const STATUS_POLL_MS = 500;
+const STATUS_POLL_MS = 280;
 const VIEW_W = 460;
 const VIEW_H = 240;
 const WINDOW_MS = 14_000;
 
 export default function RocketPage() {
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, applyServerBalance, applyServerCashout, announceProgression, refresh, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -139,9 +139,9 @@ export default function RocketPage() {
       setBusy(false);
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
       setRoundId(data.roundId); setLockedAmount(amount);
+      applyServerBalance('rocket', data.newBalance, amount);
       startedAtRef.current = data.startedAt;
       setMultiplier(1); setPhase('flying');
-      await refresh();
       startAnimation(); startPolling(user.id, data.roundId);
     } else {
       const result = startLocalBet('rocket', amount);
@@ -171,11 +171,11 @@ export default function RocketPage() {
         toast.error(data.error || 'Erreur');
         return;
       }
+      applyServerCashout('rocket', data.newBalance, data.payout, data.multiplier);
       setMultiplier(data.multiplier); setPhase('cashed');
       sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (data.multiplier >= 3) setConfetti((c) => c + 1);
       toast.success(`Encaissé +${data.payout} ₶ à ×${data.multiplier}`);
-      await refresh();
       announceProgression(data.progression);
     } else {
       const m = multiplierAtElapsed(Date.now() - startedAtRef.current);

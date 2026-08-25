@@ -68,11 +68,11 @@ export default function BaccaratPage() {
       [p, b] = outcome === 'player' ? [hi, lo] : [lo, hi];
     }
 
-    await new Promise((res) => setTimeout(res, 380));
+    await new Promise((res) => setTimeout(res, 200));
     setScores({ player: p }); sfx.card();
-    await new Promise((res) => setTimeout(res, 480));
+    await new Promise((res) => setTimeout(res, 260));
     setScores({ player: p, banker: b }); sfx.reveal();
-    await new Promise((res) => setTimeout(res, 420));
+    await new Promise((res) => setTimeout(res, 220));
 
     setPlaying(false);
     setResult({ ...r, outcome });
@@ -107,7 +107,7 @@ export default function BaccaratPage() {
             const isWinner = result && result.outcome === side;
             return (
               <div key={side} className="flex flex-col items-center gap-2">
-                <span className={cn('text-[10px] font-black uppercase tracking-widest', isWinner ? 'text-accent-primary' : 'text-white/60')}>
+                <span className={cn('text-xs font-black uppercase tracking-widest', isWinner ? 'text-accent-primary' : 'text-white/60')}>
                   {side === 'player' ? 'Joueur' : 'Banque'}
                 </span>
                 <div className="flex gap-1">
@@ -115,7 +115,7 @@ export default function BaccaratPage() {
                   <PlayingCard rank={score !== undefined ? Math.max(1, 10 - score) : undefined} hidden={score === undefined} index={side === 'player' ? 1 : 3} />
                 </div>
                 <span className={cn(
-                  'px-3 py-0.5 rounded-md font-display font-black text-lg border-2',
+                  'px-4 py-1 rounded-md font-display font-black text-2xl border-2',
                   isWinner ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-black/40 text-white border-white/25'
                 )}>
                   {score !== undefined ? score : '—'}

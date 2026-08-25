@@ -19,29 +19,29 @@ import { CountUp } from './_components/CasinoUI';
 import DailyWheelModal from './_components/DailyWheelModal';
 import Confetti from './_components/Confetti';
 
-interface CasinoGameEntry { slug: string; name: string; icon: any; rtp: string }
+interface CasinoGameEntry { slug: string; name: string; short: string; icon: any; rtp: string }
 
 const CASINO_GAMES: CasinoGameEntry[] = [
-  { slug: 'slots', name: 'Slots', icon: Dices, rtp: '94%' },
-  { slug: 'blackjack', name: 'Frenly 21', icon: Spade, rtp: '98%' },
-  { slug: 'wheel', name: 'Wheel', icon: CircleDot, rtp: '97%' },
-  { slug: 'rocket', name: 'Rocket', icon: Rocket, rtp: '95%' },
-  { slug: 'mines', name: 'Mines', icon: Bomb, rtp: '96%' },
-  { slug: 'plinko', name: 'Plinko', icon: Circle, rtp: '97%' },
-  { slug: 'hilo', name: 'HiLo', icon: ArrowUpDown, rtp: '96%' },
-  { slug: 'grattage', name: 'Grattage', icon: Ticket, rtp: '90%' },
-  { slug: 'poulet', name: 'Poulet', icon: Egg, rtp: '96%' },
-  { slug: 'tower', name: 'Tower', icon: Building2, rtp: '96%' },
-  { slug: 'keno', name: 'Keno', icon: Grid3x3, rtp: '95%' },
-  { slug: 'caisses', name: 'Caisses', icon: Gift, rtp: '93%' },
-  { slug: 'coinflip', name: 'Coinflip', icon: Coins, rtp: '97%' },
-  { slug: 'dino', name: 'Dino', icon: Zap, rtp: '95%' },
-  { slug: 'chevaux', name: 'Chevaux', icon: Flag, rtp: '94%' },
-  { slug: 'bonneteau', name: 'Bonneteau', icon: GlassWater, rtp: '93%' },
-  { slug: 'stade', name: 'Stade', icon: LayoutGrid, rtp: '96%' },
-  { slug: 'baccarat', name: 'Baccarat', icon: Layers, rtp: '98%' },
-  { slug: 'rps', name: 'Pierre-Feuille-Ciseaux', icon: Hand, rtp: '96%' },
-  { slug: 'craps', name: 'Craps', icon: Dice5, rtp: '98%' },
+  { slug: 'slots', name: 'Frenly Slots', short: 'Aligne 3 symboles', icon: Dices, rtp: '94%' },
+  { slug: 'blackjack', name: 'Frenly 21', short: 'Bats le croupier', icon: Spade, rtp: '98%' },
+  { slug: 'wheel', name: 'Frenly Wheel', short: 'Rouge, noir ou plein', icon: CircleDot, rtp: '97%' },
+  { slug: 'rocket', name: 'Frenly Rocket', short: 'Encaisse avant le crash', icon: Rocket, rtp: '95%' },
+  { slug: 'mines', name: 'Frenly Mines', short: 'Évite les mines', icon: Bomb, rtp: '96%' },
+  { slug: 'plinko', name: 'Frenly Plinko', short: 'La bille tombe', icon: Circle, rtp: '97%' },
+  { slug: 'hilo', name: 'Frenly HiLo', short: 'Plus haut ou plus bas', icon: ArrowUpDown, rtp: '96%' },
+  { slug: 'grattage', name: 'Frenly Grattage', short: 'Gratte ton ticket', icon: Ticket, rtp: '90%' },
+  { slug: 'poulet', name: 'Frenly Poulet', short: 'Traverse la route', icon: Egg, rtp: '96%' },
+  { slug: 'tower', name: 'Frenly Tower', short: 'Monte les étages', icon: Building2, rtp: '96%' },
+  { slug: 'keno', name: 'Frenly Keno', short: 'Coche 10 numéros', icon: Grid3x3, rtp: '95%' },
+  { slug: 'caisses', name: 'Frenly Caisses', short: '5 caisses, 1 jackpot', icon: Gift, rtp: '93%' },
+  { slug: 'coinflip', name: 'Frenly Coinflip', short: 'Pile ou face', icon: Coins, rtp: '97%' },
+  { slug: 'dino', name: 'Frenly Dino', short: 'Cours et esquive', icon: Zap, rtp: '95%' },
+  { slug: 'chevaux', name: 'Frenly Chevaux', short: 'Mise sur un cheval', icon: Flag, rtp: '94%' },
+  { slug: 'bonneteau', name: 'Frenly Bonneteau', short: 'Suis la bille', icon: GlassWater, rtp: '93%' },
+  { slug: 'stade', name: 'Frenly Stade', short: 'Domicile ou extérieur', icon: LayoutGrid, rtp: '96%' },
+  { slug: 'baccarat', name: 'Frenly Baccarat', short: 'Joueur ou banque', icon: Layers, rtp: '98%' },
+  { slug: 'rps', name: 'Pierre-Feuille-Ciseaux', short: 'Un coup, un gagnant', icon: Hand, rtp: '96%' },
+  { slug: 'craps', name: 'Frenly Craps', short: 'Ça passe ou ça casse', icon: Dice5, rtp: '98%' },
 ];
 
 const DISCLAIMER_KEY = 'itollec_casino_disclaimer_seen';
@@ -108,7 +108,7 @@ export default function CasinoHub() {
   const prestigeProgress = Math.min(100, (balance / PRESTIGE_THRESHOLD) * 100);
 
   return (
-    <main className="lg:h-[100dvh] lg:overflow-hidden bg-transparent text-tx-base p-3 sm:p-4 flex flex-col">
+    <main className="lg:[@media(min-height:700px)]:h-[100dvh] lg:[@media(min-height:700px)]:overflow-hidden bg-transparent text-tx-base p-3 sm:p-4 flex flex-col">
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
       {showWheel && <DailyWheelModal onClose={() => setShowWheel(false)} onSpin={claimWheelOfFortune} />}
 
@@ -246,21 +246,23 @@ export default function CasinoHub() {
           )}
         </div>
 
-        {/* GAMES — fills the rest of the viewport, no scroll */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 flex-1 min-h-0 content-start">
+        {/* GAMES — 5×4 grid that fills the remaining height exactly, so the
+            cards stay big instead of being squeezed into a corner. */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 lg:grid-rows-4 gap-3 flex-1 lg:min-h-0">
           {CASINO_GAMES.map((game) => {
             const Icon = game.icon;
             return (
               <button
                 key={game.slug}
                 onClick={() => { sfx.click(); router.push(`/casino/${game.slug}`); }}
-                className="group rounded-xl border-2 border-brand-border bg-brand-card p-2 flex flex-col items-center justify-center gap-1.5 shadow-brutal transition-all hover:border-accent-primary hover:-translate-y-0.5 active:translate-y-0 focus:outline-none min-h-[74px]"
+                className="group h-full min-h-[128px] rounded-2xl border-4 border-brand-border bg-brand-card p-3 flex flex-col items-center justify-center gap-2 shadow-brutal transition-all hover:border-accent-primary hover:-translate-y-1 active:translate-y-0 focus:outline-none"
               >
-                <div className="rounded-lg border-2 border-brand-border bg-brand-inner p-1.5 group-hover:border-accent-primary transition-colors">
-                  <Icon className="h-4 w-4 text-accent-primary" />
+                <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 group-hover:border-accent-primary group-hover:scale-105 transition-all">
+                  <Icon className="h-7 w-7 text-accent-primary" />
                 </div>
-                <span className="font-display font-black text-[11px] leading-tight text-center line-clamp-2">{game.name}</span>
-                <span className="text-[9px] font-bold text-tx-muted">{game.rtp}</span>
+                <span className="font-display font-black text-sm leading-tight text-center">{game.name}</span>
+                <span className="text-[11px] text-tx-secondary leading-tight text-center">{game.short}</span>
+                <span className="text-[10px] font-bold text-tx-muted mt-auto">Redistribution {game.rtp}</span>
               </button>
             );
           })}

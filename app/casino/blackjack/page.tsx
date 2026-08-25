@@ -35,11 +35,11 @@ const RULES: RulesSpec = {
   rtp: '~98%',
 };
 
-const DEAL_STEP_MS = 260;
+const DEAL_STEP_MS = 130;
 
 export default function BlackjackPage() {
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, applyServerBalance, applyServerCashout, announceProgression, refresh, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -99,7 +99,7 @@ export default function BlackjackPage() {
       const data = await res.json();
       if (!res.ok) { setBusy(false); setPhase('idle'); toast.error(data.error || 'Erreur'); return; }
       setRoundId(data.roundId); setLockedAmount(amount);
-      await refresh();
+      applyServerBalance('blackjack', data.newBalance, amount);
       await animateDeal(data.playerCards, data.finished ? data.dealerCards[0] : data.dealerUpCard);
       setBusy(false);
 
@@ -184,7 +184,6 @@ export default function BlackjackPage() {
       setOutcome(data.outcome); setPhase('finished');
       const p = data.multiplier > 0 ? Math.round(lockedAmount * data.multiplier) : 0;
       setPayout(p); announceOutcome(data.outcome, p);
-      if (data.newBalance !== undefined) await refresh();
       announceProgression(data.progression);
     } else {
       const fullDealer = dealerPlay(localDealerRef.current);
@@ -199,7 +198,7 @@ export default function BlackjackPage() {
     setDealerHidden(false);
     setDealerCards(finalDealer.slice(0, 2));
     sfx.reveal();
-    await sleep(420);
+    await sleep(240);
     for (let i = 2; i < finalDealer.length; i++) {
       setDealerCards(finalDealer.slice(0, i + 1));
       sfx.card();
@@ -220,7 +219,6 @@ export default function BlackjackPage() {
       if (!res.ok) { setBusy(false); toast.error(data.error || 'Erreur'); return; }
       const doubled = lockedAmount * 2;
       setPlayerCards(data.playerCards); setLockedAmount(doubled); sfx.card();
-      await refresh();
 
       if (data.busted) {
         setDealerCards(data.dealerCards || dealerCards); setDealerHidden(false);
@@ -269,7 +267,7 @@ export default function BlackjackPage() {
 
       {/* Felt table */}
       <div
-        className="w-full rounded-3xl border-4 border-brand-border p-5 flex flex-col gap-6"
+        className="w-full rounded-3xl border-4 border-brand-border p-6 flex flex-col gap-7"
         style={{ background: 'radial-gradient(ellipse at 50% 30%, #1B5E3F 0%, #0E3524 70%, #0A2419 100%)' }}
       >
         {/* Dealer */}
@@ -278,14 +276,14 @@ export default function BlackjackPage() {
             <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Croupier</span>
             {dealerVisible.length > 0 && (
               <span className={cn(
-                'px-2 py-0.5 rounded-md font-display font-black text-sm border-2',
+                'px-2.5 py-1 rounded-md font-display font-black text-lg border-2',
                 dealerHand.total > 21 ? 'bg-accent-secondary text-white border-accent-secondary' : 'bg-black/40 text-white border-white/25'
               )}>
                 {dealerHand.total}{dealerHidden && ' + ?'}
               </span>
             )}
           </div>
-          <div className="flex gap-2 min-h-[80px] items-center">
+          <div className="flex gap-2.5 min-h-[110px] items-center">
             {dealerCards.map((c, i) => (
               <PlayingCard key={`d${i}`} rank={c} index={i} />
             ))}
@@ -297,7 +295,7 @@ export default function BlackjackPage() {
 
         {/* Player */}
         <div className="flex flex-col items-center gap-2">
-          <div className="flex gap-2 min-h-[80px] items-center flex-wrap justify-center">
+          <div className="flex gap-2.5 min-h-[110px] items-center flex-wrap justify-center">
             {playerCards.map((c, i) => (
               <PlayingCard key={`p${i}`} rank={c} index={i} highlight={phase === 'finished' && (outcome === 'win' || outcome === 'blackjack')} />
             ))}
@@ -306,7 +304,7 @@ export default function BlackjackPage() {
           <div className="flex items-center gap-2">
             {playerCards.length > 0 && (
               <span className={cn(
-                'px-2.5 py-0.5 rounded-md font-display font-black text-base border-2',
+                'px-3 py-1 rounded-md font-display font-black text-2xl border-2',
                 playerHand.total > 21 ? 'bg-accent-secondary text-white border-accent-secondary'
                   : playerHand.total === 21 ? 'bg-accent-success text-brand-bg border-accent-success'
                   : 'bg-black/40 text-white border-white/25'

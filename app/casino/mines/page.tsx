@@ -38,7 +38,7 @@ type Phase = 'idle' | 'active' | 'busted' | 'cashed';
 
 export default function MinesPage() {
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, applyServerBalance, applyServerCashout, announceProgression, refresh, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [mineCount, setMineCount] = useState(3);
@@ -74,10 +74,10 @@ export default function MinesPage() {
       setBusy(false);
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
       setRoundId(data.roundId);
+      applyServerBalance('mines', data.newBalance, amount);
       setLockedAmount(amount); setLockedMineCount(mineCount);
       setRevealed([]); setMinePositions(null); setHitCell(null);
       setMultiplier(1); setPhase('active');
-      await refresh();
     } else {
       const result = startLocalBet('mines', amount);
       setBusy(false);
@@ -139,10 +139,10 @@ export default function MinesPage() {
       const data = await res.json();
       setBusy(false);
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
+      applyServerCashout('mines', data.newBalance, data.payout, multiplier);
       setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (multiplier >= 3) setConfetti((c) => c + 1);
       toast.success(`Encaissé +${data.payout} ₶ à ×${multiplier}`);
-      await refresh();
       announceProgression(data.progression);
     } else {
       const p = Math.round(lockedAmount * multiplier);
@@ -182,7 +182,7 @@ export default function MinesPage() {
       </div>
 
       <div
-        className={cn('grid grid-cols-5 gap-2 p-3 rounded-2xl border-4 border-brand-border', phase === 'busted' && 'animate-[mineShake_400ms_ease-out]')}
+        className={cn('grid grid-cols-5 gap-2.5 p-4 rounded-2xl border-4 border-brand-border', phase === 'busted' && 'animate-[mineShake_400ms_ease-out]')}
         style={{ background: 'linear-gradient(160deg, #16203A 0%, #0D1425 100%)' }}
       >
         {Array.from({ length: MINES_TOTAL_CELLS }, (_, i) => {
@@ -196,7 +196,7 @@ export default function MinesPage() {
               onClick={() => handleReveal(i)}
               disabled={!active || isRevealed || busy}
               className={cn(
-                'w-[52px] h-[52px] sm:w-[58px] sm:h-[58px] rounded-xl border-2 flex items-center justify-center text-2xl transition-all duration-200 focus:outline-none',
+                'w-[62px] h-[62px] sm:w-[74px] sm:h-[74px] rounded-xl border-2 flex items-center justify-center transition-all duration-200 focus:outline-none',
                 isHit ? 'border-accent-secondary bg-accent-secondary/35'
                   : isMine ? 'border-accent-secondary/50 bg-accent-secondary/12'
                   : isRevealed ? 'border-accent-success bg-accent-success/18'
@@ -204,9 +204,9 @@ export default function MinesPage() {
                   : 'border-white/10 bg-white/[0.03]'
               )}
             >
-              {isHit ? <span style={{ animation: 'minePop 300ms ease-out' }}><ArtImpact size={30} /></span>
-                : isMine ? <span className="opacity-55"><ArtBomb size={26} /></span>
-                : isRevealed ? <span style={{ animation: 'minePop 260ms ease-out' }}><ArtGem size={26} /></span>
+              {isHit ? <span style={{ animation: 'minePop 300ms ease-out' }}><ArtImpact size={38} /></span>
+                : isMine ? <span className="opacity-55"><ArtBomb size={34} /></span>
+                : isRevealed ? <span style={{ animation: 'minePop 260ms ease-out' }}><ArtGem size={34} /></span>
                 : null}
             </button>
           );

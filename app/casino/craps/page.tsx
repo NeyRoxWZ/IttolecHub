@@ -38,7 +38,7 @@ const PIPS: Record<number, [number, number][]> = {
 function Die({ value, rolling }: { value: number; rolling: boolean }) {
   return (
     <div
-      className={cn('w-16 h-16 rounded-xl border-4 border-brand-border bg-white grid p-2', rolling && 'animate-bounce')}
+      className={cn('w-24 h-24 rounded-2xl border-4 border-brand-border bg-white grid p-3', rolling && 'animate-bounce')}
       style={{ gridTemplateColumns: 'repeat(3,1fr)', gridTemplateRows: 'repeat(3,1fr)', boxShadow: '0 3px 8px rgba(0,0,0,0.4)' }}
     >
       {Array.from({ length: 9 }, (_, i) => {
@@ -81,13 +81,13 @@ export default function CrapsPage() {
       // Tumble before each result lands.
       for (let t = 0; t < 5; t++) {
         setDice({ d1: 1 + Math.floor(Math.random() * 6), d2: 1 + Math.floor(Math.random() * 6), sum: 0 });
-        await new Promise((res) => setTimeout(res, 55));
+        await new Promise((res) => setTimeout(res, 35));
       }
       setDice(rolls[i]);
       setRollLog((prev) => [...prev, rolls[i].sum]);
       sfx.card(); vibrate(HAPTIC.SOFT);
       if (i === 0 && r.meta.point) setPoint(r.meta.point);
-      await new Promise((res) => setTimeout(res, 520));
+      await new Promise((res) => setTimeout(res, 300));
     }
 
     setRolling(false);
@@ -117,7 +117,7 @@ export default function CrapsPage() {
           <Die value={dice.d2} rolling={rolling} />
         </div>
 
-        <div className="font-display text-3xl font-black text-white">{dice.sum > 0 ? dice.sum : '—'}</div>
+        <div className="font-display text-5xl font-black text-white">{dice.sum > 0 ? dice.sum : '—'}</div>
 
         {point !== null && (
           <div className="px-3 py-1 rounded-lg border-2 border-accent-primary bg-accent-primary/15 text-accent-primary font-display font-black text-sm">
@@ -129,7 +129,7 @@ export default function CrapsPage() {
           <div className="flex flex-wrap gap-1.5 justify-center">
             {rollLog.map((s, i) => (
               <span key={i} className={cn(
-                'w-7 h-7 rounded-md border-2 flex items-center justify-center text-xs font-black',
+                'w-9 h-9 rounded-md border-2 flex items-center justify-center text-sm font-black',
                 point !== null && s === point ? 'border-accent-success text-accent-success'
                   : s === 7 && i > 0 ? 'border-accent-secondary text-accent-secondary'
                   : 'border-white/25 text-white/70'

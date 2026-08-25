@@ -82,13 +82,13 @@ export default function KenoPage() {
     // Reveal the draw one ball at a time so matches land visibly.
     const all: number[] = r.meta.drawn;
     for (let i = 0; i < all.length; i++) {
-      await new Promise((res) => setTimeout(res, 105));
+      await new Promise((res) => setTimeout(res, 45));
       setDrawn(all.slice(0, i + 1));
       if (picks.includes(all[i])) { sfx.step(Math.min(8, i)); vibrate(HAPTIC.SOFT); }
       else sfx.tick();
     }
 
-    await new Promise((res) => setTimeout(res, 350));
+    await new Promise((res) => setTimeout(res, 180));
     setBusy(false); setPhase('done');
     setResult({ ...r, matches: r.meta.matches });
 
@@ -128,7 +128,7 @@ export default function KenoPage() {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-8 gap-1.5 w-full max-w-[380px]">
+      <div className="grid grid-cols-8 gap-2 w-full max-w-[520px]">
         {Array.from({ length: KENO_POOL_SIZE }, (_, i) => i + 1).map((n) => {
           const picked = picks.includes(n);
           const isDrawn = drawn.includes(n);
@@ -140,7 +140,7 @@ export default function KenoPage() {
               onClick={() => togglePick(n)}
               disabled={phase !== 'picking'}
               className={cn(
-                'aspect-square rounded-lg border-2 text-xs font-black flex items-center justify-center transition-all duration-200 focus:outline-none',
+                'aspect-square rounded-lg border-2 text-base font-black flex items-center justify-center transition-all duration-200 focus:outline-none',
                 isMatch ? 'bg-accent-success border-accent-success text-brand-bg scale-110 z-10'
                   : isDrawn ? 'bg-accent-secondary/25 border-accent-secondary text-tx-base'
                   : picked ? 'bg-accent-primary border-accent-primary text-brand-bg'

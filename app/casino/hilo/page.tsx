@@ -73,7 +73,7 @@ export default function HiloPage() {
         const res = resolveHilo(currentCard, nextCard, direction);
         return { won: res.won, multiplier: res.multiplier, meta: { currentCard, nextCard, direction, push: res.push } };
       }),
-      new Promise((res) => setTimeout(res, 620)),
+      new Promise((res) => setTimeout(res, 320)),
     ]);
 
     setPlaying(false);
@@ -100,7 +100,7 @@ export default function HiloPage() {
     <div className="w-full flex flex-col items-center gap-5">
       {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-8">
         {result && (
           <div className="flex flex-col items-center gap-1.5 opacity-60">
             <PlayingCard rank={result.currentCard} index={1} size="md" />
@@ -113,7 +113,7 @@ export default function HiloPage() {
         </div>
       </div>
 
-      <div className="flex gap-1 text-[10px] font-bold text-tx-muted">
+      <div className="flex gap-1.5 text-xs font-bold text-tx-muted">
         <span>A=1</span><span>·</span><span>V=11</span><span>·</span><span>D=12</span><span>·</span><span>R=13</span>
       </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
@@ -24,45 +24,6 @@ export interface CasinoTransaction {
   created_at: string;
 }
 
-interface LocalWallet {
-  balance: number;
-  history: CasinoTransaction[];
-}
-
-const LOCAL_KEY = 'itollec_casino_wallet';
-
-function loadLocalWallet(): LocalWallet {
-  if (typeof window === 'undefined') return { balance: CASINO_STARTING_BALANCE, history: [] };
-  try {
-    const raw = localStorage.getItem(LOCAL_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return { balance: CASINO_STARTING_BALANCE, history: [] };
-}
-
-function saveLocalWallet(w: LocalWallet) {
-  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(w)); } catch {}
-}
-
-export interface WheelSpinResult {
-  landedNumber: number;
-  won: boolean;
-  multiplier: number;
-  payout: number;
-  netChange: number;
-  newBalance: number;
-}
-
-export interface GenericBetResult {
-  won: boolean;
-  multiplier: number;
-  payout: number;
-  netChange: number;
-  newBalance: number;
-  meta: any;
-  progression?: { newAchievements: { id: string; name: string; description: string }[]; jackpotWon: number | null };
-}
-
 export interface CasinoStats {
   totalWagered: number;
   totalWon: number;
@@ -82,37 +43,161 @@ const EMPTY_STATS: CasinoStats = {
   dailyClaimedToday: false, wheelClaimedToday: false,
 };
 
-function announceProgression(progression?: GenericBetResult['progression']) {
+/* ------------------------------------------------------------------ */
+/* Shared store                                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The wallet lives in a module-level store rather than per-component state.
+ * Without this, every navigation between casino pages remounted the hook and
+ * refetched the wallet, so the balance flashed "···" and the page felt slow to
+ * open. Now the cached value renders instantly and we only revalidate in the
+ * background.
+ */
+interface WalletSnapshot {
+  balance: number;
+  history: CasinoTransaction[];
+  stats: CasinoStats;
+  isLoaded: boolean;
+}
+
+let snapshot: WalletSnapshot = {
+  balance: CASINO_STARTING_BALANCE,
+  history: [],
+  stats: EMPTY_STATS,
+  isLoaded: false,
+};
+
+const listeners = new Set<() => void>();
+
+function emit() {
+  listeners.forEach((l) => l());
+}
+
+function setSnapshot(patch: Partial<WalletSnapshot>) {
+  snapshot = { ...snapshot, ...patch };
+  emit();
+}
+
+function subscribe(cb: () => void) {
+  listeners.add(cb);
+  return () => { listeners.delete(cb); };
+}
+
+const getSnapshot = () => snapshot;
+const getServerSnapshot = () => snapshot;
+
+/* ------------------------------------------------------------------ */
+/* Local (anonymous) wallet                                            */
+/* ------------------------------------------------------------------ */
+
+const LOCAL_KEY = 'itollec_casino_wallet';
+
+interface LocalWallet { balance: number; history: CasinoTransaction[] }
+
+function loadLocalWallet(): LocalWallet {
+  if (typeof window === 'undefined') return { balance: CASINO_STARTING_BALANCE, history: [] };
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { balance: CASINO_STARTING_BALANCE, history: [] };
+}
+
+function saveLocalWallet(w: LocalWallet) {
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(w)); } catch {}
+}
+
+/* ------------------------------------------------------------------ */
+
+export interface WheelSpinResult {
+  landedNumber: number;
+  won: boolean;
+  multiplier: number;
+  payout: number;
+  netChange: number;
+  newBalance: number;
+  progression?: Progression;
+}
+
+export interface Progression {
+  newAchievements: { id: string; name: string; description: string }[];
+  jackpotWon: number | null;
+}
+
+export interface GenericBetResult {
+  won: boolean;
+  multiplier: number;
+  payout: number;
+  netChange: number;
+  newBalance: number;
+  meta: any;
+  progression?: Progression;
+}
+
+function announceProgression(progression?: Progression) {
   if (!progression) return;
   if (progression.jackpotWon) {
-    toast.success(`🎉 JACKPOT ! +${progression.jackpotWon.toLocaleString('fr-FR')} ₶`, { duration: 6000 });
+    toast.success(`JACKPOT ! +${progression.jackpotWon.toLocaleString('fr-FR')} ₶`, { duration: 6000 });
   }
   for (const a of progression.newAchievements) {
-    toast.success(`🏆 Succès débloqué: ${a.name}`, { description: a.description, duration: 5000 });
+    toast.success(`Succès débloqué : ${a.name}`, { description: a.description, duration: 5000 });
   }
+}
+
+/** Fold a settled bet into the cached wallet immediately, no round-trip. */
+function applySettlement(gameSlug: string, netChange: number, newBalance: number, multiplier: number, meta?: any) {
+  const type = multiplier === 0 ? 'bet' : multiplier === 1 ? 'push' : 'win';
+  const tx: CasinoTransaction = {
+    id: crypto.randomUUID(),
+    game_slug: gameSlug,
+    type,
+    amount: netChange,
+    balance_after: newBalance,
+    meta,
+    created_at: new Date().toISOString(),
+  };
+
+  const s = snapshot.stats;
+  const isWin = multiplier > 1;
+  const isLoss = multiplier === 0;
+  const currentStreak = isWin ? s.currentStreak + 1 : isLoss ? 0 : s.currentStreak;
+
+  setSnapshot({
+    balance: newBalance,
+    history: [tx, ...snapshot.history].slice(0, 50),
+    stats: {
+      ...s,
+      currentStreak,
+      bestStreak: Math.max(s.bestStreak, currentStreak),
+      biggestMultiplier: Math.max(s.biggestMultiplier, multiplier),
+      allTimeBestBalance: Math.max(s.allTimeBestBalance, newBalance),
+    },
+  });
 }
 
 export function useCasinoWallet() {
   const { user } = useAuth();
-  const [balance, setBalance] = useState<number>(CASINO_STARTING_BALANCE);
-  const [history, setHistory] = useState<CasinoTransaction[]>([]);
-  const [stats, setStats] = useState<CasinoStats>(EMPTY_STATS);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const store = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const inFlightRef = useRef(false);
+  const revalidateTimer = useRef<NodeJS.Timeout | null>(null);
   const isLocal = !user;
-  const spinningRef = useRef(false);
 
-  const refresh = useCallback(async () => {
+  const fetchWallet = useCallback(async () => {
     if (user) {
       const res = await fetch(`/api/casino/wallet?user_id=${user.id}`);
       if (res.ok) {
         const data = await res.json();
-        setBalance(data.balance);
-        setHistory(data.history);
-        if (data.stats) setStats(data.stats);
+        setSnapshot({
+          balance: data.balance,
+          history: data.history,
+          stats: data.stats ?? EMPTY_STATS,
+          isLoaded: true,
+        });
       }
     } else {
       const w = loadLocalWallet();
-      // Local safety net too, so anonymous players never get stuck either.
+      // Local safety net so anonymous players never get stuck at zero either.
       if (w.balance < CASINO_SAFETY_NET_THRESHOLD) {
         w.balance += CASINO_SAFETY_NET_AMOUNT;
         w.history = [
@@ -121,31 +206,39 @@ export function useCasinoWallet() {
         ].slice(0, 50);
         saveLocalWallet(w);
       }
-      setBalance(w.balance);
-      setHistory(w.history);
+      setSnapshot({ balance: w.balance, history: w.history, stats: EMPTY_STATS, isLoaded: true });
     }
-    setIsLoaded(true);
   }, [user]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  // Load once per session; navigating between games reuses the cache.
+  useEffect(() => { void fetchWallet(); }, [fetchWallet]);
 
-  // Live balance sync across tabs/devices for logged-in players.
+  /** Reconcile with the server a moment after the action, off the hot path. */
+  const scheduleRevalidate = useCallback(() => {
+    if (!user) return;
+    if (revalidateTimer.current) clearTimeout(revalidateTimer.current);
+    revalidateTimer.current = setTimeout(() => { void fetchWallet(); }, 2500);
+  }, [user, fetchWallet]);
+
+  useEffect(() => () => { if (revalidateTimer.current) clearTimeout(revalidateTimer.current); }, []);
+
+  // Live balance sync across tabs/devices.
   useEffect(() => {
     if (!user) return;
     const channel = supabase
       .channel(`casino_wallet:${user.id}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'casino_wallets', filter: `user_id=eq.${user.id}` }, (payload) => {
-        setBalance((payload.new as any).balance);
+        setSnapshot({ balance: (payload.new as any).balance });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  const maxBet = getMaxBet(balance);
+  const maxBet = getMaxBet(store.balance);
 
   const spinWheelBet = useCallback(async (bet: WheelBet, amount: number): Promise<WheelSpinResult | { error: string }> => {
-    if (spinningRef.current) return { error: 'Un spin est déjà en cours.' };
-    spinningRef.current = true;
+    if (inFlightRef.current) return { error: 'Une mise est déjà en cours.' };
+    inFlightRef.current = true;
     try {
       if (user) {
         const res = await fetch('/api/casino/wheel/spin', {
@@ -155,45 +248,44 @@ export function useCasinoWallet() {
         });
         const data = await res.json();
         if (!res.ok) return { error: data.error || 'Erreur du serveur' };
-        setBalance(data.newBalance);
-        await refresh();
+        applySettlement('wheel', data.netChange, data.newBalance, data.multiplier, { bet, landedNumber: data.landedNumber, amount });
         announceProgression(data.progression);
+        scheduleRevalidate();
         return data as WheelSpinResult;
-      } else {
-        const w = loadLocalWallet();
-        if (amount > w.balance) return { error: 'Solde insuffisant' };
-        if (amount > getMaxBet(w.balance)) return { error: `Mise max: ${getMaxBet(w.balance)} ₶` };
-
-        const landedNumber = localSpinWheel();
-        const { won, multiplier } = resolveWheelBet(landedNumber, bet);
-        const payout = won ? amount * multiplier : 0;
-        const netChange = payout - amount;
-        w.balance += netChange;
-        w.history = [
-          { id: crypto.randomUUID(), game_slug: 'wheel', type: won ? 'win' : 'bet', amount: netChange, balance_after: w.balance, meta: { bet, landedNumber, multiplier, amount }, created_at: new Date().toISOString() },
-          ...w.history,
-        ].slice(0, 50);
-        saveLocalWallet(w);
-        setBalance(w.balance);
-        setHistory(w.history);
-        return { landedNumber, won, multiplier, payout, netChange, newBalance: w.balance };
       }
-    } finally {
-      spinningRef.current = false;
-    }
-  }, [user, refresh]);
 
-  // Generic path for "one bet, one instant reveal" games (coinflip, rps,
-  // bonneteau, ...). `localResolve` mirrors exactly what the server route
-  // computes, so anonymous play behaves the same, just unsynced/unsaved.
+      const w = loadLocalWallet();
+      if (amount > w.balance) return { error: 'Solde insuffisant' };
+      if (amount > getMaxBet(w.balance)) return { error: `Mise max: ${getMaxBet(w.balance)} ₶` };
+
+      const landedNumber = localSpinWheel();
+      const { won, multiplier } = resolveWheelBet(landedNumber, bet);
+      const payout = won ? amount * multiplier : 0;
+      const netChange = payout - amount;
+      w.balance += netChange;
+      const tx: CasinoTransaction = {
+        id: crypto.randomUUID(), game_slug: 'wheel', type: won ? 'win' : 'bet',
+        amount: netChange, balance_after: w.balance,
+        meta: { bet, landedNumber, multiplier, amount }, created_at: new Date().toISOString(),
+      };
+      w.history = [tx, ...w.history].slice(0, 50);
+      saveLocalWallet(w);
+      applySettlement('wheel', netChange, w.balance, multiplier, tx.meta);
+      return { landedNumber, won, multiplier, payout, netChange, newBalance: w.balance };
+    } finally {
+      inFlightRef.current = false;
+    }
+  }, [user, scheduleRevalidate]);
+
+  /** "One bet, one instant reveal" games. */
   const placeBet = useCallback(async (
     gameSlug: string,
     amount: number,
     payload: any,
     localResolve: () => { won: boolean; multiplier: number; meta: any }
   ): Promise<GenericBetResult | { error: string }> => {
-    if (spinningRef.current) return { error: 'Une mise est déjà en cours.' };
-    spinningRef.current = true;
+    if (inFlightRef.current) return { error: 'Une mise est déjà en cours.' };
+    inFlightRef.current = true;
     try {
       if (user) {
         const res = await fetch(`/api/casino/${gameSlug}/play`, {
@@ -203,67 +295,79 @@ export function useCasinoWallet() {
         });
         const data = await res.json();
         if (!res.ok) return { error: data.error || 'Erreur du serveur' };
-        setBalance(data.newBalance);
-        await refresh();
+        applySettlement(gameSlug, data.netChange, data.newBalance, data.multiplier, { ...data.meta, amount });
         announceProgression(data.progression);
+        scheduleRevalidate();
         return data as GenericBetResult;
-      } else {
-        const w = loadLocalWallet();
-        if (amount > w.balance) return { error: 'Solde insuffisant' };
-        if (amount > getMaxBet(w.balance)) return { error: `Mise max: ${getMaxBet(w.balance)} ₶` };
-
-        const { won, multiplier, meta } = localResolve();
-        const payout = Math.round(amount * multiplier);
-        const netChange = payout - amount;
-        w.balance += netChange;
-        const txType = multiplier === 0 ? 'bet' : multiplier === 1 ? 'push' : 'win';
-        w.history = [
-          { id: crypto.randomUUID(), game_slug: gameSlug, type: txType, amount: netChange, balance_after: w.balance, meta: { ...meta, amount, multiplier }, created_at: new Date().toISOString() },
-          ...w.history,
-        ].slice(0, 50);
-        saveLocalWallet(w);
-        setBalance(w.balance);
-        setHistory(w.history);
-        return { won, multiplier, payout, netChange, newBalance: w.balance, meta };
       }
-    } finally {
-      spinningRef.current = false;
-    }
-  }, [user, refresh]);
 
-  // For round-based games (Mines/Tower/Poulet/Dino): anonymous play keeps
-  // the round's secret state in the game page's own component state (no
-  // need to hide anything from yourself), so the wallet hook only needs to
-  // handle the money side — deduct on start, credit on cashout.
+      const w = loadLocalWallet();
+      if (amount > w.balance) return { error: 'Solde insuffisant' };
+      if (amount > getMaxBet(w.balance)) return { error: `Mise max: ${getMaxBet(w.balance)} ₶` };
+
+      const { won, multiplier, meta } = localResolve();
+      const payout = Math.round(amount * multiplier);
+      const netChange = payout - amount;
+      w.balance += netChange;
+      const type = multiplier === 0 ? 'bet' : multiplier === 1 ? 'push' : 'win';
+      w.history = [
+        { id: crypto.randomUUID(), game_slug: gameSlug, type, amount: netChange, balance_after: w.balance, meta: { ...meta, amount, multiplier }, created_at: new Date().toISOString() },
+        ...w.history,
+      ].slice(0, 50);
+      saveLocalWallet(w);
+      applySettlement(gameSlug, netChange, w.balance, multiplier, { ...meta, amount });
+      return { won, multiplier, payout, netChange, newBalance: w.balance, meta };
+    } finally {
+      inFlightRef.current = false;
+    }
+  }, [user, scheduleRevalidate]);
+
+  /* ---- round-based games (Mines/Tower/Poulet/Dino/Rocket/Blackjack) ---- */
+
+  /** Server already returned the new balance — reflect it without a refetch. */
+  const applyServerBalance = useCallback((gameSlug: string, newBalance: number, amount: number) => {
+    const tx: CasinoTransaction = {
+      id: crypto.randomUUID(), game_slug: gameSlug, type: 'bet',
+      amount: -amount, balance_after: newBalance, created_at: new Date().toISOString(),
+    };
+    setSnapshot({ balance: newBalance, history: [tx, ...snapshot.history].slice(0, 50) });
+    scheduleRevalidate();
+  }, [scheduleRevalidate]);
+
+  const applyServerCashout = useCallback((gameSlug: string, newBalance: number, payout: number, multiplier: number) => {
+    applySettlement(gameSlug, payout, newBalance, multiplier);
+    scheduleRevalidate();
+  }, [scheduleRevalidate]);
+
   const startLocalBet = useCallback((gameSlug: string, amount: number): { ok: true } | { error: string } => {
     const w = loadLocalWallet();
     if (amount > w.balance) return { error: 'Solde insuffisant' };
     if (amount > getMaxBet(w.balance)) return { error: `Mise max: ${getMaxBet(w.balance)} ₶` };
     w.balance -= amount;
-    w.history = [
-      { id: crypto.randomUUID(), game_slug: gameSlug, type: 'bet', amount: -amount, balance_after: w.balance, created_at: new Date().toISOString() },
-      ...w.history,
-    ].slice(0, 50);
+    const tx: CasinoTransaction = {
+      id: crypto.randomUUID(), game_slug: gameSlug, type: 'bet',
+      amount: -amount, balance_after: w.balance, created_at: new Date().toISOString(),
+    };
+    w.history = [tx, ...w.history].slice(0, 50);
     saveLocalWallet(w);
-    setBalance(w.balance);
-    setHistory(w.history);
+    setSnapshot({ balance: w.balance, history: [tx, ...snapshot.history].slice(0, 50) });
     return { ok: true };
   }, []);
 
   const creditLocal = useCallback((gameSlug: string, payout: number, multiplier: number) => {
     const w = loadLocalWallet();
     w.balance += payout;
-    w.history = [
-      { id: crypto.randomUUID(), game_slug: gameSlug, type: 'win', amount: payout, balance_after: w.balance, meta: { multiplier }, created_at: new Date().toISOString() },
-      ...w.history,
-    ].slice(0, 50);
+    const tx: CasinoTransaction = {
+      id: crypto.randomUUID(), game_slug: gameSlug, type: 'win',
+      amount: payout, balance_after: w.balance, meta: { multiplier }, created_at: new Date().toISOString(),
+    };
+    w.history = [tx, ...w.history].slice(0, 50);
     saveLocalWallet(w);
-    setBalance(w.balance);
-    setHistory(w.history);
+    applySettlement(gameSlug, payout, w.balance, multiplier);
   }, []);
 
-  // Daily bonus / daily wheel-of-fortune / prestige — logged-in only (they
-  // hinge on persistent identity, no meaningful anonymous equivalent).
+  /* ---- daily rewards / prestige ---- */
+
   const claimDaily = useCallback(async (): Promise<{ reward: number; dailyStreak: number } | { error: string }> => {
     if (!user) return { error: 'Connecte-toi pour réclamer ton bonus quotidien.' };
     const res = await fetch('/api/casino/daily/claim', {
@@ -271,9 +375,13 @@ export function useCasinoWallet() {
     });
     const data = await res.json();
     if (!res.ok) return { error: data.error || 'Erreur' };
-    await refresh();
+    setSnapshot({
+      balance: data.newBalance,
+      stats: { ...snapshot.stats, dailyClaimedToday: true, dailyStreak: data.dailyStreak },
+    });
+    scheduleRevalidate();
     return data;
-  }, [user, refresh]);
+  }, [user, scheduleRevalidate]);
 
   const claimWheelOfFortune = useCallback(async (): Promise<{ reward: number; segmentIndex: number } | { error: string }> => {
     if (!user) return { error: 'Connecte-toi pour tourner la roue quotidienne.' };
@@ -282,9 +390,10 @@ export function useCasinoWallet() {
     });
     const data = await res.json();
     if (!res.ok) return { error: data.error || 'Erreur' };
-    await refresh();
+    setSnapshot({ balance: data.newBalance, stats: { ...snapshot.stats, wheelClaimedToday: true } });
+    scheduleRevalidate();
     return data;
-  }, [user, refresh]);
+  }, [user, scheduleRevalidate]);
 
   const prestige = useCallback(async (): Promise<{ prestigeCount: number } | { error: string }> => {
     if (!user) return { error: 'Connecte-toi pour prestiger.' };
@@ -293,15 +402,29 @@ export function useCasinoWallet() {
     });
     const data = await res.json();
     if (!res.ok) return { error: data.error || 'Erreur' };
-    await refresh();
+    setSnapshot({ balance: data.newBalance, stats: { ...snapshot.stats, prestigeCount: data.prestigeCount } });
     if (data.newAchievements?.length) announceProgression({ newAchievements: data.newAchievements, jackpotWon: null });
+    scheduleRevalidate();
     return data;
-  }, [user, refresh]);
+  }, [user, scheduleRevalidate]);
 
   return {
-    balance, history, stats, isLoaded, isLocal, maxBet,
-    spinWheelBet, placeBet, startLocalBet, creditLocal,
-    claimDaily, claimWheelOfFortune, prestige,
-    announceProgression, refresh,
+    balance: store.balance,
+    history: store.history,
+    stats: store.stats,
+    isLoaded: store.isLoaded,
+    isLocal,
+    maxBet,
+    spinWheelBet,
+    placeBet,
+    startLocalBet,
+    creditLocal,
+    applyServerBalance,
+    applyServerCashout,
+    claimDaily,
+    claimWheelOfFortune,
+    prestige,
+    announceProgression,
+    refresh: fetchWallet,
   };
 }
