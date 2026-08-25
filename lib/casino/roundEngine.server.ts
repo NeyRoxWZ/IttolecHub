@@ -61,6 +61,32 @@ export async function getActiveRound(userId: string, roundId: string, gameSlug: 
   return { ok: true as const, round };
 }
 
+// Blackjack "double down": take an extra bet equal to the original, same
+// optimistic-lock pattern as everywhere else.
+export async function doubleBet(userId: string, roundId: string, gameSlug: string, currentAmount: number) {
+  const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
+  if (!wallet) return { ok: false as const, status: 404, error: 'Portefeuille introuvable' };
+  if (wallet.balance < currentAmount) return { ok: false as const, status: 400, error: 'Solde insuffisant pour doubler.' };
+
+  const newBalance = wallet.balance - currentAmount;
+  const { data: updated, error } = await supabase
+    .from('casino_wallets')
+    .update({ balance: newBalance, updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .eq('balance', wallet.balance)
+    .select()
+    .maybeSingle();
+  if (error || !updated) return { ok: false as const, status: 409, error: 'Conflit de mise à jour, réessayez.' };
+
+  const newAmount = currentAmount * 2;
+  await supabase.from('casino_rounds').update({ amount: newAmount, updated_at: new Date().toISOString() }).eq('id', roundId);
+  await supabase.from('casino_transactions').insert({
+    user_id: userId, game_slug: gameSlug, type: 'bet', amount: -currentAmount, balance_after: newBalance, meta: { roundId, double: true },
+  });
+
+  return { ok: true as const, newAmount, newBalance };
+}
+
 export async function updateRoundState(roundId: string, state: any, multiplier: number) {
   await supabase.from('casino_rounds').update({ state, multiplier, updated_at: new Date().toISOString() }).eq('id', roundId);
 }

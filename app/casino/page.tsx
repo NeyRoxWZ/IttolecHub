@@ -21,9 +21,9 @@ interface CasinoGameEntry {
 
 const CASINO_GAMES: CasinoGameEntry[] = [
   { slug: 'slots', name: 'Frenly Slots', description: 'Machine à sous à rouleaux.', icon: Dices, rtp: '~94%', enabled: true },
-  { slug: 'blackjack', name: 'Frenly 21', description: 'Blackjack contre le croupier.', icon: Spade, rtp: '~98%', enabled: false },
+  { slug: 'blackjack', name: 'Frenly 21', description: 'Blackjack contre le croupier.', icon: Spade, rtp: '~98%', enabled: true },
   { slug: 'wheel', name: 'Frenly Wheel', description: 'Roulette simplifiée.', icon: CircleDot, rtp: '~97.3%', enabled: true },
-  { slug: 'rocket', name: 'Frenly Rocket', description: 'Encaisse avant le crash.', icon: Rocket, rtp: '~95%', enabled: false },
+  { slug: 'rocket', name: 'Frenly Rocket', description: 'Encaisse avant le crash.', icon: Rocket, rtp: '~95%', enabled: true },
   { slug: 'mines', name: 'Frenly Mines', description: 'Évite les mines cachées.', icon: Bomb, rtp: '~96%', enabled: true },
   { slug: 'plinko', name: 'Frenly Plinko', description: 'La bille tombe, le gain varie.', icon: Circle, rtp: '~97%', enabled: true },
   { slug: 'hilo', name: 'Frenly HiLo', description: 'Plus haut ou plus bas ?', icon: ArrowUpDown, rtp: '~96%', enabled: true },
