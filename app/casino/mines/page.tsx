@@ -15,6 +15,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { ArtGem, ArtBomb, ArtImpact } from '../_components/CasinoArt';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -203,9 +204,9 @@ export default function MinesPage() {
                   : 'border-white/10 bg-white/[0.03]'
               )}
             >
-              {isHit ? <span style={{ animation: 'minePop 300ms ease-out' }}>💥</span>
-                : isMine ? <span className="opacity-55">💣</span>
-                : isRevealed ? <span style={{ animation: 'minePop 260ms ease-out' }}>💎</span>
+              {isHit ? <span style={{ animation: 'minePop 300ms ease-out' }}><ArtImpact size={30} /></span>
+                : isMine ? <span className="opacity-55"><ArtBomb size={26} /></span>
+                : isRevealed ? <span style={{ animation: 'minePop 260ms ease-out' }}><ArtGem size={26} /></span>
                 : null}
             </button>
           );

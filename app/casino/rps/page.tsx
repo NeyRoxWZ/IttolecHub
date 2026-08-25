@@ -11,6 +11,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { ArtRps } from '../_components/CasinoArt';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -27,13 +28,13 @@ const RULES: RulesSpec = {
   rtp: '~96%',
 };
 
-const MOVES: { value: RpsMove; label: string; emoji: string }[] = [
-  { value: 'pierre', label: 'Pierre', emoji: '✊' },
-  { value: 'feuille', label: 'Feuille', emoji: '✋' },
-  { value: 'ciseaux', label: 'Ciseaux', emoji: '✌️' },
+const MOVES: { value: RpsMove; label: string }[] = [
+  { value: 'pierre', label: 'Pierre' },
+  { value: 'feuille', label: 'Feuille' },
+  { value: 'ciseaux', label: 'Ciseaux' },
 ];
 
-const emojiOf = (m: RpsMove) => MOVES.find((x) => x.value === m)!.emoji;
+const nameOf = (m: RpsMove) => MOVES.find((x) => x.value === m)!.label;
 type RpsResult = GenericBetResult & { outcome: 'win' | 'lose' | 'tie'; house: RpsMove; playerMove: RpsMove };
 
 export default function RpsPage() {
@@ -71,13 +72,13 @@ export default function RpsPage() {
 
     if (full.outcome === 'win') {
       vibrate(HAPTIC.SUCCESS); sfx.win(); setConfetti((c) => c + 1);
-      toast.success(`${emojiOf(full.playerMove)} bat ${emojiOf(full.house)} — +${full.payout} ₶`);
+      toast.success(`${nameOf(full.playerMove)} bat ${nameOf(full.house)} — +${full.payout} ₶`);
     } else if (full.outcome === 'tie') {
       vibrate(HAPTIC.WARNING); sfx.reveal();
       toast.info('Égalité — mise remboursée.');
     } else {
       vibrate(HAPTIC.ERROR); sfx.lose();
-      toast.error(`${emojiOf(full.house)} bat ${emojiOf(full.playerMove)} — perdu`);
+      toast.error(`${nameOf(full.house)} bat ${nameOf(full.playerMove)} — perdu`);
     }
   };
 
@@ -93,9 +94,9 @@ export default function RpsPage() {
 
       <div className="flex items-center justify-center gap-6 sm:gap-10">
         <div className="flex flex-col items-center gap-2">
-          <div className="w-24 h-24 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center text-5xl"
+          <div className="w-24 h-24 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center"
             style={{ animation: playing ? 'rpsShake 280ms ease-in-out infinite' : undefined }}>
-            {result ? emojiOf(result.playerMove) : '✊'}
+            <ArtRps move={result ? result.playerMove : 'pierre'} size={46} />
           </div>
           <span className="text-[10px] font-black uppercase tracking-widest text-tx-secondary">Toi</span>
         </div>
@@ -103,9 +104,9 @@ export default function RpsPage() {
         <span className="font-display text-2xl font-black text-tx-muted">VS</span>
 
         <div className="flex flex-col items-center gap-2">
-          <div className="w-24 h-24 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center text-5xl"
+          <div className="w-24 h-24 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center"
             style={{ animation: playing ? 'rpsShakeMirror 280ms ease-in-out infinite' : undefined, transform: playing ? undefined : 'scaleX(-1)' }}>
-            {result ? emojiOf(result.house) : '✊'}
+            <ArtRps move={result ? result.house : 'pierre'} size={46} />
           </div>
           <span className="text-[10px] font-black uppercase tracking-widest text-tx-secondary">Maison</span>
         </div>
@@ -124,7 +125,7 @@ export default function RpsPage() {
       <div>
         <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Ton coup (×{RPS_PAYOUT} si tu gagnes)</div>
         <div className="grid grid-cols-3 gap-2">
-          {MOVES.map(({ value, label, emoji }) => (
+          {MOVES.map(({ value, label }) => (
             <button
               key={value}
               onClick={() => handlePlay(value)}
@@ -134,7 +135,7 @@ export default function RpsPage() {
                 playing ? 'opacity-50 cursor-not-allowed' : 'hover:border-accent-primary hover:-translate-y-1 active:translate-y-0'
               )}
             >
-              <span className="text-3xl">{emoji}</span>
+              <ArtRps move={value} size={34} />
               {label}
             </button>
           ))}

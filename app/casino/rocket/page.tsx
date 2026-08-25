@@ -12,6 +12,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { ArtRocketShip } from '../_components/CasinoArt';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -261,14 +262,14 @@ export default function RocketPage() {
         {/* Rocket head */}
         {points.length > 1 && (
           <div
-            className="absolute text-2xl pointer-events-none transition-none"
+            className="absolute pointer-events-none transition-none"
             style={{
               left: `${(head.x / VIEW_W) * 100}%`,
               top: `${(head.y / VIEW_H) * 100}%`,
-              transform: 'translate(-50%, -50%) rotate(-35deg)',
+              transform: `translate(-50%, -50%) rotate(${phase === 'crashed' ? 0 : 38}deg)`,
             }}
           >
-            {phase === 'crashed' ? '💥' : '🚀'}
+            <ArtRocketShip size={30} crashed={phase === 'crashed'} />
           </div>
         )}
 

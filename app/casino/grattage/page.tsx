@@ -11,6 +11,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { ArtClover, ArtMoneyBag, ArtCrown, ArtDiamond, ArtLemon, ArtStar } from '../_components/CasinoArt';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -20,21 +21,27 @@ const RULES: RulesSpec = {
     'Le résultat du ticket est déjà fixé à l’achat — gratter ne fait que le révéler.',
   ],
   payouts: [
-    { label: '🍀 🍀 🍀', value: 'Mise remboursée' },
-    { label: '💰 💰 💰', value: '×3' },
-    { label: '👑 👑 👑', value: '×15' },
-    { label: '💎 💎 💎', value: '×35' },
+    { label: 'Trois trèfles', value: 'Mise remboursée' },
+    { label: 'Trois bourses', value: '×3' },
+    { label: 'Trois couronnes', value: '×15' },
+    { label: 'Trois diamants', value: '×35' },
   ],
   rtp: '~90%',
 };
 
-const TIER_SYMBOL: Record<string, string> = { small: '🍀', medium: '💰', big: '👑', jackpot: '💎' };
-const LOSE_POOL = ['🍀', '💰', '👑', '💎', '🍋', '⭐'];
+type FaceKey = 'clover' | 'bag' | 'crown' | 'diamond' | 'lemon' | 'star';
+
+const FACE_ART: Record<FaceKey, (p: { size?: number }) => JSX.Element> = {
+  clover: ArtClover, bag: ArtMoneyBag, crown: ArtCrown,
+  diamond: ArtDiamond, lemon: ArtLemon, star: ArtStar,
+};
+const TIER_SYMBOL: Record<string, FaceKey> = { small: 'clover', medium: 'bag', big: 'crown', jackpot: 'diamond' };
+const LOSE_POOL: FaceKey[] = ['clover', 'bag', 'crown', 'diamond', 'lemon', 'star'];
 const REVEAL_THRESHOLD = 0.5;
 
-function buildFaces(tier: string): string[] {
+function buildFaces(tier: string): FaceKey[] {
   if (tier !== 'lose') {
-    const s = TIER_SYMBOL[tier] || '🍀';
+    const s = TIER_SYMBOL[tier] || 'clover';
     return [s, s, s];
   }
   // Losing ticket: deliberately not three of a kind.
@@ -52,7 +59,7 @@ export default function GrattagePage() {
 
   const [amount, setAmount] = useState(1);
   const [phase, setPhase] = useState<Phase>('idle');
-  const [faces, setFaces] = useState<string[]>(['❓', '❓', '❓']);
+  const [faces, setFaces] = useState<FaceKey[] | null>(null);
   const [result, setResult] = useState<GenericBetResult | null>(null);
   const [buying, setBuying] = useState(false);
   const [confetti, setConfetti] = useState(0);
@@ -176,7 +183,7 @@ export default function GrattagePage() {
     setPhase('scratching');
   };
 
-  const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setFaces(['❓', '❓', '❓']); setProgress(0); };
+  const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setFaces(null); setProgress(0); };
 
   const gameHistory = history.filter((h) => h.game_slug === 'grattage').slice(0, 10);
 
@@ -197,9 +204,13 @@ export default function GrattagePage() {
         {/* Scratch zone */}
         <div className="relative rounded-xl overflow-hidden border-2 border-black/40" style={{ height: 116 }}>
           <div className="absolute inset-0 flex items-center justify-around bg-white">
-            {faces.map((f, i) => (
-              <span key={i} className="text-4xl">{phase === 'idle' ? '❓' : f}</span>
-            ))}
+            {[0, 1, 2].map((i) => {
+              if (phase === 'idle' || !faces) {
+                return <span key={i} className="font-display font-black text-3xl text-[#C9CDD4]">?</span>;
+              }
+              const Art = FACE_ART[faces[i]];
+              return <Art key={i} size={44} />;
+            })}
           </div>
 
           {phase === 'scratching' && (
@@ -256,12 +267,15 @@ export default function GrattagePage() {
       <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">
         <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">Table des gains</div>
         <div className="space-y-1.5 text-xs">
-          {[['💎💎💎', '×35'], ['👑👑👑', '×15'], ['💰💰💰', '×3'], ['🍀🍀🍀', '×1']].map(([sym, mult]) => (
-            <div key={sym} className="flex justify-between items-center">
-              <span className="text-base tracking-widest">{sym}</span>
-              <span className="font-display font-black text-accent-primary">{mult}</span>
-            </div>
-          ))}
+          {([['diamond', '×35'], ['crown', '×15'], ['bag', '×3'], ['clover', '×1']] as [FaceKey, string][]).map(([sym, mult]) => {
+            const Art = FACE_ART[sym];
+            return (
+              <div key={sym} className="flex justify-between items-center">
+                <span className="flex gap-1"><Art size={18} /><Art size={18} /><Art size={18} /></span>
+                <span className="font-display font-black text-accent-primary">{mult}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 

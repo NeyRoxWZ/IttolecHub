@@ -11,6 +11,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { ArtHorse, ArtFinishFlag } from '../_components/CasinoArt';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -109,14 +110,14 @@ export default function ChevauxPage() {
                 <span className={cn('text-[10px] font-black w-[92px] shrink-0 truncate', isPick ? 'text-white' : 'text-white/60')}>{h.name}</span>
                 <div className="relative flex-1 h-full">
                   <span
-                    className="absolute top-1/2 -translate-y-1/2 text-xl"
-                    style={{ left: `calc(${progress[i] * 100}% - 12px)`, transition: phase === 'racing' ? 'none' : 'left 300ms ease-out' }}
+                    className="absolute top-1/2 -translate-y-1/2"
+                    style={{ left: `calc(${progress[i] * 100}% - 14px)`, transition: phase === 'racing' ? 'none' : 'left 300ms ease-out' }}
                   >
-                    🐎
+                    <ArtHorse size={22} />
                   </span>
                 </div>
                 <span className={cn('text-[10px] font-black shrink-0', isWinner ? 'text-accent-primary' : 'text-white/50')}>×{h.payout}</span>
-                <span className="text-sm shrink-0">🏁</span>
+                <span className="shrink-0"><ArtFinishFlag size={16} /></span>
               </div>
             </div>
           );

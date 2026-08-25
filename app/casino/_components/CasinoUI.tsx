@@ -285,11 +285,14 @@ export function GameShell({
   };
 
   return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
+    // Locked to the viewport on desktop so the whole game fits without any
+    // scrolling; on narrow screens the page itself scrolls (unavoidable when
+    // the two columns stack) but nothing scrolls *inside* it.
+    <main className="lg:h-[100dvh] lg:overflow-hidden bg-transparent text-tx-base p-3 sm:p-4 flex flex-col">
       {showRules && <RulesModal title={title} rules={rules} onClose={() => setShowRules(false)} />}
 
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between gap-3 mb-6 flex-wrap">
+      <div className="max-w-5xl w-full mx-auto flex flex-col flex-1 min-h-0">
+        <header className="flex items-center justify-between gap-3 mb-3 flex-wrap shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push('/casino')}
@@ -326,11 +329,11 @@ export function GameShell({
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
-          <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-5 sm:p-6 flex flex-col items-center justify-center min-h-[340px]">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 flex-1 min-h-0">
+          <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 flex flex-col items-center justify-center min-h-[300px] lg:min-h-0 overflow-hidden">
             {stage}
           </div>
-          <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-5 sm:p-6 shadow-brutal flex flex-col gap-5">
+          <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 shadow-brutal flex flex-col gap-3 min-h-0 overflow-hidden">
             {panel}
           </div>
         </div>
@@ -346,10 +349,10 @@ export function GameShell({
 export function HistoryStrip({ history }: { history: { id: string; amount: number }[] }) {
   if (history.length === 0) return null;
   return (
-    <div className="mt-auto">
-      <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Dernières parties</div>
-      <div className="flex flex-wrap gap-1.5">
-        {history.map((h) => (
+    <div className="mt-auto shrink-0">
+      <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-1.5">Dernières parties</div>
+      <div className="flex gap-1.5 overflow-hidden">
+        {history.slice(0, 6).map((h) => (
           <span
             key={h.id}
             className={cn(

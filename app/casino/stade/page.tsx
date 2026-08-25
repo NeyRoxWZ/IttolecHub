@@ -11,6 +11,7 @@ import {
   GameShell, BetControls, PlayButton, PlayingCard, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { ArtShield, ArtHandshake } from '../_components/CasinoArt';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -27,11 +28,16 @@ const RULES: RulesSpec = {
   rtp: '~96%',
 };
 
-const BETS: { value: StadeBet; label: string; emoji: string }[] = [
-  { value: 'home', label: 'Domicile', emoji: '🏠' },
-  { value: 'draw', label: 'Match nul', emoji: '🤝' },
-  { value: 'away', label: 'Extérieur', emoji: '✈️' },
+const BETS: { value: StadeBet; label: string }[] = [
+  { value: 'home', label: 'Domicile' },
+  { value: 'draw', label: 'Match nul' },
+  { value: 'away', label: 'Extérieur' },
 ];
+
+function BetIcon({ value, size = 18 }: { value: StadeBet; size?: number }) {
+  if (value === 'draw') return <ArtHandshake size={size} />;
+  return <ArtShield size={size} away={value === 'away'} />;
+}
 const LABEL: Record<StadeOutcome, string> = { home: 'Domicile', away: 'Extérieur', draw: 'Match nul' };
 
 export default function StadePage() {
@@ -104,8 +110,9 @@ export default function StadePage() {
             const isWinnerSide = result && result.outcome === side;
             return (
               <div key={side} className="flex flex-col items-center gap-2">
-                <span className={cn('text-[10px] font-black uppercase tracking-widest', isWinnerSide ? 'text-accent-primary' : 'text-white/60')}>
-                  {side === 'home' ? '🏠 Domicile' : '✈️ Extérieur'}
+                <span className={cn('text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5', isWinnerSide ? 'text-accent-primary' : 'text-white/60')}>
+                  <ArtShield size={14} away={side === 'away'} />
+                  {side === 'home' ? 'Domicile' : 'Extérieur'}
                 </span>
                 {value !== undefined
                   ? <PlayingCard rank={value} index={side === 'home' ? 0 : 2} size="lg" highlight={!!isWinnerSide} />
@@ -141,7 +148,7 @@ export default function StadePage() {
                 bet === b.value ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-brand-inner border-brand-border text-tx-secondary hover:border-tx-base/60'
               )}
             >
-              <span className="flex items-center gap-2"><span className="text-lg">{b.emoji}</span>{b.label}</span>
+              <span className="flex items-center gap-2"><BetIcon value={b.value} />{b.label}</span>
               <span>×{STADE_PAYOUTS[b.value]}</span>
             </button>
           ))}

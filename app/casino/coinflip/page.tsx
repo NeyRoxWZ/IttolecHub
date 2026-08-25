@@ -11,6 +11,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { ArtCoinFace } from '../_components/CasinoArt';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -114,7 +115,7 @@ export default function CoinflipPage() {
               borderColor: '#8A6B00', color: '#4A3800',
             }}
           >
-            <span className="text-3xl">₶</span>
+            <ArtCoinFace side="pile" size={44} />
             <span className="text-xs tracking-widest">PILE</span>
           </div>
           {/* Face */}
@@ -126,7 +127,7 @@ export default function CoinflipPage() {
               borderColor: '#5A616B', color: '#2A2F38',
             }}
           >
-            <span className="text-3xl">★</span>
+            <ArtCoinFace side="face" size={44} />
             <span className="text-xs tracking-widest">FACE</span>
           </div>
         </div>
@@ -158,7 +159,7 @@ export default function CoinflipPage() {
                   : { background: 'radial-gradient(circle at 40% 30%, #F5F7FA, #C0C6D0 60%)', color: '#2A2F38' }
               }
             >
-              <span className="text-2xl">{c === 'pile' ? '₶' : '★'}</span>
+              <ArtCoinFace side={c} size={26} />
               {c === 'pile' ? 'PILE' : 'FACE'}
             </button>
           ))}

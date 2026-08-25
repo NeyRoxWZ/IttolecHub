@@ -190,7 +190,7 @@ export default function FrenlyWheelPage() {
         )}
 
         {betType === 'number' && (
-          <div className="grid grid-cols-7 gap-1 max-h-44 overflow-y-auto custom-scrollbar p-1">
+          <div className="grid grid-cols-7 gap-1 p-1">
             {Array.from({ length: 37 }, (_, n) => n).map((n) => (
               <button
                 key={n}

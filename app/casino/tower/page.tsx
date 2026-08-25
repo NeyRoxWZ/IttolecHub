@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
@@ -12,6 +12,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { ArtDoor, ArtSkull, ArtCheck } from '../_components/CasinoArt';
 
 const CONFIG = LADDER_CONFIGS.tower;
 // survivalProb is 0.75, i.e. exactly 3 safe doors out of 4 — so the visual
@@ -46,14 +47,10 @@ export default function TowerPage() {
   const [confetti, setConfetti] = useState(0);
   /** floor index -> { picked, trap } once resolved */
   const [revealed, setRevealed] = useState<Record<number, { picked: number; trap: number }>>({});
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const active = phase === 'climbing';
   const potentialPayout = Math.round(lockedAmount * multiplier);
 
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [step, phase]);
 
   const handleStart = async () => {
     if (busy) return;
@@ -171,8 +168,7 @@ export default function TowerPage() {
       </div>
 
       <div
-        ref={scrollRef}
-        className="w-full max-w-[380px] max-h-[300px] overflow-y-auto custom-scrollbar rounded-2xl border-4 border-brand-border p-2 flex flex-col-reverse gap-1.5"
+        className="w-full max-w-[380px] rounded-2xl border-4 border-brand-border p-2 flex flex-col-reverse gap-1"
         style={{ background: 'linear-gradient(180deg, #241C33 0%, #16111F 100%)' }}
       >
         {Array.from({ length: CONFIG.totalSteps }, (_, floor) => {
@@ -182,8 +178,8 @@ export default function TowerPage() {
           const cleared = step > floor;
 
           return (
-            <div key={floor} className={cn('flex items-center gap-2 rounded-lg p-1.5 transition-colors', isCurrent && 'bg-accent-primary/10 ring-2 ring-accent-primary')}>
-              <span className={cn('w-11 shrink-0 text-[10px] font-black text-right', cleared ? 'text-accent-success' : isCurrent ? 'text-accent-primary' : 'text-tx-muted')}>
+            <div key={floor} className={cn('flex items-center gap-2 rounded-lg p-1 transition-colors', isCurrent && 'bg-accent-primary/10 ring-2 ring-accent-primary')}>
+              <span className={cn('w-10 shrink-0 text-[10px] font-black text-right', cleared ? 'text-accent-success' : isCurrent ? 'text-accent-primary' : 'text-tx-muted')}>
                 ×{multiplierAtStep(CONFIG, floorNumber)}
               </span>
               <div className="flex-1 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${DOORS}, minmax(0,1fr))` }}>
@@ -196,7 +192,7 @@ export default function TowerPage() {
                       onClick={() => handlePickDoor(d)}
                       disabled={!isCurrent || busy}
                       className={cn(
-                        'h-9 rounded-md border-2 flex items-center justify-center text-sm transition-all focus:outline-none',
+                        'h-8 rounded-md border-2 flex items-center justify-center transition-all focus:outline-none',
                         isTrap ? 'border-accent-secondary bg-accent-secondary/30'
                           : isPicked ? 'border-accent-success bg-accent-success/25'
                           : rev ? 'border-white/10 bg-white/[0.04] opacity-45'
@@ -204,7 +200,7 @@ export default function TowerPage() {
                           : 'border-white/8 bg-white/[0.03]'
                       )}
                     >
-                      {isTrap ? '💀' : isPicked ? '✅' : isCurrent ? '🚪' : ''}
+                      {isTrap ? <ArtSkull size={16} /> : isPicked ? <ArtCheck size={16} /> : isCurrent ? <ArtDoor size={16} /> : null}
                     </button>
                   );
                 })}

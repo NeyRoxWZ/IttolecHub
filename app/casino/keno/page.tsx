@@ -123,7 +123,7 @@ export default function KenoPage() {
             : `${result?.matches ?? 0} correspondances`}
         </span>
         <span className={cn('font-display font-black text-lg', picksComplete ? 'text-accent-success' : 'text-accent-primary')}>
-          {phase === 'picking' ? `${picks.length}/${KENO_PICK_COUNT}` : `${liveMatches} ✓`}
+          {phase === 'picking' ? `${picks.length}/${KENO_PICK_COUNT}` : `${liveMatches} bons`}
         </span>
       </div>
 

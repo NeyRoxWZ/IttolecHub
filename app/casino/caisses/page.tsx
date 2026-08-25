@@ -11,6 +11,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { ArtCrate, ArtCrateEmpty } from '../_components/CasinoArt';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -91,7 +92,7 @@ export default function CaissesPage() {
               onClick={() => handlePick(i)}
               disabled={phase !== 'choosing'}
               className={cn(
-                'relative w-[74px] h-[74px] rounded-xl border-4 flex items-center justify-center text-3xl transition-all focus:outline-none',
+                'relative w-[74px] h-[74px] rounded-xl border-4 flex items-center justify-center transition-all focus:outline-none overflow-hidden',
                 hasJackpot ? 'border-accent-success bg-accent-success/25'
                   : isChosen && revealed ? 'border-accent-secondary bg-accent-secondary/20'
                   : revealed ? 'border-brand-border opacity-45'
@@ -105,9 +106,9 @@ export default function CaissesPage() {
             >
               {revealed
                 ? (hasJackpot
-                  ? <span style={{ animation: 'cratePop 320ms ease-out forwards' }}>💰</span>
-                  : <span className="opacity-40 text-2xl">📭</span>)
-                : <span>📦</span>}
+                  ? <span style={{ animation: 'cratePop 320ms ease-out forwards' }}><ArtCrate size={44} open /></span>
+                  : <ArtCrateEmpty size={40} />)
+                : <ArtCrate size={44} />}
               {!revealed && phase === 'choosing' && (
                 <span className="absolute bottom-1 right-1.5 text-[10px] font-black text-white/60">{i + 1}</span>
               )}

@@ -6,11 +6,12 @@ import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
-import { spinSlots, resolveSlots, CASINO_MIN_BET } from '@/lib/casino/slots';
+import { spinSlots, resolveSlots, CASINO_MIN_BET, type SlotSymbol } from '@/lib/casino/slots';
 import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { ArtCherry, ArtBell, ArtStar, ArtDiamond, ArtLemon, ArtSeven } from '../_components/CasinoArt';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -20,23 +21,27 @@ const RULES: RulesSpec = {
     'Aucune combinaison partielle ne paie : il faut les trois.',
   ],
   payouts: [
-    { label: '🍒 🍒 🍒 Cerises', value: 'Mise remboursée' },
-    { label: '🔔 🔔 🔔 Cloches', value: '×4' },
-    { label: '⭐ ⭐ ⭐ Étoiles', value: '×10' },
-    { label: '💎 💎 💎 Diamants', value: '×42' },
+    { label: 'Trois cerises', value: 'Mise remboursée' },
+    { label: 'Trois cloches', value: '×4' },
+    { label: 'Trois étoiles', value: '×10' },
+    { label: 'Trois diamants', value: '×42' },
   ],
   rtp: '~94%',
 };
 
 const CELL = 88;
-const SYMBOLS = ['🍒', '🔔', '⭐', '💎', '🍋', '🍇'];
+const SYMBOL_ART: Record<SlotSymbol, (p: { size?: number }) => JSX.Element> = {
+  cherry: ArtCherry, bell: ArtBell, star: ArtStar,
+  diamond: ArtDiamond, lemon: ArtLemon, seven: ArtSeven,
+};
+const SYMBOLS: SlotSymbol[] = ['cherry', 'bell', 'star', 'diamond', 'lemon', 'seven'];
 // Long strip so the reel has something to scroll through; every symbol
 // appears several times so any target can be reached from anywhere.
 const STRIP = Array.from({ length: 6 }, () => SYMBOLS).flat();
 
 type ReelState = { spinning: boolean; offset: number; settled: boolean };
 
-function Reel({ state, symbol, highlight }: { state: ReelState; symbol: string; highlight: boolean }) {
+function Reel({ state, highlight }: { state: ReelState; highlight: boolean }) {
   return (
     <div
       className={cn(
@@ -53,11 +58,14 @@ function Reel({ state, symbol, highlight }: { state: ReelState; symbol: string; 
           filter: state.spinning ? 'blur(3px)' : 'none',
         }}
       >
-        {STRIP.map((s, i) => (
-          <div key={i} className="flex items-center justify-center shrink-0" style={{ height: CELL, fontSize: 44 }}>
-            {s}
-          </div>
-        ))}
+        {STRIP.map((s, i) => {
+          const Art = SYMBOL_ART[s];
+          return (
+            <div key={i} className="flex items-center justify-center shrink-0" style={{ height: CELL }}>
+              <Art size={46} />
+            </div>
+          );
+        })}
       </div>
       {highlight && <div className="absolute inset-0 rounded-lg bg-accent-primary/20 animate-pulse pointer-events-none" />}
     </div>
@@ -74,7 +82,7 @@ export default function SlotsPage() {
     { spinning: false, offset: 0, settled: true },
     { spinning: false, offset: 0, settled: true },
   ]);
-  const [finalSymbols, setFinalSymbols] = useState<string[]>(['🍒', '🔔', '⭐']);
+  const [finalSymbols, setFinalSymbols] = useState<SlotSymbol[]>(['cherry', 'bell', 'star']);
   const [lastResult, setLastResult] = useState<GenericBetResult | null>(null);
   const [confetti, setConfetti] = useState(0);
   const rafRefs = useRef<(number | null)[]>([null, null, null]);
@@ -100,7 +108,7 @@ export default function SlotsPage() {
     rafRefs.current[idx] = requestAnimationFrame(loop);
   };
 
-  const stopReel = (idx: number, symbol: string) => {
+  const stopReel = (idx: number, symbol: SlotSymbol) => {
     if (rafRefs.current[idx]) cancelAnimationFrame(rafRefs.current[idx]!);
     // Land on a copy of the target symbol that sits comfortably inside the strip.
     const candidates = STRIP.map((s, i) => (s === symbol ? i : -1)).filter((i) => i >= 2 && i < STRIP.length - 2);
@@ -140,7 +148,7 @@ export default function SlotsPage() {
       return;
     }
 
-    const symbols: string[] = result.meta.reels;
+    const symbols: SlotSymbol[] = result.meta.reels;
     setFinalSymbols(symbols);
 
     // Sequential stop, with a longer beat before the last reel when the first
@@ -161,7 +169,7 @@ export default function SlotsPage() {
       vibrate(HAPTIC.SUCCESS);
       if (result.multiplier >= 10) { sfx.bigWin(); setConfetti((c) => c + 1); }
       else sfx.win();
-      toast.success(`${symbols.join(' ')} — +${result.payout} ₶`);
+      toast.success(`+${result.payout} ₶`);
     } else {
       vibrate(HAPTIC.ERROR);
       sfx.lose();
@@ -182,7 +190,7 @@ export default function SlotsPage() {
       >
         <div className="flex gap-3">
           {reels.map((r, i) => (
-            <Reel key={i} state={r} symbol={finalSymbols[i]} highlight={isWinLine} />
+            <Reel key={i} state={r} highlight={isWinLine} />
           ))}
         </div>
         <div className="mt-4 h-1 rounded-full bg-accent-primary/25">
@@ -206,12 +214,15 @@ export default function SlotsPage() {
       <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">
         <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">Table des gains</div>
         <div className="space-y-1.5 text-xs">
-          {[['💎💎💎', '×42'], ['⭐⭐⭐', '×10'], ['🔔🔔🔔', '×4'], ['🍒🍒🍒', '×1']].map(([sym, mult]) => (
-            <div key={sym} className="flex justify-between items-center">
-              <span className="text-base tracking-widest">{sym}</span>
-              <span className="font-display font-black text-accent-primary">{mult}</span>
-            </div>
-          ))}
+          {([['diamond', '×42'], ['star', '×10'], ['bell', '×4'], ['cherry', '×1']] as [SlotSymbol, string][]).map(([sym, mult]) => {
+            const Art = SYMBOL_ART[sym];
+            return (
+              <div key={sym} className="flex justify-between items-center">
+                <span className="flex gap-1"><Art size={18} /><Art size={18} /><Art size={18} /></span>
+                <span className="font-display font-black text-accent-primary">{mult}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 

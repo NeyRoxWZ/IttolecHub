@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
@@ -12,6 +12,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { ArtChicken, ArtCar, ArtImpact, ArtFinishFlag } from '../_components/CasinoArt';
 
 const CONFIG = LADDER_CONFIGS.poulet;
 
@@ -36,13 +37,13 @@ type Phase = 'idle' | 'crossing' | 'hopping' | 'dead' | 'cashed';
 function Car({ lane, delay, danger }: { lane: number; delay: number; danger: boolean }) {
   return (
     <div
-      className="absolute left-1/2 -translate-x-1/2 text-2xl select-none pointer-events-none"
+      className="absolute left-1/2 -translate-x-1/2 select-none pointer-events-none"
       style={{
         animation: `pouletTraffic ${2.4 + (lane % 3) * 0.5}s linear ${delay}s infinite`,
         filter: danger ? 'drop-shadow(0 0 6px #FF2A55)' : undefined,
       }}
     >
-      🚗
+      <ArtCar size={18} />
     </div>
   );
 }
@@ -60,19 +61,11 @@ export default function PouletPage() {
   const [busy, setBusy] = useState(false);
   const [deathLane, setDeathLane] = useState<number | null>(null);
   const [confetti, setConfetti] = useState(0);
-  const laneScrollRef = useRef<HTMLDivElement>(null);
 
   const active = phase === 'crossing' || phase === 'hopping';
   const potentialPayout = Math.round(lockedAmount * multiplier);
   const nextMultiplier = multiplierAtStep(CONFIG, step + 1);
 
-  // Keep the chicken in view on narrow screens.
-  useEffect(() => {
-    const el = laneScrollRef.current;
-    if (!el) return;
-    const laneWidth = 96;
-    el.scrollTo({ left: Math.max(0, (step - 1) * laneWidth), behavior: 'smooth' });
-  }, [step]);
 
   const handleStart = async () => {
     if (busy) return;
@@ -210,14 +203,15 @@ export default function PouletPage() {
         )}
       </div>
 
-      {/* The road */}
-      <div ref={laneScrollRef} className="w-full overflow-x-auto custom-scrollbar rounded-2xl border-4 border-brand-border">
-        <div className="flex" style={{ minWidth: 'max-content' }}>
+      {/* The road — every lane fits on screen, nothing scrolls */}
+      <div className="w-full rounded-2xl border-4 border-brand-border overflow-hidden">
+        <div className="flex" style={{ height: 200 }}>
           {/* Start kerb */}
-          <div className="w-14 shrink-0 flex flex-col items-center justify-center gap-1 py-4" style={{ background: '#4A5057' }}>
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/70 rotate-180" style={{ writingMode: 'vertical-rl' }}>Départ</span>
+          <div className="w-9 shrink-0 flex flex-col items-center justify-end pb-3" style={{ background: '#4A5057' }}>
             {step === 0 && phase !== 'dead' && (
-              <span className="text-3xl" style={{ animation: phase === 'hopping' ? 'pouletHop 260ms ease-out' : undefined }}>🐔</span>
+              <span style={{ animation: phase === 'hopping' ? 'pouletHop 260ms ease-out' : undefined }}>
+                <ArtChicken size={26} />
+              </span>
             )}
           </div>
 
@@ -232,43 +226,43 @@ export default function PouletPage() {
             return (
               <div
                 key={i}
-                className="relative w-24 shrink-0 flex flex-col items-center justify-end overflow-hidden border-r-2 border-dashed border-white/25"
-                style={{ height: 240, background: crossed ? '#2E3A32' : '#33383D' }}
+                className="relative flex-1 min-w-0 flex flex-col items-center justify-end overflow-hidden border-r border-dashed border-white/20"
+                style={{ background: crossed ? '#2E3A32' : '#33383D' }}
               >
-                {/* Lane multiplier */}
                 <div className={cn(
-                  'absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md text-[11px] font-display font-black border-2 z-10 whitespace-nowrap',
+                  'absolute top-1.5 left-1/2 -translate-x-1/2 px-1 py-0.5 rounded text-[9px] font-display font-black border z-20 whitespace-nowrap',
                   crossed ? 'bg-accent-success text-brand-bg border-accent-success'
                     : isCurrent ? 'bg-accent-primary text-brand-bg border-accent-primary animate-pulse'
-                    : 'bg-black/45 text-white/75 border-white/20'
+                    : 'bg-black/50 text-white/70 border-white/20'
                 )}>
                   ×{multiplierAtStep(CONFIG, laneNumber)}
                 </div>
 
-                {/* Traffic */}
                 {active && !crossed && <Car lane={i} delay={i * 0.42} danger={isCurrent} />}
-                {isDeath && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl">💥</div>}
+                {isDeath && (
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+                    <ArtImpact size={40} />
+                  </div>
+                )}
 
-                {/* Chicken */}
                 {chickenHere && (
                   <span
-                    className="text-3xl mb-6 z-10"
+                    className="mb-4 z-10"
                     style={{ animation: phase === 'dead' ? 'pouletSquash 400ms ease-out forwards' : phase === 'hopping' ? 'pouletHop 260ms ease-out' : undefined }}
                   >
-                    🐔
+                    <ArtChicken size={26} dead={phase === 'dead'} />
                   </span>
                 )}
 
-                {/* Road marking */}
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-full opacity-20"
-                  style={{ background: 'repeating-linear-gradient(180deg, #fff 0 14px, transparent 14px 30px)' }} />
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0.5 h-full opacity-20"
+                  style={{ background: 'repeating-linear-gradient(180deg, #fff 0 12px, transparent 12px 26px)' }} />
               </div>
             );
           })}
 
           {/* Finish */}
-          <div className="w-14 shrink-0 flex items-center justify-center" style={{ background: 'repeating-conic-gradient(#fff 0% 25%, #222 0% 50%) 50%/14px 14px' }}>
-            <span className="text-2xl">🏁</span>
+          <div className="w-9 shrink-0 flex items-center justify-center" style={{ background: 'repeating-conic-gradient(#fff 0% 25%, #222 0% 50%) 50%/10px 10px' }}>
+            <ArtFinishFlag size={22} />
           </div>
         </div>
       </div>

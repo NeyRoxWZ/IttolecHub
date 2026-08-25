@@ -11,6 +11,7 @@ import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
+import { ArtBall } from '../_components/CasinoArt';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -145,7 +146,7 @@ export default function BonneteauPage() {
                   {slot + 1}
                 </div>
                 <div className="h-3 w-full flex items-center justify-center">
-                  {revealed && hasBall && <span className="text-lg">⚪</span>}
+                  {revealed && hasBall && <ArtBall size={16} />}
                 </div>
               </div>
             </button>
