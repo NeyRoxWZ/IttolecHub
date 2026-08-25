@@ -3,6 +3,9 @@ import { settleBet } from '@/lib/casino/settleBet.server';
 import { flipCoin, resolveCoinflip, type CoinSide } from '@/lib/casino/coinflip';
 import { houseMove, resolveRps, type RpsMove } from '@/lib/casino/rps';
 import { hideBall, resolveBonneteau } from '@/lib/casino/bonneteau';
+import { drawBaccaratOutcome, resolveBaccarat, type BaccaratBet } from '@/lib/casino/baccarat';
+import { drawStadeOutcome, resolveStade, type StadeBet } from '@/lib/casino/stade';
+import { playPassLine, resolveCraps } from '@/lib/casino/craps';
 
 // Single shared route for every "one bet, one instant reveal" casino game
 // (coinflip, rps, bonneteau, ...). Multi-step games (mines, tower, rocket)
@@ -48,6 +51,38 @@ export async function POST(request: Request, { params }: { params: { game: strin
           const ballCup = hideBall();
           const r = resolveBonneteau(ballCup, payload.cup);
           return { ...r, meta: { ballCup, chosenCup: payload.cup } };
+        };
+        break;
+      }
+      case 'baccarat': {
+        const bets: BaccaratBet[] = ['player', 'banker', 'tie'];
+        if (!bets.includes(payload?.bet)) {
+          return NextResponse.json({ error: 'Mise invalide' }, { status: 400 });
+        }
+        resolveFn = () => {
+          const outcome = drawBaccaratOutcome();
+          const r = resolveBaccarat(outcome, payload.bet as BaccaratBet);
+          return { ...r, meta: { outcome, bet: payload.bet } };
+        };
+        break;
+      }
+      case 'stade': {
+        const bets: StadeBet[] = ['home', 'away', 'draw'];
+        if (!bets.includes(payload?.bet)) {
+          return NextResponse.json({ error: 'Mise invalide' }, { status: 400 });
+        }
+        resolveFn = () => {
+          const outcome = drawStadeOutcome();
+          const r = resolveStade(outcome, payload.bet as StadeBet);
+          return { ...r, meta: { outcome, bet: payload.bet } };
+        };
+        break;
+      }
+      case 'craps': {
+        resolveFn = () => {
+          const { won, rolls, point } = playPassLine();
+          const r = resolveCraps(won);
+          return { ...r, meta: { rolls, point } };
         };
         break;
       }

@@ -36,10 +36,10 @@ const CASINO_GAMES: CasinoGameEntry[] = [
   { slug: 'dino', name: 'Frenly Dino', description: 'Esquive, encaisse avant impact.', icon: Zap, rtp: '~95%', enabled: false },
   { slug: 'chevaux', name: 'Frenly Chevaux', description: 'Course de chevaux fictifs.', icon: Flag, rtp: '~94%', enabled: false },
   { slug: 'bonneteau', name: 'Frenly Bonneteau', description: 'Suis le bon gobelet.', icon: GlassWater, rtp: '~93%', enabled: true },
-  { slug: 'stade', name: 'Frenly Stade', description: 'Domicile, Extérieur ou Nul.', icon: LayoutGrid, rtp: '~96%', enabled: false },
-  { slug: 'baccarat', name: 'Frenly Baccarat', description: 'Joueur, Banque, ou Égalité.', icon: Layers, rtp: '~98.5%', enabled: false },
+  { slug: 'stade', name: 'Frenly Stade', description: 'Domicile, Extérieur ou Nul.', icon: LayoutGrid, rtp: '~96%', enabled: true },
+  { slug: 'baccarat', name: 'Frenly Baccarat', description: 'Joueur, Banque, ou Égalité.', icon: Layers, rtp: '~98.5%', enabled: true },
   { slug: 'rps', name: 'Frenly Pierre-Feuille-Ciseaux', description: 'Contre la maison, coup unique.', icon: Hand, rtp: '~96%', enabled: true },
-  { slug: 'craps', name: 'Frenly Craps Express', description: 'Ça passe ou ça casse.', icon: Dice5, rtp: '~98.6%', enabled: false },
+  { slug: 'craps', name: 'Frenly Craps Express', description: 'Ça passe ou ça casse.', icon: Dice5, rtp: '~98.6%', enabled: true },
 ];
 
 const DISCLAIMER_KEY = 'itollec_casino_disclaimer_seen';
