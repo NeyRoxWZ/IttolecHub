@@ -6,6 +6,14 @@ import { hideBall, resolveBonneteau } from '@/lib/casino/bonneteau';
 import { drawBaccaratOutcome, resolveBaccarat, type BaccaratBet } from '@/lib/casino/baccarat';
 import { drawStadeOutcome, resolveStade, type StadeBet } from '@/lib/casino/stade';
 import { playPassLine, resolveCraps } from '@/lib/casino/craps';
+import { spinSlots, resolveSlots } from '@/lib/casino/slots';
+import { dropBall, resolvePlinko } from '@/lib/casino/plinko';
+import { drawKenoNumbers, resolveKeno, KENO_PICK_COUNT, KENO_POOL_SIZE } from '@/lib/casino/keno';
+import { hideJackpot, resolveCaisses, CAISSES_COUNT } from '@/lib/casino/caisses';
+import { runRace, resolveChevaux, HORSES } from '@/lib/casino/chevaux';
+import { scratchTicket, resolveGrattage } from '@/lib/casino/grattage';
+import { drawCard, resolveHilo, type HiloDirection } from '@/lib/casino/hilo';
+import { verifyCard } from '@/lib/casino/signCard.server';
 
 // Single shared route for every "one bet, one instant reveal" casino game
 // (coinflip, rps, bonneteau, ...). Multi-step games (mines, tower, rocket)
@@ -83,6 +91,84 @@ export async function POST(request: Request, { params }: { params: { game: strin
           const { won, rolls, point } = playPassLine();
           const r = resolveCraps(won);
           return { ...r, meta: { rolls, point } };
+        };
+        break;
+      }
+      case 'slots': {
+        resolveFn = () => {
+          const { tier, multiplier, reels } = spinSlots();
+          const r = resolveSlots(multiplier);
+          return { ...r, meta: { tier, reels } };
+        };
+        break;
+      }
+      case 'plinko': {
+        resolveFn = () => {
+          const { bucket, path, multiplier } = dropBall();
+          const r = resolvePlinko(multiplier);
+          return { ...r, meta: { bucket, path } };
+        };
+        break;
+      }
+      case 'keno': {
+        const picks: number[] = Array.isArray(payload?.picks) ? payload.picks : [];
+        if (picks.length !== KENO_PICK_COUNT || picks.some((n: any) => !Number.isInteger(n) || n < 1 || n > KENO_POOL_SIZE)) {
+          return NextResponse.json({ error: `Choisis exactement ${KENO_PICK_COUNT} numéros (1-${KENO_POOL_SIZE})` }, { status: 400 });
+        }
+        if (new Set(picks).size !== picks.length) {
+          return NextResponse.json({ error: 'Numéros en double' }, { status: 400 });
+        }
+        resolveFn = () => {
+          const drawn = drawKenoNumbers();
+          const r = resolveKeno(picks, drawn);
+          return { won: r.won, multiplier: r.multiplier, meta: { drawn, matches: r.matches, picks } };
+        };
+        break;
+      }
+      case 'caisses': {
+        if (!Number.isInteger(payload?.crate) || payload.crate < 0 || payload.crate >= CAISSES_COUNT) {
+          return NextResponse.json({ error: 'Caisse invalide' }, { status: 400 });
+        }
+        resolveFn = () => {
+          const jackpotCrate = hideJackpot();
+          const r = resolveCaisses(jackpotCrate, payload.crate);
+          return { ...r, meta: { jackpotCrate, chosenCrate: payload.crate } };
+        };
+        break;
+      }
+      case 'chevaux': {
+        if (!HORSES.some((h) => h.id === payload?.horseId)) {
+          return NextResponse.json({ error: 'Cheval invalide' }, { status: 400 });
+        }
+        resolveFn = () => {
+          const winnerId = runRace();
+          const r = resolveChevaux(winnerId, payload.horseId);
+          return { ...r, meta: { winnerId, betHorseId: payload.horseId } };
+        };
+        break;
+      }
+      case 'grattage': {
+        resolveFn = () => {
+          const { tier, multiplier } = scratchTicket();
+          const r = resolveGrattage(multiplier);
+          return { ...r, meta: { tier } };
+        };
+        break;
+      }
+      case 'hilo': {
+        const currentCard = payload?.card;
+        const token = payload?.token;
+        const direction: HiloDirection = payload?.direction;
+        if (!verifyCard(currentCard, token)) {
+          return NextResponse.json({ error: 'Carte invalide, recharge la partie.' }, { status: 400 });
+        }
+        if (direction !== 'higher' && direction !== 'lower') {
+          return NextResponse.json({ error: 'Direction invalide' }, { status: 400 });
+        }
+        resolveFn = () => {
+          const nextCard = drawCard();
+          const r = resolveHilo(currentCard, nextCard, direction);
+          return { won: r.won, multiplier: r.multiplier, meta: { currentCard, nextCard, direction, push: r.push } };
         };
         break;
       }
