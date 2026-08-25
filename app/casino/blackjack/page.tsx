@@ -1,22 +1,45 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus } from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { sfx } from '@/lib/casino/sfx';
 import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
-import { drawCard, dealerPlay, resolveHand, computeHandValue, isBlackjack, type BlackjackOutcome, CASINO_MIN_BET } from '@/lib/casino/blackjack';
+import {
+  drawCard, dealerPlay, resolveHand, computeHandValue, isBlackjack,
+  type BlackjackOutcome, CASINO_MIN_BET,
+} from '@/lib/casino/blackjack';
+import {
+  GameShell, BetControls, PlayButton, PlayingCard, ResultBanner, HistoryStrip,
+  type RulesSpec,
+} from '../_components/CasinoUI';
+import Confetti from '../_components/Confetti';
 
-const CARD_LABEL = (n: number) => (n === 1 ? 'A' : n === 11 ? 'J' : n === 12 ? 'Q' : n === 13 ? 'K' : String(n));
-type Phase = 'idle' | 'playing' | 'finished';
+type Phase = 'idle' | 'dealing' | 'playing' | 'finished';
+
+const RULES: RulesSpec = {
+  howTo: [
+    'Choisis ta mise puis distribue. Tu reçois 2 cartes, le croupier 2 (dont une cachée).',
+    'Le but : t’approcher de 21 sans dépasser. Au-delà de 21 tu perds immédiatement.',
+    'Valeurs : les figures (V, D, R) valent 10, l’As vaut 11 ou 1 (au mieux pour toi), les autres leur chiffre.',
+    'Tire autant de cartes que tu veux, ou reste. Le croupier tire ensuite jusqu’à atteindre 17 minimum.',
+    'Doubler : uniquement sur tes 2 premières cartes — tu doubles la mise et reçois une seule carte de plus.',
+  ],
+  payouts: [
+    { label: 'Victoire simple', value: '×2' },
+    { label: 'Blackjack (21 en 2 cartes)', value: '×2,5' },
+    { label: 'Égalité', value: 'Mise remboursée' },
+  ],
+  rtp: '~98%',
+};
+
+const DEAL_STEP_MS = 260;
 
 export default function BlackjackPage() {
-  const router = useRouter();
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -28,105 +51,99 @@ export default function BlackjackPage() {
   const [outcome, setOutcome] = useState<BlackjackOutcome | null>(null);
   const [payout, setPayout] = useState(0);
   const [busy, setBusy] = useState(false);
-  const localDealerHoleRef = useRef<number[]>([]); // anon-mode only: real dealer hand kept out of render until reveal
+  const [confetti, setConfetti] = useState(0);
 
-  const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
-  const playerTotal = computeHandValue(playerCards).total;
-  const dealerTotal = computeHandValue(dealerCards).total;
-  const canDouble = phase === 'playing' && playerCards.length === 2;
+  const localDealerRef = useRef<number[]>([]);
 
-  const finishLocal = (finalDealer: number[], finalPlayerCards: number[], effectiveAmount: number) => {
-    const { outcome: o, multiplier } = resolveHand(finalPlayerCards, finalDealer);
-    setDealerCards(finalDealer);
-    setDealerHidden(false);
-    setOutcome(o);
-    setPhase('finished');
-    if (multiplier > 0) {
-      const p = Math.round(effectiveAmount * multiplier);
-      creditLocal('blackjack', p, multiplier);
-      setPayout(p);
-    } else {
-      setPayout(0);
+  const playerHand = computeHandValue(playerCards);
+  const dealerVisible = dealerHidden ? dealerCards.slice(0, 1) : dealerCards;
+  const dealerHand = computeHandValue(dealerVisible);
+  const canDouble = phase === 'playing' && playerCards.length === 2 && lockedAmount <= balance;
+
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  /** Deal cards one at a time so it reads like a real table. */
+  const animateDeal = useCallback(async (pCards: number[], dUp: number) => {
+    setPlayerCards([]); setDealerCards([]);
+    for (let i = 0; i < 2; i++) {
+      await sleep(DEAL_STEP_MS);
+      setPlayerCards(pCards.slice(0, i + 1));
+      sfx.card();
+      if (i === 0) {
+        await sleep(DEAL_STEP_MS);
+        setDealerCards([dUp]);
+        sfx.card();
+      }
     }
-    announceOutcome(o, multiplier > 0 ? Math.round(effectiveAmount * multiplier) : 0);
-  };
+    await sleep(DEAL_STEP_MS);
+  }, []);
 
   const announceOutcome = (o: BlackjackOutcome, p: number) => {
-    if (o === 'blackjack') { vibrate(HAPTIC.SUCCESS); toast.success(`Blackjack ! +${p} ₶`); }
-    else if (o === 'win') { vibrate(HAPTIC.SUCCESS); toast.success(`Gagné +${p} ₶`); }
-    else if (o === 'push') { vibrate(HAPTIC.WARNING); toast.info('Égalité — remboursé.'); }
-    else { vibrate(HAPTIC.ERROR); toast.error('Perdu.'); }
+    if (o === 'blackjack') { vibrate(HAPTIC.SUCCESS); sfx.bigWin(); setConfetti((c) => c + 1); toast.success(`Blackjack ! +${p} ₶`); }
+    else if (o === 'win') { vibrate(HAPTIC.SUCCESS); sfx.win(); toast.success(`Gagné +${p} ₶`); }
+    else if (o === 'push') { vibrate(HAPTIC.WARNING); sfx.reveal(); toast.info('Égalité — mise remboursée.'); }
+    else { vibrate(HAPTIC.ERROR); sfx.lose(); toast.error('Perdu.'); }
   };
 
   const handleDeal = async () => {
-    if (busy) return;
-    if (amount > balance) { toast.error('Solde insuffisant.'); return; }
-    if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
-
-    setBusy(true);
-    vibrate(HAPTIC.MEDIUM);
-    setOutcome(null);
-    setPayout(0);
+    if (busy || amount > balance) { if (amount > balance) toast.error('Solde insuffisant.'); return; }
+    setBusy(true); setOutcome(null); setPayout(0); setDealerHidden(true);
+    vibrate(HAPTIC.MEDIUM); sfx.bet();
+    setPhase('dealing');
 
     if (user) {
       const res = await fetch('/api/casino/blackjack/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.id, amount }),
       });
       const data = await res.json();
-      setBusy(false);
-      if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
-      setRoundId(data.roundId);
-      setLockedAmount(amount);
-      setPlayerCards(data.playerCards);
+      if (!res.ok) { setBusy(false); setPhase('idle'); toast.error(data.error || 'Erreur'); return; }
+      setRoundId(data.roundId); setLockedAmount(amount);
       await refresh();
+      await animateDeal(data.playerCards, data.finished ? data.dealerCards[0] : data.dealerUpCard);
+      setBusy(false);
 
       if (data.finished) {
-        setDealerCards(data.dealerCards);
-        setDealerHidden(false);
-        setOutcome(data.outcome);
-        setPayout(data.multiplier > 0 ? Math.round(amount * data.multiplier) : 0);
-        setPhase('finished');
-        announceOutcome(data.outcome, data.multiplier > 0 ? Math.round(amount * data.multiplier) : 0);
+        setDealerCards(data.dealerCards); setDealerHidden(false); sfx.reveal();
+        setOutcome(data.outcome); setPhase('finished');
+        const p = data.multiplier > 0 ? Math.round(amount * data.multiplier) : 0;
+        setPayout(p); announceOutcome(data.outcome, p);
         announceProgression(data.progression);
       } else {
-        setDealerCards([data.dealerUpCard]);
-        setDealerHidden(true);
         setPhase('playing');
       }
     } else {
       const result = startLocalBet('blackjack', amount);
-      setBusy(false);
-      if ('error' in result) { toast.error(result.error); return; }
-
+      if ('error' in result) { setBusy(false); setPhase('idle'); toast.error(result.error); return; }
       const pCards = [drawCard(), drawCard()];
       const dCards = [drawCard(), drawCard()];
-      setRoundId('local');
-      setLockedAmount(amount);
-      setPlayerCards(pCards);
+      localDealerRef.current = dCards;
+      setRoundId('local'); setLockedAmount(amount);
+      await animateDeal(pCards, dCards[0]);
+      setBusy(false);
 
-      if (isBlackjack(pCards) || isBlackjack(dCards)) {
-        finishLocal(dCards, pCards, amount);
-      } else {
-        setDealerCards([dCards[0]]);
-        setDealerHidden(true);
-        setPhase('playing');
-        // stash the real dealer hand for later reveal
-        localDealerHoleRef.current = dCards;
-      }
+      if (isBlackjack(pCards) || isBlackjack(dCards)) finishLocal(dCards, pCards, amount);
+      else setPhase('playing');
     }
+  };
+
+  const finishLocal = (finalDealer: number[], finalPlayer: number[], effectiveAmount: number) => {
+    const { outcome: o, multiplier } = resolveHand(finalPlayer, finalDealer);
+    setDealerCards(finalDealer); setDealerHidden(false); sfx.reveal();
+    setOutcome(o); setPhase('finished');
+    const p = multiplier > 0 ? Math.round(effectiveAmount * multiplier) : 0;
+    if (multiplier > 0) creditLocal('blackjack', p, multiplier);
+    setPayout(p);
+    announceOutcome(o, p);
   };
 
   const handleHit = async () => {
     if (busy || phase !== 'playing') return;
-    setBusy(true);
-    vibrate(HAPTIC.SOFT);
+    setBusy(true); vibrate(HAPTIC.SOFT); sfx.card();
 
     if (user && roundId) {
       const res = await fetch('/api/casino/blackjack/hit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.id, round_id: roundId }),
       });
       const data = await res.json();
@@ -134,255 +151,237 @@ export default function BlackjackPage() {
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
       setPlayerCards(data.playerCards);
       if (data.busted) {
-        setDealerCards(data.dealerCards);
-        setDealerHidden(false);
-        setOutcome('lose');
-        setPhase('finished');
-        vibrate(HAPTIC.ERROR);
-        toast.error('Perdu (dépassé 21).');
+        setDealerCards(data.dealerCards); setDealerHidden(false);
+        setOutcome('lose'); setPhase('finished');
+        vibrate(HAPTIC.ERROR); sfx.bust(); toast.error(`${data.playerTotal} — dépassé !`);
         announceProgression(data.progression);
       }
     } else {
       const newCards = [...playerCards, drawCard()];
-      setBusy(false);
-      setPlayerCards(newCards);
-      if (computeHandValue(newCards).total > 21) {
-        setDealerCards(localDealerHoleRef.current.length ? localDealerHoleRef.current : dealerCards);
-        setDealerHidden(false);
-        setOutcome('lose');
-        setPhase('finished');
-        vibrate(HAPTIC.ERROR);
-        toast.error('Perdu (dépassé 21).');
+      setBusy(false); setPlayerCards(newCards);
+      const total = computeHandValue(newCards).total;
+      if (total > 21) {
+        setDealerCards(localDealerRef.current); setDealerHidden(false);
+        setOutcome('lose'); setPhase('finished');
+        vibrate(HAPTIC.ERROR); sfx.bust(); toast.error(`${total} — dépassé !`);
       }
     }
   };
 
   const handleStand = async () => {
     if (busy || phase !== 'playing') return;
-    setBusy(true);
-    vibrate(HAPTIC.MEDIUM);
+    setBusy(true); vibrate(HAPTIC.MEDIUM);
 
     if (user && roundId) {
       const res = await fetch('/api/casino/blackjack/stand', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.id, round_id: roundId }),
       });
       const data = await res.json();
+      if (!res.ok) { setBusy(false); toast.error(data.error || 'Erreur'); return; }
+      await revealDealer(data.dealerCards);
       setBusy(false);
-      if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
-      setDealerCards(data.dealerCards);
-      setDealerHidden(false);
-      setOutcome(data.outcome);
-      setPhase('finished');
+      setOutcome(data.outcome); setPhase('finished');
       const p = data.multiplier > 0 ? Math.round(lockedAmount * data.multiplier) : 0;
-      setPayout(p);
-      announceOutcome(data.outcome, p);
+      setPayout(p); announceOutcome(data.outcome, p);
       if (data.newBalance !== undefined) await refresh();
       announceProgression(data.progression);
     } else {
-      const fullDealer = dealerPlay(localDealerHoleRef.current.length ? localDealerHoleRef.current : dealerCards);
+      const fullDealer = dealerPlay(localDealerRef.current);
+      await revealDealer(fullDealer);
       setBusy(false);
       finishLocal(fullDealer, playerCards, lockedAmount);
     }
   };
 
+  /** Flip the hole card, then draw the dealer's extra cards one by one. */
+  const revealDealer = async (finalDealer: number[]) => {
+    setDealerHidden(false);
+    setDealerCards(finalDealer.slice(0, 2));
+    sfx.reveal();
+    await sleep(420);
+    for (let i = 2; i < finalDealer.length; i++) {
+      setDealerCards(finalDealer.slice(0, i + 1));
+      sfx.card();
+      await sleep(DEAL_STEP_MS);
+    }
+  };
+
   const handleDouble = async () => {
     if (busy || !canDouble) return;
-    if (lockedAmount > balance) { toast.error('Solde insuffisant pour doubler.'); return; }
-    setBusy(true);
-    vibrate(HAPTIC.MEDIUM);
+    setBusy(true); vibrate(HAPTIC.MEDIUM); sfx.bet();
 
     if (user && roundId) {
       const res = await fetch('/api/casino/blackjack/double', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.id, round_id: roundId }),
       });
       const data = await res.json();
-      setBusy(false);
-      if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
-      setPlayerCards(data.playerCards);
-      setLockedAmount(lockedAmount * 2);
+      if (!res.ok) { setBusy(false); toast.error(data.error || 'Erreur'); return; }
+      const doubled = lockedAmount * 2;
+      setPlayerCards(data.playerCards); setLockedAmount(doubled); sfx.card();
       await refresh();
+
       if (data.busted) {
-        setDealerCards(data.dealerCards || dealerCards);
-        setDealerHidden(false);
-        setOutcome('lose');
-        setPhase('finished');
-        vibrate(HAPTIC.ERROR);
-        toast.error('Perdu (dépassé 21).');
+        setDealerCards(data.dealerCards || dealerCards); setDealerHidden(false);
+        setOutcome('lose'); setPhase('finished'); setBusy(false);
+        vibrate(HAPTIC.ERROR); sfx.bust(); toast.error(`${data.playerTotal} — dépassé !`);
       } else {
-        setDealerCards(data.dealerCards);
-        setDealerHidden(false);
-        setOutcome(data.outcome);
-        setPhase('finished');
-        const p = data.multiplier > 0 ? Math.round(lockedAmount * 2 * data.multiplier) : 0;
-        setPayout(p);
-        announceOutcome(data.outcome, p);
+        await revealDealer(data.dealerCards);
+        setBusy(false);
+        setOutcome(data.outcome); setPhase('finished');
+        const p = data.multiplier > 0 ? Math.round(doubled * data.multiplier) : 0;
+        setPayout(p); announceOutcome(data.outcome, p);
       }
       announceProgression(data.progression);
     } else {
-      const result = startLocalBet('blackjack', lockedAmount);
-      if ('error' in result) { setBusy(false); toast.error(result.error); return; }
-      const newAmount = lockedAmount * 2;
+      const r = startLocalBet('blackjack', lockedAmount);
+      if ('error' in r) { setBusy(false); toast.error(r.error); return; }
+      const doubled = lockedAmount * 2;
       const newCards = [...playerCards, drawCard()];
-      setLockedAmount(newAmount);
-      setPlayerCards(newCards);
-      setBusy(false);
+      setLockedAmount(doubled); setPlayerCards(newCards); sfx.card();
+
       if (computeHandValue(newCards).total > 21) {
-        setDealerCards(localDealerHoleRef.current.length ? localDealerHoleRef.current : dealerCards);
-        setDealerHidden(false);
-        setOutcome('lose');
-        setPhase('finished');
-        vibrate(HAPTIC.ERROR);
-        toast.error('Perdu (dépassé 21).');
+        setDealerCards(localDealerRef.current); setDealerHidden(false);
+        setOutcome('lose'); setPhase('finished'); setBusy(false);
+        vibrate(HAPTIC.ERROR); sfx.bust(); toast.error('Dépassé !');
       } else {
-        const fullDealer = dealerPlay(localDealerHoleRef.current.length ? localDealerHoleRef.current : dealerCards);
-        finishLocal(fullDealer, newCards, newAmount);
+        const fullDealer = dealerPlay(localDealerRef.current);
+        await revealDealer(fullDealer);
+        setBusy(false);
+        finishLocal(fullDealer, newCards, doubled);
       }
     }
   };
 
   const handleReset = () => {
-    setPhase('idle');
-    setPlayerCards([]);
-    setDealerCards([]);
-    setDealerHidden(true);
-    setOutcome(null);
-    setPayout(0);
-    setRoundId(null);
+    sfx.click();
+    setPhase('idle'); setPlayerCards([]); setDealerCards([]);
+    setDealerHidden(true); setOutcome(null); setPayout(0); setRoundId(null);
   };
 
-  const gameHistory = history.filter((h) => h.game_slug === 'blackjack').slice(0, 12);
+  const gameHistory = history.filter((h) => h.game_slug === 'blackjack').slice(0, 10);
+  const bannerState = outcome === null ? 'idle' : outcome === 'push' ? 'push' : (outcome === 'win' || outcome === 'blackjack') ? 'win' : 'lose';
 
-  return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/casino')} className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Frenly 21</h1>
-          </div>
-          <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-5 w-5 text-accent-primary" />
-            <span className="font-display font-black text-lg tabular-nums">{isLoaded ? balance.toLocaleString('fr-FR') : '...'}</span>
-            <span className="text-tx-secondary font-bold">₶</span>
-            {isLocal && <span className="ml-1 text-[9px] font-black uppercase bg-brand-card border border-brand-border px-1.5 py-0.5 rounded text-tx-muted">Local</span>}
-          </div>
-        </header>
+  const stage = (
+    <div className="w-full flex flex-col items-center gap-5">
+      {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* TABLE */}
-          <div className="flex flex-col justify-center gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-tx-secondary">Croupier</span>
-                {!dealerHidden && <span className="text-xs font-bold text-tx-base">{dealerTotal}</span>}
-              </div>
-              <div className="flex gap-2">
-                {dealerCards.map((c, i) => (
-                  <div key={i} className="w-12 h-16 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center font-display font-black text-lg">
-                    {CARD_LABEL(c)}
-                  </div>
-                ))}
-                {dealerHidden && phase === 'playing' && (
-                  <div className="w-12 h-16 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center text-tx-muted">?</div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-tx-secondary">Toi</span>
-                {playerCards.length > 0 && <span className="text-xs font-bold text-tx-base">{playerTotal}</span>}
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {playerCards.map((c, i) => (
-                  <div key={i} className="w-12 h-16 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center font-display font-black text-lg animate-in zoom-in duration-150">
-                    {CARD_LABEL(c)}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="h-10 flex items-center">
-              {phase === 'finished' && outcome && (
-                <div className={cn(
-                  'px-4 py-2 rounded-xl border-2 font-bold text-sm animate-in fade-in duration-200',
-                  outcome === 'push' ? 'border-tx-secondary text-tx-secondary bg-brand-inner' :
-                  (outcome === 'win' || outcome === 'blackjack') ? 'border-accent-success text-accent-success bg-accent-success/10' :
-                  'border-accent-secondary text-accent-secondary bg-accent-secondary/10'
-                )}>
-                  {outcome === 'blackjack' ? `Blackjack ! +${payout} ₶` : outcome === 'win' ? `Gagné +${payout} ₶` : outcome === 'push' ? 'Remboursé' : 'Perdu'}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* CONTROLS */}
-          <div className="flex flex-col gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
-            {phase === 'idle' || phase === 'finished' ? (
-              <>
-                <div>
-                  <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Mise (max {maxBet} ₶)</label>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setAmount((a) => clampAmount(a - 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <input type="number" value={amount} onChange={(e) => setAmount(clampAmount(Number(e.target.value) || 0))} className="flex-1 h-11 bg-brand-inner border-2 border-brand-border rounded-lg px-3 text-center font-display font-black" />
-                    <button onClick={() => setAmount((a) => clampAmount(a + 5))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                      <Plus className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => setAmount(maxBet)} className="h-11 px-3 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-xs font-bold hover:border-tx-base">MAX</button>
-                  </div>
-                </div>
-                <button
-                  onClick={phase === 'idle' ? handleDeal : handleReset}
-                  disabled={busy || !isLoaded || amount < CASINO_MIN_BET}
-                  className={cn('h-16 rounded-2xl font-display text-xl font-black tracking-wider border-4 border-brand-border transition-colors shadow-brutal', busy ? 'bg-brand-inner text-tx-muted cursor-not-allowed' : 'bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary')}
-                >
-                  {phase === 'idle' ? (busy ? 'DONNE...' : `MISER ${amount} ₶`) : 'REJOUER'}
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-tx-secondary">Mise: <span className="font-bold text-tx-base">{lockedAmount} ₶</span></p>
-                <div className="grid grid-cols-2 gap-3">
-                  <button onClick={handleHit} disabled={busy} className={cn('h-14 rounded-xl font-display font-black border-2 border-brand-border transition-colors focus:outline-none', busy ? 'bg-brand-inner text-tx-muted cursor-not-allowed' : 'bg-brand-inner hover:bg-tx-base hover:text-brand-bg hover:border-tx-base')}>
-                    TIRER
-                  </button>
-                  <button onClick={handleStand} disabled={busy} className={cn('h-14 rounded-xl font-display font-black border-2 border-brand-border transition-colors focus:outline-none', busy ? 'bg-brand-inner text-tx-muted cursor-not-allowed' : 'bg-brand-inner hover:bg-tx-base hover:text-brand-bg hover:border-tx-base')}>
-                    RESTER
-                  </button>
-                </div>
-                <button
-                  onClick={handleDouble}
-                  disabled={busy || !canDouble || lockedAmount > balance}
-                  className={cn('h-12 rounded-xl font-display font-bold border-2 border-brand-border transition-colors focus:outline-none', (busy || !canDouble) ? 'opacity-40 cursor-not-allowed bg-brand-inner' : 'bg-brand-inner hover:bg-tx-base hover:text-brand-bg hover:border-tx-base')}
-                >
-                  DOUBLER ({lockedAmount} ₶ de plus)
-                </button>
-              </>
+      {/* Felt table */}
+      <div
+        className="w-full rounded-3xl border-4 border-brand-border p-5 flex flex-col gap-6"
+        style={{ background: 'radial-gradient(ellipse at 50% 30%, #1B5E3F 0%, #0E3524 70%, #0A2419 100%)' }}
+      >
+        {/* Dealer */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Croupier</span>
+            {dealerVisible.length > 0 && (
+              <span className={cn(
+                'px-2 py-0.5 rounded-md font-display font-black text-sm border-2',
+                dealerHand.total > 21 ? 'bg-accent-secondary text-white border-accent-secondary' : 'bg-black/40 text-white border-white/25'
+              )}>
+                {dealerHand.total}{dealerHidden && ' + ?'}
+              </span>
             )}
+          </div>
+          <div className="flex gap-2 min-h-[80px] items-center">
+            {dealerCards.map((c, i) => (
+              <PlayingCard key={`d${i}`} rank={c} index={i} />
+            ))}
+            {dealerHidden && dealerCards.length > 0 && <PlayingCard hidden index={99} />}
+          </div>
+        </div>
 
-            {gameHistory.length > 0 && (
-              <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Dernières mains</span>
-                <div className="flex flex-wrap gap-2">
-                  {gameHistory.map((h) => (
-                    <span key={h.id} className={cn('text-xs font-bold px-2 py-1 rounded-md border-2', h.amount >= 0 ? 'border-accent-success text-accent-success' : 'border-accent-secondary text-accent-secondary')}>
-                      {h.amount >= 0 ? '+' : ''}{h.amount}
-                    </span>
-                  ))}
-                </div>
-              </div>
+        <div className="h-px bg-white/15" />
+
+        {/* Player */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex gap-2 min-h-[80px] items-center flex-wrap justify-center">
+            {playerCards.map((c, i) => (
+              <PlayingCard key={`p${i}`} rank={c} index={i} highlight={phase === 'finished' && (outcome === 'win' || outcome === 'blackjack')} />
+            ))}
+            {playerCards.length === 0 && <span className="text-white/35 text-sm font-bold">Mise puis distribue</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            {playerCards.length > 0 && (
+              <span className={cn(
+                'px-2.5 py-0.5 rounded-md font-display font-black text-base border-2',
+                playerHand.total > 21 ? 'bg-accent-secondary text-white border-accent-secondary'
+                  : playerHand.total === 21 ? 'bg-accent-success text-brand-bg border-accent-success'
+                  : 'bg-black/40 text-white border-white/25'
+              )}>
+                {playerHand.total}
+                {playerHand.soft && playerHand.total <= 21 && <span className="text-[10px] font-bold opacity-70 ml-1">souple</span>}
+              </span>
             )}
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Toi</span>
           </div>
         </div>
       </div>
-    </main>
+
+      <ResultBanner state={bannerState}>
+        {outcome === 'blackjack' ? `BLACKJACK — +${payout} ₶`
+          : outcome === 'win' ? `Gagné +${payout} ₶`
+          : outcome === 'push' ? 'Égalité — remboursé'
+          : 'Perdu'}
+      </ResultBanner>
+    </div>
+  );
+
+  const panel = (
+    <>
+      {phase === 'idle' || phase === 'finished' ? (
+        <>
+          <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
+          <PlayButton onClick={phase === 'idle' ? handleDeal : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+            {phase === 'idle' ? `DISTRIBUER · ${amount} ₶` : 'REJOUER'}
+          </PlayButton>
+        </>
+      ) : (
+        <>
+          <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 text-center">
+            <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise en jeu</div>
+            <div className="font-display text-2xl font-black text-accent-primary">{lockedAmount} ₶</div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <PlayButton onClick={handleHit} disabled={busy || phase !== 'playing'} className="h-14 text-base">TIRER</PlayButton>
+            <PlayButton onClick={handleStand} disabled={busy || phase !== 'playing'} variant="success" className="h-14 text-base">RESTER</PlayButton>
+          </div>
+
+          <button
+            onClick={handleDouble}
+            disabled={busy || !canDouble}
+            className={cn(
+              'h-12 rounded-xl border-2 font-display font-black text-sm transition-all focus:outline-none',
+              canDouble && !busy
+                ? 'border-accent-primary bg-brand-inner text-accent-primary hover:bg-accent-primary hover:text-brand-bg'
+                : 'border-brand-border bg-brand-inner text-tx-muted cursor-not-allowed'
+            )}
+          >
+            DOUBLER (+{lockedAmount} ₶)
+          </button>
+          {!canDouble && phase === 'playing' && (
+            <p className="text-[11px] text-tx-muted -mt-3">Doubler n’est possible que sur tes 2 premières cartes.</p>
+          )}
+        </>
+      )}
+
+      <HistoryStrip history={gameHistory} />
+    </>
+  );
+
+  return (
+    <GameShell
+      title="Frenly 21"
+      rules={RULES}
+      balance={balance}
+      isLoaded={isLoaded}
+      isLocal={isLocal}
+      streak={stats.currentStreak}
+      stage={stage}
+      panel={panel}
+    />
   );
 }

@@ -1,145 +1,284 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Minus, Plus, Ticket } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { scratchTicket, resolveGrattage, CASINO_MIN_BET } from '@/lib/casino/grattage';
+import {
+  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+} from '../_components/CasinoUI';
+import Confetti from '../_components/Confetti';
 
-const SCRATCH_MS = 800;
+const RULES: RulesSpec = {
+  howTo: [
+    'Choisis le prix de ton ticket (à partir de 1 ₶) et achète-le.',
+    'Gratte la surface argentée avec le doigt ou la souris pour révéler les 3 cases.',
+    'Si les 3 symboles sont identiques, tu remportes le gain associé.',
+    'Le résultat du ticket est déjà fixé à l’achat — gratter ne fait que le révéler.',
+  ],
+  payouts: [
+    { label: '🍀 🍀 🍀', value: 'Mise remboursée' },
+    { label: '💰 💰 💰', value: '×3' },
+    { label: '👑 👑 👑', value: '×15' },
+    { label: '💎 💎 💎', value: '×35' },
+  ],
+  rtp: '~90%',
+};
 
-type GrattageResult = GenericBetResult & { tier: string };
+const TIER_SYMBOL: Record<string, string> = { small: '🍀', medium: '💰', big: '👑', jackpot: '💎' };
+const LOSE_POOL = ['🍀', '💰', '👑', '💎', '🍋', '⭐'];
+const REVEAL_THRESHOLD = 0.5;
+
+function buildFaces(tier: string): string[] {
+  if (tier !== 'lose') {
+    const s = TIER_SYMBOL[tier] || '🍀';
+    return [s, s, s];
+  }
+  // Losing ticket: deliberately not three of a kind.
+  const a = LOSE_POOL[Math.floor(Math.random() * LOSE_POOL.length)];
+  let b = LOSE_POOL[Math.floor(Math.random() * LOSE_POOL.length)];
+  while (b === a) b = LOSE_POOL[Math.floor(Math.random() * LOSE_POOL.length)];
+  const c = Math.random() < 0.5 ? a : b;
+  return [a, b, c].sort(() => Math.random() - 0.5);
+}
+
+type Phase = 'idle' | 'scratching' | 'revealed';
 
 export default function GrattagePage() {
-  const router = useRouter();
-  const { balance, isLoaded, isLocal, maxBet, placeBet, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, stats, placeBet, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(1);
-  const [scratching, setScratching] = useState(false);
-  const [lastResult, setLastResult] = useState<GrattageResult | null>(null);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [faces, setFaces] = useState<string[]>(['❓', '❓', '❓']);
+  const [result, setResult] = useState<GenericBetResult | null>(null);
+  const [buying, setBuying] = useState(false);
+  const [confetti, setConfetti] = useState(0);
+  const [progress, setProgress] = useState(0);
 
-  const clampAmount = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v)));
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawingRef = useRef(false);
+  const revealedRef = useRef(false);
+  const lastTickRef = useRef(0);
 
-  const handleScratch = async () => {
-    if (scratching) return;
-    if (amount > balance) { toast.error('Solde insuffisant.'); return; }
-    if (amount > maxBet) { toast.error(`Mise max: ${maxBet} ₶ (50% du solde).`); return; }
+  const paintCover = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.offsetWidth * dpr;
+    canvas.height = canvas.offsetHeight * dpr;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    setScratching(true);
-    setLastResult(null);
-    vibrate(HAPTIC.SOFT);
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    const grad = ctx.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, '#B8BCC4');
+    grad.addColorStop(0.35, '#8F949D');
+    grad.addColorStop(0.5, '#C9CDD4');
+    grad.addColorStop(0.65, '#8F949D');
+    grad.addColorStop(1, '#A7ACB5');
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
 
-    const [result] = await Promise.all([
-      placeBet('grattage', amount, {}, () => {
-        const { tier, multiplier } = scratchTicket();
-        const r = resolveGrattage(multiplier);
-        return { ...r, meta: { tier } };
-      }),
-      new Promise((r) => setTimeout(r, SCRATCH_MS)),
-    ]);
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.font = 'bold 15px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('GRATTE ICI', w / 2, h / 2 + 5);
+  }, []);
 
-    setScratching(false);
-
-    if ('error' in result) {
-      toast.error(result.error);
-      return;
+  useEffect(() => {
+    if (phase === 'scratching') {
+      revealedRef.current = false;
+      setProgress(0);
+      requestAnimationFrame(paintCover);
     }
+  }, [phase, paintCover]);
 
-    const full: GrattageResult = { ...result, tier: result.meta.tier };
-    setLastResult(full);
+  const finishReveal = useCallback((r: GenericBetResult) => {
+    if (revealedRef.current) return;
+    revealedRef.current = true;
+    setPhase('revealed');
 
-    if (full.won) {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (r.won) {
       vibrate(HAPTIC.SUCCESS);
-      toast.success(`Gagné +${full.payout} ₶`);
+      if (r.multiplier >= 15) { sfx.bigWin(); setConfetti((c) => c + 1); }
+      else sfx.win();
+      toast.success(`Ticket gagnant — +${r.payout} ₶`);
     } else {
       vibrate(HAPTIC.ERROR);
-      toast.error('Perdu.');
+      sfx.lose();
+    }
+  }, []);
+
+  const scratchAt = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas || phase !== 'scratching') return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(x, y, 22, 0, Math.PI * 2);
+    ctx.fill();
+
+    const now = performance.now();
+    if (now - lastTickRef.current > 90) {
+      lastTickRef.current = now;
+      sfx.tick();
+      measureProgress();
     }
   };
 
-  const gameHistory = history.filter((h) => h.game_slug === 'grattage').slice(0, 16);
+  const measureProgress = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx || revealedRef.current) return;
+    // Sample a coarse grid rather than every pixel — cheap and accurate enough.
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    let clear = 0, total = 0;
+    for (let i = 3; i < data.length; i += 4 * 220) {
+      total++;
+      if (data[i] < 40) clear++;
+    }
+    const ratio = total > 0 ? clear / total : 0;
+    setProgress(ratio);
+    if (ratio >= REVEAL_THRESHOLD && result) finishReveal(result);
+  };
 
-  return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/casino')} className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Frenly Grattage</h1>
+  const handleBuy = async () => {
+    if (buying) return;
+    if (amount > balance) { toast.error('Solde insuffisant.'); return; }
+
+    setBuying(true); setResult(null); vibrate(HAPTIC.SOFT); sfx.bet();
+
+    const r = await placeBet('grattage', amount, {}, () => {
+      const { tier, multiplier } = scratchTicket();
+      return { ...resolveGrattage(multiplier), meta: { tier } };
+    });
+
+    setBuying(false);
+    if ('error' in r) { toast.error(r.error); return; }
+
+    setFaces(buildFaces(r.meta.tier));
+    setResult(r);
+    setPhase('scratching');
+  };
+
+  const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setFaces(['❓', '❓', '❓']); setProgress(0); };
+
+  const gameHistory = history.filter((h) => h.game_slug === 'grattage').slice(0, 10);
+
+  const stage = (
+    <div className="w-full flex flex-col items-center gap-5">
+      {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
+
+      {/* Ticket */}
+      <div
+        className="relative w-full max-w-[360px] rounded-2xl border-4 border-brand-border p-4 select-none"
+        style={{ background: 'linear-gradient(150deg, #7B2D5E 0%, #4A1B3D 55%, #2E1128 100%)' }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <span className="font-display text-xs font-black uppercase tracking-widest text-white/80">Frenly Ticket</span>
+          <span className="text-[10px] font-bold text-white/60">{phase === 'idle' ? '—' : `${amount} ₶`}</span>
+        </div>
+
+        {/* Scratch zone */}
+        <div className="relative rounded-xl overflow-hidden border-2 border-black/40" style={{ height: 116 }}>
+          <div className="absolute inset-0 flex items-center justify-around bg-white">
+            {faces.map((f, i) => (
+              <span key={i} className="text-4xl">{phase === 'idle' ? '❓' : f}</span>
+            ))}
           </div>
-          <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-5 w-5 text-accent-primary" />
-            <span className="font-display font-black text-lg tabular-nums">{isLoaded ? balance.toLocaleString('fr-FR') : '...'}</span>
-            <span className="text-tx-secondary font-bold">₶</span>
-            {isLocal && <span className="ml-1 text-[9px] font-black uppercase bg-brand-card border border-brand-border px-1.5 py-0.5 rounded text-tx-muted">Local</span>}
-          </div>
-        </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="flex flex-col items-center justify-center bg-brand-card border-4 border-brand-border rounded-[32px] p-6">
-            <button
-              onClick={handleScratch}
-              disabled={scratching || !isLoaded || amount < CASINO_MIN_BET}
-              className={cn(
-                'w-40 h-56 rounded-2xl border-4 border-brand-border flex flex-col items-center justify-center gap-3 transition-all focus:outline-none',
-                scratching ? 'bg-brand-inner animate-pulse' : 'bg-brand-inner hover:border-accent-primary'
-              )}
-            >
-              {lastResult && !scratching ? (
-                <span className="font-display font-black text-3xl text-accent-primary">{lastResult.won ? `x${lastResult.multiplier}` : '💀'}</span>
-              ) : (
-                <Ticket className="w-14 h-14 text-tx-muted" />
-              )}
-              <span className="text-xs font-bold text-tx-secondary uppercase tracking-widest">
-                {scratching ? 'Grattage...' : 'Cliquer pour gratter'}
-              </span>
-            </button>
+          {phase === 'scratching' && (
+            <canvas
+              ref={canvasRef}
+              className="absolute inset-0 w-full h-full touch-none cursor-crosshair"
+              onPointerDown={(e) => { drawingRef.current = true; e.currentTarget.setPointerCapture(e.pointerId); scratchAt(e.clientX, e.clientY); }}
+              onPointerMove={(e) => { if (drawingRef.current) scratchAt(e.clientX, e.clientY); }}
+              onPointerUp={() => { drawingRef.current = false; measureProgress(); }}
+              onPointerLeave={() => { drawingRef.current = false; }}
+            />
+          )}
 
-            <div className="mt-6 h-10 flex items-center">
-              {lastResult && !scratching && (
-                <div className={cn('px-4 py-2 rounded-xl border-2 font-bold text-sm animate-in fade-in duration-200', lastResult.won ? 'border-accent-success text-accent-success bg-accent-success/10' : 'border-accent-secondary text-accent-secondary bg-accent-secondary/10')}>
-                  {lastResult.won ? `Gagné +${lastResult.payout} ₶` : 'Perdu'}
-                </div>
-              )}
+          {phase === 'idle' && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/55">
+              <span className="font-display font-black text-white/85 text-sm">Achète un ticket</span>
             </div>
-          </div>
+          )}
+        </div>
 
-          <div className="flex flex-col gap-6 bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
-            <div>
-              <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Prix du ticket (max {maxBet} ₶)</label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setAmount((a) => clampAmount(a - 1))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input type="number" value={amount} onChange={(e) => setAmount(clampAmount(Number(e.target.value) || 0))} className="flex-1 h-11 bg-brand-inner border-2 border-brand-border rounded-lg px-3 text-center font-display font-black" />
-                <button onClick={() => setAmount((a) => clampAmount(a + 1))} className="h-11 w-11 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            <p className="text-sm text-tx-secondary">Ticket pas cher, petits gains fréquents, gros gain rare.</p>
-
-            {gameHistory.length > 0 && (
-              <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2 block">Derniers tickets</span>
-                <div className="flex flex-wrap gap-2">
-                  {gameHistory.map((h) => (
-                    <span key={h.id} className={cn('text-xs font-bold px-2 py-1 rounded-md border-2', h.amount >= 0 ? 'border-accent-success text-accent-success' : 'border-accent-secondary text-accent-secondary')}>
-                      {h.amount >= 0 ? '+' : ''}{h.amount}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-[10px] font-bold text-white/55">
+            {phase === 'scratching' ? `Gratté à ${Math.round(progress * 100)}%` : phase === 'revealed' ? 'Ticket révélé' : '3 symboles identiques = gagné'}
+          </span>
+          {phase === 'scratching' && (
+            <button onClick={() => result && finishReveal(result)} className="text-[10px] font-black uppercase tracking-wider text-white/70 hover:text-white underline focus:outline-none">
+              Tout révéler
+            </button>
+          )}
         </div>
       </div>
-    </main>
+
+      <ResultBanner state={phase !== 'revealed' || !result ? 'idle' : result.won ? 'win' : 'lose'}>
+        {result?.won ? `×${result.multiplier} — +${result.payout} ₶` : 'Ticket perdant'}
+      </ResultBanner>
+    </div>
+  );
+
+  const panel = (
+    <>
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'scratching' || buying} step={1} />
+
+      {phase === 'scratching' ? (
+        <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
+          <div className="font-display font-black text-sm text-accent-primary">Gratte ton ticket</div>
+          <p className="text-xs text-tx-secondary mt-1">Passe le doigt (ou la souris) sur la zone argentée.</p>
+        </div>
+      ) : (
+        <PlayButton onClick={phase === 'idle' ? handleBuy : handleReset} loading={buying} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+          {phase === 'idle' ? `ACHETER · ${amount} ₶` : 'NOUVEAU TICKET'}
+        </PlayButton>
+      )}
+
+      <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">
+        <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">Table des gains</div>
+        <div className="space-y-1.5 text-xs">
+          {[['💎💎💎', '×35'], ['👑👑👑', '×15'], ['💰💰💰', '×3'], ['🍀🍀🍀', '×1']].map(([sym, mult]) => (
+            <div key={sym} className="flex justify-between items-center">
+              <span className="text-base tracking-widest">{sym}</span>
+              <span className="font-display font-black text-accent-primary">{mult}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <HistoryStrip history={gameHistory} />
+    </>
+  );
+
+  return (
+    <GameShell
+      title="Frenly Grattage"
+      rules={RULES}
+      balance={balance}
+      isLoaded={isLoaded}
+      isLocal={isLocal}
+      streak={stats.currentStreak}
+      stage={stage}
+      panel={panel}
+    />
   );
 }
