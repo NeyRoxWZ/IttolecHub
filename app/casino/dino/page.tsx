@@ -35,9 +35,15 @@ const DINO_X = 76;
 const DINO_SIZE = 52;
 const SPEED = 210;            // px/s the world scrolls
 const OBSTACLE_GAP = 420;     // px between obstacles
-const GRAVITY = 2100;         // px/s²
-const JUMP_V0 = 620;          // px/s — clears an obstacle comfortably
-const JUMP_TRIGGER_X = 190;   // start the jump this far ahead of the dino
+const OBSTACLE_W = 38;        // drawn width, used to find its centre
+const GRAVITY = 1750;         // px/s²
+const JUMP_V0 = 700;          // px/s
+
+// Derived, not guessed: the jump has to *peak* exactly when the obstacle
+// reaches the dino. Hardcoding this lead distance is what made the dino
+// jump way too early and land before the obstacle arrived.
+const TIME_TO_PEAK = JUMP_V0 / GRAVITY;              // s
+const JUMP_LEAD_PX = SPEED * TIME_TO_PEAK;           // distance to start the jump
 const OBSTACLE_KINDS = [ArtCactus, ArtRock, ArtFire, ArtCactus, ArtRock, ArtVolcano];
 
 type Phase = 'idle' | 'running' | 'dead' | 'cashed';
@@ -148,16 +154,22 @@ export default function DinoPage() {
       ob.x -= SPEED * dt;
       if (ob.el) ob.el.style.transform = `translateX(${ob.x}px)`;
 
-      // Jump when it gets close (only if we already know it's cleared).
-      if (!ob.jumped && ob.x - DINO_X < JUMP_TRIGGER_X && ob.outcome === 'safe' && dinoYRef.current === 0) {
+      // Measure from the obstacle's centre, not its left edge, so the jump
+      // and the collision line up with what you actually see.
+      const obCenter = ob.x + OBSTACLE_W / 2;
+
+      // Take off exactly one "time to peak" before contact. If the server
+      // hasn't answered yet (rare — we ask ~3s ahead), jump anyway: a missed
+      // jump on a safe obstacle looks far worse than jumping into a hit.
+      if (!ob.jumped && obCenter - DINO_X <= JUMP_LEAD_PX && ob.outcome !== 'dead' && dinoYRef.current === 0) {
         ob.jumped = true;
         dinoVRef.current = JUMP_V0;
         sfx.step(Math.min(8, ob.index));
         vibrate(HAPTIC.SOFT);
       }
 
-      // Collision / clear resolution at the dino's position.
-      if (!ob.passed && ob.x <= DINO_X) {
+      // Collision / clear resolution when the obstacle's centre meets the dino.
+      if (!ob.passed && obCenter <= DINO_X) {
         ob.passed = true;
         if (ob.outcome === 'dead') {
           endRun(true, (ob as any).progression);
