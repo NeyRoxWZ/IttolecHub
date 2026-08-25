@@ -196,5 +196,36 @@ export function useCasinoWallet() {
     }
   }, [user, refresh]);
 
-  return { balance, history, isLoaded, isLocal, maxBet, spinWheelBet, placeBet, refresh };
+  // For round-based games (Mines/Tower/Poulet/Dino): anonymous play keeps
+  // the round's secret state in the game page's own component state (no
+  // need to hide anything from yourself), so the wallet hook only needs to
+  // handle the money side — deduct on start, credit on cashout.
+  const startLocalBet = useCallback((gameSlug: string, amount: number): { ok: true } | { error: string } => {
+    const w = loadLocalWallet();
+    if (amount > w.balance) return { error: 'Solde insuffisant' };
+    if (amount > getMaxBet(w.balance)) return { error: `Mise max: ${getMaxBet(w.balance)} ₶` };
+    w.balance -= amount;
+    w.history = [
+      { id: crypto.randomUUID(), game_slug: gameSlug, type: 'bet', amount: -amount, balance_after: w.balance, created_at: new Date().toISOString() },
+      ...w.history,
+    ].slice(0, 50);
+    saveLocalWallet(w);
+    setBalance(w.balance);
+    setHistory(w.history);
+    return { ok: true };
+  }, []);
+
+  const creditLocal = useCallback((gameSlug: string, payout: number, multiplier: number) => {
+    const w = loadLocalWallet();
+    w.balance += payout;
+    w.history = [
+      { id: crypto.randomUUID(), game_slug: gameSlug, type: 'win', amount: payout, balance_after: w.balance, meta: { multiplier }, created_at: new Date().toISOString() },
+      ...w.history,
+    ].slice(0, 50);
+    saveLocalWallet(w);
+    setBalance(w.balance);
+    setHistory(w.history);
+  }, []);
+
+  return { balance, history, isLoaded, isLocal, maxBet, spinWheelBet, placeBet, startLocalBet, creditLocal, refresh };
 }
