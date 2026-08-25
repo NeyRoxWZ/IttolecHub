@@ -17,8 +17,8 @@ export async function POST(request: Request) {
     const { total } = computeHandValue(newPlayerCards);
 
     if (total > 21) {
-      await bustRound(roundId);
-      return NextResponse.json({ busted: true, playerCards: newPlayerCards, playerTotal: total, dealerCards });
+      const progression = await bustRound(userId, roundId, 'blackjack', round.amount);
+      return NextResponse.json({ busted: true, playerCards: newPlayerCards, playerTotal: total, dealerCards, progression });
     }
 
     await updateRoundState(roundId, { playerCards: newPlayerCards, dealerCards }, Number(round.multiplier));

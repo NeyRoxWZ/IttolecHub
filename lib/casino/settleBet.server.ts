@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/server';
 import { getMaxBet, CASINO_MIN_BET, type BetResolution } from './core';
+import { recordWager, recordSettlement, type SettlementResult } from './metaProgression.server';
 
 interface SettleParams {
   userId: string;
@@ -16,6 +17,7 @@ interface SettleSuccess {
   netChange: number;
   newBalance: number;
   meta: any;
+  progression: SettlementResult;
 }
 
 interface SettleFailure {
@@ -64,5 +66,8 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
     meta: { ...meta, amount, multiplier },
   });
 
-  return { ok: true, won, multiplier, payout, netChange, newBalance, meta };
+  await recordWager(userId, amount);
+  const progression = await recordSettlement(userId, gameSlug, { amount, payout, multiplier, newBalance });
+
+  return { ok: true, won, multiplier, payout, netChange, newBalance, meta, progression };
 }

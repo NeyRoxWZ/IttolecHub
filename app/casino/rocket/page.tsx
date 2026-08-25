@@ -16,7 +16,7 @@ const STATUS_POLL_MS = 600;
 export default function RocketPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, startLocalBet, creditLocal, refresh, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -69,6 +69,7 @@ export default function RocketPage() {
         vibrate(HAPTIC.ERROR);
         toast.error(`Explosé à x${data.crashPoint}`);
         stopLoops();
+        announceProgression(data.progression);
       }
     }, STATUS_POLL_MS);
   };
@@ -138,6 +139,7 @@ export default function RocketPage() {
       vibrate(HAPTIC.SUCCESS);
       toast.success(`Encaissé +${data.payout} ₶ à x${data.multiplier}`);
       await refresh();
+      announceProgression(data.progression);
     } else {
       const elapsed = Date.now() - startedAtRef.current;
       const m = multiplierAtElapsed(elapsed);

@@ -14,7 +14,7 @@ export async function POST(request: Request, { params }: { params: { game: strin
     const result = await cashoutRound(userId, roundId, round.amount, Number(round.multiplier), params.game);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
 
-    return NextResponse.json({ payout: result.payout, newBalance: result.newBalance, multiplier: round.multiplier });
+    return NextResponse.json({ payout: result.payout, newBalance: result.newBalance, multiplier: round.multiplier, progression: result.progression });
   } catch (err) {
     console.error('Erreur casino cashout:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

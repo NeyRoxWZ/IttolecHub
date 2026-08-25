@@ -19,14 +19,15 @@ export async function POST(request: Request) {
     if (isBlackjack(playerCards) || isBlackjack(dealerCards)) {
       const { outcome, multiplier } = resolveHand(playerCards, dealerCards);
       let newBalance = result.newBalance;
+      let progression;
       if (multiplier > 0) {
         const settle = await cashoutRound(userId, result.roundId, amount, multiplier, 'blackjack');
-        if (settle.ok) newBalance = settle.newBalance;
+        if (settle.ok) { newBalance = settle.newBalance; progression = settle.progression; }
       } else {
-        await bustRound(result.roundId);
+        progression = await bustRound(userId, result.roundId, 'blackjack', amount);
       }
       return NextResponse.json({
-        roundId: result.roundId, newBalance, finished: true, outcome, multiplier,
+        roundId: result.roundId, newBalance, finished: true, outcome, multiplier, progression,
         playerCards, dealerCards, playerTotal: computeHandValue(playerCards).total, dealerTotal: computeHandValue(dealerCards).total,
       });
     }

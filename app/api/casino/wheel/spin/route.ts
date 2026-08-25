@@ -7,6 +7,7 @@ import {
   CASINO_MIN_BET,
   type WheelBet,
 } from '@/lib/casino/wheel';
+import { recordWager, recordSettlement } from '@/lib/casino/metaProgression.server';
 
 // RNG and payout are resolved here, server-side, with the service-role key.
 // The client never gets to submit or influence the result — it only ever
@@ -59,6 +60,9 @@ export async function POST(request: Request) {
       meta: { bet, landedNumber, multiplier, amount },
     });
 
+    await recordWager(userId, amount);
+    const progression = await recordSettlement(userId, 'wheel', { amount, payout, multiplier, newBalance });
+
     return NextResponse.json({
       landedNumber,
       won,
@@ -66,6 +70,7 @@ export async function POST(request: Request) {
       payout,
       netChange,
       newBalance,
+      progression,
     });
   } catch (err) {
     console.error('Erreur spin wheel:', err);

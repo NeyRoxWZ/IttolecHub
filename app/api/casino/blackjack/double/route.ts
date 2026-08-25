@@ -26,22 +26,23 @@ export async function POST(request: Request) {
     const playerTotal = computeHandValue(newPlayerCards).total;
 
     if (playerTotal > 21) {
-      await bustRound(roundId);
-      return NextResponse.json({ busted: true, playerCards: newPlayerCards, playerTotal, newBalance: doubled.newBalance });
+      const progression = await bustRound(userId, roundId, 'blackjack', doubled.newAmount);
+      return NextResponse.json({ busted: true, playerCards: newPlayerCards, playerTotal, newBalance: doubled.newBalance, progression });
     }
 
     const finalDealerCards = dealerPlay(dealerCards);
     const { outcome, multiplier } = resolveHand(newPlayerCards, finalDealerCards);
 
     let newBalance = doubled.newBalance;
+    let progression;
     if (multiplier > 0) {
       const settle = await cashoutRound(userId, roundId, doubled.newAmount, multiplier, 'blackjack');
-      if (settle.ok) newBalance = settle.newBalance;
+      if (settle.ok) { newBalance = settle.newBalance; progression = settle.progression; }
     } else {
-      await bustRound(roundId);
+      progression = await bustRound(userId, roundId, 'blackjack', doubled.newAmount);
     }
 
-    return NextResponse.json({ busted: false, playerCards: newPlayerCards, playerTotal, dealerCards: finalDealerCards, outcome, multiplier, newBalance });
+    return NextResponse.json({ busted: false, playerCards: newPlayerCards, playerTotal, dealerCards: finalDealerCards, outcome, multiplier, newBalance, progression });
   } catch (err) {
     console.error('Erreur blackjack double:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

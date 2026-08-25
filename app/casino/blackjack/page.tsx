@@ -16,7 +16,7 @@ type Phase = 'idle' | 'playing' | 'finished';
 export default function BlackjackPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, startLocalBet, creditLocal, refresh, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -89,6 +89,7 @@ export default function BlackjackPage() {
         setPayout(data.multiplier > 0 ? Math.round(amount * data.multiplier) : 0);
         setPhase('finished');
         announceOutcome(data.outcome, data.multiplier > 0 ? Math.round(amount * data.multiplier) : 0);
+        announceProgression(data.progression);
       } else {
         setDealerCards([data.dealerUpCard]);
         setDealerHidden(true);
@@ -139,6 +140,7 @@ export default function BlackjackPage() {
         setPhase('finished');
         vibrate(HAPTIC.ERROR);
         toast.error('Perdu (dépassé 21).');
+        announceProgression(data.progression);
       }
     } else {
       const newCards = [...playerCards, drawCard()];
@@ -177,6 +179,7 @@ export default function BlackjackPage() {
       setPayout(p);
       announceOutcome(data.outcome, p);
       if (data.newBalance !== undefined) await refresh();
+      announceProgression(data.progression);
     } else {
       const fullDealer = dealerPlay(localDealerHoleRef.current.length ? localDealerHoleRef.current : dealerCards);
       setBusy(false);
@@ -218,6 +221,7 @@ export default function BlackjackPage() {
         setPayout(p);
         announceOutcome(data.outcome, p);
       }
+      announceProgression(data.progression);
     } else {
       const result = startLocalBet('blackjack', lockedAmount);
       if ('error' in result) { setBusy(false); toast.error(result.error); return; }

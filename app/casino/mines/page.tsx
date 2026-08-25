@@ -15,7 +15,7 @@ type Phase = 'idle' | 'active' | 'busted' | 'cashed';
 export default function MinesPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, startLocalBet, creditLocal, refresh, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
 
   const [amount, setAmount] = useState(10);
   const [mineCount, setMineCount] = useState(3);
@@ -89,6 +89,7 @@ export default function MinesPage() {
         setPhase('busted');
         vibrate(HAPTIC.ERROR);
         toast.error('Boum ! Mine touchée.');
+        announceProgression(data.progression);
         return;
       }
       setRevealed(data.revealed);
@@ -129,6 +130,7 @@ export default function MinesPage() {
       vibrate(HAPTIC.SUCCESS);
       toast.success(`Encaissé +${data.payout} ₶`);
       await refresh();
+      announceProgression(data.progression);
     } else {
       const payout = Math.round(lockedAmount * multiplier);
       creditLocal('mines', payout, multiplier);

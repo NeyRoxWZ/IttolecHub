@@ -23,7 +23,7 @@ type Phase = 'idle' | 'active' | 'busted' | 'cashed';
 export default function LadderGame({ gameSlug, title, stepLabel, icon: Icon, bustMessage }: LadderGameProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const { balance, isLoaded, isLocal, maxBet, startLocalBet, creditLocal, refresh, history } = useCasinoWallet();
+  const { balance, isLoaded, isLocal, maxBet, startLocalBet, creditLocal, announceProgression, refresh, history } = useCasinoWallet();
   const config = LADDER_CONFIGS[gameSlug];
 
   const [amount, setAmount] = useState(10);
@@ -89,6 +89,7 @@ export default function LadderGame({ gameSlug, title, stepLabel, icon: Icon, bus
         setPhase('busted');
         vibrate(HAPTIC.ERROR);
         toast.error(bustMessage);
+        announceProgression(data.progression);
         return;
       }
       setStep(data.step);
@@ -129,6 +130,7 @@ export default function LadderGame({ gameSlug, title, stepLabel, icon: Icon, bus
       vibrate(HAPTIC.SUCCESS);
       toast.success(`Encaissé +${data.payout} ₶`);
       await refresh();
+      announceProgression(data.progression);
     } else {
       const payout = Math.round(lockedAmount * multiplier);
       creditLocal(gameSlug, payout, multiplier);

@@ -17,14 +17,14 @@ export async function POST(request: Request) {
     const currentMultiplier = multiplierAtElapsed(elapsed);
 
     if (currentMultiplier >= crashPoint) {
-      await bustRound(roundId);
+      await bustRound(userId, roundId, 'rocket', round.amount);
       return NextResponse.json({ error: `Trop tard, explosé à x${crashPoint}` }, { status: 400 });
     }
 
     const result = await cashoutRound(userId, roundId, round.amount, currentMultiplier, 'rocket');
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
 
-    return NextResponse.json({ payout: result.payout, newBalance: result.newBalance, multiplier: currentMultiplier });
+    return NextResponse.json({ payout: result.payout, newBalance: result.newBalance, multiplier: currentMultiplier, progression: result.progression });
   } catch (err) {
     console.error('Erreur rocket cashout:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

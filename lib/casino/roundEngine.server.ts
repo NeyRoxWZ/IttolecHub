@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/server';
 import { getMaxBet, CASINO_MIN_BET } from './core';
+import { recordWager, recordSettlement, type SettlementResult } from './metaProgression.server';
 
 // Shared by every "start a round, take steps, cash out anytime" game
 // (Mines, Tower, Poulet, Dino). casino_rounds.state holds the server-secret
@@ -51,6 +52,8 @@ export async function startRound({ userId, gameSlug, amount, initialState }: Sta
     user_id: userId, game_slug: gameSlug, type: 'bet', amount: -amount, balance_after: newBalance, meta: { roundId: round.id },
   });
 
+  await recordWager(userId, amount);
+
   return { ok: true as const, roundId: round.id as string, newBalance, state: round.state };
 }
 
@@ -91,8 +94,10 @@ export async function updateRoundState(roundId: string, state: any, multiplier: 
   await supabase.from('casino_rounds').update({ state, multiplier, updated_at: new Date().toISOString() }).eq('id', roundId);
 }
 
-export async function bustRound(roundId: string) {
+export async function bustRound(userId: string, roundId: string, gameSlug: string, amount: number): Promise<SettlementResult> {
   await supabase.from('casino_rounds').update({ status: 'busted', updated_at: new Date().toISOString() }).eq('id', roundId);
+  const { data: wallet } = await supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle();
+  return recordSettlement(userId, gameSlug, { amount, payout: 0, multiplier: 0, newBalance: wallet?.balance ?? 0 });
 }
 
 export async function cashoutRound(userId: string, roundId: string, amount: number, multiplier: number, gameSlug: string) {
@@ -116,5 +121,7 @@ export async function cashoutRound(userId: string, roundId: string, amount: numb
     user_id: userId, game_slug: gameSlug, type: 'win', amount: payout, balance_after: newBalance, meta: { roundId, multiplier },
   });
 
-  return { ok: true as const, payout, newBalance };
+  const progression = await recordSettlement(userId, gameSlug, { amount, payout, multiplier, newBalance });
+
+  return { ok: true as const, payout, newBalance, progression };
 }

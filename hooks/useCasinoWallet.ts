@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import {
@@ -59,12 +60,43 @@ export interface GenericBetResult {
   netChange: number;
   newBalance: number;
   meta: any;
+  progression?: { newAchievements: { id: string; name: string; description: string }[]; jackpotWon: number | null };
+}
+
+export interface CasinoStats {
+  totalWagered: number;
+  totalWon: number;
+  currentStreak: number;
+  bestStreak: number;
+  prestigeCount: number;
+  biggestMultiplier: number;
+  allTimeBestBalance: number;
+  dailyStreak: number;
+  dailyClaimedToday: boolean;
+  wheelClaimedToday: boolean;
+}
+
+const EMPTY_STATS: CasinoStats = {
+  totalWagered: 0, totalWon: 0, currentStreak: 0, bestStreak: 0, prestigeCount: 0,
+  biggestMultiplier: 0, allTimeBestBalance: CASINO_STARTING_BALANCE, dailyStreak: 0,
+  dailyClaimedToday: false, wheelClaimedToday: false,
+};
+
+function announceProgression(progression?: GenericBetResult['progression']) {
+  if (!progression) return;
+  if (progression.jackpotWon) {
+    toast.success(`🎉 JACKPOT ! +${progression.jackpotWon.toLocaleString('fr-FR')} ₶`, { duration: 6000 });
+  }
+  for (const a of progression.newAchievements) {
+    toast.success(`🏆 Succès débloqué: ${a.name}`, { description: a.description, duration: 5000 });
+  }
 }
 
 export function useCasinoWallet() {
   const { user } = useAuth();
   const [balance, setBalance] = useState<number>(CASINO_STARTING_BALANCE);
   const [history, setHistory] = useState<CasinoTransaction[]>([]);
+  const [stats, setStats] = useState<CasinoStats>(EMPTY_STATS);
   const [isLoaded, setIsLoaded] = useState(false);
   const isLocal = !user;
   const spinningRef = useRef(false);
@@ -76,6 +108,7 @@ export function useCasinoWallet() {
         const data = await res.json();
         setBalance(data.balance);
         setHistory(data.history);
+        if (data.stats) setStats(data.stats);
       }
     } else {
       const w = loadLocalWallet();
@@ -124,6 +157,7 @@ export function useCasinoWallet() {
         if (!res.ok) return { error: data.error || 'Erreur du serveur' };
         setBalance(data.newBalance);
         await refresh();
+        announceProgression(data.progression);
         return data as WheelSpinResult;
       } else {
         const w = loadLocalWallet();
@@ -171,6 +205,7 @@ export function useCasinoWallet() {
         if (!res.ok) return { error: data.error || 'Erreur du serveur' };
         setBalance(data.newBalance);
         await refresh();
+        announceProgression(data.progression);
         return data as GenericBetResult;
       } else {
         const w = loadLocalWallet();
@@ -227,5 +262,46 @@ export function useCasinoWallet() {
     setHistory(w.history);
   }, []);
 
-  return { balance, history, isLoaded, isLocal, maxBet, spinWheelBet, placeBet, startLocalBet, creditLocal, refresh };
+  // Daily bonus / daily wheel-of-fortune / prestige — logged-in only (they
+  // hinge on persistent identity, no meaningful anonymous equivalent).
+  const claimDaily = useCallback(async (): Promise<{ reward: number; dailyStreak: number } | { error: string }> => {
+    if (!user) return { error: 'Connecte-toi pour réclamer ton bonus quotidien.' };
+    const res = await fetch('/api/casino/daily/claim', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: user.id }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { error: data.error || 'Erreur' };
+    await refresh();
+    return data;
+  }, [user, refresh]);
+
+  const claimWheelOfFortune = useCallback(async (): Promise<{ reward: number; segmentIndex: number } | { error: string }> => {
+    if (!user) return { error: 'Connecte-toi pour tourner la roue quotidienne.' };
+    const res = await fetch('/api/casino/wheel-of-fortune/claim', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: user.id }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { error: data.error || 'Erreur' };
+    await refresh();
+    return data;
+  }, [user, refresh]);
+
+  const prestige = useCallback(async (): Promise<{ prestigeCount: number } | { error: string }> => {
+    if (!user) return { error: 'Connecte-toi pour prestiger.' };
+    const res = await fetch('/api/casino/prestige', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: user.id }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { error: data.error || 'Erreur' };
+    await refresh();
+    if (data.newAchievements?.length) announceProgression({ newAchievements: data.newAchievements, jackpotWon: null });
+    return data;
+  }, [user, refresh]);
+
+  return {
+    balance, history, stats, isLoaded, isLocal, maxBet,
+    spinWheelBet, placeBet, startLocalBet, creditLocal,
+    claimDaily, claimWheelOfFortune, prestige,
+    announceProgression, refresh,
+  };
 }

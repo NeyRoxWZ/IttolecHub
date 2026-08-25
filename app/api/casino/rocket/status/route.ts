@@ -26,8 +26,8 @@ export async function GET(request: Request) {
     const currentMultiplier = multiplierAtElapsed(elapsed);
 
     if (currentMultiplier >= crashPoint) {
-      await bustRound(roundId);
-      return NextResponse.json({ status: 'busted', crashPoint });
+      const progression = await bustRound(userId, roundId, 'rocket', round.amount);
+      return NextResponse.json({ status: 'busted', crashPoint, progression });
     }
 
     return NextResponse.json({ status: 'active', multiplier: currentMultiplier });

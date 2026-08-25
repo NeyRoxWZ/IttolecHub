@@ -5,10 +5,15 @@ import { useRouter } from 'next/navigation';
 import {
   Coins, Dices, Spade, CircleDot, Rocket, Bomb, Circle, ArrowUpDown, Ticket,
   Egg, Building2, Grid3x3, Gift, Zap, Flag, GlassWater, LayoutGrid, Layers, Hand, Dice5,
-  ArrowLeft, Info,
+  ArrowLeft, Info, Flame, Trophy, Award, Gem, Sparkles, Calendar,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { vibrate, HAPTIC } from '@/lib/haptic';
+import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
+import { supabase } from '@/lib/supabase/client';
+import { PRESTIGE_THRESHOLD, getPrestigeTitle } from '@/lib/casino/meta';
 
 interface CasinoGameEntry {
   slug: string;
@@ -46,8 +51,15 @@ const DISCLAIMER_KEY = 'itollec_casino_disclaimer_seen';
 
 export default function CasinoHub() {
   const router = useRouter();
-  const { balance, isLoaded, isLocal } = useCasinoWallet();
+  const { user } = useAuth();
+  const { balance, isLoaded, isLocal, stats, claimDaily, claimWheelOfFortune, prestige, refresh } = useCasinoWallet();
   const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [jackpot, setJackpot] = useState<number | null>(null);
+  const [showWheelModal, setShowWheelModal] = useState(false);
+  const [wheelResult, setWheelResult] = useState<number | null>(null);
+  const [wheelSpinning, setWheelSpinning] = useState(false);
+  const [claimingDaily, setClaimingDaily] = useState(false);
+  const [prestiging, setPrestiging] = useState(false);
 
   useEffect(() => {
     try {
@@ -55,10 +67,68 @@ export default function CasinoHub() {
     } catch {}
   }, []);
 
+  useEffect(() => {
+    supabase.from('casino_jackpot').select('amount').eq('id', 1).maybeSingle().then(({ data }) => {
+      if (data) setJackpot(Number(data.amount));
+    });
+    const channel = supabase.channel('casino_jackpot_ticker')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'casino_jackpot' }, (payload) => {
+        setJackpot(Number((payload.new as any).amount));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   const dismissDisclaimer = () => {
     try { localStorage.setItem(DISCLAIMER_KEY, '1'); } catch {}
     setShowDisclaimer(false);
   };
+
+  const handleClaimDaily = async () => {
+    if (claimingDaily) return;
+    if (!user) { toast.error('Connecte-toi pour réclamer ton bonus quotidien.'); return; }
+    setClaimingDaily(true);
+    vibrate(HAPTIC.MEDIUM);
+    const result = await claimDaily();
+    setClaimingDaily(false);
+    if ('error' in result) { toast.error(result.error); return; }
+    vibrate(HAPTIC.SUCCESS);
+    toast.success(`Bonus quotidien : +${result.reward} ₶ (série de ${result.dailyStreak} jour${result.dailyStreak > 1 ? 's' : ''})`, { duration: 5000 });
+  };
+
+  const handleSpinWheelOfFortune = async () => {
+    if (wheelSpinning) return;
+    if (!user) { toast.error('Connecte-toi pour tourner la roue quotidienne.'); return; }
+    setWheelSpinning(true);
+    setWheelResult(null);
+    vibrate(HAPTIC.MEDIUM);
+    const result = await claimWheelOfFortune();
+    if ('error' in result) {
+      setWheelSpinning(false);
+      toast.error(result.error);
+      return;
+    }
+    setTimeout(() => {
+      setWheelResult(result.reward);
+      setWheelSpinning(false);
+      vibrate(HAPTIC.SUCCESS);
+      toast.success(`Roue quotidienne : +${result.reward} ₶ !`);
+    }, 1200);
+  };
+
+  const handlePrestige = async () => {
+    if (prestiging) return;
+    setPrestiging(true);
+    vibrate(HAPTIC.MEDIUM);
+    const result = await prestige();
+    setPrestiging(false);
+    if ('error' in result) { toast.error(result.error); return; }
+    vibrate(HAPTIC.SUCCESS);
+    toast.success(`Prestige ! Nouveau titre: ${getPrestigeTitle(result.prestigeCount)}`, { duration: 6000 });
+  };
+
+  const prestigeTitle = getPrestigeTitle(stats.prestigeCount);
+  const canPrestige = balance >= PRESTIGE_THRESHOLD;
 
   return (
     <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
@@ -85,8 +155,39 @@ export default function CasinoHub() {
         </div>
       )}
 
+      {showWheelModal && (
+        <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => !wheelSpinning && setShowWheelModal(false)}>
+          <div className="w-full max-w-sm bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal text-center" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-display text-xl font-black mb-4">Roue Quotidienne</h2>
+            <div className={cn('mx-auto w-32 h-32 rounded-full border-4 border-brand-border bg-brand-inner flex items-center justify-center mb-4', wheelSpinning && 'animate-spin')}>
+              {wheelResult !== null ? (
+                <span className="font-display font-black text-2xl text-accent-primary">+{wheelResult}</span>
+              ) : (
+                <Sparkles className="w-10 h-10 text-accent-primary" />
+              )}
+            </div>
+            {wheelResult === null ? (
+              <button
+                onClick={handleSpinWheelOfFortune}
+                disabled={wheelSpinning}
+                className="w-full h-14 rounded-lg font-display font-black tracking-wider border-2 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary transition-colors disabled:opacity-50"
+              >
+                {wheelSpinning ? 'ÇA TOURNE...' : 'TOURNER (gratuit)'}
+              </button>
+            ) : (
+              <button
+                onClick={() => { setShowWheelModal(false); setWheelResult(null); }}
+                className="w-full h-14 rounded-lg font-display font-black tracking-wider border-2 border-brand-border bg-brand-inner hover:bg-tx-base hover:text-brand-bg transition-colors"
+              >
+                Récupérer
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto">
-        <header className="flex items-center justify-between mb-8">
+        <header className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push('/?mode=solo')}
@@ -94,7 +195,10 @@ export default function CasinoHub() {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="font-display text-2xl md:text-3xl font-black">Casino</h1>
+            <div>
+              <h1 className="font-display text-2xl md:text-3xl font-black">Casino</h1>
+              {prestigeTitle && <span className="text-xs font-black uppercase tracking-widest text-accent-primary">{prestigeTitle}</span>}
+            </div>
           </div>
 
           <div className="h-12 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
@@ -110,6 +214,51 @@ export default function CasinoHub() {
             )}
           </div>
         </header>
+
+        {/* STATS / ACTIONS BAR */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          {jackpot !== null && (
+            <div className="flex items-center gap-2 h-11 px-4 rounded-xl border-2 border-accent-primary bg-accent-primary/10 shadow-brutal">
+              <Gem className="w-4 h-4 text-accent-primary" />
+              <span className="text-xs font-bold text-tx-secondary uppercase tracking-widest">Jackpot</span>
+              <span className="font-display font-black text-accent-primary tabular-nums">{jackpot.toLocaleString('fr-FR')} ₶</span>
+            </div>
+          )}
+
+          {stats.currentStreak > 0 && (
+            <div className="flex items-center gap-2 h-11 px-4 rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal">
+              <Flame className="w-4 h-4 text-accent-secondary" />
+              <span className="text-sm font-bold">{stats.currentStreak} d&apos;affilée</span>
+            </div>
+          )}
+
+          <button onClick={handleClaimDaily} disabled={claimingDaily || stats.dailyClaimedToday} className={cn('flex items-center gap-2 h-11 px-4 rounded-xl border-2 shadow-brutal font-bold text-sm transition-colors focus:outline-none', stats.dailyClaimedToday ? 'border-brand-border bg-brand-inner text-tx-muted cursor-not-allowed' : 'border-brand-border bg-brand-inner hover:border-accent-primary')}>
+            <Calendar className="w-4 h-4" />
+            {stats.dailyClaimedToday ? 'Bonus réclamé' : 'Bonus quotidien'}
+          </button>
+
+          <button onClick={() => setShowWheelModal(true)} disabled={stats.wheelClaimedToday} className={cn('flex items-center gap-2 h-11 px-4 rounded-xl border-2 shadow-brutal font-bold text-sm transition-colors focus:outline-none', stats.wheelClaimedToday ? 'border-brand-border bg-brand-inner text-tx-muted cursor-not-allowed' : 'border-brand-border bg-brand-inner hover:border-accent-primary')}>
+            <Sparkles className="w-4 h-4" />
+            {stats.wheelClaimedToday ? 'Roue tournée' : 'Roue quotidienne'}
+          </button>
+
+          <button onClick={() => router.push('/casino/achievements')} className="flex items-center gap-2 h-11 px-4 rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal font-bold text-sm hover:border-accent-primary transition-colors focus:outline-none">
+            <Award className="w-4 h-4" />
+            Succès
+          </button>
+
+          <button onClick={() => router.push('/casino/leaderboard')} className="flex items-center gap-2 h-11 px-4 rounded-xl border-2 border-brand-border bg-brand-inner shadow-brutal font-bold text-sm hover:border-accent-primary transition-colors focus:outline-none">
+            <Trophy className="w-4 h-4" />
+            Classement
+          </button>
+
+          {canPrestige && (
+            <button onClick={handlePrestige} disabled={prestiging} className="flex items-center gap-2 h-11 px-4 rounded-xl border-2 border-accent-primary bg-accent-primary text-brand-bg shadow-brutal font-bold text-sm hover:bg-brand-inner hover:text-accent-primary transition-colors focus:outline-none">
+              <Sparkles className="w-4 h-4" />
+              {prestiging ? '...' : 'Prestiger'}
+            </button>
+          )}
+        </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {CASINO_GAMES.map((game) => {

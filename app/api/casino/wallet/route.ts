@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import { CASINO_STARTING_BALANCE, CASINO_SAFETY_NET_THRESHOLD, CASINO_SAFETY_NET_AMOUNT } from '@/lib/casino/wheel';
 
+function isSameUtcDay(a: Date, b: Date): boolean {
+  return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -48,7 +52,26 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    return NextResponse.json({ balance: wallet.balance, history: history || [] });
+    const now = new Date();
+    const dailyClaimedToday = !!wallet.last_daily_claim_at && isSameUtcDay(new Date(wallet.last_daily_claim_at), now);
+    const wheelClaimedToday = !!wallet.last_wheel_claim_at && isSameUtcDay(new Date(wallet.last_wheel_claim_at), now);
+
+    return NextResponse.json({
+      balance: wallet.balance,
+      history: history || [],
+      stats: {
+        totalWagered: Number(wallet.total_wagered || 0),
+        totalWon: Number(wallet.total_won || 0),
+        currentStreak: Number(wallet.current_streak || 0),
+        bestStreak: Number(wallet.best_streak || 0),
+        prestigeCount: Number(wallet.prestige_count || 0),
+        biggestMultiplier: Number(wallet.biggest_multiplier || 0),
+        allTimeBestBalance: Number(wallet.all_time_best_balance || CASINO_STARTING_BALANCE),
+        dailyStreak: Number(wallet.daily_streak || 0),
+        dailyClaimedToday,
+        wheelClaimedToday,
+      },
+    });
   } catch (err) {
     console.error('Erreur GET wallet:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

@@ -17,15 +17,17 @@ export async function POST(request: Request) {
     const { outcome, multiplier } = resolveHand(playerCards, finalDealerCards);
 
     let newBalance: number | undefined;
+    let progression;
     if (multiplier > 0) {
       const settle = await cashoutRound(userId, roundId, round.amount, multiplier, 'blackjack');
       if (!settle.ok) return NextResponse.json({ error: settle.error }, { status: settle.status });
       newBalance = settle.newBalance;
+      progression = settle.progression;
     } else {
-      await bustRound(roundId);
+      progression = await bustRound(userId, roundId, 'blackjack', round.amount);
     }
 
-    return NextResponse.json({ outcome, multiplier, dealerCards: finalDealerCards, newBalance });
+    return NextResponse.json({ outcome, multiplier, dealerCards: finalDealerCards, newBalance, progression });
   } catch (err) {
     console.error('Erreur blackjack stand:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

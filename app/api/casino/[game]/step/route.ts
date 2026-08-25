@@ -22,8 +22,8 @@ export async function POST(request: Request, { params }: { params: { game: strin
       if (revealed.includes(cellIndex)) return NextResponse.json({ error: 'Case déjà révélée' }, { status: 400 });
 
       if (minePositions.includes(cellIndex)) {
-        await bustRound(roundId);
-        return NextResponse.json({ safe: false, status: 'busted', minePositions });
+        const progression = await bustRound(userId, roundId, params.game, round.amount);
+        return NextResponse.json({ safe: false, status: 'busted', minePositions, progression });
       }
 
       const newRevealed = [...revealed, cellIndex];
@@ -41,8 +41,8 @@ export async function POST(request: Request, { params }: { params: { game: strin
 
       const survived = stepOutcome(config);
       if (!survived) {
-        await bustRound(roundId);
-        return NextResponse.json({ safe: false, status: 'busted' });
+        const progression = await bustRound(userId, roundId, params.game, round.amount);
+        return NextResponse.json({ safe: false, status: 'busted', progression });
       }
 
       const newStep = step + 1;
