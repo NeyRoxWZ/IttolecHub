@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Crown, Gem, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,10 @@ export default function CelebrationLayer() {
 
   if (!event) return null;
 
+  // A pass tier must not interrupt a run: it slides in from the top and
+  // leaves on its own. Levels and jackpots keep the full stop.
+  if (event.kind === 'pass_tier') return <TierBanner tiers={event.tiers} />;
+
   return (
     <div
       className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
@@ -35,6 +40,34 @@ export default function CelebrationLayer() {
     >
       <Confetti trigger={burst} intensity="huge" />
       <Panel event={event} />
+    </div>
+  );
+}
+
+/** Non-blocking: the page underneath stays fully playable. */
+function TierBanner({ tiers }: { tiers: number[] }) {
+  useEffect(() => {
+    const t = setTimeout(dismissCelebration, 4500);
+    return () => clearTimeout(t);
+  }, [tiers]);
+
+  return (
+    <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[300] px-3 w-full max-w-md pointer-events-none">
+      <Link
+        href="/casino/pass"
+        prefetch
+        onClick={dismissCelebration}
+        className="pointer-events-auto flex items-center gap-3 rounded-2xl border-4 border-accent-primary bg-brand-card/95 backdrop-blur px-4 py-3 shadow-brutal animate-in slide-in-from-top-4 fade-in duration-300"
+      >
+        <Crown className="h-6 w-6 text-accent-primary shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="font-display font-black text-sm leading-tight">
+            {tiers.length > 1 ? `${tiers.length} paliers débloqués` : `Palier ${tiers[0]} débloqué`}
+          </div>
+          <div className="text-[11px] text-tx-muted">Récompense à réclamer dans le Frenly Pass.</div>
+        </div>
+        <span className="text-[10px] font-black text-accent-primary tracking-widest shrink-0">VOIR</span>
+      </Link>
     </div>
   );
 }
