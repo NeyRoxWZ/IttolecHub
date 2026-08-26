@@ -49,6 +49,44 @@ const CASINO_GAMES: CasinoGameEntry[] = [
 
 const DISCLAIMER_KEY = 'itollec_casino_disclaimer_seen';
 
+/** One compact action pill. `done` greys it out and hides the pending dot. */
+function RewardPill({
+  label, hint, icon: Icon, tone, done, onClick, busy,
+}: {
+  label: string;
+  hint: string;
+  icon: any;
+  tone: 'success' | 'primary' | 'neutral';
+  done?: boolean;
+  onClick: () => void;
+  busy?: boolean;
+}) {
+  const active = {
+    success: 'border-accent-success bg-accent-success/10 text-accent-success',
+    primary: 'border-accent-primary bg-accent-primary/10 text-accent-primary',
+    neutral: 'border-brand-border bg-brand-card text-accent-primary',
+  }[tone];
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={busy}
+      className={cn(
+        'relative h-12 px-3 rounded-xl border-2 flex items-center gap-2 text-left transition-all focus:outline-none',
+        'hover:-translate-y-0.5 disabled:opacity-50',
+        done ? 'border-brand-border bg-brand-card' : active
+      )}
+    >
+      <Icon className={cn('h-4 w-4 shrink-0', done && 'text-tx-muted')} />
+      <div className="min-w-0 leading-tight">
+        <div className="font-display font-black text-[12px] text-tx-base">{label}</div>
+        <div className="text-[9px] font-bold text-tx-muted truncate">{busy ? '···' : hint}</div>
+      </div>
+      {!done && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent-secondary animate-pulse" />}
+    </button>
+  );
+}
+
 export default function CasinoHub() {
   const router = useRouter();
   const { user } = useAuth();
@@ -213,134 +251,113 @@ export default function CasinoHub() {
           </div>
         </header>
 
-        {/* ACTION BAR — everything meta in one compact row */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mb-3 shrink-0">
-          <button
+        {/* ACTION BAR — one wrapping row of pills. It used to be eight big
+            tiles on two rows, which ate the height the games needed and made
+            the top of the page unreadable. */}
+        <div className="flex flex-wrap items-center gap-2 mb-3 shrink-0">
+          <RewardPill
+            label="Bonus du jour"
+            hint={stats.dailyClaimedToday ? `Pris · ${stats.dailyStreak} j` : '250 à 10 000 ₶'}
+            icon={GiftIcon}
+            tone="success"
+            done={stats.dailyClaimedToday}
             onClick={handleClaimDaily}
-            disabled={stats.dailyClaimedToday || claimingDaily}
-            className={cn(
-              'relative h-14 rounded-xl border-2 flex items-center gap-2 px-3 transition-all focus:outline-none text-left',
-              stats.dailyClaimedToday ? 'border-brand-border bg-brand-card opacity-50 cursor-default'
-                : 'border-accent-success bg-accent-success/10 hover:-translate-y-0.5 cursor-pointer'
-            )}
-          >
-            <GiftIcon className={cn('h-5 w-5 shrink-0', stats.dailyClaimedToday ? 'text-tx-muted' : 'text-accent-success')} />
-            <div className="min-w-0">
-              <div className="font-display font-black text-xs leading-tight">Bonus du jour</div>
-              <div className="text-[10px] text-tx-secondary truncate">{stats.dailyClaimedToday ? `Pris · ${stats.dailyStreak} j` : '250 à 10 000 ₶'}</div>
-            </div>
-            {!stats.dailyClaimedToday && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-accent-secondary animate-pulse" />}
-          </button>
+            busy={claimingDaily}
+          />
 
-          <button
+          <RewardPill
+            label="Roue gratuite"
+            hint={stats.wheelClaimedToday ? 'Déjà tournée' : 'Jusqu’à 10 000 ₶'}
+            icon={Sparkles}
+            tone="primary"
+            done={stats.wheelClaimedToday}
             onClick={() => { sfx.click(); setShowWheel(true); }}
-            disabled={stats.wheelClaimedToday}
-            className={cn(
-              'relative h-14 rounded-xl border-2 flex items-center gap-2 px-3 transition-all focus:outline-none text-left',
-              stats.wheelClaimedToday ? 'border-brand-border bg-brand-card opacity-50 cursor-default'
-                : 'border-accent-primary bg-accent-primary/10 hover:-translate-y-0.5 cursor-pointer'
-            )}
-          >
-            <Sparkles className={cn('h-5 w-5 shrink-0', stats.wheelClaimedToday ? 'text-tx-muted' : 'text-accent-primary')} />
-            <div className="min-w-0">
-              <div className="font-display font-black text-xs leading-tight">Roue gratuite</div>
-              <div className="text-[10px] text-tx-secondary truncate">{stats.wheelClaimedToday ? 'Déjà tournée' : 'Jusqu’à 10 000 ₶'}</div>
-            </div>
-            {!stats.wheelClaimedToday && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-accent-secondary animate-pulse" />}
-          </button>
+          />
 
-          <button
+          <RewardPill
+            label="Cashback"
+            hint={stats.cashbackClaimedToday ? 'Déjà pris'
+              : cashback?.available ? `+${cashback.amount.toLocaleString('fr-FR')} ₶`
+              : 'Rien hier'}
+            icon={Banknote}
+            tone="primary"
+            done={!cashback?.available}
             onClick={handleClaimCashback}
-            disabled={!cashback?.available || claimingCashback}
-            title="5% de tes pertes de la veille, à récupérer une fois par jour"
-            className={cn(
-              'relative h-14 rounded-xl border-2 flex items-center gap-2 px-3 transition-all focus:outline-none text-left',
-              cashback?.available ? 'border-accent-primary bg-accent-primary/10 hover:-translate-y-0.5 cursor-pointer'
-                : 'border-brand-border bg-brand-card opacity-50 cursor-default'
-            )}
-          >
-            <Banknote className={cn('h-5 w-5 shrink-0', cashback?.available ? 'text-accent-primary' : 'text-tx-muted')} />
-            <div className="min-w-0">
-              <div className="font-display font-black text-xs leading-tight">Cashback</div>
-              <div className="text-[10px] text-tx-secondary truncate">
-                {stats.cashbackClaimedToday ? 'Déjà pris'
-                  : cashback?.available ? `+${cashback.amount.toLocaleString('fr-FR')} ₶ à prendre`
-                  : 'Aucune perte hier'}
-              </div>
-            </div>
-            {cashback?.available && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-accent-secondary animate-pulse" />}
-          </button>
+            busy={claimingCashback}
+          />
 
-          <button
+          <RewardPill
+            label="Missions"
+            hint={claimable > 0 ? `${claimable} à réclamer` : `${missions.filter((m) => m.claimed).length}/${missions.length || 3} faites`}
+            icon={Target}
+            tone="neutral"
+            done={claimable === 0}
             onClick={() => { sfx.click(); setShowMissions(true); }}
-            className="relative h-14 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-2 px-3 hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none text-left"
-          >
-            <Target className="h-5 w-5 shrink-0 text-accent-primary" />
-            <div className="min-w-0">
-              <div className="font-display font-black text-xs leading-tight">Missions</div>
-              <div className="text-[10px] text-tx-secondary truncate">
-                {claimable > 0 ? `${claimable} récompense${claimable > 1 ? 's' : ''} à prendre` : `${missions.filter((m) => m.claimed).length}/${missions.length || 3} terminées`}
-              </div>
-            </div>
-            {claimable > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-accent-secondary animate-pulse" />}
-          </button>
+          />
 
-          <button
+          <RewardPill
+            label="Boutique"
+            hint="5 objets/jour"
+            icon={ShoppingBag}
+            tone="neutral"
+            done
             onClick={() => { sfx.click(); router.push('/casino/shop'); }}
-            className="h-14 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-2 px-3 hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none text-left"
-          >
-            <ShoppingBag className="h-5 w-5 shrink-0 text-accent-primary" />
-            <div className="min-w-0">
-              <div className="font-display font-black text-xs leading-tight">Boutique</div>
-              <div className="text-[10px] text-tx-secondary truncate">5 objets, renouvelés à minuit</div>
-            </div>
-          </button>
+          />
 
           <button
             onClick={() => { sfx.click(); setShowJackpot(true); }}
-            className="h-14 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-2 px-3 text-left hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none"
+            title="Comment gagner la cagnotte ?"
+            className="h-12 px-3 rounded-xl border-2 border-accent-primary/60 bg-accent-primary/10 flex items-center gap-2 hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none text-left"
           >
-            <Gem className="h-5 w-5 shrink-0 text-accent-primary" />
-            <div className="min-w-0">
-              <div className="font-display font-black text-xs leading-tight">Jackpot commun</div>
-              <div className="text-[11px] font-black text-accent-primary tabular-nums truncate">
+            <Gem className="h-4 w-4 shrink-0 text-accent-primary" />
+            <div className="min-w-0 leading-tight">
+              <div className="font-display font-black text-[13px] text-accent-primary tabular-nums">
                 {jackpot !== null ? `${jackpot.toLocaleString('fr-FR')} ₶` : '···'}
               </div>
+              <div className="text-[9px] font-bold text-tx-muted">Cagnotte · 1 sur 3 000</div>
             </div>
-            <span className="ml-auto shrink-0 text-[10px] font-black text-tx-muted border border-brand-border rounded px-1.5 py-0.5">?</span>
           </button>
 
-          <div className="flex gap-2">
-            <button onClick={() => { sfx.click(); router.push('/casino/achievements'); }} className="flex-1 h-14 rounded-xl border-2 border-brand-border bg-brand-card flex flex-col items-center justify-center gap-0.5 hover:border-accent-primary transition-colors focus:outline-none">
-              <Award className="h-4 w-4 text-accent-primary" />
-              <span className="text-[10px] font-black">Succès</span>
-            </button>
-            <button onClick={() => { sfx.click(); router.push('/casino/leaderboard'); }} className="flex-1 h-14 rounded-xl border-2 border-brand-border bg-brand-card flex flex-col items-center justify-center gap-0.5 hover:border-accent-primary transition-colors focus:outline-none">
-              <Trophy className="h-4 w-4 text-accent-primary" />
-              <span className="text-[10px] font-black">Classement</span>
-            </button>
-          </div>
-
-          {canPrestige ? (
+          <div className="ml-auto flex items-center gap-2">
             <button
-              onClick={handlePrestige}
-              disabled={prestiging}
-              className="h-14 rounded-xl border-2 border-accent-primary bg-accent-primary text-brand-bg flex items-center justify-center gap-2 font-display font-black text-sm hover:brightness-110 transition-all focus:outline-none"
+              onClick={() => { sfx.click(); router.push('/casino/achievements'); }}
+              title="Succès"
+              className="h-12 w-12 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center text-accent-primary hover:border-accent-primary transition-colors focus:outline-none"
             >
-              <Sparkles className="h-4 w-4" />
-              {prestiging ? '···' : 'PRESTIGER'}
+              <Award className="h-4 w-4" />
             </button>
-          ) : (
-            <div className="h-14 rounded-xl border-2 border-brand-border bg-brand-card px-3 flex flex-col justify-center" title={`Atteins ${PRESTIGE_THRESHOLD.toLocaleString('fr-FR')} ₶ pour prestiger`}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Prestige</span>
-                <span className="text-[10px] font-black text-accent-primary">{prestigeProgress.toFixed(1)}%</span>
+            <button
+              onClick={() => { sfx.click(); router.push('/casino/leaderboard'); }}
+              title="Classement"
+              className="h-12 w-12 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center text-accent-primary hover:border-accent-primary transition-colors focus:outline-none"
+            >
+              <Trophy className="h-4 w-4" />
+            </button>
+
+            {canPrestige ? (
+              <button
+                onClick={handlePrestige}
+                disabled={prestiging}
+                className="h-12 px-4 rounded-xl border-2 border-accent-primary bg-accent-primary text-brand-bg flex items-center gap-2 font-display font-black text-xs tracking-wider hover:brightness-110 transition-all focus:outline-none"
+              >
+                <Sparkles className="h-4 w-4" />
+                {prestiging ? '···' : 'PRESTIGER'}
+              </button>
+            ) : (
+              <div
+                className="h-12 px-3 rounded-xl border-2 border-brand-border bg-brand-card flex flex-col justify-center min-w-[104px]"
+                title={`Atteins ${PRESTIGE_THRESHOLD.toLocaleString('fr-FR')} ₶ pour prestiger`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">Prestige</span>
+                  <span className="text-[9px] font-black text-accent-primary tabular-nums">{prestigeProgress.toFixed(0)}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-brand-inner border border-brand-border overflow-hidden">
+                  <div className="h-full bg-accent-primary transition-all duration-500" style={{ width: `${prestigeProgress}%` }} />
+                </div>
               </div>
-              <div className="h-1.5 rounded-full bg-brand-inner border border-brand-border overflow-hidden">
-                <div className="h-full bg-accent-primary transition-all duration-500" style={{ width: `${prestigeProgress}%` }} />
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <FeedTicker />

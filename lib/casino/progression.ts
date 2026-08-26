@@ -11,9 +11,16 @@ export function xpForWager(amount: number): number {
   return Math.max(1, Math.floor(amount / 2));
 }
 
-/** XP needed to go from `level` to `level + 1`. */
+/**
+ * XP needed to go from `level` to `level + 1`.
+ *
+ * The quadratic term is what stops the early levels from flying past: a
+ * purely linear curve made level 20 as cheap as level 3, so the bar stopped
+ * meaning anything after an hour of play.
+ */
 export function xpForNextLevel(level: number): number {
-  return 200 + (level - 1) * 150;
+  const n = level - 1;
+  return 200 + n * 150 + n * n * 25;
 }
 
 /** Total XP needed to reach `level` from scratch. */

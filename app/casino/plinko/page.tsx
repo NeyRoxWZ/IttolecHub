@@ -125,7 +125,7 @@ export default function PlinkoPage() {
                 width: 20, height: 20,
                 left: BOARD_W / 2 + ball.offset * SPACING - 10,
                 top: ball.row * ROW_H + 2,
-                transition: `left ${STEP_MS}ms cubic-bezier(0.4,0,0.6,1), top ${STEP_MS}ms cubic-bezier(0.3,0,0.7,1)`,
+                transition: `left ${tempo(STEP_MS)}ms cubic-bezier(0.4,0,0.6,1), top ${tempo(STEP_MS)}ms cubic-bezier(0.3,0,0.7,1)`,
                 boxShadow: '0 0 10px rgba(255,208,0,0.8)',
               }}
             />

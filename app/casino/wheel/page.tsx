@@ -15,6 +15,7 @@ import {
 } from '../_components/CasinoUI';
 import CasinoWheel, { type CasinoWheelHandle, type WheelSegment } from '../_components/CasinoWheel';
 import Confetti from '../_components/Confetti';
+import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -99,7 +100,8 @@ export default function FrenlyWheelPage() {
         ref={wheelRef}
         segments={segments}
         size={420}
-        settleMs={2000}
+        settleMs={tempo(1100)}
+        settleTurns={2}
         hub={
           <div
             className="w-[104px] h-[104px] rounded-full border-4 border-brand-border flex items-center justify-center font-display font-black text-4xl transition-colors duration-300"

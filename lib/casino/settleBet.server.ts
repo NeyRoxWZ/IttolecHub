@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase/server';
 import { CASINO_MIN_BET, CASINO_MAX_BET_ABS, type BetResolution } from './core';
 import { streakBonus } from './progression';
 import { loadEffects, consumeEffects, type EffectMap } from './effects.server';
-import { recordWager, recordSettlement, type SettlementResult } from './metaProgression.server';
+import { recordSettlement, type SettlementResult } from './metaProgression.server';
 
 interface SettleParams {
   userId: string;
@@ -41,10 +41,11 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
   if (!userId) return { ok: false, status: 400, error: 'user_id requis' };
   if (!Number.isInteger(amount) || amount < CASINO_MIN_BET) return { ok: false, status: 400, error: 'Mise invalide' };
 
-  const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
+  const [{ data: wallet }, effects] = await Promise.all([
+    supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle(),
+    loadEffects(userId),
+  ]);
   if (!wallet) return { ok: false, status: 404, error: 'Portefeuille introuvable' };
-
-  const effects = await loadEffects(userId);
   const maxBet = effectiveMaxBet(wallet.balance, effects);
   if (amount > wallet.balance) return { ok: false, status: 400, error: 'Solde insuffisant' };
   if (amount > maxBet) return { ok: false, status: 400, error: `Mise max: ${maxBet} ₶` };
@@ -87,20 +88,24 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
   if (updateError || !updated) return { ok: false, status: 409, error: 'Conflit de mise à jour, réessayez.' };
 
   const txType = baseMultiplier === 0 ? 'bet' : baseMultiplier === 1 ? 'push' : 'win';
-  await supabase.from('casino_transactions').insert({
-    user_id: userId,
-    game_slug: gameSlug,
-    type: txType,
-    amount: netChange,
-    balance_after: newBalance,
-    meta: { ...meta, amount, multiplier, baseMultiplier, streakPct, itemPct, refunded },
-  });
 
-  await consumeEffects(userId, effects, used);
-  await recordWager(userId, amount);
-  const progression = await recordSettlement(userId, gameSlug, {
-    amount, payout, multiplier, baseMultiplier, newBalance, effects,
-  });
+  // The ledger write, the consumed items and the meta progression touch
+  // different tables — run them together rather than making the player wait
+  // through three sequential round-trips before the animation can start.
+  const [, , progression] = await Promise.all([
+    supabase.from('casino_transactions').insert({
+      user_id: userId,
+      game_slug: gameSlug,
+      type: txType,
+      amount: netChange,
+      balance_after: newBalance,
+      meta: { ...meta, amount, multiplier, baseMultiplier, streakPct, itemPct, refunded },
+    }),
+    consumeEffects(userId, effects, used),
+    recordSettlement(userId, gameSlug, {
+      amount, payout, multiplier, baseMultiplier, newBalance, effects, wagered: amount,
+    }),
+  ]);
 
   return {
     ok: true,

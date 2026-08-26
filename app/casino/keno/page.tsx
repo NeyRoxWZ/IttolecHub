@@ -21,13 +21,14 @@ const RULES: RulesSpec = {
     `Coche exactement ${KENO_PICK_COUNT} numéros parmi ${KENO_POOL_SIZE} (ou utilise le bouton Auto).`,
     `Place ta mise et lance le tirage : ${KENO_DRAW_COUNT} numéros sortent au hasard.`,
     'Chaque numéro que tu avais coché ET qui sort compte comme une correspondance.',
-    `Il faut au moins 5 correspondances pour gagner quelque chose. En dessous, la mise est perdue.`,
+    `${KENO_DRAW_COUNT} numéros sur ${KENO_POOL_SIZE}, c'est la moitié du tableau : tomber sur 5 correspondances est la normale, pas un exploit.`,
+    `6 correspondances remboursent la mise, 7 la doublent, et ça grimpe vite ensuite. En dessous de 6, la mise est perdue.`,
   ],
   payouts: Object.entries(KENO_PAYTABLE).map(([k, v]) => ({
     label: `${k} correspondances`,
     value: v === 1 ? 'Mise remboursée' : `×${v}`,
   })),
-  rtp: '~95%',
+  rtp: '~94,5%',
 };
 
 type Phase = 'picking' | 'drawing' | 'done';
@@ -163,10 +164,12 @@ export default function KenoPage() {
       </div>
 
       <ResultBanner
-        state={!result ? 'idle' : result.won ? 'win' : 'lose'}
-        nearMiss={result && !result.won && result.matches === 4 ? 'À un numéro près !' : undefined}
+        state={!result ? 'idle' : result.multiplier > 1 ? 'win' : result.multiplier === 1 ? 'push' : 'lose'}
+        nearMiss={result && result.multiplier === 0 && result.matches === 5 ? 'À un numéro du remboursement !' : undefined}
       >
-        {result?.won ? `${result.matches} bons — +${result.payout} ₶` : `${result?.matches ?? 0} bons — perdu`}
+        {result?.won ? `${result.matches} bons — +${result.payout} ₶`
+          : result?.multiplier === 1 ? `${result.matches} bons — mise remboursée`
+          : `${result?.matches ?? 0} bons — perdu`}
       </ResultBanner>
     </div>
   );

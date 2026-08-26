@@ -110,6 +110,31 @@ async function advanceMissions(userId: string, input: MissionUpdateInput): Promi
 }
 
 /* ------------------------------------------------------------------ */
+/* Small shared writes                                                 */
+/* ------------------------------------------------------------------ */
+
+async function bumpSeason(userId: string, wagered: number, won: number) {
+  if (wagered === 0 && won === 0) return;
+  const key = seasonKey();
+  const { data: season } = await supabase.from('casino_season_stats').select('*').eq('user_id', userId).eq('season_key', key).maybeSingle();
+  if (season) {
+    await supabase.from('casino_season_stats')
+      .update({ wagered: Number(season.wagered) + wagered, won: Number(season.won) + won })
+      .eq('user_id', userId).eq('season_key', key);
+  } else {
+    await supabase.from('casino_season_stats').insert({ user_id: userId, season_key: key, wagered, won });
+  }
+}
+
+async function pushFeed(userId: string, gameSlug: string, amount: number, multiplier: number, pinned: boolean) {
+  const { data: u } = await supabase.from('users').select('pseudo').eq('id', userId).maybeSingle();
+  if (!u?.pseudo) return;
+  await supabase.from('casino_feed').insert({
+    user_id: userId, pseudo: u.pseudo, game_slug: gameSlug, amount, multiplier, pinned,
+  });
+}
+
+/* ------------------------------------------------------------------ */
 /* Settlement                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -120,6 +145,8 @@ export interface SettlementInput {
   baseMultiplier?: number;  // before bonuses — what the game actually rolled
   newBalance: number;
   effects?: EffectMap;
+  /** Stake to fold into total_wagered here, instead of a separate round-trip. */
+  wagered?: number;
 }
 
 export interface SettlementResult {
@@ -174,51 +201,54 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
   for (let l = before.level; l < after.level; l++) levelReward += levelUpReward(l);
 
   const newTotalWon = Number(wallet.total_won || 0) + (input.payout > 0 ? input.payout : 0);
+  const newTotalWagered = Number(wallet.total_wagered || 0) + (input.wagered || 0);
   const newBiggest = Math.max(Number(wallet.biggest_multiplier || 0), base);
   let balance = input.newBalance + levelReward;
   const newAllTimeBest = Math.max(Number(wallet.all_time_best_balance || 250), balance);
 
-  await supabase.from('casino_wallets').update({
+  const stats: WalletStats = {
     balance,
-    current_streak: newStreak,
-    best_streak: newBestStreak,
-    total_won: newTotalWon,
-    biggest_multiplier: newBiggest,
-    all_time_best_balance: newAllTimeBest,
-    xp: newXp,
-    level: after.level,
-  }).eq('user_id', userId);
+    totalWagered: newTotalWagered,
+    totalWon: newTotalWon,
+    currentStreak: newStreak,
+    bestStreak: newBestStreak,
+    prestigeCount: Number(wallet.prestige_count || 0),
+    biggestMultiplier: newBiggest,
+  };
 
-  if (levelReward > 0) {
-    await supabase.from('casino_transactions').insert({
-      user_id: userId, game_slug: 'casino', type: 'bonus',
-      amount: levelReward, balance_after: balance, meta: { kind: 'level_up', level: after.level },
-    });
-  }
+  // Everything below touches a different table (or a different column set) and
+  // was previously awaited one statement at a time — a dozen sequential
+  // round-trips the player sat through before the animation could even start.
+  const [missionsCompleted, newAchievements] = await Promise.all([
+    supabase.from('casino_wallets').update({
+      balance,
+      current_streak: newStreak,
+      best_streak: newBestStreak,
+      total_won: newTotalWon,
+      total_wagered: newTotalWagered,
+      biggest_multiplier: newBiggest,
+      all_time_best_balance: newAllTimeBest,
+      xp: newXp,
+      level: after.level,
+    }).eq('user_id', userId),
 
-  if (input.payout > 0) {
-    const key = seasonKey();
-    const { data: season } = await supabase.from('casino_season_stats').select('*').eq('user_id', userId).eq('season_key', key).maybeSingle();
-    if (season) await supabase.from('casino_season_stats').update({ won: Number(season.won) + input.payout }).eq('user_id', userId).eq('season_key', key);
-    else await supabase.from('casino_season_stats').insert({ user_id: userId, season_key: key, won: input.payout, wagered: 0 });
-  }
+    levelReward > 0
+      ? supabase.from('casino_transactions').insert({
+          user_id: userId, game_slug: 'casino', type: 'bonus',
+          amount: levelReward, balance_after: balance, meta: { kind: 'level_up', level: after.level },
+        })
+      : null,
 
-  /* ---- missions ---- */
-  const missionsCompleted = await advanceMissions(userId, {
-    gameSlug, amount: input.amount, payout: input.payout, won: isWin,
-    baseMultiplier: base, newStreak,
-  });
-
-  /* ---- community feed ---- */
-  if (isWin && isFeedWorthy(input.payout, base)) {
-    const { data: u } = await supabase.from('users').select('pseudo').eq('id', userId).maybeSingle();
-    if (u?.pseudo) {
-      await supabase.from('casino_feed').insert({
-        user_id: userId, pseudo: u.pseudo, game_slug: gameSlug,
-        amount: input.payout, multiplier: Math.round(base * 100) / 100,
-      });
-    }
-  }
+    bumpSeason(userId, input.wagered || 0, input.payout > 0 ? input.payout : 0),
+    advanceMissions(userId, {
+      gameSlug, amount: input.amount, payout: input.payout, won: isWin,
+      baseMultiplier: base, newStreak,
+    }),
+    isWin && isFeedWorthy(input.payout, base)
+      ? pushFeed(userId, gameSlug, input.payout, Math.round(base * 100) / 100, false)
+      : null,
+    checkAchievements(userId, stats),
+  ]).then(([, , , missions, , achievements]) => [missions, achievements] as const);
 
   /* ---- progressive jackpot ---- */
   let jackpotWon: number | null = null;
@@ -243,30 +273,15 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
         await supabase.from('casino_wallets').update({ balance }).eq('user_id', userId);
         await supabase.from('casino_transactions').insert({ user_id: userId, game_slug: gameSlug, type: 'jackpot', amount: pool, balance_after: balance });
 
-        const { data: u } = await supabase.from('users').select('pseudo').eq('id', userId).maybeSingle();
-        if (u?.pseudo) {
-          await supabase.from('casino_feed').insert({
-            user_id: userId, pseudo: u.pseudo, game_slug: gameSlug, amount: pool, multiplier: 0, pinned: true,
-          });
-        }
+        await pushFeed(userId, gameSlug, pool, 0, true);
       }
     } else {
       await supabase.from('casino_jackpot').update({ amount: pool }).eq('id', 1);
     }
   }
 
-  const stats: WalletStats = {
-    balance,
-    totalWagered: Number(wallet.total_wagered || 0),
-    totalWon: newTotalWon,
-    currentStreak: newStreak,
-    bestStreak: newBestStreak,
-    prestigeCount: Number(wallet.prestige_count || 0),
-    biggestMultiplier: newBiggest,
-  };
-
   return {
-    newAchievements: await checkAchievements(userId, stats),
+    newAchievements,
     jackpotWon,
     xpGained,
     level: after.level,

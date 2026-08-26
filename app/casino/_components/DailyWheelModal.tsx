@@ -9,6 +9,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { WHEEL_OF_FORTUNE_SEGMENTS } from '@/lib/casino/meta';
 import CasinoWheel, { type CasinoWheelHandle, type WheelSegment } from './CasinoWheel';
 import Confetti from './Confetti';
+import { tempo } from '@/lib/casino/turbo';
 
 // The 6 prize tiers are laid out twice around the wheel (12 slices) so it
 // reads as a real wheel instead of six fat wedges. Both copies of a tier pay
@@ -84,7 +85,7 @@ export default function DailyWheelModal({ onClose, onSpin }: Props) {
             segments={SEGMENTS}
             size={260}
             labelSize={12}
-            settleMs={1900}
+            settleMs={tempo(1200)}
             hub={
               <div className="w-16 h-16 rounded-full bg-brand-card border-4 border-brand-border flex items-center justify-center">
                 {reward !== null
