@@ -2,7 +2,7 @@ import { randomInt } from 'crypto';
 import { supabase } from '@/lib/supabase/server';
 import { itemById, type ShopItem } from './shop';
 import { crateById, isCrate, RARITY_BY_COUNT, COINS_BY_RARITY, pickWeighted, type CrateOpening, type CrateReward } from './crates';
-import { COSMETICS, type Rarity } from './cosmetics';
+import { DROPPABLE_COSMETICS, type Rarity } from './cosmetics';
 import { levelFromXp, levelUpReward, totalXpForLevel } from './progression';
 import { grantEffect } from './effects.server';
 import {
@@ -82,7 +82,7 @@ export async function openCrate(userId: string, crateId: string): Promise<{ ok: 
 
   for (let i = 0; i < count; i++) {
     const rarity = RARITIES[pickWeighted(RARITIES.map((r) => rarityOdds[r]), rand())];
-    const pool = COSMETICS.filter((c) => c.rarity === rarity && !owned.has(c.id) && !newCosmetics.includes(c.id));
+    const pool = DROPPABLE_COSMETICS.filter((c) => c.rarity === rarity && !owned.has(c.id) && !newCosmetics.includes(c.id));
 
     if (pool.length > 0) {
       const pick = pool[Math.floor(rand() * pool.length)];

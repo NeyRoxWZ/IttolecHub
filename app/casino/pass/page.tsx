@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Coins, Clock, Lock, Check, Crown, X, Sparkles } from 'lucide-react';
+import { ArrowLeft, Coins, Clock, Lock, Check, Crown, X, Sparkles, Gift, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
@@ -44,6 +44,9 @@ export default function FrenlyPassPage() {
   const [tiers, setTiers] = useState<PassTier[]>([]);
   const [state, setState] = useState<PassState>({ tier: 0, xp: 0, intoTier: 0, needed: 30, premium: false });
   const [owned, setOwned] = useState<string[]>([]);
+  const [claimed, setClaimed] = useState<{ free: number[]; premium: number[] }>({ free: [], premium: [] });
+  const [claimable, setClaimable] = useState(0);
+  const [claiming, setClaiming] = useState(false);
   const [equipped, setEquipped] = useState<Record<string, Record<string, string>>>({});
   const [premiumPrice, setPremiumPrice] = useState(25000);
   const [resetIn, setResetIn] = useState(0);
@@ -66,6 +69,8 @@ export default function FrenlyPassPage() {
       setOwned(data.owned || []);
       setPremiumPrice(data.premiumPrice);
       setResetIn(data.resetIn || 0);
+      setClaimed(data.claimed || { free: [], premium: [] });
+      setClaimable(data.claimable || 0);
     }
     if (cosmRes && cosmRes.ok) {
       const data = await cosmRes.json();
@@ -77,24 +82,30 @@ export default function FrenlyPassPage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  // Arriving from the hub used to keep the previous page's scroll position.
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+
   useEffect(() => {
     if (resetIn <= 0) return;
     const t = setInterval(() => setResetIn((v) => Math.max(0, v - 1)), 1000);
     return () => clearInterval(t);
   }, [resetIn]);
 
-  // Park the view on the tier being worked on — but only once there is
-  // something behind it. scrollIntoView also nudged the page itself, which is
-  // why opening the pass never landed at the very start of the track.
+  // The track always opens at the very beginning; jumping to the current tier
+  // is a deliberate action rather than something the page does behind you.
   useEffect(() => {
     if (loading || tab !== 'pass') return;
+    if (trackRef.current) trackRef.current.scrollLeft = 0;
+  }, [loading, tab]);
+
+  const jumpToCurrent = () => {
     const track = trackRef.current;
     if (!track) return;
-
-    if (state.tier < 4) { track.scrollLeft = 0; return; }
-    const el = track.querySelector<HTMLElement>(`[data-tier="${state.tier}"]`);
-    if (el) track.scrollLeft = Math.max(0, el.offsetLeft - track.clientWidth / 2 + el.clientWidth / 2);
-  }, [loading, tab, state.tier]);
+    const el = track.querySelector<HTMLElement>(`[data-tier="${Math.max(1, state.tier)}"]`);
+    if (!el) return;
+    sfx.click();
+    track.scrollTo({ left: Math.max(0, el.offsetLeft - track.clientWidth / 2 + el.clientWidth / 2), behavior: 'smooth' });
+  };
 
   const buyPremium = async () => {
     if (!user) { toast.error('Connecte-toi pour débloquer la voie premium.'); return; }
@@ -107,20 +118,64 @@ export default function FrenlyPassPage() {
     try {
       const res = await fetch('/api/casino/pass', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id }),
+        body: JSON.stringify({ user_id: user.id, action: 'premium' }),
       });
       const data = await res.json();
       if (!res.ok) { setBalance(before); toast.error(data.error || 'Erreur'); return; }
       setBalance(data.newBalance);
       sfx.jackpot(); setConfetti((c) => c + 1);
       toast.success('Voie premium débloquée', {
-        description: data.granted?.length
-          ? `${data.granted.length} récompense${data.granted.length > 1 ? 's' : ''} rattrapée${data.granted.length > 1 ? 's' : ''} d'un coup.`
+        description: data.unlockedTiers
+          ? `${data.unlockedTiers} palier${data.unlockedTiers > 1 ? 's' : ''} premium à réclamer tout de suite.`
           : 'Chaque palier atteint te donnera les deux récompenses.',
       });
       void load();
     } finally {
       setBuying(false);
+    }
+  };
+
+  const claimTier = async (tier: number, track: 'free' | 'premium') => {
+    if (!user || claiming) return;
+    setClaiming(true);
+    vibrate(HAPTIC.MEDIUM);
+    try {
+      const res = await fetch('/api/casino/pass', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, action: 'claim', tier, track }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
+
+      sfx.coin();
+      setBalance(data.newBalance);
+      setClaimed((prev) => ({ ...prev, [track]: [...prev[track], tier] }));
+      setClaimable((c) => Math.max(0, c - 1));
+      toast.success(`Palier ${tier} réclamé`);
+      void load();
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const claimAll = async () => {
+    if (!user || claiming || claimable === 0) return;
+    setClaiming(true);
+    vibrate(HAPTIC.MEDIUM);
+    try {
+      const res = await fetch('/api/casino/pass', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, action: 'claim_all' }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
+
+      sfx.jackpot(); setConfetti((c) => c + 1);
+      setBalance(data.newBalance);
+      toast.success(`${data.granted.length} récompense${data.granted.length > 1 ? 's' : ''} récupérée${data.granted.length > 1 ? 's' : ''}`);
+      void load();
+    } finally {
+      setClaiming(false);
     }
   };
 
@@ -195,6 +250,17 @@ export default function FrenlyPassPage() {
             </div>
           </div>
 
+          {claimable > 0 && (
+            <button
+              onClick={claimAll}
+              disabled={claiming}
+              className="h-12 px-4 rounded-xl border-4 border-brand-border bg-accent-success text-brand-bg shadow-brutal flex items-center gap-2 font-display font-black text-xs tracking-wider hover:brightness-110 transition-all active:translate-y-0.5 focus:outline-none disabled:opacity-50"
+            >
+              <Gift className="h-4 w-4" />
+              {claiming ? '···' : `TOUT RÉCLAMER (${claimable})`}
+            </button>
+          )}
+
           {state.premium ? (
             <div className="h-12 px-4 rounded-xl border-2 border-accent-primary bg-accent-primary/10 flex items-center gap-2">
               <Crown className="h-4 w-4 text-accent-primary" />
@@ -234,22 +300,32 @@ export default function FrenlyPassPage() {
             <div className="flex items-center gap-4 mb-2 text-[10px] font-black uppercase tracking-widest text-tx-muted shrink-0">
               <span className="flex items-center gap-1.5"><Crown className="h-3 w-3 text-accent-primary" /> Premium</span>
               <span className="flex items-center gap-1.5"><Sparkles className="h-3 w-3 text-accent-success" /> Gratuit</span>
-              <span className="ml-auto normal-case font-bold text-tx-muted">
-                Tout palier atteint est crédité automatiquement — rien ne se perd au reset.
+              <span className="normal-case font-bold text-tx-muted">
+                Chaque palier se réclame à la main. Ce qui reste est versé au reset du lundi.
               </span>
+              <button
+                onClick={jumpToCurrent}
+                className="ml-auto h-7 px-2.5 rounded-lg border-2 border-accent-primary bg-accent-primary/10 text-accent-primary flex items-center gap-1.5 normal-case text-[11px] font-black hover:bg-accent-primary/20 focus:outline-none"
+              >
+                Aller à mon palier
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
             </div>
 
             <div ref={trackRef} className="overflow-x-auto pb-3 -mx-1 px-1">
               <div className="flex gap-2 w-max">
                 {tiers.map((t) => (
-                  <div key={t.tier} data-tier={t.tier} className="flex flex-col gap-2 w-[104px] shrink-0">
+                  <div key={t.tier} data-tier={t.tier} className="flex flex-col gap-2 w-[150px] shrink-0">
                     <TierCell
                       tier={t} track="premium" reached={state.tier >= t.tier}
-                      active={state.premium} owned={owned}
+                      active={state.premium}
+                      claimed={claimed.premium.includes(t.tier)}
+                      busy={claiming}
+                      onClaim={() => claimTier(t.tier, 'premium')}
                       onClick={() => { sfx.click(); setDetail({ tier: t, track: 'premium' }); }}
                     />
                     <div className={cn(
-                      'h-7 rounded-lg border-2 flex items-center justify-center font-display font-black text-xs shrink-0',
+                      'h-9 rounded-lg border-2 flex items-center justify-center font-display font-black text-sm shrink-0',
                       state.tier >= t.tier ? 'border-accent-primary bg-accent-primary text-brand-bg'
                         : t.milestone ? 'border-accent-primary/60 text-accent-primary bg-brand-card'
                         : 'border-brand-border bg-brand-card text-tx-muted'
@@ -258,7 +334,10 @@ export default function FrenlyPassPage() {
                     </div>
                     <TierCell
                       tier={t} track="free" reached={state.tier >= t.tier}
-                      active owned={owned}
+                      active
+                      claimed={claimed.free.includes(t.tier)}
+                      busy={claiming}
+                      onClaim={() => claimTier(t.tier, 'free')}
                       onClick={() => { sfx.click(); setDetail({ tier: t, track: 'free' }); }}
                     />
                   </div>
@@ -279,51 +358,64 @@ export default function FrenlyPassPage() {
 /* ------------------------------------------------------------------ */
 
 function TierCell({
-  tier, track, reached, active, owned, onClick,
+  tier, track, reached, active, claimed, busy, onClaim, onClick,
 }: {
   tier: PassTier;
   track: 'free' | 'premium';
   reached: boolean;
   active: boolean;
-  owned: string[];
+  claimed: boolean;
+  busy: boolean;
+  onClaim: () => void;
   onClick: () => void;
 }) {
   const reward = track === 'free' ? tier.free : tier.premium;
   const cosmetic = rewardCosmetic(reward);
-  const got = reached && active && (!cosmetic || owned.includes(cosmetic.id));
+  const canClaim = reached && active && !claimed;
 
   return (
-    <button
-      onClick={onClick}
+    <div
       className={cn(
-        'relative h-[104px] w-full rounded-xl border-2 p-1.5 flex flex-col items-center justify-center gap-1 focus:outline-none transition-all hover:-translate-y-0.5',
-        got ? 'border-accent-success bg-accent-success/10'
+        'relative h-[186px] w-full rounded-2xl border-4 p-2.5 flex flex-col items-center justify-start gap-1.5 transition-all',
+        claimed ? 'border-accent-success/50 bg-accent-success/5'
+          : canClaim ? 'border-accent-primary bg-accent-primary/10'
           : reached ? 'border-brand-border bg-brand-card'
           : 'border-brand-border bg-brand-card opacity-60',
         tier.milestone && 'ring-2 ring-accent-primary/40'
       )}
     >
-      {cosmetic ? (
-        <CosmeticPreview cosmetic={cosmetic} size={54} />
-      ) : reward.kind === 'coins' ? (
-        <div className="h-[54px] w-[54px] rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center">
-          <Coins className="h-6 w-6 text-accent-primary" />
-        </div>
+      <button onClick={onClick} className="w-full flex flex-col items-center gap-1 focus:outline-none">
+        {cosmetic ? (
+          <CosmeticPreview cosmetic={cosmetic} size={86} />
+        ) : (
+          <div className="h-[86px] w-[86px] rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center">
+            {reward.kind === 'coins' ? <Coins className="h-9 w-9 text-accent-primary" /> : <Sparkles className="h-9 w-9 text-accent-success" />}
+          </div>
+        )}
+
+        <span className="text-[11px] font-bold text-tx-secondary leading-tight text-center line-clamp-2 px-0.5">
+          {reward.kind === 'coins' ? `${(reward.amount || 0).toLocaleString('fr-FR')} ₶`
+            : reward.kind === 'item' ? (itemById(reward.itemId || '')?.name || 'Objet')
+            : cosmetic?.name}
+        </span>
+      </button>
+
+      {canClaim ? (
+        <button
+          onClick={onClaim}
+          disabled={busy}
+          className="mt-auto w-full h-8 rounded-lg border-2 border-accent-primary bg-accent-primary text-brand-bg font-black text-[10px] tracking-widest focus:outline-none disabled:opacity-50"
+        >
+          {busy ? '···' : 'RÉCLAMER'}
+        </button>
       ) : (
-        <div className="h-[54px] w-[54px] rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center">
-          <Sparkles className="h-6 w-6 text-accent-success" />
+        <div className="mt-auto h-8 flex items-center justify-center text-[10px] font-black tracking-widest">
+          {claimed ? <span className="text-accent-success flex items-center gap-1"><Check className="h-3 w-3" /> PRIS</span>
+            : !active ? <span className="text-tx-muted flex items-center gap-1"><Lock className="h-3 w-3" /> PREMIUM</span>
+            : <span className="text-tx-muted">VERROUILLÉ</span>}
         </div>
       )}
-
-      <span className="text-[9px] font-bold text-tx-secondary leading-tight text-center line-clamp-2 px-0.5">
-        {reward.kind === 'coins' ? `${(reward.amount || 0).toLocaleString('fr-FR')} ₶`
-          : reward.kind === 'item' ? (itemById(reward.itemId || '')?.name || 'Objet')
-          : cosmetic?.name}
-      </span>
-
-      {!active && <Lock className="absolute top-1 right-1 h-3 w-3 text-tx-muted" />}
-      {got && <Check className="absolute top-1 right-1 h-3.5 w-3.5 text-accent-success" />}
-    </button>
+    </div>
   );
 }
 
@@ -374,7 +466,7 @@ function TierDetail({
         {cosmetic && (
           <div className="mt-4 text-[11px] font-black uppercase tracking-widest">
             {owned.includes(cosmetic.id)
-              ? <span className="text-accent-success">Déjà obtenu</span>
+              ? <span className="text-accent-success">Déjà dans ta collection</span>
               : <span className="text-tx-muted">Pas encore obtenu</span>}
           </div>
         )}

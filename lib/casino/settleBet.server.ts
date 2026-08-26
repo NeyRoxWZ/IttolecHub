@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase/server';
 import { CASINO_MIN_BET, type BetResolution } from './core';
-import { streakBonus } from './progression';
+import { streakBonus, prestigeWinBonus } from './progression';
 import { loadEffects, consumeEffects, type EffectMap } from './effects.server';
 import { recordSettlement, type SettlementResult } from './metaProgression.server';
 import { advancePass, type PassProgress } from './pass.server';
@@ -24,7 +24,7 @@ interface SettleSuccess {
   progression: SettlementResult;
   pass: PassProgress;
   /** What boosted this settlement, so the UI can show it. */
-  bonuses: { streak: number; item: number; refunded: number };
+  bonuses: { streak: number; item: number; prestige: number; refunded: number };
 }
 
 interface SettleFailure { ok: false; status: number; error: string }
@@ -60,11 +60,13 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
   const currentStreak = Number(wallet.current_streak || 0);
   const streakPct = baseMultiplier > 1 ? streakBonus(currentStreak) : 0;
   const itemPct = baseMultiplier > 1 ? (effects.win_bonus?.magnitude ?? 0) : 0;
+  const prestigePct = baseMultiplier > 1 ? prestigeWinBonus(Number(wallet.prestige_count || 0)) : 0;
   if (itemPct > 0) used.push('win_bonus');
 
   let multiplier = baseMultiplier;
-  if (baseMultiplier > 1 && streakPct + itemPct > 0) {
-    multiplier = 1 + (baseMultiplier - 1) * (1 + streakPct + itemPct);
+  const lift = streakPct + itemPct + prestigePct;
+  if (baseMultiplier > 1 && lift > 0) {
+    multiplier = 1 + (baseMultiplier - 1) * (1 + lift);
   }
 
   let payout = Math.round(amount * multiplier);
@@ -106,7 +108,7 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
       type: txType,
       amount: netChange,
       balance_after: newBalance,
-      meta: { ...meta, amount, multiplier, baseMultiplier, streakPct, itemPct, refunded },
+      meta: { ...meta, amount, multiplier, baseMultiplier, streakPct, itemPct, prestigePct, refunded },
     }),
     consumeEffects(userId, effects, used),
     recordSettlement(userId, gameSlug, {
@@ -126,6 +128,6 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
     newBalance,
     meta,
     progression,
-    bonuses: { streak: streakPct, item: itemPct, refunded },
+    bonuses: { streak: streakPct, item: itemPct, prestige: prestigePct, refunded },
   };
 }

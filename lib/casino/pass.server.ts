@@ -10,52 +10,37 @@ export interface PassRow {
   xp: number;
   tier: number;
   premium: boolean;
-  claimed_free: number;
-  claimed_premium: number;
+  swept?: boolean;
 }
+
+export type PassTrack = 'free' | 'premium';
 
 export interface GrantedReward extends PassReward {
   tier: number;
-  track: 'free' | 'premium';
+  track: PassTrack;
 }
 
 export interface PassProgress {
   tier: number;
   tiersGained: number;
   xp: number;
-  granted: GrantedReward[];
+  /** Tiers newly reached and now waiting to be claimed. */
+  unlocked: number[];
 }
 
-const EMPTY_PROGRESS: PassProgress = { tier: 0, tiersGained: 0, xp: 0, granted: [] };
+const EMPTY_PROGRESS: PassProgress = { tier: 0, tiersGained: 0, xp: 0, unlocked: [] };
 
-/** Read this week's pass row, creating it on first touch. */
-export async function ensurePass(userId: string): Promise<PassRow | null> {
-  const week = weekKey();
-  const { data } = await supabase.from('casino_pass').select('*').eq('user_id', userId).eq('week_key', week).maybeSingle();
-  if (data) return data as PassRow;
+/* ------------------------------------------------------------------ */
+/* Granting                                                            */
+/* ------------------------------------------------------------------ */
 
-  await supabase.from('casino_pass').insert({ user_id: userId, week_key: week });
-  const { data: created } = await supabase.from('casino_pass').select('*').eq('user_id', userId).eq('week_key', week).maybeSingle();
-  return (created as PassRow) ?? null;
-}
+async function grantRewards(userId: string, rewards: GrantedReward[]) {
+  if (rewards.length === 0) return;
 
-/**
- * Hand out every reward between `from` (exclusive) and `to` (inclusive) on one
- * track. Rewards are granted automatically — the player never loses a tier by
- * failing to press a button before the Monday reset; the pass page is a recap
- * of what already landed, not a to-do list.
- */
-async function grantRange(userId: string, from: number, to: number, track: 'free' | 'premium'): Promise<GrantedReward[]> {
-  const granted: GrantedReward[] = [];
   let coins = 0;
   const cosmetics: { user_id: string; item_id: string; quantity: number }[] = [];
 
-  for (let t = from + 1; t <= to; t++) {
-    const def = PASS_TRACK[t - 1];
-    if (!def) continue;
-    const reward = track === 'free' ? def.free : def.premium;
-    granted.push({ ...reward, tier: t, track });
-
+  for (const reward of rewards) {
     if (reward.kind === 'coins') coins += reward.amount || 0;
     else if (reward.kind === 'cosmetic' && reward.cosmeticId) {
       cosmetics.push({ user_id: userId, item_id: reward.cosmeticId, quantity: 1 });
@@ -77,15 +62,77 @@ async function grantRange(userId: string, from: number, to: number, track: 'free
       await supabase.from('casino_wallets').update({ balance: newBalance, updated_at: new Date().toISOString() }).eq('user_id', userId);
       await supabase.from('casino_transactions').insert({
         user_id: userId, game_slug: 'casino', type: 'bonus', amount: coins,
-        balance_after: newBalance, meta: { kind: 'pass', track, upTo: to },
+        balance_after: newBalance, meta: { kind: 'pass', tiers: rewards.length },
       });
     }
   }
-
-  return granted;
 }
 
-/** Add pass XP and pay out any tier it crossed. */
+function rewardAt(tier: number, track: PassTrack): PassReward | null {
+  const def = PASS_TRACK[tier - 1];
+  if (!def) return null;
+  return track === 'free' ? def.free : def.premium;
+}
+
+/* ------------------------------------------------------------------ */
+/* Weekly row                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Anything still unclaimed when the week turns over is swept into the
+ * account rather than lost. Claiming by hand is the good part; being punished
+ * for not connecting on Sunday night is not.
+ */
+async function sweepPreviousWeeks(userId: string, currentWeek: string) {
+  const { data: stale } = await supabase.from('casino_pass')
+    .select('*').eq('user_id', userId).eq('swept', false).neq('week_key', currentWeek);
+
+  for (const row of (stale || []) as PassRow[]) {
+    const { data: claims } = await supabase.from('casino_pass_claims')
+      .select('track, tier').eq('user_id', userId).eq('week_key', row.week_key);
+    const taken = new Set((claims || []).map((c) => `${c.track}:${c.tier}`));
+
+    const pending: GrantedReward[] = [];
+    for (let t = 1; t <= row.tier; t++) {
+      for (const track of ['free', 'premium'] as PassTrack[]) {
+        if (track === 'premium' && !row.premium) continue;
+        if (taken.has(`${track}:${t}`)) continue;
+        const reward = rewardAt(t, track);
+        if (reward) pending.push({ ...reward, tier: t, track });
+      }
+    }
+
+    await grantRewards(userId, pending);
+    await supabase.from('casino_pass').update({ swept: true }).eq('user_id', userId).eq('week_key', row.week_key);
+  }
+}
+
+export async function ensurePass(userId: string): Promise<PassRow | null> {
+  const week = weekKey();
+  const { data } = await supabase.from('casino_pass').select('*').eq('user_id', userId).eq('week_key', week).maybeSingle();
+  if (data) return data as PassRow;
+
+  await sweepPreviousWeeks(userId, week);
+  await supabase.from('casino_pass').insert({ user_id: userId, week_key: week });
+  const { data: created } = await supabase.from('casino_pass').select('*').eq('user_id', userId).eq('week_key', week).maybeSingle();
+  return (created as PassRow) ?? null;
+}
+
+export async function passClaims(userId: string): Promise<{ free: number[]; premium: number[] }> {
+  const { data } = await supabase.from('casino_pass_claims')
+    .select('track, tier').eq('user_id', userId).eq('week_key', weekKey());
+  const out = { free: [] as number[], premium: [] as number[] };
+  for (const row of data || []) {
+    (row.track === 'premium' ? out.premium : out.free).push(row.tier);
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ */
+/* Progression                                                         */
+/* ------------------------------------------------------------------ */
+
+/** Add pass XP. Rewards are not handed out here — they're claimed by hand. */
 export async function advancePass(userId: string, xp: number): Promise<PassProgress> {
   if (xp <= 0) return EMPTY_PROGRESS;
   const row = await ensurePass(userId);
@@ -94,12 +141,8 @@ export async function advancePass(userId: string, xp: number): Promise<PassProgr
   const newXp = row.xp + xp;
   const { tier } = tierFromPassXp(newXp);
   const capped = Math.min(PASS_TIERS, tier);
-
-  const granted: GrantedReward[] = [];
-  if (capped > row.claimed_free) granted.push(...await grantRange(userId, row.claimed_free, capped, 'free'));
-  if (row.premium && capped > row.claimed_premium) granted.push(...await grantRange(userId, row.claimed_premium, capped, 'premium'));
-
   const tiersGained = Math.max(0, capped - row.tier);
+
   if (tiersGained > 0) {
     const { data: w } = await supabase.from('casino_wallets').select('pass_tiers_total').eq('user_id', userId).maybeSingle();
     if (w) {
@@ -112,18 +155,91 @@ export async function advancePass(userId: string, xp: number): Promise<PassProgr
   await supabase.from('casino_pass').update({
     xp: newXp,
     tier: capped,
-    claimed_free: Math.max(row.claimed_free, capped),
-    claimed_premium: row.premium ? Math.max(row.claimed_premium, capped) : row.claimed_premium,
     updated_at: new Date().toISOString(),
   }).eq('user_id', userId).eq('week_key', row.week_key);
 
-  return { tier: capped, tiersGained, xp: newXp, granted };
+  const unlocked: number[] = [];
+  for (let t = row.tier + 1; t <= capped; t++) unlocked.push(t);
+
+  return { tier: capped, tiersGained, xp: newXp, unlocked };
 }
+
+/* ------------------------------------------------------------------ */
+/* Claiming                                                            */
+/* ------------------------------------------------------------------ */
+
+export async function claimPassTier(userId: string, tier: number, track: PassTrack) {
+  const row = await ensurePass(userId);
+  if (!row) return { ok: false as const, status: 404, error: 'Passe introuvable' };
+  if (!Number.isInteger(tier) || tier < 1 || tier > PASS_TIERS) {
+    return { ok: false as const, status: 400, error: 'Palier invalide' };
+  }
+  if (tier > row.tier) return { ok: false as const, status: 400, error: 'Palier pas encore atteint.' };
+  if (track === 'premium' && !row.premium) {
+    return { ok: false as const, status: 400, error: 'Voie premium non débloquée.' };
+  }
+
+  const reward = rewardAt(tier, track);
+  if (!reward) return { ok: false as const, status: 404, error: 'Récompense introuvable' };
+
+  // The primary key is the lock: a second claim fails at the insert.
+  const { error } = await supabase.from('casino_pass_claims')
+    .insert({ user_id: userId, week_key: row.week_key, track, tier });
+  if (error) return { ok: false as const, status: 400, error: 'Palier déjà réclamé.' };
+
+  await grantRewards(userId, [{ ...reward, tier, track }]);
+
+  const { data: wallet } = await supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle();
+  return { ok: true as const, reward, tier, track, newBalance: wallet?.balance ?? 0 };
+}
+
+/** Take everything currently claimable in one go. */
+export async function claimAllPass(userId: string) {
+  const row = await ensurePass(userId);
+  if (!row) return { ok: false as const, status: 404, error: 'Passe introuvable' };
+
+  const claims = await passClaims(userId);
+  const takenFree = new Set(claims.free);
+  const takenPremium = new Set(claims.premium);
+
+  const pending: GrantedReward[] = [];
+  const rows: { user_id: string; week_key: string; track: PassTrack; tier: number }[] = [];
+
+  for (let t = 1; t <= row.tier; t++) {
+    if (!takenFree.has(t)) {
+      const reward = rewardAt(t, 'free');
+      if (reward) {
+        pending.push({ ...reward, tier: t, track: 'free' });
+        rows.push({ user_id: userId, week_key: row.week_key, track: 'free', tier: t });
+      }
+    }
+    if (row.premium && !takenPremium.has(t)) {
+      const reward = rewardAt(t, 'premium');
+      if (reward) {
+        pending.push({ ...reward, tier: t, track: 'premium' });
+        rows.push({ user_id: userId, week_key: row.week_key, track: 'premium', tier: t });
+      }
+    }
+  }
+
+  if (rows.length === 0) return { ok: false as const, status: 400, error: 'Rien à réclamer.' };
+
+  const { error } = await supabase.from('casino_pass_claims').insert(rows);
+  if (error) return { ok: false as const, status: 409, error: 'Conflit, réessaye.' };
+
+  await grantRewards(userId, pending);
+
+  const { data: wallet } = await supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle();
+  return { ok: true as const, granted: pending, newBalance: wallet?.balance ?? 0 };
+}
+
+/* ------------------------------------------------------------------ */
+/* Premium                                                             */
+/* ------------------------------------------------------------------ */
 
 /**
  * Unlock the premium track for the current week. Buying late is not a
- * punishment: every premium reward up to the tier already reached is granted
- * on the spot.
+ * punishment: every premium tier already reached becomes claimable at once.
  */
 export async function buyPassPremium(userId: string) {
   const row = await ensurePass(userId);
@@ -141,18 +257,13 @@ export async function buyPassPremium(userId: string) {
     .select().maybeSingle();
   if (!charged) return { ok: false as const, status: 409, error: 'Conflit, réessaye.' };
 
-  await supabase.from('casino_transactions').insert({
-    user_id: userId, game_slug: 'casino', type: 'shop', amount: -PASS_PREMIUM_PRICE,
-    balance_after: afterCost, meta: { kind: 'pass_premium', week: row.week_key },
-  });
+  await Promise.all([
+    supabase.from('casino_transactions').insert({
+      user_id: userId, game_slug: 'casino', type: 'shop', amount: -PASS_PREMIUM_PRICE,
+      balance_after: afterCost, meta: { kind: 'pass_premium', week: row.week_key },
+    }),
+    supabase.from('casino_pass').update({ premium: true }).eq('user_id', userId).eq('week_key', row.week_key),
+  ]);
 
-  await supabase.from('casino_pass').update({ premium: true }).eq('user_id', userId).eq('week_key', row.week_key);
-
-  const granted = row.tier > 0 ? await grantRange(userId, 0, row.tier, 'premium') : [];
-  if (granted.length) {
-    await supabase.from('casino_pass').update({ claimed_premium: row.tier }).eq('user_id', userId).eq('week_key', row.week_key);
-  }
-
-  const { data: fresh } = await supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle();
-  return { ok: true as const, granted, newBalance: fresh?.balance ?? afterCost };
+  return { ok: true as const, unlockedTiers: row.tier, newBalance: afterCost };
 }

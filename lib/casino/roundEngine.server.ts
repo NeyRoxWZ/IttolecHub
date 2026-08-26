@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase/server';
 import { CASINO_MIN_BET } from './core';
-import { streakBonus } from './progression';
+import { streakBonus, prestigeWinBonus } from './progression';
 import { loadEffects, consumeEffects } from './effects.server';
 import { effectiveMaxBet } from './settleBet.server';
 import { recordWager, recordSettlement, type SettlementResult } from './metaProgression.server';
@@ -136,10 +136,12 @@ export async function cashoutRound(userId: string, roundId: string, amount: numb
   const used: string[] = [];
   const streakPct = baseMultiplier > 1 ? streakBonus(Number(wallet.current_streak || 0)) : 0;
   const itemPct = baseMultiplier > 1 ? (effects.win_bonus?.magnitude ?? 0) : 0;
+  const prestigePct = baseMultiplier > 1 ? prestigeWinBonus(Number(wallet.prestige_count || 0)) : 0;
   if (itemPct > 0) used.push('win_bonus');
 
-  const multiplier = baseMultiplier > 1 && streakPct + itemPct > 0
-    ? 1 + (baseMultiplier - 1) * (1 + streakPct + itemPct)
+  const lift = streakPct + itemPct + prestigePct;
+  const multiplier = baseMultiplier > 1 && lift > 0
+    ? 1 + (baseMultiplier - 1) * (1 + lift)
     : baseMultiplier;
   const payout = Math.round(amount * multiplier);
 
@@ -156,7 +158,7 @@ export async function cashoutRound(userId: string, roundId: string, amount: numb
   await supabase.from('casino_rounds').update({ status: 'cashed_out', multiplier, updated_at: new Date().toISOString() }).eq('id', roundId);
   await supabase.from('casino_transactions').insert({
     user_id: userId, game_slug: gameSlug, type: 'win', amount: payout, balance_after: newBalance,
-    meta: { roundId, multiplier, baseMultiplier, streakPct, itemPct },
+    meta: { roundId, multiplier, baseMultiplier, streakPct, itemPct, prestigePct },
   });
 
   await consumeEffects(userId, effects, used);
@@ -172,6 +174,6 @@ export async function cashoutRound(userId: string, roundId: string, amount: numb
     multiplier: Math.round(multiplier * 100) / 100,
     progression,
     pass,
-    bonuses: { streak: streakPct, item: itemPct },
+    bonuses: { streak: streakPct, item: itemPct, prestige: prestigePct },
   };
 }

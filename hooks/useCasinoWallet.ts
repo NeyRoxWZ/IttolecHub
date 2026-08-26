@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
+import { celebrate } from '@/lib/casino/celebrate';
 import {
   spinWheel as localSpinWheel,
   resolveWheelBet,
@@ -131,8 +132,15 @@ export interface WheelSpinResult {
   progression?: Progression;
 }
 
+export interface PassProgress {
+  tier: number;
+  tiersGained: number;
+  xp: number;
+  unlocked: number[];
+}
+
 export interface Progression {
-  newAchievements: { id: string; name: string; description: string }[];
+  newAchievements: { id: string; name: string; description: string; reward?: number }[];
   jackpotWon: number | null;
   xpGained?: number;
   level?: number;
@@ -153,13 +161,15 @@ export interface GenericBetResult {
   progression?: Progression;
 }
 
-function announceProgression(progression?: Progression) {
+function announceProgression(progression?: Progression, pass?: PassProgress) {
   if (!progression) return;
-  if (progression.levelsGained) {
-    toast.success(`Niveau ${progression.level} !`, {
-      description: progression.levelReward ? `Coffre de niveau : +${progression.levelReward.toLocaleString('fr-FR')} ₶` : undefined,
-      duration: 5000,
-    });
+
+  // A level-up and a jackpot stop the screen; the rest stays as toasts.
+  if (progression.levelsGained && progression.level) {
+    celebrate({ kind: 'level', level: progression.level, reward: progression.levelReward || 0 });
+  }
+  if (pass?.unlocked?.length) {
+    celebrate({ kind: 'pass_tier', tiers: pass.unlocked });
   }
   if (progression.streakSaved) {
     toast('Bouclier de série consommé — ta série tient bon.', { duration: 4000 });
@@ -168,10 +178,13 @@ function announceProgression(progression?: Progression) {
     toast.success('Mission terminée', { description: `${m.label} — à réclamer dans les missions.`, duration: 5000 });
   }
   if (progression.jackpotWon) {
-    toast.success(`JACKPOT ! +${progression.jackpotWon.toLocaleString('fr-FR')} ₶`, { duration: 6000 });
+    celebrate({ kind: 'jackpot', amount: progression.jackpotWon });
   }
   for (const a of progression.newAchievements) {
-    toast.success(`Succès débloqué : ${a.name}`, { description: a.description, duration: 5000 });
+    toast.success(`Succès débloqué : ${a.name}`, {
+      description: a.reward ? `${a.description} · +${a.reward.toLocaleString('fr-FR')} ₶` : a.description,
+      duration: 5000,
+    });
   }
 }
 
@@ -303,7 +316,7 @@ export function useCasinoWallet() {
         if (!res.ok) return { error: data.error || 'Erreur du serveur' };
         applySettlement('wheel', data.netChange, data.newBalance, data.multiplier, { bet, landedNumber: data.landedNumber, amount });
         applyProgression(data.progression);
-        announceProgression(data.progression);
+        announceProgression(data.progression, data.pass);
         scheduleRevalidate();
         return data as WheelSpinResult;
       }
@@ -351,7 +364,7 @@ export function useCasinoWallet() {
         if (!res.ok) return { error: data.error || 'Erreur du serveur' };
         applySettlement(gameSlug, data.netChange, data.newBalance, data.multiplier, { ...data.meta, amount });
         applyProgression(data.progression);
-        announceProgression(data.progression);
+        announceProgression(data.progression, data.pass);
         scheduleRevalidate();
         return data as GenericBetResult;
       }

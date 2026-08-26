@@ -98,6 +98,8 @@ export interface Cosmetic {
   rarity: Rarity;
   /** Applies to every game rather than a single one. */
   global?: boolean;
+  /** Locked behind this prestige level; never drops from crates or the pass. */
+  prestige?: number;
   params: CosmeticParams;
 }
 
@@ -358,7 +360,83 @@ function buildGlobalCosmetics(): Cosmetic[] {
 
 export const GLOBAL_COSMETICS: Cosmetic[] = buildGlobalCosmetics();
 
-export const COSMETICS: Cosmetic[] = [...buildCosmetics(), ...GLOBAL_COSMETICS];
+/* ------------------------------------------------------------------ */
+/* Prestige                                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One global piece per prestige, up to twenty. These never drop from crates
+ * or the pass: prestige used to leave nothing behind but a line of text, and
+ * an exclusive set is the only way the reset reads as a reward.
+ */
+const PRESTIGE_RAMP: { name: string; dark: string; mid: string; accent: string }[] = [
+  { name: 'Bronze', dark: '#1A1008', mid: '#5A3A16', accent: '#C87A2C' },
+  { name: 'Fer', dark: '#111318', mid: '#2E3540', accent: '#8B98A8' },
+  { name: 'Argent', dark: '#12141A', mid: '#39404C', accent: '#D6DCE6' },
+  { name: 'Or', dark: '#1A1405', mid: '#4A3A0C', accent: '#FFD000' },
+  { name: 'Émeraude', dark: '#06160E', mid: '#0F4029', accent: '#25D07A' },
+  { name: 'Saphir', dark: '#060C1E', mid: '#132C63', accent: '#3E8CFF' },
+  { name: 'Rubis', dark: '#170608', mid: '#4C1018', accent: '#FF3355' },
+  { name: 'Améthyste', dark: '#120722', mid: '#361065', accent: '#A855F7' },
+  { name: 'Obsidienne', dark: '#08080B', mid: '#1B1B22', accent: '#6E6E80' },
+  { name: 'Ambre', dark: '#1B1104', mid: '#5B3608', accent: '#FF9F1C' },
+  { name: 'Néon', dark: '#04101A', mid: '#0B3D4D', accent: '#00E5FF' },
+  { name: 'Magma', dark: '#1A0803', mid: '#5C1B06', accent: '#FF5A1F' },
+  { name: 'Givre', dark: '#081016', mid: '#173445', accent: '#9EE7FF' },
+  { name: 'Toxique', dark: '#0C1604', mid: '#254D0C', accent: '#A3E635' },
+  { name: 'Sang', dark: '#140204', mid: '#4A060F', accent: '#E11D48' },
+  { name: 'Spectre', dark: '#0A0A12', mid: '#232338', accent: '#C4B5FD' },
+  { name: 'Solaire', dark: '#1C1503', mid: '#6B4E06', accent: '#FDE047' },
+  { name: 'Abyssal', dark: '#03070E', mid: '#0B2038', accent: '#38BDF8' },
+  { name: 'Mythique', dark: '#160418', mid: '#4A0B52', accent: '#F472B6' },
+  { name: 'Absolu', dark: '#0B0B0B', mid: '#2C2C2C', accent: '#FFFFFF' },
+];
+
+const PRESTIGE_PATTERNS: TablePattern[] = ['rays', 'grid', 'dots', 'stripes', 'plain'];
+const PRESTIGE_WIN: WinStyle[] = ['fireworks', 'coins', 'shock', 'sparks', 'confetti'];
+const PRESTIGE_LOSE: LoseStyle[] = ['ash', 'smoke', 'crack', 'static', 'drip'];
+const PRESTIGE_PARTICLES: ParticleStyle[] = ['rise', 'orbit', 'drift', 'fall', 'float'];
+const PRESTIGE_PACKS: SoundPack[] = ['orchestral', 'space', 'arcade', 'lounge', 'western'];
+const PRESTIGE_ART = ['crown', 'gem', 'star', 'diamond', 'skull'];
+
+function buildPrestigeCosmetics(): Cosmetic[] {
+  return PRESTIGE_RAMP.map((ramp, i) => {
+    const level = i + 1;
+    const slot = COSMETIC_SLOTS[i % COSMETIC_SLOTS.length];
+    const params: CosmeticParams = {
+      table: { from: ramp.dark, to: ramp.mid, pattern: PRESTIGE_PATTERNS[i % 5], color: ramp.accent },
+      skin: { hue: (i * 37) % 360, saturate: 1.2 + (i % 4) * 0.15, color: ramp.accent },
+      win_fx: { winStyle: PRESTIGE_WIN[i % 5], colors: [ramp.accent, ramp.mid, '#FFFFFF'] },
+      lose_fx: { loseStyle: PRESTIGE_LOSE[i % 5], color: ramp.mid },
+      border: { color: ramp.accent, glow: true, animated: true },
+      particles: { particleStyle: PRESTIGE_PARTICLES[i % 5], color: ramp.accent },
+      sound: { pack: PRESTIGE_PACKS[i % 5], color: ramp.accent },
+      emblem: { art: PRESTIGE_ART[i % 5], color: ramp.accent },
+    }[slot];
+
+    return {
+      id: `prestige:${level}`,
+      gameSlug: GLOBAL_SLUG,
+      slot,
+      name: `${SLOT_LABEL[slot]} ${ramp.name}`,
+      rarity: 'legendaire' as Rarity,
+      global: true,
+      prestige: level,
+      params,
+    };
+  });
+}
+
+export const PRESTIGE_COSMETICS: Cosmetic[] = buildPrestigeCosmetics();
+
+export function prestigeCosmetic(level: number): Cosmetic | undefined {
+  return PRESTIGE_COSMETICS.find((c) => c.prestige === level);
+}
+
+export const COSMETICS: Cosmetic[] = [...buildCosmetics(), ...GLOBAL_COSMETICS, ...PRESTIGE_COSMETICS];
+
+/** Everything crates and the pass are allowed to hand out. */
+export const DROPPABLE_COSMETICS: Cosmetic[] = COSMETICS.filter((c) => !c.prestige);
 
 export const GLOBAL_SET_LABELS: { key: string; theme: string }[] = GLOBAL_SETS.map((g) => ({ key: g.key, theme: g.theme }));
 

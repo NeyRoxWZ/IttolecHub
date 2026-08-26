@@ -6,9 +6,18 @@
  * was missing.
  */
 
-/** XP granted for a bet, driven by the stake only (never by the result). */
+/**
+ * XP granted for a bet. Never driven by the result — and only loosely by the
+ * stake: half the wager meant a single 500 000 ₶ bet was worth 250 000 XP,
+ * so a big balance blew through forty levels in an evening while the pass,
+ * which counts actions, crawled. A flat base plus a capped stake component
+ * keeps the two roughly in step.
+ */
+export const XP_PER_BET_BASE = 10;
+export const XP_PER_BET_MAX = 50;
+
 export function xpForWager(amount: number): number {
-  return Math.max(1, Math.floor(amount / 2));
+  return Math.min(XP_PER_BET_MAX, XP_PER_BET_BASE + Math.floor(amount / 250));
 }
 
 /**
@@ -79,6 +88,22 @@ export function nextStreakTier(streak: number): StreakTier | null {
   const ascending = [...STREAK_TIERS].reverse();
   for (const t of ascending) if (streak < t.min) return t;
   return null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Prestige                                                            */
+/* ------------------------------------------------------------------ */
+
+export const PRESTIGE_MAX_REWARDED = 20;
+const PRESTIGE_WIN_STEP = 0.005;
+
+/**
+ * Bonus on the profit of a win, half a point per prestige, capped at ten
+ * points. Prestige costs the entire balance, so it has to leave something
+ * behind besides a line of text under the pseudo.
+ */
+export function prestigeWinBonus(prestigeCount: number): number {
+  return Math.min(prestigeCount, PRESTIGE_MAX_REWARDED) * PRESTIGE_WIN_STEP;
 }
 
 /* ------------------------------------------------------------------ */

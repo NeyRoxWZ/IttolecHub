@@ -7,7 +7,7 @@
  * regular session on five days out of seven reaches tier 100.
  */
 
-import { COSMETICS, cosmeticById } from './cosmetics';
+import { DROPPABLE_COSMETICS, cosmeticById } from './cosmetics';
 import { SHOP_ITEMS } from './shop';
 import { CRATES, crateById } from './crates';
 
@@ -124,7 +124,7 @@ function buildTrack(): PassTier[] {
   // 160 cosmetics over 200 slots: the premium column carries one per tier,
   // the free column carries the remaining 60 and fills the rest with coins
   // and consumables.
-  const pool = shuffled(COSMETICS.map((c) => c.id), 'frenly-pass-v1');
+  const pool = shuffled(DROPPABLE_COSMETICS.map((c) => c.id), 'frenly-pass-v1');
   const premiumPool = pool.slice(0, PASS_TIERS);
   const freePool = pool.slice(PASS_TIERS);
 

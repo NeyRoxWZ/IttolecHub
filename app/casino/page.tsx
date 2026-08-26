@@ -7,7 +7,7 @@ import {
   Coins, Dices, Spade, CircleDot, Rocket, Bomb, Circle, ArrowUpDown, Ticket,
   Egg, Building2, Grid3x3, Gift, Zap, Flag, GlassWater, LayoutGrid, Layers, Hand, Dice5,
   ArrowLeft, Info, Flame, Trophy, Award, Sparkles, Gift as GiftIcon, Gem, Target, ShoppingBag,
-  Banknote, Crown, ArrowUpRight, Clock, Check,
+  Banknote, Crown, ArrowUpRight, Clock, Backpack,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -55,15 +55,15 @@ const CASINO_GAMES: CasinoGameEntry[] = [
 const DISCLAIMER_KEY = 'itollec_casino_disclaimer_seen';
 
 /**
- * Three shapes, three meanings — the bar used to be eight identical pills, so
- * nothing said what was claimable, what merely opened a page, and what was
- * only information.
+ * The bar has ten entries and they must stay on one line: wrapping produced
+ * a broken second row and a floating button. Everything is a fixed-height
+ * tile in a single horizontally scrollable strip, and the three kinds are
+ * told apart by fill, not by a label.
  *
- *  ClaimPill  — something to collect right now, or a countdown to when it
- *               comes back. Filled and badged when ready, dimmed with a clock
- *               when it isn't.
- *  NavPill    — goes to another page. Outlined, arrow in the corner.
- *  InfoPill   — opens an explanation. Outlined, dashed, "?" in the corner.
+ *  ClaimTile — filled when there is something to take, dark with a clock when
+ *              there isn't.
+ *  NavTile   — dark card with a corner arrow: it goes somewhere.
+ *  InfoTile  — dashed outline with a "?": it explains something.
  */
 
 function formatWait(seconds: number): string {
@@ -72,88 +72,79 @@ function formatWait(seconds: number): string {
   const h = Math.floor((seconds % 86400) / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   if (d > 0) return `${d}j ${h}h`;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
+  if (h > 0) return `${h}h${String(m).padStart(2, '0')}`;
+  return `${m} min`;
 }
 
-function ClaimPill({
-  label, icon: Icon, ready, readyHint, waitSeconds, waitLabel, onClick, busy, tone = 'success',
+const TILE = 'relative h-14 shrink-0 rounded-xl border-2 flex items-center gap-2 px-3 text-left transition-all focus:outline-none';
+
+function ClaimTile({
+  label, icon: Icon, ready, readyHint, waitLabel, onClick, busy,
 }: {
   label: string;
   icon: any;
-  /** Is there something to collect right now? */
   ready: boolean;
   readyHint: string;
-  /** Time until it comes back, when there isn't. */
-  waitSeconds?: number;
-  waitLabel?: string;
+  waitLabel: string;
   onClick: () => void;
   busy?: boolean;
-  tone?: 'success' | 'primary';
 }) {
-  const filled = tone === 'success'
-    ? 'border-accent-success bg-accent-success text-brand-bg'
-    : 'border-accent-primary bg-accent-primary text-brand-bg';
-
   return (
     <button
       onClick={onClick}
       disabled={busy || !ready}
       className={cn(
-        'relative h-14 px-3 rounded-xl border-2 flex items-center gap-2 text-left transition-all focus:outline-none',
-        ready ? `${filled} hover:-translate-y-0.5 shadow-brutal` : 'border-brand-border bg-brand-card cursor-default'
+        TILE,
+        ready
+          ? 'border-accent-success bg-accent-success text-brand-bg shadow-brutal hover:-translate-y-0.5'
+          : 'border-brand-border bg-brand-card cursor-default'
       )}
     >
       <Icon className={cn('h-4 w-4 shrink-0', !ready && 'text-tx-muted')} />
       <div className="min-w-0 leading-tight">
-        <div className={cn('font-display font-black text-[12px]', ready ? 'text-brand-bg' : 'text-tx-secondary')}>
+        <div className={cn('font-display font-black text-[12px] whitespace-nowrap', ready ? 'text-brand-bg' : 'text-tx-secondary')}>
           {label}
         </div>
-        <div className={cn('text-[9px] font-bold truncate flex items-center gap-1', ready ? 'text-brand-bg/75' : 'text-tx-muted')}>
-          {busy ? '···' : ready ? readyHint : (
-            <>
-              <Clock className="h-2.5 w-2.5" />
-              {waitLabel || `dans ${formatWait(waitSeconds || 0)}`}
-            </>
-          )}
+        <div className={cn('text-[9px] font-bold whitespace-nowrap flex items-center gap-1', ready ? 'text-brand-bg/70' : 'text-tx-muted')}>
+          {busy ? '···' : ready ? readyHint : (<><Clock className="h-2.5 w-2.5" />{waitLabel}</>)}
         </div>
       </div>
-      {ready && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent-secondary animate-pulse" />}
     </button>
   );
 }
 
-function NavPill({
-  label, hint, icon: Icon, badge, onClick,
+function NavTile({
+  label, hint, icon: Icon, pending, onClick,
 }: {
   label: string;
   hint: string;
   icon: any;
-  /** Number of things waiting behind this page. */
-  badge?: number;
+  /** Shown inline rather than as a floating badge, which used to overlap. */
+  pending?: number;
   onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
-      className="relative h-14 pl-3 pr-6 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-2 text-left hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none"
+      className={cn(
+        TILE, 'pr-7',
+        pending ? 'border-accent-secondary bg-brand-card' : 'border-brand-border bg-brand-card',
+        'hover:border-accent-primary hover:-translate-y-0.5'
+      )}
     >
       <Icon className="h-4 w-4 shrink-0 text-accent-primary" />
       <div className="min-w-0 leading-tight">
-        <div className="font-display font-black text-[12px] text-tx-base">{label}</div>
-        <div className="text-[9px] font-bold text-tx-muted truncate">{hint}</div>
+        <div className="font-display font-black text-[12px] text-tx-base whitespace-nowrap">{label}</div>
+        <div className={cn('text-[9px] font-bold whitespace-nowrap', pending ? 'text-accent-secondary' : 'text-tx-muted')}>
+          {pending ? `${pending} à réclamer` : hint}
+        </div>
       </div>
       <ArrowUpRight className="absolute top-1.5 right-1.5 h-3 w-3 text-tx-muted" />
-      {!!badge && badge > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent-secondary text-white text-[10px] font-black flex items-center justify-center">
-          {badge}
-        </span>
-      )}
     </button>
   );
 }
 
-function InfoPill({
+function InfoTile({
   label, value, hint, icon: Icon, onClick,
 }: {
   label: string;
@@ -165,16 +156,20 @@ function InfoPill({
   return (
     <button
       onClick={onClick}
-      className="relative h-14 pl-3 pr-6 rounded-xl border-2 border-dashed border-accent-primary/60 bg-accent-primary/5 flex items-center gap-2 text-left hover:bg-accent-primary/10 hover:-translate-y-0.5 transition-all focus:outline-none"
+      className={cn(TILE, 'pr-7 border-dashed border-accent-primary/60 bg-accent-primary/5 hover:bg-accent-primary/10 hover:-translate-y-0.5')}
     >
       <Icon className="h-4 w-4 shrink-0 text-accent-primary" />
       <div className="min-w-0 leading-tight">
-        <div className="font-display font-black text-[13px] text-accent-primary tabular-nums">{value}</div>
-        <div className="text-[9px] font-bold text-tx-muted truncate">{label} · {hint}</div>
+        <div className="font-display font-black text-[13px] text-accent-primary tabular-nums whitespace-nowrap">{value}</div>
+        <div className="text-[9px] font-bold text-tx-muted whitespace-nowrap">{label} · {hint}</div>
       </div>
-      <span className="absolute top-1 right-1.5 text-[10px] font-black text-tx-muted">?</span>
+      <span className="absolute top-1 right-2 text-[11px] font-black text-tx-muted leading-none">?</span>
     </button>
   );
+}
+
+function Divider() {
+  return <span className="shrink-0 w-px h-8 bg-brand-border mx-0.5" />;
 }
 
 export default function CasinoHub() {
@@ -190,6 +185,7 @@ export default function CasinoHub() {
   const [showMissions, setShowMissions] = useState(false);
   const [showJackpot, setShowJackpot] = useState(false);
   const [passTier, setPassTier] = useState<number | null>(null);
+  const [passClaimable, setPassClaimable] = useState(0);
   const [showPrestige, setShowPrestige] = useState(false);
   const [dailyResetIn, setDailyResetIn] = useState(() => secondsUntilRotation());
   const [passResetIn, setPassResetIn] = useState(() => secondsUntilReset());
@@ -234,7 +230,7 @@ export default function CasinoHub() {
     if (!user) { setPassTier(null); return; }
     fetch(`/api/casino/pass?user_id=${user.id}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d?.state) setPassTier(d.state.tier); })
+      .then((d) => { if (d?.state) { setPassTier(d.state.tier); setPassClaimable(d.claimable || 0); } })
       .catch(() => {});
   }, [user]);
 
@@ -381,91 +377,87 @@ export default function CasinoHub() {
           </div>
         </header>
 
-        {/* ACTION BAR — grouped by what the thing actually does: collect,
-            navigate, read. Each group is separated so the eye can tell them
-            apart without reading a word. */}
-        <div className="flex flex-wrap items-center gap-2 mb-3 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="hidden xl:block text-[9px] font-black uppercase tracking-widest text-tx-muted rotate-180 [writing-mode:vertical-rl]">
-              À prendre
-            </span>
+        {/* ACTION BAR — one strip, never wrapping: it scrolls sideways on a
+            narrow screen rather than breaking into a ragged second row. */}
+        <div className="flex items-center gap-2 mb-3 shrink-0 overflow-x-auto pb-1 -mx-1 px-1">
+          <ClaimTile
+            label="Bonus du jour"
+            icon={GiftIcon}
+            ready={!stats.dailyClaimedToday}
+            readyHint="250 à 10 000 ₶"
+            waitLabel={formatWait(dailyResetIn)}
+            onClick={handleClaimDaily}
+            busy={claimingDaily}
+          />
 
-            <ClaimPill
-              label="Bonus du jour"
-              icon={GiftIcon}
-              ready={!stats.dailyClaimedToday}
-              readyHint="250 à 10 000 ₶"
-              waitSeconds={dailyResetIn}
-              onClick={handleClaimDaily}
-              busy={claimingDaily}
-            />
+          <ClaimTile
+            label="Roue gratuite"
+            icon={Sparkles}
+            ready={!stats.wheelClaimedToday}
+            readyHint="jusqu’à 10 000 ₶"
+            waitLabel={formatWait(dailyResetIn)}
+            onClick={() => { sfx.click(); setShowWheel(true); }}
+          />
 
-            <ClaimPill
-              label="Roue gratuite"
-              icon={Sparkles}
-              tone="primary"
-              ready={!stats.wheelClaimedToday}
-              readyHint="jusqu’à 10 000 ₶"
-              waitSeconds={dailyResetIn}
-              onClick={() => { sfx.click(); setShowWheel(true); }}
-            />
+          <ClaimTile
+            label="Cashback"
+            icon={Banknote}
+            ready={!!cashback?.available}
+            readyHint={cashback ? `+${cashback.amount.toLocaleString('fr-FR')} ₶` : ''}
+            waitLabel={stats.cashbackClaimedToday ? formatWait(dailyResetIn) : 'rien hier'}
+            onClick={handleClaimCashback}
+            busy={claimingCashback}
+          />
 
-            <ClaimPill
-              label="Cashback"
-              icon={Banknote}
-              tone="primary"
-              ready={!!cashback?.available}
-              readyHint={cashback ? `+${cashback.amount.toLocaleString('fr-FR')} ₶` : ''}
-              waitSeconds={dailyResetIn}
-              waitLabel={stats.cashbackClaimedToday ? `pris · dans ${formatWait(dailyResetIn)}` : 'aucune perte hier'}
-              onClick={handleClaimCashback}
-              busy={claimingCashback}
-            />
-          </div>
+          <Divider />
 
-          <span className="hidden lg:block w-px h-10 bg-brand-border" />
+          <NavTile
+            label="Missions"
+            hint={`${missions.filter((m) => m.claimed).length}/${missions.length || 3} faites`}
+            icon={Target}
+            pending={claimable}
+            onClick={() => { sfx.click(); setShowMissions(true); }}
+          />
 
-          <div className="flex items-center gap-2">
-            <NavPill
-              label="Missions"
-              hint={`${missions.filter((m) => m.claimed).length}/${missions.length || 3} · reset dans ${formatWait(dailyResetIn)}`}
-              icon={Target}
-              badge={claimable}
-              onClick={() => { sfx.click(); setShowMissions(true); }}
-            />
+          <NavTile
+            label="Frenly Pass"
+            hint={`palier ${passTier ?? 0}/100`}
+            icon={Crown}
+            pending={passClaimable}
+            onClick={() => { sfx.click(); router.push('/casino/pass'); }}
+          />
 
-            <NavPill
-              label="Frenly Pass"
-              hint={`palier ${passTier ?? 0}/100 · fin dans ${formatWait(passResetIn)}`}
-              icon={Crown}
-              onClick={() => { sfx.click(); router.push('/casino/pass'); }}
-            />
+          <NavTile
+            label="Inventaire"
+            hint="objets & cosmétiques"
+            icon={Backpack}
+            onClick={() => { sfx.click(); router.push('/casino/inventaire'); }}
+          />
 
-            <NavPill
-              label="Boutique"
-              hint={`5 objets · rotation dans ${formatWait(dailyResetIn)}`}
-              icon={ShoppingBag}
-              onClick={() => { sfx.click(); router.push('/casino/shop'); }}
-            />
+          <NavTile
+            label="Boutique"
+            hint={`5 objets · ${formatWait(dailyResetIn)}`}
+            icon={ShoppingBag}
+            onClick={() => { sfx.click(); router.push('/casino/shop'); }}
+          />
 
-            <NavPill
-              label="Succès"
-              hint="115 à débloquer"
-              icon={Award}
-              onClick={() => { sfx.click(); router.push('/casino/achievements'); }}
-            />
+          <NavTile
+            label="Succès"
+            hint="115 à débloquer"
+            icon={Award}
+            onClick={() => { sfx.click(); router.push('/casino/achievements'); }}
+          />
 
-            <NavPill
-              label="Classement"
-              hint="saison en cours"
-              icon={Trophy}
-              onClick={() => { sfx.click(); router.push('/casino/leaderboard'); }}
-            />
-          </div>
+          <NavTile
+            label="Classement"
+            hint="saison en cours"
+            icon={Trophy}
+            onClick={() => { sfx.click(); router.push('/casino/leaderboard'); }}
+          />
 
-          <span className="hidden lg:block w-px h-10 bg-brand-border" />
+          <Divider />
 
-          <InfoPill
+          <InfoTile
             icon={Gem}
             value={jackpot !== null ? `${jackpot.toLocaleString('fr-FR')} ₶` : '···'}
             label="Cagnotte"
@@ -473,34 +465,28 @@ export default function CasinoHub() {
             onClick={() => { sfx.click(); setShowJackpot(true); }}
           />
 
-          <div className="ml-auto">
-            {canPrestige ? (
-              <button
-                onClick={() => { sfx.click(); setShowPrestige(true); }}
-                className="h-14 px-4 rounded-xl border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal flex items-center gap-2 font-display font-black text-xs tracking-wider hover:brightness-110 transition-all active:translate-y-0.5 focus:outline-none"
-              >
-                <Sparkles className="h-4 w-4" />
-                PRESTIGER
-                <span className="text-[9px] font-bold opacity-70">voir avant</span>
-              </button>
-            ) : (
-              <div
-                className="h-14 px-3 rounded-xl border-2 border-brand-border bg-brand-card flex flex-col justify-center min-w-[132px]"
-                title={`Atteins ${PRESTIGE_THRESHOLD.toLocaleString('fr-FR')} ₶ pour prestiger`}
-              >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">Prestige</span>
-                  <span className="text-[9px] font-black text-accent-primary tabular-nums">{prestigeProgress.toFixed(0)}%</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-brand-inner border border-brand-border overflow-hidden mb-1">
-                  <div className="h-full bg-accent-primary transition-all duration-500" style={{ width: `${prestigeProgress}%` }} />
-                </div>
-                <span className="text-[9px] font-bold text-tx-muted leading-none">
-                  à {PRESTIGE_THRESHOLD.toLocaleString('fr-FR')} ₶
-                </span>
+          {canPrestige ? (
+            <button
+              onClick={() => { sfx.click(); setShowPrestige(true); }}
+              className={cn(TILE, 'border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 active:translate-y-0.5')}
+            >
+              <Sparkles className="h-4 w-4 shrink-0" />
+              <span className="font-display font-black text-xs tracking-wider whitespace-nowrap">PRESTIGER</span>
+            </button>
+          ) : (
+            <div className={cn(TILE, 'border-brand-border bg-brand-card w-[136px] flex-col !items-stretch justify-center gap-1')}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">Prestige {stats.prestigeCount}</span>
+                <span className="text-[9px] font-black text-accent-primary tabular-nums">{prestigeProgress.toFixed(0)}%</span>
               </div>
-            )}
-          </div>
+              <div className="h-1.5 rounded-full bg-brand-inner border border-brand-border overflow-hidden">
+                <div className="h-full bg-accent-primary transition-all duration-500" style={{ width: `${prestigeProgress}%` }} />
+              </div>
+              <span className="text-[9px] font-bold text-tx-muted leading-none whitespace-nowrap">
+                à {PRESTIGE_THRESHOLD.toLocaleString('fr-FR')} ₶
+              </span>
+            </div>
+          )}
         </div>
 
         {/* GAMES — 5×4 grid that fills the remaining height exactly, so the
