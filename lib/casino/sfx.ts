@@ -132,4 +132,37 @@ export const sfx = {
   bust: () => { emitOutcome('lose'); noise(0.28, 0.16); tone({ freq: 220, duration: 0.35, type: 'sawtooth', gain: 0.12, sweepTo: 70 }); },
   cashout: () => { [659.25, 880].forEach((f, i) => tone({ freq: f, duration: 0.18, type: 'sine', gain: 0.13, delay: i * 0.06 })); },
   coin: () => { tone({ freq: 1046, duration: 0.07, type: 'square', gain: 0.08 }); tone({ freq: 1568, duration: 0.09, type: 'square', gain: 0.07, delay: 0.04 }); },
+
+  /* ---- crate opening ---- */
+
+  /** The lid, right before the reel starts rolling. */
+  crateOpen: () => {
+    noise(0.18, 0.1);
+    tone({ freq: 180, duration: 0.22, type: 'sawtooth', gain: 0.1, sweepTo: 90 });
+    tone({ freq: 520, duration: 0.14, type: 'triangle', gain: 0.09, delay: 0.06, sweepTo: 780 });
+  },
+  /** One notch of the reel passing the marker; pitch rises as it slows. */
+  reelTick: (progress = 0) => tone({
+    freq: 900 + progress * 500,
+    duration: 0.025,
+    type: 'square',
+    gain: 0.045,
+  }),
+  /** The reel coming to rest, coloured by what it landed on. */
+  reelStop: (rarity: 'commun' | 'rare' | 'epique' | 'legendaire' = 'commun') => {
+    const chords: Record<string, number[]> = {
+      commun: [440, 554],
+      rare: [523, 659, 784],
+      epique: [587, 740, 880, 1109],
+      legendaire: [659, 831, 988, 1319, 1661],
+    };
+    noise(0.12, 0.08);
+    chords[rarity].forEach((f, i) => tone({
+      freq: f,
+      duration: rarity === 'legendaire' ? 0.5 : 0.3,
+      type: rarity === 'commun' ? 'triangle' : 'square',
+      gain: 0.12,
+      delay: i * 0.05,
+    }));
+  },
 };

@@ -8,6 +8,7 @@ import { vibrate, HAPTIC } from '@/lib/haptic';
 import { cosmeticById, RARITY_COLOR, RARITY_LABEL, gameLabel, type Rarity } from '@/lib/casino/cosmetics';
 import { crateById, type CrateOpening, type CrateReward } from '@/lib/casino/crates';
 import CosmeticPreview from './CosmeticPreview';
+import CrateReel from './CrateReel';
 
 interface Slot extends CrateReward {
   crate: number;
@@ -40,22 +41,23 @@ export default function CrateOpeningModal({
   const crate = crateById(openings[0]?.crateId || '');
   const done = revealed >= slots.length;
 
+  /** The reel is running on this slot; null between two spins. */
+  const [spinning, setSpinning] = useState<number | null>(null);
+
   const reveal = useCallback(() => {
-    setRevealed((r) => {
-      if (r >= slots.length) return r;
-      const reward = slots[r];
-      if (reward.rarity === 'legendaire') { sfx.jackpot(); vibrate(HAPTIC.SUCCESS); }
-      else if (reward.rarity === 'epique') { sfx.bigWin(); vibrate(HAPTIC.MEDIUM); }
-      else { sfx.coin(); vibrate(HAPTIC.SOFT); }
-      return r + 1;
-    });
-  }, [slots]);
+    setSpinning((cur) => (cur === null && revealed < slots.length ? revealed : cur));
+  }, [revealed, slots.length]);
+
+  const onReelDone = useCallback(() => {
+    setSpinning(null);
+    setRevealed((r) => r + 1);
+  }, []);
 
   useEffect(() => {
-    if (!auto || done) return;
-    const t = setTimeout(reveal, 260);
+    if (!auto || done || spinning !== null) return;
+    const t = setTimeout(reveal, 200);
     return () => clearTimeout(t);
-  }, [auto, done, revealed, reveal]);
+  }, [auto, done, spinning, revealed, reveal]);
 
   // Follow the crate of the *last revealed* item, not the next one: keying
   // off the next slot flipped to the following crate before its final card
@@ -101,14 +103,20 @@ export default function CrateOpeningModal({
             : 'Cinq objets : de l’épique, voire du légendaire.'}
         </p>
 
-        <div className={cn(
-          'grid gap-3 justify-center mb-5',
-          crateSlots.length === 3 ? 'grid-cols-3' : crateSlots.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-5'
-        )}>
-          {crateSlots.map((slot, i) => (
-            <Card key={`${slot.crate}-${slot.index}`} reward={slot} shown={crateStart + i < revealed} />
-          ))}
-        </div>
+        {spinning !== null ? (
+          <div className="mb-5">
+            <CrateReel reward={slots[spinning]} onDone={onReelDone} />
+          </div>
+        ) : (
+          <div className={cn(
+            'grid gap-3 justify-center mb-5',
+            crateSlots.length === 3 ? 'grid-cols-3' : crateSlots.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-5'
+          )}>
+            {crateSlots.map((slot, i) => (
+              <Card key={`${slot.crate}-${slot.index}`} reward={slot} shown={crateStart + i < revealed} />
+            ))}
+          </div>
+        )}
 
         {done ? (
           <button
@@ -120,10 +128,11 @@ export default function CrateOpeningModal({
         ) : (
           <button
             onClick={reveal}
-            className="w-full h-14 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none flex items-center justify-center gap-2"
+            disabled={spinning !== null}
+            className="w-full h-14 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            OBJET SUIVANT
-            <ChevronRight className="h-4 w-4" />
+            {spinning !== null ? 'ÇA TOURNE…' : 'OBJET SUIVANT'}
+            {spinning === null && <ChevronRight className="h-4 w-4" />}
             <span className="text-[11px] font-bold opacity-70">{revealed}/{slots.length}</span>
           </button>
         )}
