@@ -21,6 +21,7 @@ import { CountUp, LevelBar } from './_components/CasinoUI';
 import MissionsModal, { useMissions } from './_components/MissionsModal';
 import FeedTicker from './_components/FeedTicker';
 import JackpotModal from './_components/JackpotModal';
+import OnboardingModal from './_components/OnboardingModal';
 import PrestigeModal from './_components/PrestigeModal';
 import { secondsUntilRotation } from '@/lib/casino/shop';
 import { secondsUntilReset } from '@/lib/casino/pass';
@@ -52,7 +53,8 @@ const CASINO_GAMES: CasinoGameEntry[] = [
   { slug: 'craps', name: 'Frenly Craps', short: 'Ça passe ou ça casse', icon: Dice5, rtp: '98%' },
 ];
 
-const DISCLAIMER_KEY = 'itollec_casino_disclaimer_seen';
+/** Bumped when the tour changes enough to be worth showing again. */
+const ONBOARDING_KEY = 'itollec_casino_onboarding_v1';
 
 /**
  * The bar has ten entries and they must stay on one line: wrapping produced
@@ -148,7 +150,7 @@ export default function CasinoHub() {
   const router = useRouter();
   const { user } = useAuth();
   const { balance, isLoaded, isLocal, stats, claimDaily, claimWheelOfFortune, prestige, refresh } = useCasinoWallet();
-  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [jackpot, setJackpot] = useState<number | null>(null);
   const [showWheel, setShowWheel] = useState(false);
   const [claimingDaily, setClaimingDaily] = useState(false);
@@ -166,7 +168,7 @@ export default function CasinoHub() {
   const [claimingCashback, setClaimingCashback] = useState(false);
 
   useEffect(() => {
-    try { if (!localStorage.getItem(DISCLAIMER_KEY)) setShowDisclaimer(true); } catch {}
+    try { if (!localStorage.getItem(ONBOARDING_KEY)) setShowGuide(true); } catch {}
   }, []);
 
   // One ticking clock for the whole bar rather than one per pill.
@@ -233,9 +235,9 @@ export default function CasinoHub() {
     void refresh();
   };
 
-  const dismissDisclaimer = () => {
-    try { localStorage.setItem(DISCLAIMER_KEY, '1'); } catch {}
-    sfx.click(); setShowDisclaimer(false);
+  const closeGuide = () => {
+    try { localStorage.setItem(ONBOARDING_KEY, '1'); } catch {}
+    sfx.click(); setShowGuide(false);
   };
 
   const handleClaimDaily = async () => {
@@ -291,28 +293,7 @@ export default function CasinoHub() {
         />
       )}
 
-      {showDisclaimer && (
-        <div className="fixed inset-0 z-[200] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in zoom-in-95 fade-in duration-200">
-            <div className="flex justify-center mb-4">
-              <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl">
-                <Info className="w-9 h-9 text-accent-primary" />
-              </div>
-            </div>
-            <h2 className="font-display text-2xl font-black text-center mb-3">Les FrenlyCoins ne valent rien</h2>
-            <p className="text-tx-secondary text-sm text-center leading-relaxed mb-6">
-              Les FrenlyCoins (₶) sont une monnaie 100% fictive. Impossible de les acheter avec de l&apos;argent réel,
-              impossible de les retirer ou de les convertir, dans un sens comme dans l&apos;autre. C&apos;est juste pour le fun.
-            </p>
-            <button
-              onClick={dismissDisclaimer}
-              className="w-full h-14 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none"
-            >
-              J&apos;ai compris
-            </button>
-          </div>
-        </div>
-      )}
+      {showGuide && <OnboardingModal onClose={closeGuide} />}
 
       <div className="max-w-6xl w-full mx-auto flex flex-col flex-1 min-h-0">
         {/* HEADER */}
@@ -328,6 +309,14 @@ export default function CasinoHub() {
               <h1 className="font-display text-xl sm:text-2xl font-black leading-none">Casino</h1>
               {prestigeTitle && <span className="text-[10px] font-black uppercase tracking-widest text-accent-primary">{prestigeTitle}</span>}
             </div>
+
+            <button
+              onClick={() => { sfx.click(); setShowGuide(true); }}
+              title="Comment ça marche ?"
+              className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-accent-primary hover:border-accent-primary transition-colors focus:outline-none flex items-center justify-center"
+            >
+              <Info className="h-4 w-4" />
+            </button>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
