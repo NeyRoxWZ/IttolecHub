@@ -223,6 +223,7 @@ export default function FrenlyWheelPage() {
 
   return (
     <GameShell
+      gameSlug="wheel"
       title="Frenly Wheel"
       rules={RULES}
       balance={balance}

@@ -9,6 +9,9 @@ import { vibrate, HAPTIC } from '@/lib/haptic';
 import { sfx, isMuted, setMuted } from '@/lib/casino/sfx';
 import { CASINO_MIN_BET } from '@/lib/casino/core';
 import { useTurbo, tempo } from '@/lib/casino/turbo';
+import { useGameCosmetics } from '@/hooks/useGameCosmetics';
+import { tableBackground, skinFilter } from './CosmeticPreview';
+import * as Art from './CasinoArt';
 import { streakLabel, streakBonus, nextStreakTier } from '@/lib/casino/progression';
 import { JACKPOT_CONTRIBUTION_RATE, JACKPOT_HIT_CHANCE } from '@/lib/casino/meta';
 
@@ -395,9 +398,11 @@ export function PlayingCard({
 /* ------------------------------------------------------------------ */
 
 export function GameShell({
-  title, rules, balance, isLoaded, isLocal, streak, level, xpIntoLevel, xpForNext, stage, panel,
+  title, gameSlug, rules, balance, isLoaded, isLocal, streak, level, xpIntoLevel, xpForNext, stage, panel,
 }: {
   title: string;
+  /** Which game's cosmetics to apply. */
+  gameSlug: string;
   rules: RulesSpec;
   balance: number;
   isLoaded: boolean;
@@ -413,6 +418,14 @@ export function GameShell({
   const [showRules, setShowRules] = useState(false);
   const [mutedState, setMutedState] = useState(false);
   const [turbo, setTurboMode] = useTurbo();
+  const cosmetics = useGameCosmetics(gameSlug);
+
+  const table = cosmetics.table?.params;
+  const border = cosmetics.border?.params;
+  const particles = cosmetics.particles?.params;
+  const skin = cosmetics.skin?.params;
+  const emblem = cosmetics.emblem?.params;
+  const EmblemArt = emblem?.art ? EMBLEM_ART[emblem.art] : undefined;
 
   useEffect(() => { setMutedState(isMuted()); }, []);
 
@@ -477,8 +490,11 @@ export function GameShell({
             <button onClick={toggleMute} className="h-11 w-11 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center text-tx-secondary hover:text-tx-base focus:outline-none">
               {mutedState ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
             </button>
-            <div className="h-11 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-              <Coins className="h-4 w-4 text-accent-primary" />
+            <div
+              className="h-11 flex items-center gap-2 bg-brand-inner border-2 px-4 rounded-xl shadow-brutal"
+              style={{ borderColor: emblem?.color }}
+            >
+              {EmblemArt ? <EmblemArt size={18} /> : <Coins className="h-4 w-4 text-accent-primary" />}
               {isLoaded ? <CountUp value={balance} className="font-display font-black text-base" /> : <span className="font-display font-black">···</span>}
               <span className="text-tx-secondary font-bold text-sm">₶</span>
               {isLocal && <span className="text-[8px] font-black uppercase bg-brand-card border border-brand-border px-1 py-0.5 rounded text-tx-muted">Local</span>}
@@ -487,8 +503,22 @@ export function GameShell({
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 flex-1 min-h-0">
-          <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 sm:p-6 flex flex-col items-center justify-center min-h-[380px] lg:min-h-0">
-            {stage}
+          <div
+            className={cn(
+              'relative overflow-hidden bg-brand-card border-4 border-brand-border rounded-[24px]',
+              'p-4 sm:p-6 flex flex-col items-center justify-center min-h-[380px] lg:min-h-0',
+              border?.animated && 'animate-pulse-border'
+            )}
+            style={{
+              background: table ? tableBackground(table) : undefined,
+              borderColor: border?.color,
+              boxShadow: border?.glow ? `0 0 22px ${border.color}66` : undefined,
+            }}
+          >
+            {particles && <ParticleField color={particles.color || '#FFD000'} style={particles.particleStyle || 'drift'} />}
+            <div className="relative z-10 w-full flex flex-col items-center justify-center" style={{ filter: skin ? skinFilter(skin) : undefined }}>
+              {stage}
+            </div>
           </div>
           <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 sm:p-5 shadow-brutal flex flex-col gap-4 min-h-0">
             {streak !== undefined && <StreakMeter streak={streak} />}
@@ -497,6 +527,65 @@ export function GameShell({
         </div>
       </div>
     </main>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Cosmetic helpers                                                     */
+/* ------------------------------------------------------------------ */
+
+const EMBLEM_ART: Record<string, (p: { size?: number }) => JSX.Element> = {
+  cherry: Art.ArtCherry, bell: Art.ArtBell, star: Art.ArtStar, diamond: Art.ArtDiamond,
+  lemon: Art.ArtLemon, seven: Art.ArtSeven, chicken: Art.ArtChicken, finishFlag: Art.ArtFinishFlag,
+  dino: Art.ArtDino, rock: Art.ArtRock, fire: Art.ArtFire, volcano: Art.ArtVolcano,
+  gem: Art.ArtGem, bomb: Art.ArtBomb, clover: Art.ArtClover, moneyBag: Art.ArtMoneyBag,
+  crown: Art.ArtCrown, crate: Art.ArtCrate, horse: Art.ArtHorse, rocket: Art.ArtRocketShip,
+  ball: Art.ArtBall, shield: Art.ArtShield, door: Art.ArtDoor, skull: Art.ArtSkull,
+  check: Art.ArtCheck,
+};
+
+/** Ambient particles behind the game, driven by the equipped cosmetic. */
+function ParticleField({ color, style }: { color: string; style: string }) {
+  const dots = useRef(
+    Array.from({ length: 22 }, (_, i) => ({
+      left: (i * 37) % 100,
+      top: (i * 53) % 100,
+      size: 2 + (i % 3),
+      delay: (i % 7) * 0.7,
+      duration: 5 + (i % 5),
+    }))
+  ).current;
+
+  const animation = style === 'rise' ? 'cosmeticRise'
+    : style === 'fall' ? 'cosmeticFall'
+    : style === 'orbit' ? 'cosmeticOrbit'
+    : 'cosmeticDrift';
+
+  return (
+    <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+      <style>{`
+        @keyframes cosmeticRise { from { transform: translateY(30px); opacity: 0; } 50% { opacity: .55; } to { transform: translateY(-70px); opacity: 0; } }
+        @keyframes cosmeticFall { from { transform: translateY(-40px); opacity: 0; } 50% { opacity: .55; } to { transform: translateY(70px); opacity: 0; } }
+        @keyframes cosmeticOrbit { from { transform: rotate(0deg) translateX(14px); opacity: .4; } to { transform: rotate(360deg) translateX(14px); opacity: .4; } }
+        @keyframes cosmeticDrift { from { transform: translate(-12px, 0); opacity: 0; } 50% { opacity: .5; } to { transform: translate(14px, -18px); opacity: 0; } }
+        @keyframes pulseBorder { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
+        .animate-pulse-border { animation: pulseBorder 2.4s ease-in-out infinite; }
+      `}</style>
+      {dots.map((d, i) => (
+        <span
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            left: `${d.left}%`,
+            top: `${d.top}%`,
+            width: d.size,
+            height: d.size,
+            background: color,
+            animation: `${animation} ${d.duration}s ease-in-out ${d.delay}s infinite`,
+          }}
+        />
+      ))}
+    </div>
   );
 }
 

@@ -344,6 +344,7 @@ export default function RocketPage() {
 
   return (
     <GameShell
+      gameSlug="rocket"
       title="Frenly Rocket"
       rules={RULES}
       balance={balance}

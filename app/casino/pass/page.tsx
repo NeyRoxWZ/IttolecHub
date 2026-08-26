@@ -20,6 +20,7 @@ import type { PassReward, PassTier } from '@/lib/casino/pass';
 import { CountUp } from '../_components/CasinoUI';
 import CosmeticPreview, { cosmeticEffect } from '../_components/CosmeticPreview';
 import Confetti from '../_components/Confetti';
+import { refreshCosmetics } from '@/hooks/useGameCosmetics';
 
 interface PassState { tier: number; xp: number; intoTier: number; needed: number; premium: boolean }
 
@@ -132,6 +133,8 @@ export default function FrenlyPassPage() {
       else delete next[gameSlug][slot];
       return next;
     });
+    // The games read a shared store, so it has to hear about this too.
+    void refreshCosmetics(user.id);
   };
 
   const pct = state.needed > 0 ? Math.min(100, (state.intoTier / state.needed) * 100) : 100;

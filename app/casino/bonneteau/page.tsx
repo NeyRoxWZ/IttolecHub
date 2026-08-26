@@ -198,6 +198,6 @@ export default function BonneteauPage() {
   );
 
   return (
-    <GameShell title="Frenly Bonneteau" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
+    <GameShell gameSlug="bonneteau" title="Frenly Bonneteau" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
   );
 }

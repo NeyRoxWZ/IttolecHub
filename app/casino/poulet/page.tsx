@@ -312,6 +312,7 @@ export default function PouletPage() {
 
   return (
     <GameShell
+      gameSlug="poulet"
       title="Frenly Poulet"
       rules={RULES}
       balance={balance}

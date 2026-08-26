@@ -218,6 +218,7 @@ export default function KenoPage() {
 
   return (
     <GameShell
+      gameSlug="keno"
       title="Frenly Keno"
       rules={RULES}
       balance={balance}

@@ -373,6 +373,7 @@ export default function BlackjackPage() {
 
   return (
     <GameShell
+      gameSlug="blackjack"
       title="Frenly 21"
       rules={RULES}
       balance={balance}

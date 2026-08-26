@@ -239,6 +239,7 @@ export default function SlotsPage() {
 
   return (
     <GameShell
+      gameSlug="slots"
       title="Frenly Slots"
       rules={RULES}
       balance={balance}

@@ -249,6 +249,7 @@ export default function TowerPage() {
 
   return (
     <GameShell
+      gameSlug="tower"
       title="Frenly Tower"
       rules={RULES}
       balance={balance}

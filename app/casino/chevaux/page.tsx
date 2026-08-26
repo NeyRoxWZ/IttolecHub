@@ -167,6 +167,6 @@ export default function ChevauxPage() {
   );
 
   return (
-    <GameShell title="Frenly Chevaux" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
+    <GameShell gameSlug="chevaux" title="Frenly Chevaux" rules={RULES} balance={balance} isLoaded={isLoaded} isLocal={isLocal} streak={stats.currentStreak} level={stats.level} xpIntoLevel={stats.xpIntoLevel} xpForNext={stats.xpForNext} stage={stage} panel={panel} />
   );
 }

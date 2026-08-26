@@ -179,6 +179,7 @@ export default function PlinkoPage() {
 
   return (
     <GameShell
+      gameSlug="plinko"
       title="Frenly Plinko"
       rules={RULES}
       balance={balance}

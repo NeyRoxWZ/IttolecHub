@@ -289,6 +289,7 @@ export default function MinesPage() {
 
   return (
     <GameShell
+      gameSlug="mines"
       title="Frenly Mines"
       rules={RULES}
       balance={balance}

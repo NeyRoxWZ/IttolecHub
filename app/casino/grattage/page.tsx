@@ -285,6 +285,7 @@ export default function GrattagePage() {
 
   return (
     <GameShell
+      gameSlug="grattage"
       title="Frenly Grattage"
       rules={RULES}
       balance={balance}

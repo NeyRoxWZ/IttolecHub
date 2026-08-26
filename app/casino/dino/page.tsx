@@ -414,6 +414,7 @@ export default function DinoPage() {
 
   return (
     <GameShell
+      gameSlug="dino"
       title="Frenly Dino"
       rules={RULES}
       balance={balance}
