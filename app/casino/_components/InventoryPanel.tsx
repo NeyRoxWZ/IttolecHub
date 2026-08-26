@@ -134,12 +134,28 @@ export default function InventoryPanel({
                   >
                     <Minus className="h-3 w-3" />
                   </button>
-                  <span className="w-5 text-center font-display font-black text-[11px] tabular-nums">{count}</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={crate.quantity}
+                    value={count}
+                    onChange={(e) => setBatch((b) => ({
+                      ...b,
+                      [crate.id]: Math.max(1, Math.min(crate.quantity, Math.floor(Number(e.target.value)) || 1)),
+                    }))}
+                    className="w-9 h-full bg-transparent text-center font-display font-black text-[11px] tabular-nums focus:outline-none"
+                  />
                   <button
                     onClick={() => setBatch((b) => ({ ...b, [crate.id]: Math.min(crate.quantity, count + 1) }))}
                     className="h-full w-6 flex items-center justify-center text-tx-secondary hover:text-tx-base focus:outline-none"
                   >
                     <Plus className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => setBatch((b) => ({ ...b, [crate.id]: crate.quantity }))}
+                    className="h-full px-2 text-[9px] font-black text-accent-primary focus:outline-none"
+                  >
+                    MAX
                   </button>
                 </div>
               )}

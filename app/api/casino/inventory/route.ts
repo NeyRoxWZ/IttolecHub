@@ -48,7 +48,8 @@ export async function POST(request: Request) {
     const itemId: string = body?.item_id;
     if (!userId || !itemId) return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 });
 
-    const quantity = Math.max(1, Math.min(20, Number(body?.quantity) || 1));
+    // Capped by what the player actually owns, not by a magic number.
+    const quantity = Math.max(1, Math.floor(Number(body?.quantity) || 1));
     const result = await consumeItem(userId, itemId, quantity);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
 

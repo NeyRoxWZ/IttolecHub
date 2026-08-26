@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { getActiveCosmetics } from '@/lib/casino/activeCosmetics';
 
 interface ConfettiProps {
   /** Bump this number to fire a burst. */
@@ -26,6 +27,10 @@ export default function Confetti({ trigger, intensity = 'big' }: ConfettiProps) 
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // The equipped win effect decides the palette and how the burst moves.
+    const fx = getActiveCosmetics().win_fx?.params;
+    const palette = fx?.colors?.length ? fx.colors : COLORS;
+    const style = fx?.winStyle || 'confetti';
     const count = intensity === 'huge' ? 220 : intensity === 'big' ? 120 : 55;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = canvas.offsetWidth * dpr;
@@ -38,11 +43,13 @@ export default function Confetti({ trigger, intensity = 'big' }: ConfettiProps) 
     const h = canvas.offsetHeight;
 
     for (let i = 0; i < count; i++) {
+      const spread = style === 'shock' ? 1.6 : style === 'coins' ? 0.6 : 1;
+      const lift = style === 'coins' ? -Math.random() * 9 - 3 : -Math.random() * 13 - 5;
       piecesRef.current.push({
         x: w / 2 + (Math.random() - 0.5) * w * 0.35,
         y: h * 0.42,
-        vx: (Math.random() - 0.5) * 13,
-        vy: -Math.random() * 13 - 5,
+        vx: (Math.random() - 0.5) * 13 * spread,
+        vy: lift,
         size: 5 + Math.random() * 7,
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
         rot: Math.random() * Math.PI * 2,

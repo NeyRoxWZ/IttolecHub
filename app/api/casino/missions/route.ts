@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase/server';
 import { ensureMissions } from '@/lib/casino/metaProgression.server';
 import { dayKey } from '@/lib/casino/missions';
 import { advancePass } from '@/lib/casino/pass.server';
+import { levelFromXp, levelUpReward } from '@/lib/casino/progression';
 import { PASS_XP } from '@/lib/casino/pass';
 
 function serialise(rows: Awaited<ReturnType<typeof ensureMissions>>) {
@@ -57,12 +58,21 @@ export async function POST(request: Request) {
     const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
     if (!wallet) return NextResponse.json({ error: 'Portefeuille introuvable' }, { status: 404 });
 
-    const newBalance = wallet.balance + row.def.reward;
+    // Mission XP can cross a level just like a bet does, so the crate has to
+    // pay out here too — otherwise the level silently went up for nothing.
+    const before = levelFromXp(Number(wallet.xp || 0));
     const newXp = Number(wallet.xp || 0) + row.def.xp;
+    const after = levelFromXp(newXp);
+
+    let levelReward = 0;
+    for (let l = before.level; l < after.level; l++) levelReward += levelUpReward(l);
+
+    const newBalance = wallet.balance + row.def.reward + levelReward;
     await supabase.from('casino_wallets')
       .update({
         balance: newBalance,
         xp: newXp,
+        level: after.level,
         missions_done: Number(wallet.missions_done || 0) + 1,
         updated_at: new Date().toISOString(),
       })
@@ -76,7 +86,15 @@ export async function POST(request: Request) {
 
     const pass = await advancePass(userId, PASS_XP.mission);
 
-    return NextResponse.json({ reward: row.def.reward, xp: row.def.xp, newBalance, pass });
+    return NextResponse.json({
+      reward: row.def.reward,
+      xp: row.def.xp,
+      newBalance,
+      pass,
+      levelsGained: Math.max(0, after.level - before.level),
+      level: after.level,
+      levelReward,
+    });
   } catch (err) {
     console.error('Erreur claim mission:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

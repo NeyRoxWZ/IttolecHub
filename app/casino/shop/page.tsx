@@ -156,7 +156,11 @@ export default function CasinoShop() {
 
   const bump = (id: string, delta: number) => {
     sfx.click();
-    setQty((prev) => ({ ...prev, [id]: Math.max(1, Math.min(10, (prev[id] || 1) + delta)) }));
+    setQty((prev) => ({ ...prev, [id]: Math.max(1, (prev[id] || 1) + delta) }));
+  };
+
+  const setQuantity = (id: string, value: number) => {
+    setQty((prev) => ({ ...prev, [id]: Math.max(1, Math.floor(value) || 1) }));
   };
 
   return (
@@ -227,7 +231,7 @@ export default function CasinoShop() {
                 </div>
 
                 <div className="mt-auto flex items-center gap-1.5">
-                  <QuantityStepper id={crate.id} value={quantity} onBump={bump} />
+                  <QuantityStepper id={crate.id} value={quantity} onBump={bump} onSet={setQuantity} />
                   <button
                     onClick={() => buy(crate.id, crate.name, crate.price)}
                     disabled={busy !== null || balance < crate.price * quantity}
@@ -303,13 +307,26 @@ export default function CasinoShop() {
   );
 }
 
-function QuantityStepper({ id, value, onBump }: { id: string; value: number; onBump: (id: string, d: number) => void }) {
+function QuantityStepper({
+  id, value, onBump, onSet,
+}: {
+  id: string;
+  value: number;
+  onBump: (id: string, d: number) => void;
+  onSet: (id: string, value: number) => void;
+}) {
   return (
     <div className="flex items-center h-10 rounded-xl border-2 border-brand-border bg-brand-inner shrink-0">
       <button onClick={() => onBump(id, -1)} className="h-full w-7 flex items-center justify-center text-tx-secondary hover:text-tx-base focus:outline-none">
         <Minus className="h-3 w-3" />
       </button>
-      <span className="w-5 text-center font-display font-black text-xs tabular-nums">{value}</span>
+      <input
+        type="number"
+        min={1}
+        value={value}
+        onChange={(e) => onSet(id, Number(e.target.value))}
+        className="w-10 h-full bg-transparent text-center font-display font-black text-xs tabular-nums focus:outline-none"
+      />
       <button onClick={() => onBump(id, 1)} className="h-full w-7 flex items-center justify-center text-tx-secondary hover:text-tx-base focus:outline-none">
         <Plus className="h-3 w-3" />
       </button>

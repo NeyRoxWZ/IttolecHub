@@ -10,7 +10,9 @@ import { sfx, isMuted, setMuted } from '@/lib/casino/sfx';
 import { CASINO_MIN_BET } from '@/lib/casino/core';
 import { useTurbo, tempo } from '@/lib/casino/turbo';
 import { useGameCosmetics } from '@/hooks/useGameCosmetics';
+import { setActiveCosmetics, subscribeOutcome } from '@/lib/casino/activeCosmetics';
 import { tableBackground, skinFilter } from './CosmeticPreview';
+import type { CosmeticParams } from '@/lib/casino/cosmetics';
 import * as Art from './CasinoArt';
 import { streakLabel, streakBonus, nextStreakTier } from '@/lib/casino/progression';
 import { JACKPOT_CONTRIBUTION_RATE, JACKPOT_HIT_CHANCE } from '@/lib/casino/meta';
@@ -428,6 +430,10 @@ export function GameShell({
   const emblem = cosmetics.emblem?.params;
   const EmblemArt = emblem?.art ? EMBLEM_ART[emblem.art] : undefined;
 
+  // Published so the confetti burst and the sound pack can read it without
+  // being threaded through every game component.
+  useEffect(() => { setActiveCosmetics(cosmetics); }, [cosmetics]);
+
   useEffect(() => { setMutedState(isMuted()); }, []);
 
   const toggleMute = () => {
@@ -517,6 +523,7 @@ export function GameShell({
             }}
           >
             {particles && <ParticleField color={particles.color || '#FFD000'} style={particles.particleStyle || 'drift'} />}
+            {cosmetics.lose_fx && <LoseFlash params={cosmetics.lose_fx.params} />}
             <div className="relative z-10 w-full flex flex-col items-center justify-center" style={{ filter: skin ? skinFilter(skin) : undefined }}>
               {stage}
             </div>
@@ -544,6 +551,54 @@ const EMBLEM_ART: Record<string, (p: { size?: number }) => JSX.Element> = {
   ball: Art.ArtBall, shield: Art.ArtShield, door: Art.ArtDoor, skull: Art.ArtSkull,
   check: Art.ArtCheck,
 };
+
+/**
+ * The equipped loss effect, played over the scene when a game reports a
+ * defeat. It listens to the sound bus rather than to each game's own state,
+ * so all twenty are covered without touching them.
+ */
+function LoseFlash({ params }: { params: CosmeticParams }) {
+  const [burst, setBurst] = useState(0);
+
+  useEffect(() => subscribeOutcome((outcome) => {
+    if (outcome === 'lose') setBurst((b) => b + 1);
+  }), []);
+
+  if (burst === 0) return null;
+  const color = params.color || '#555';
+
+  return (
+    <div key={burst} className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+      <style>{`
+        @keyframes loseFade { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+        @keyframes loseCrack { 0% { opacity: 0; transform: scale(0.9); } 20% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+      `}</style>
+
+      {params.loseStyle === 'crack' ? (
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full"
+          style={{ animation: 'loseCrack 900ms ease-out forwards' }}>
+          <path d="M50 0 L44 38 L60 46 L38 100 M44 38 L8 24 M60 46 L96 32 M44 38 L20 70"
+            stroke={color} strokeWidth="1.2" fill="none" opacity="0.9" />
+        </svg>
+      ) : params.loseStyle === 'static' ? (
+        <div className="absolute inset-0" style={{
+          background: `repeating-linear-gradient(0deg, ${color}55 0 2px, transparent 2px 5px)`,
+          animation: 'loseFade 700ms ease-out forwards',
+        }} />
+      ) : params.loseStyle === 'drip' ? (
+        <div className="absolute inset-x-0 top-0 h-1/2" style={{
+          background: `linear-gradient(${color}, transparent)`,
+          animation: 'loseFade 900ms ease-out forwards',
+        }} />
+      ) : (
+        <div className="absolute inset-0" style={{
+          background: `radial-gradient(circle at 35% 65%, ${color}88, transparent 55%), radial-gradient(circle at 70% 40%, ${color}66, transparent 50%)`,
+          animation: 'loseFade 900ms ease-out forwards',
+        }} />
+      )}
+    </div>
+  );
+}
 
 /** Ambient particles behind the game, driven by the equipped cosmetic. */
 function ParticleField({ color, style }: { color: string; style: string }) {

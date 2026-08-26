@@ -57,12 +57,14 @@ export default function CrateOpeningModal({
     return () => clearTimeout(t);
   }, [auto, done, revealed, reveal]);
 
-  // Where the current crate starts, so a batch shows one crate at a time.
-  const currentCrate = done ? openings.length - 1 : slots[revealed]?.crate ?? 0;
+  // Follow the crate of the *last revealed* item, not the next one: keying
+  // off the next slot flipped to the following crate before its final card
+  // had been on screen, which is why the last object looked skipped.
+  const currentCrate = revealed > 0 ? slots[revealed - 1].crate : 0;
   const crateSlots = slots.filter((s) => s.crate === currentCrate);
   const crateStart = slots.findIndex((s) => s.crate === currentCrate);
 
-  if (recap || (done && auto && openings.length > 1)) {
+  if (recap) {
     return <Recap openings={openings} slots={slots} onClose={onClose} />;
   }
 

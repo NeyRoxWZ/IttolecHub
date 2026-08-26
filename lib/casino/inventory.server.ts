@@ -98,7 +98,7 @@ export async function openCrates(
   const crate = crateById(crateId);
   if (!crate) return { ok: false, status: 404, error: 'Caisse inconnue' };
 
-  const wanted = Math.max(1, Math.min(20, Math.floor(quantity)));
+  const wanted = Math.max(1, Math.floor(quantity));
   const opened = await consumeMany(userId, crateId, wanted);
   if (opened === 0) return { ok: false, status: 400, error: 'Tu n’as pas cette caisse.' };
 

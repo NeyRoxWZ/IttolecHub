@@ -42,7 +42,8 @@ export async function POST(request: Request) {
     if (!crate && !item) return NextResponse.json({ error: 'Objet inconnu' }, { status: 404 });
 
     // Crates are permanent stock and stack; the five daily items are one-shot.
-    const quantity = crate ? Math.max(1, Math.min(10, Number(body?.quantity) || 1)) : 1;
+    // No arbitrary ceiling: what you can afford is the limit.
+    const quantity = crate ? Math.max(1, Math.floor(Number(body?.quantity) || 1)) : 1;
 
     if (item && !dailyShop().some((i) => i.id === itemId)) {
       return NextResponse.json({ error: "Cet objet n'est pas en boutique aujourd'hui." }, { status: 400 });
