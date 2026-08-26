@@ -4,7 +4,7 @@
  * the same shop and it rolls over at midnight UTC with no scheduled job.
  */
 
-export type ItemCategory = 'protection' | 'gain' | 'xp' | 'mise' | 'mission' | 'economie' | 'cosmetique';
+export type ItemCategory = 'protection' | 'gain' | 'xp' | 'mise' | 'mission' | 'economie';
 
 export type ItemEffect =
   // consumables resolved during a bet settlement
@@ -22,11 +22,7 @@ export type ItemEffect =
   | 'cashback_boost'
   | 'mission_reroll'
   | 'mission_complete'
-  | 'grant_scratch'
-  // cosmetics
-  | 'cosmetic';
-
-export type CosmeticSlot = 'title' | 'border' | 'confetti' | 'table_theme' | 'card_back';
+  | 'grant_scratch';
 
 export interface ShopItem {
   id: string;
@@ -41,9 +37,6 @@ export interface ShopItem {
   uses?: number;
   /** Consumable: how long it lasts, in minutes. */
   durationMin?: number;
-  /** Cosmetics only. */
-  slot?: CosmeticSlot;
-  value?: string;
 }
 
 export const SHOP_ITEMS: ShopItem[] = [
@@ -81,15 +74,10 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'mystery_bag_xl', name: 'Sac mystère XL', description: 'Entre ×0,4 et ×3 son prix, mais la mise est plus grosse.', price: 4000, category: 'economie', effect: 'mystery_coins' },
   { id: 'interest', name: 'Placement', description: '+2% de ton solde immédiatement (jusqu’à 5 000 ₶).', price: 3000, category: 'economie', effect: 'interest', magnitude: 0.02 },
   { id: 'cashback_boost', name: 'Cashback doublé', description: 'Ton prochain cashback passe de 5% à 10% de tes pertes.', price: 1400, category: 'economie', effect: 'cashback_boost', uses: 1 },
+  { id: 'second_wind', name: 'Second souffle', description: 'Tes 2 prochaines défaites te rendent 75% de la mise.', price: 1100, category: 'protection', effect: 'loss_refund', magnitude: 0.75, uses: 2 },
+  { id: 'xp_marathon', name: 'Marathon XP', description: 'XP ×1,5 pendant 90 minutes.', price: 900, category: 'xp', effect: 'xp_multiplier', magnitude: 1.5, durationMin: 90 },
+  { id: 'jackpot_seed', name: 'Amorce de jackpot', description: 'Chances de jackpot ×3 pendant 15 mises.', price: 3200, category: 'gain', effect: 'jackpot_boost', magnitude: 3, uses: 15 },
 
-  /* ---- cosmétiques ---- */
-  { id: 'title_flambeur', name: 'Titre « Flambeur »', description: 'Titre affiché sous ton pseudo.', price: 2500, category: 'cosmetique', effect: 'cosmetic', slot: 'title', value: 'Flambeur' },
-  { id: 'title_increvable', name: 'Titre « Increvable »', description: 'Titre affiché sous ton pseudo.', price: 2500, category: 'cosmetique', effect: 'cosmetic', slot: 'title', value: 'Increvable' },
-  { id: 'title_legende', name: 'Titre « Légende Frenly »', description: 'Le titre le plus rare de la boutique.', price: 9000, category: 'cosmetique', effect: 'cosmetic', slot: 'title', value: 'Légende Frenly' },
-  { id: 'border_gold', name: 'Bordure dorée', description: 'Encadre ton solde d’un liseré doré.', price: 3000, category: 'cosmetique', effect: 'cosmetic', slot: 'border', value: 'gold' },
-  { id: 'border_fire', name: 'Bordure de flammes', description: 'Un contour animé autour de ton solde.', price: 6000, category: 'cosmetique', effect: 'cosmetic', slot: 'border', value: 'fire' },
-  { id: 'confetti_gold', name: 'Confettis dorés', description: 'Tes victoires explosent en or.', price: 2000, category: 'cosmetique', effect: 'cosmetic', slot: 'confetti', value: 'gold' },
-  { id: 'table_purple', name: 'Tapis violet', description: 'Change la couleur des tables de cartes.', price: 1800, category: 'cosmetique', effect: 'cosmetic', slot: 'table_theme', value: 'purple' },
 ];
 
 export const SHOP_SLOTS_PER_DAY = 5;
@@ -97,6 +85,9 @@ export const SHOP_SLOTS_PER_DAY = 5;
 export function itemById(id: string): ShopItem | undefined {
   return SHOP_ITEMS.find((i) => i.id === id);
 }
+
+/** Everything in the catalogue is a consumable; crates live in `crates.ts`. */
+export const CONSUMABLES = SHOP_ITEMS;
 
 function seeded(seed: string): () => number {
   let h = 2166136261;

@@ -394,6 +394,20 @@ export function useCasinoWallet() {
     scheduleRevalidate();
   }, [scheduleRevalidate]);
 
+  /**
+   * Reflect a purchase in the UI before the server answers. Every mutating
+   * route revalidates a moment later, so a rejected purchase snaps back
+   * instead of leaving a wrong balance on screen.
+   */
+  const spendOptimistic = useCallback((amount: number) => {
+    setSnapshot({ balance: snapshot.balance - amount });
+    scheduleRevalidate();
+  }, [scheduleRevalidate]);
+
+  const setBalance = useCallback((next: number) => {
+    setSnapshot({ balance: next });
+  }, []);
+
   const startLocalBet = useCallback((gameSlug: string, amount: number): { ok: true } | { error: string } => {
     const w = loadLocalWallet();
     if (amount > w.balance) return { error: 'Solde insuffisant' };
@@ -477,6 +491,8 @@ export function useCasinoWallet() {
     creditLocal,
     applyServerBalance,
     applyServerCashout,
+    spendOptimistic,
+    setBalance,
     claimDaily,
     claimWheelOfFortune,
     prestige,

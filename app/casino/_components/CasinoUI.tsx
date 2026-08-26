@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Coins, Minus, Plus, HelpCircle, X, Volume2, VolumeX, Flame, Zap, RotateCcw } from 'lucide-react';
@@ -387,12 +388,13 @@ export function GameShell({
       <div className="max-w-[1500px] w-full mx-auto flex flex-col flex-1 min-h-0">
         <header className="flex items-center justify-between gap-3 mb-3 flex-wrap shrink-0">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push('/casino')}
+            <Link
+              href="/casino"
+              prefetch
               className="h-11 w-11 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
             >
               <ArrowLeft className="h-5 w-5" />
-            </button>
+              </Link>
             <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-black">{title}</h1>
             <button
               onClick={() => { sfx.click(); setShowRules(true); }}

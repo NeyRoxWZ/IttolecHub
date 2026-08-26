@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -107,6 +108,14 @@ export default function CasinoHub() {
   useEffect(() => {
     try { if (!localStorage.getItem(DISCLAIMER_KEY)) setShowDisclaimer(true); } catch {}
   }, []);
+
+  // The meta pages are reached from pills rather than links, so warm them by
+  // hand — otherwise every one of them starts by downloading its chunk.
+  useEffect(() => {
+    for (const path of ['/casino/shop', '/casino/pass', '/casino/achievements', '/casino/leaderboard']) {
+      router.prefetch(path);
+    }
+  }, [router]);
 
   useEffect(() => {
     supabase.from('casino_jackpot').select('amount').eq('id', 1).maybeSingle().then(({ data }) => {
@@ -386,9 +395,11 @@ export default function CasinoHub() {
           {CASINO_GAMES.map((game) => {
             const Icon = game.icon;
             return (
-              <button
+              <Link
                 key={game.slug}
-                onClick={() => { sfx.click(); router.push(`/casino/${game.slug}`); }}
+                href={`/casino/${game.slug}`}
+                prefetch
+                onClick={() => sfx.click()}
                 className="group h-full min-h-[128px] rounded-2xl border-4 border-brand-border bg-brand-card p-3 flex flex-col items-center justify-center gap-2 shadow-brutal transition-all hover:border-accent-primary hover:-translate-y-1 active:translate-y-0 focus:outline-none"
               >
                 <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 group-hover:border-accent-primary group-hover:scale-105 transition-all">
@@ -397,7 +408,7 @@ export default function CasinoHub() {
                 <span className="font-display font-black text-sm leading-tight text-center">{game.name}</span>
                 <span className="text-[11px] text-tx-secondary leading-tight text-center">{game.short}</span>
                 <span className="text-[10px] font-bold text-tx-muted mt-auto">Redistribution {game.rtp}</span>
-              </button>
+              </Link>
             );
           })}
         </div>

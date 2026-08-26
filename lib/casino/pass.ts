@@ -9,6 +9,7 @@
 
 import { COSMETICS, cosmeticById } from './cosmetics';
 import { SHOP_ITEMS } from './shop';
+import { CRATES, crateById } from './crates';
 
 export const PASS_TIERS = 100;
 
@@ -116,8 +117,8 @@ function shuffled<T>(list: T[], seed: string): T[] {
   return out;
 }
 
-/** Consumables only — cosmetics come from the cosmetic pool, not the shop. */
-const PASS_ITEM_POOL = SHOP_ITEMS.filter((i) => i.effect !== 'cosmetic').map((i) => i.id);
+/** Consumables and crates — cosmetics come from the cosmetic pool instead. */
+const PASS_ITEM_POOL = [...SHOP_ITEMS.map((i) => i.id), ...CRATES.map((c) => c.id)];
 
 function buildTrack(): PassTier[] {
   // 160 cosmetics over 200 slots: the premium column carries one per tier,
@@ -165,6 +166,10 @@ export function passTier(tier: number): PassTier | undefined {
 /** Human label for a reward, shared by the pass UI and the claim toasts. */
 export function rewardLabel(reward: PassReward): string {
   if (reward.kind === 'coins') return `${(reward.amount || 0).toLocaleString('fr-FR')} ₶`;
-  if (reward.kind === 'item') return SHOP_ITEMS.find((i) => i.id === reward.itemId)?.name || 'Objet';
+  if (reward.kind === 'item') {
+    return SHOP_ITEMS.find((i) => i.id === reward.itemId)?.name
+      || crateById(reward.itemId || '')?.name
+      || 'Objet';
+  }
   return cosmeticById(reward.cosmeticId || '')?.name || 'Cosmétique';
 }

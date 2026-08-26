@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Coins, Clock, Lock, Check, Crown, X, Sparkles } from 'lucide-react';
@@ -10,8 +11,9 @@ import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import {
-  COSMETIC_SLOTS, COSMETIC_GAME_ORDER, SLOT_LABEL, cosmeticById, cosmeticsForGame,
-  gameLabel, gameTheme, type Cosmetic, type CosmeticSlot,
+  COSMETIC_GAME_ORDER, SLOT_LABEL, RARITY_COLOR, RARITY_LABEL, GLOBAL_SLUG,
+  cosmeticById, cosmeticsForGame, gameLabel, gameTheme,
+  type Cosmetic, type CosmeticSlot,
 } from '@/lib/casino/cosmetics';
 import { itemById } from '@/lib/casino/shop';
 import type { PassReward, PassTier } from '@/lib/casino/pass';
@@ -35,7 +37,7 @@ function rewardCosmetic(reward: PassReward): Cosmetic | undefined {
 export default function FrenlyPassPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { balance, isLoaded, refresh } = useCasinoWallet();
+  const { balance, isLoaded, refresh, spendOptimistic, setBalance } = useCasinoWallet();
 
   const [tab, setTab] = useState<'pass' | 'collection'>('pass');
   const [tiers, setTiers] = useState<PassTier[]>([]);
@@ -93,20 +95,23 @@ export default function FrenlyPassPage() {
     if (balance < premiumPrice) { toast.error('Solde insuffisant'); return; }
 
     setBuying(true); vibrate(HAPTIC.MEDIUM);
+    const before = balance;
+    spendOptimistic(premiumPrice);
     try {
       const res = await fetch('/api/casino/pass', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.id }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
+      if (!res.ok) { setBalance(before); toast.error(data.error || 'Erreur'); return; }
+      setBalance(data.newBalance);
       sfx.jackpot(); setConfetti((c) => c + 1);
       toast.success('Voie premium débloquée', {
         description: data.granted?.length
           ? `${data.granted.length} récompense${data.granted.length > 1 ? 's' : ''} rattrapée${data.granted.length > 1 ? 's' : ''} d'un coup.`
           : 'Chaque palier atteint te donnera les deux récompenses.',
       });
-      await Promise.all([load(), refresh()]);
+      void load();
     } finally {
       setBuying(false);
     }
@@ -139,12 +144,13 @@ export default function FrenlyPassPage() {
       <div className="max-w-6xl w-full mx-auto flex flex-col flex-1 min-h-0">
         <header className="flex items-center justify-between gap-3 mb-3 flex-wrap shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <button
-              onClick={() => router.push('/casino')}
+            <Link
+              href="/casino"
+              prefetch
               className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
             >
               <ArrowLeft className="h-5 w-5" />
-            </button>
+              </Link>
             <div className="min-w-0">
               <h1 className="font-display text-xl sm:text-2xl font-black leading-none">Frenly Pass</h1>
               <span className="text-[11px] text-tx-muted">100 paliers · remis à zéro chaque lundi</span>
@@ -381,13 +387,14 @@ function Collection({
   const pieces = useMemo(() => cosmeticsForGame(game), [game]);
   const gameEquipped = equipped[game] || {};
   const ownedCount = pieces.filter((c) => owned.includes(c.id)).length;
+  const total = pieces.length;
 
   return (
     <div className="flex flex-col gap-3 min-h-0">
       <div className="flex gap-2 overflow-x-auto pb-1 shrink-0">
         {COSMETIC_GAME_ORDER.map((slug) => {
-          const total = 8;
-          const got = cosmeticsForGame(slug).filter((c) => owned.includes(c.id)).length;
+          const all = cosmeticsForGame(slug);
+          const got = all.filter((c) => owned.includes(c.id)).length;
           return (
             <button
               key={slug}
@@ -398,33 +405,41 @@ function Collection({
                   : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
               )}
             >
-              {gameLabel(slug)} <span className="text-[10px] text-tx-muted">{got}/{total}</span>
+              {gameLabel(slug)} <span className="text-[10px] text-tx-muted">{got}/{all.length}</span>
             </button>
           );
         })}
       </div>
 
       <div className="text-[11px] text-tx-muted shrink-0">
-        Thème « {gameTheme(game)} » — {ownedCount}/8 débloqués. Un cosmétique ne s&apos;applique qu&apos;au jeu qui l&apos;a donné.
+        {game === GLOBAL_SLUG
+          ? `Sets généraux — ${ownedCount}/${total} débloqués. Ceux-là s'appliquent à tous les jeux.`
+          : `Thème « ${gameTheme(game)} » — ${ownedCount}/${total} débloqués. Ces pièces ne s'appliquent qu'à ce jeu.`}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {COSMETIC_SLOTS.map((slot) => {
-          const piece = pieces.find((c) => c.slot === slot);
-          if (!piece) return null;
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {pieces.map((piece) => {
           const isOwned = owned.includes(piece.id);
-          const isEquipped = gameEquipped[slot] === piece.id;
+          const isEquipped = gameEquipped[piece.slot] === piece.id;
+          const tone = RARITY_COLOR[piece.rarity];
 
           return (
             <div
-              key={slot}
+              key={piece.id}
               className={cn(
                 'rounded-2xl border-4 p-3 flex flex-col items-center gap-2 transition-colors',
-                isEquipped ? 'border-accent-primary bg-accent-primary/10' : 'border-brand-border bg-brand-card',
+                isEquipped ? 'bg-accent-primary/10' : 'bg-brand-card',
                 !isOwned && 'opacity-55'
               )}
+              style={{ borderColor: isEquipped ? tone : undefined }}
             >
-              <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">{SLOT_LABEL[slot]}</span>
+              <div className="w-full flex items-center justify-between gap-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">{SLOT_LABEL[piece.slot]}</span>
+                <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: tone }}>
+                  {RARITY_LABEL[piece.rarity]}
+                </span>
+              </div>
+
               <div className="relative">
                 <CosmeticPreview cosmetic={piece} size={82} />
                 {!isOwned && (
@@ -433,11 +448,12 @@ function Collection({
                   </span>
                 )}
               </div>
+
               <span className="font-display font-black text-[11px] leading-tight text-center">{piece.name}</span>
               <span className="text-[10px] text-tx-muted leading-tight text-center">{cosmeticEffect(piece)}</span>
 
               <button
-                onClick={() => onEquip(game, slot, isEquipped ? null : piece.id)}
+                onClick={() => onEquip(game, piece.slot, isEquipped ? null : piece.id)}
                 disabled={!isOwned}
                 className={cn(
                   'mt-auto w-full h-8 rounded-lg border-2 font-black text-[10px] tracking-widest focus:outline-none transition-colors',

@@ -58,11 +58,46 @@ export interface CosmeticParams {
   art?: string;
 }
 
+export type Rarity = 'commun' | 'rare' | 'epique' | 'legendaire';
+
+export const RARITY_LABEL: Record<Rarity, string> = {
+  commun: 'Commun', rare: 'Rare', epique: 'Épique', legendaire: 'Légendaire',
+};
+
+export const RARITY_COLOR: Record<Rarity, string> = {
+  commun: '#8A8AA0', rare: '#4FA3FF', epique: '#B061FF', legendaire: '#FFB300',
+};
+
+/**
+ * Rarity follows how much of the screen a piece changes: a background tint is
+ * common, a full reskin of the game's own artwork is legendary.
+ */
+const SLOT_RARITY: Record<CosmeticSlot, Rarity> = {
+  table: 'commun',
+  particles: 'commun',
+  lose_fx: 'rare',
+  border: 'rare',
+  win_fx: 'epique',
+  sound: 'epique',
+  skin: 'legendaire',
+  emblem: 'legendaire',
+};
+
+/** Cosmetics that work in every game are one notch rarer than their slot. */
+const BUMP: Record<Rarity, Rarity> = {
+  commun: 'rare', rare: 'epique', epique: 'legendaire', legendaire: 'legendaire',
+};
+
+export const GLOBAL_SLUG = 'global';
+
 export interface Cosmetic {
   id: string;
   gameSlug: string;
   slot: CosmeticSlot;
   name: string;
+  rarity: Rarity;
+  /** Applies to every game rather than a single one. */
+  global?: boolean;
   params: CosmeticParams;
 }
 
@@ -250,6 +285,7 @@ function buildCosmetics(): Cosmetic[] {
         gameSlug: t.slug,
         slot,
         name: t.names[i],
+        rarity: SLOT_RARITY[slot],
         params: params[slot],
       });
     });
@@ -257,7 +293,74 @@ function buildCosmetics(): Cosmetic[] {
   return out;
 }
 
-export const COSMETICS: Cosmetic[] = buildCosmetics();
+/**
+ * Global sets — the same eight slots, but they apply to every game. Four
+ * sets, so a player who never touches Craps still has something to chase.
+ */
+const GLOBAL_SETS: { key: string; theme: string; palette: [string, string, string]; pattern: TablePattern;
+  hue: number; saturate: number; winStyle: WinStyle; loseStyle: LoseStyle;
+  particleStyle: ParticleStyle; pack: SoundPack; art: string;
+  names: [string, string, string, string, string, string, string, string] }[] = [
+  {
+    key: 'onyx', theme: 'Onyx', palette: ['#0B0B10', '#1C1C26', '#C9CCD6'], pattern: 'plain',
+    hue: 0, saturate: 0.35, winStyle: 'sparks', loseStyle: 'ash', particleStyle: 'drift',
+    pack: 'lounge', art: 'diamond',
+    names: ['Tapis Onyx', 'Nuances Onyx', 'Éclat d’onyx', 'Poussière noire', 'Contour d’onyx', 'Cendres flottantes', 'Silence feutré', 'Sceau d’onyx'],
+  },
+  {
+    key: 'or', theme: 'Or massif', palette: ['#1A1405', '#4A3A0C', '#FFD000'], pattern: 'rays',
+    hue: 45, saturate: 1.4, winStyle: 'coins', loseStyle: 'smoke', particleStyle: 'rise',
+    pack: 'orchestral', art: 'crown',
+    names: ['Tapis Or massif', 'Dorure intégrale', 'Averse dorée', 'Fumée d’encens', 'Contour d’or', 'Paillettes d’or', 'Grand orchestre', 'Couronne d’or'],
+  },
+  {
+    key: 'neon', theme: 'Néon', palette: ['#06060F', '#101038', '#00E5FF'], pattern: 'grid',
+    hue: 185, saturate: 1.7, winStyle: 'shock', loseStyle: 'static', particleStyle: 'orbit',
+    pack: 'arcade', art: 'star',
+    names: ['Tapis Néon', 'Filtre Néon', 'Impulsion cyan', 'Coupure de signal', 'Contour néon', 'Circuits flottants', 'Bornes néon', 'Étoile néon'],
+  },
+  {
+    key: 'sang', theme: 'Sang-froid', palette: ['#14060A', '#3D0D18', '#FF2E4D'], pattern: 'stripes',
+    hue: 350, saturate: 1.5, winStyle: 'fireworks', loseStyle: 'drip', particleStyle: 'fall',
+    pack: 'western', art: 'skull',
+    names: ['Tapis Sang-froid', 'Teinte Sang-froid', 'Gerbe écarlate', 'Coulée pourpre', 'Contour écarlate', 'Braises rouges', 'Blues de minuit', 'Crâne écarlate'],
+  },
+];
+
+function buildGlobalCosmetics(): Cosmetic[] {
+  const out: Cosmetic[] = [];
+  for (const g of GLOBAL_SETS) {
+    const [dark, mid, accent] = g.palette;
+    const params: Record<CosmeticSlot, CosmeticParams> = {
+      table: { from: dark, to: mid, pattern: g.pattern, color: accent },
+      skin: { hue: g.hue, saturate: g.saturate, color: accent },
+      win_fx: { winStyle: g.winStyle, colors: [accent, mid, '#FFFFFF'] },
+      lose_fx: { loseStyle: g.loseStyle, color: mid },
+      border: { color: accent, glow: true, animated: true },
+      particles: { particleStyle: g.particleStyle, color: accent },
+      sound: { pack: g.pack, color: accent },
+      emblem: { art: g.art, color: accent },
+    };
+    COSMETIC_SLOTS.forEach((slot, i) => {
+      out.push({
+        id: `${GLOBAL_SLUG}:${g.key}:${slot}`,
+        gameSlug: GLOBAL_SLUG,
+        slot,
+        name: g.names[i],
+        rarity: BUMP[SLOT_RARITY[slot]],
+        global: true,
+        params: params[slot],
+      });
+    });
+  }
+  return out;
+}
+
+export const GLOBAL_COSMETICS: Cosmetic[] = buildGlobalCosmetics();
+
+export const COSMETICS: Cosmetic[] = [...buildCosmetics(), ...GLOBAL_COSMETICS];
+
+export const GLOBAL_SET_LABELS: { key: string; theme: string }[] = GLOBAL_SETS.map((g) => ({ key: g.key, theme: g.theme }));
 
 const BY_ID = new Map(COSMETICS.map((c) => [c.id, c]));
 
@@ -270,11 +373,18 @@ export function cosmeticsForGame(gameSlug: string): Cosmetic[] {
 }
 
 export function gameTheme(gameSlug: string): string {
+  if (gameSlug === GLOBAL_SLUG) return 'Tous les jeux';
   return THEMES.find((t) => t.slug === gameSlug)?.theme ?? gameSlug;
 }
 
 export function gameLabel(gameSlug: string): string {
+  if (gameSlug === GLOBAL_SLUG) return 'Général';
   return THEMES.find((t) => t.slug === gameSlug)?.game ?? gameSlug;
 }
 
-export const COSMETIC_GAME_ORDER = THEMES.map((t) => t.slug);
+/** "Général" first: it's the set that shows up everywhere. */
+export const COSMETIC_GAME_ORDER = [GLOBAL_SLUG, ...THEMES.map((t) => t.slug)];
+
+export function cosmeticsByRarity(rarity: Rarity): Cosmetic[] {
+  return COSMETICS.filter((c) => c.rarity === rarity);
+}

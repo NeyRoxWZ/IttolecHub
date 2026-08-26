@@ -3,8 +3,7 @@ import {
   PASS_TIERS, PASS_PREMIUM_PRICE, PASS_TRACK, tierFromPassXp, weekKey,
   type PassReward,
 } from './pass';
-import { itemById } from './shop';
-import { grantEffect } from './effects.server';
+import { addToInventory } from './inventory.server';
 
 export interface PassRow {
   week_key: string;
@@ -61,10 +60,9 @@ async function grantRange(userId: string, from: number, to: number, track: 'free
     else if (reward.kind === 'cosmetic' && reward.cosmeticId) {
       cosmetics.push({ user_id: userId, item_id: reward.cosmeticId, quantity: 1 });
     } else if (reward.kind === 'item' && reward.itemId) {
-      const item = itemById(reward.itemId);
-      if (item && item.effect !== 'cosmetic') {
-        await grantEffect(userId, item.effect, item.magnitude ?? 1, { uses: item.uses, durationMin: item.durationMin });
-      }
+      // Items land in the inventory like a purchase would, so the player
+      // chooses when to spend them.
+      await addToInventory(userId, reward.itemId);
     }
   }
 
