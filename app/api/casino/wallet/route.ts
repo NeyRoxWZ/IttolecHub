@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase/server';
 import { CASINO_STARTING_BALANCE, CASINO_SAFETY_NET_THRESHOLD, CASINO_SAFETY_NET_AMOUNT } from '@/lib/casino/wheel';
 import { levelFromXp } from '@/lib/casino/progression';
 import { loadEffects } from '@/lib/casino/effects.server';
+import { ensurePass } from '@/lib/casino/pass.server';
+import { tierFromPassXp } from '@/lib/casino/pass';
 
 function isSameUtcDay(a: Date, b: Date): boolean {
   return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
@@ -57,7 +59,10 @@ export async function GET(request: Request) {
     const now = new Date();
     const xp = Number(wallet.xp || 0);
     const { level, intoLevel, needed } = levelFromXp(xp);
-    const effects = await loadEffects(userId);
+    const [effects, pass] = await Promise.all([loadEffects(userId), ensurePass(userId)]);
+
+    // The visible level is the pass tier: one progression, reset every Monday.
+    const passState = tierFromPassXp(pass?.xp ?? 0);
 
     const dailyClaimedToday = !!wallet.last_daily_claim_at && isSameUtcDay(new Date(wallet.last_daily_claim_at), now);
     const wheelClaimedToday = !!wallet.last_wheel_claim_at && isSameUtcDay(new Date(wallet.last_wheel_claim_at), now);
@@ -77,9 +82,14 @@ export async function GET(request: Request) {
         dailyClaimedToday,
         wheelClaimedToday,
         xp,
-        level,
-        xpIntoLevel: intoLevel,
-        xpForNext: needed,
+        level: passState.tier,
+        xpIntoLevel: passState.intoTier,
+        xpForNext: passState.needed,
+        /** Lifetime account level, kept for the achievement list. */
+        accountLevel: level,
+        accountXp: xp,
+        accountXpIntoLevel: intoLevel,
+        accountXpForNext: needed,
         cashbackClaimedToday: !!wallet.last_cashback_claim_at && isSameUtcDay(new Date(wallet.last_cashback_claim_at), now),
       },
       effects,

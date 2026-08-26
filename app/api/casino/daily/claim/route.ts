@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       user_id: userId, game_slug: 'casino', type: 'bonus', amount: reward, balance_after: newBalance, meta: { kind: 'daily', streak: newStreak, base, streakMult },
     });
 
-    const pass = await advancePass(userId, PASS_XP.dailyBonus);
+    const pass = await advancePass(userId, PASS_XP.dailyBonus, 'activity');
 
     return NextResponse.json({ reward, base, streakMult, newBalance, dailyStreak: newStreak, pass });
   } catch (err) {

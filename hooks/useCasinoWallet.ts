@@ -37,9 +37,12 @@ export interface CasinoStats {
   dailyClaimedToday: boolean;
   wheelClaimedToday: boolean;
   xp: number;
+  /** The Frenly Pass tier — the one progression the player sees. */
   level: number;
   xpIntoLevel: number;
   xpForNext: number;
+  /** Lifetime account level, only read by the achievement list. */
+  accountLevel: number;
   cashbackClaimedToday: boolean;
 }
 
@@ -50,7 +53,7 @@ const EMPTY_STATS: CasinoStats = {
   totalWagered: 0, totalWon: 0, currentStreak: 0, bestStreak: 0, prestigeCount: 0,
   biggestMultiplier: 0, allTimeBestBalance: CASINO_STARTING_BALANCE, dailyStreak: 0,
   dailyClaimedToday: false, wheelClaimedToday: false,
-  xp: 0, level: 1, xpIntoLevel: 0, xpForNext: 200, cashbackClaimedToday: false,
+  xp: 0, level: 0, xpIntoLevel: 0, xpForNext: 260, accountLevel: 1, cashbackClaimedToday: false,
 };
 
 /* ------------------------------------------------------------------ */
@@ -164,10 +167,8 @@ export interface GenericBetResult {
 function announceProgression(progression?: Progression, pass?: PassProgress) {
   if (!progression) return;
 
-  // A level-up and a jackpot stop the screen; the rest stays as toasts.
-  if (progression.levelsGained && progression.level) {
-    celebrate({ kind: 'level', level: progression.level, reward: progression.levelReward || 0 });
-  }
+  // A level is a pass tier, one for one. Nothing about it takes the screen:
+  // it slides in from the top and the run continues underneath.
   if (pass?.unlocked?.length) {
     celebrate({ kind: 'pass_tier', tiers: pass.unlocked });
   }
@@ -188,23 +189,27 @@ function announceProgression(progression?: Progression, pass?: PassProgress) {
   }
 }
 
-/** Move the XP bar and streak the moment the server answers. */
-function applyProgression(progression?: Progression) {
-  if (!progression) return;
+/** Move the bars and the streak the moment the server answers. */
+function applyProgression(progression?: Progression, pass?: PassProgress) {
+  if (!progression && !pass) return;
   const s = snapshot.stats;
-  const xp = s.xp + (progression.xpGained || 0);
-  const level = progression.level ?? s.level;
-  const patch: Partial<CasinoStats> = { xp, level };
-  if (progression.levelsGained) {
-    // The exact position inside the new level comes back on the next refresh.
-    patch.xpIntoLevel = 0;
-  } else {
-    patch.xpIntoLevel = s.xpIntoLevel + (progression.xpGained || 0);
+  const patch: Partial<CasinoStats> = {};
+
+  if (progression) {
+    patch.accountLevel = progression.level ?? s.accountLevel;
+    patch.xp = s.xp + (progression.xpGained || 0);
+    if (progression.streak !== undefined) {
+      patch.currentStreak = progression.streak;
+      patch.bestStreak = Math.max(s.bestStreak, progression.streak);
+    }
   }
-  if (progression.streak !== undefined) {
-    patch.currentStreak = progression.streak;
-    patch.bestStreak = Math.max(s.bestStreak, progression.streak);
+
+  // The visible bar is the pass, so it follows the pass response.
+  if (pass) {
+    patch.level = pass.tier;
+    patch.xpIntoLevel = pass.tiersGained ? 0 : s.xpIntoLevel;
   }
+
   setSnapshot({ stats: { ...s, ...patch } });
 }
 
@@ -315,7 +320,7 @@ export function useCasinoWallet() {
         const data = await res.json();
         if (!res.ok) return { error: data.error || 'Erreur du serveur' };
         applySettlement('wheel', data.netChange, data.newBalance, data.multiplier, { bet, landedNumber: data.landedNumber, amount });
-        applyProgression(data.progression);
+        applyProgression(data.progression, data.pass);
         announceProgression(data.progression, data.pass);
         scheduleRevalidate();
         return data as WheelSpinResult;
@@ -363,7 +368,7 @@ export function useCasinoWallet() {
         const data = await res.json();
         if (!res.ok) return { error: data.error || 'Erreur du serveur' };
         applySettlement(gameSlug, data.netChange, data.newBalance, data.multiplier, { ...data.meta, amount });
-        applyProgression(data.progression);
+        applyProgression(data.progression, data.pass);
         announceProgression(data.progression, data.pass);
         scheduleRevalidate();
         return data as GenericBetResult;

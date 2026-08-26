@@ -71,8 +71,6 @@ export default function MissionsModal({
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
       sfx.coin();
       toast.success(`+${data.reward.toLocaleString('en-US')} ₶`, { description: `+${data.xp} XP` });
-      // Mission XP can cross a level; it deserves the same moment as a bet.
-      if (data.levelsGained) celebrate({ kind: 'level', level: data.level, reward: data.levelReward || 0 });
       if (data.pass?.unlocked?.length) celebrate({ kind: 'pass_tier', tiers: data.pass.unlocked });
       onClaimed();
     } finally {

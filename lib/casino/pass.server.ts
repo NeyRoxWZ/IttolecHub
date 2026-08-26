@@ -1,8 +1,10 @@
 import { supabase } from '@/lib/supabase/server';
 import {
-  PASS_TIERS, PASS_PREMIUM_PRICE, PASS_TRACK, tierFromPassXp, weekKey,
+  PASS_TIERS, PASS_PREMIUM_PRICE, PASS_TRACK, PASS_DAILY_XP_CAP, PASS_DAILY_BET_XP_CAP,
+  tierFromPassXp, weekKey,
   type PassReward,
 } from './pass';
+import { dayKey } from './missions';
 import { addToInventory } from './inventory.server';
 
 export interface PassRow {
@@ -11,7 +13,13 @@ export interface PassRow {
   tier: number;
   premium: boolean;
   swept?: boolean;
+  day_key?: string | null;
+  day_xp?: number;
+  day_bet_xp?: number;
 }
+
+/** Where a bit of pass XP came from — bets are the only capped source. */
+export type PassXpSource = 'bet' | 'activity';
 
 export type PassTrack = 'free' | 'premium';
 
@@ -132,11 +140,28 @@ export async function passClaims(userId: string): Promise<{ free: number[]; prem
 /* Progression                                                         */
 /* ------------------------------------------------------------------ */
 
-/** Add pass XP. Rewards are not handed out here — they're claimed by hand. */
-export async function advancePass(userId: string, xp: number): Promise<PassProgress> {
+/**
+ * Add pass XP, clamped by the day's remaining budget. Rewards are not handed
+ * out here — they're claimed by hand.
+ */
+export async function advancePass(userId: string, xp: number, source: PassXpSource = 'bet'): Promise<PassProgress> {
   if (xp <= 0) return EMPTY_PROGRESS;
   const row = await ensurePass(userId);
   if (!row) return EMPTY_PROGRESS;
+
+  const today = dayKey();
+  const sameDay = row.day_key === today;
+  const dayXp = sameDay ? Number(row.day_xp || 0) : 0;
+  const dayBetXp = sameDay ? Number(row.day_bet_xp || 0) : 0;
+
+  let allowed = Math.max(0, PASS_DAILY_XP_CAP - dayXp);
+  if (source === 'bet') allowed = Math.min(allowed, Math.max(0, PASS_DAILY_BET_XP_CAP - dayBetXp));
+
+  const granted = Math.min(xp, allowed);
+  if (granted <= 0) {
+    return { tier: row.tier, tiersGained: 0, xp: row.xp, unlocked: [] };
+  }
+  xp = granted;
 
   const newXp = row.xp + xp;
   const { tier } = tierFromPassXp(newXp);
@@ -155,6 +180,9 @@ export async function advancePass(userId: string, xp: number): Promise<PassProgr
   await supabase.from('casino_pass').update({
     xp: newXp,
     tier: capped,
+    day_key: today,
+    day_xp: dayXp + xp,
+    day_bet_xp: dayBetXp + (source === 'bet' ? xp : 0),
     updated_at: new Date().toISOString(),
   }).eq('user_id', userId).eq('week_key', row.week_key);
 

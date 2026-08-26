@@ -1,15 +1,12 @@
 'use client';
 
 /**
- * Celebrations worth stopping the screen for.
- *
- * A level-up used to be a toast in the corner, indistinguishable from
- * "mission terminée" — nothing about it felt like a reward. Anything routed
- * through here gets a full overlay instead.
+ * Moments worth announcing. Only the jackpot stops the screen; a level is a
+ * pass tier and slides in from the top so the run can continue underneath.
  */
 
 export type Celebration =
-  | { kind: 'level'; level: number; reward: number }
+  /** A level, i.e. a pass tier — shown as a banner, never blocking. */
   | { kind: 'pass_tier'; tiers: number[] }
   | { kind: 'jackpot'; amount: number };
 

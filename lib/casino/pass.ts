@@ -23,27 +23,38 @@ export const PASS_XP = {
   levelUp: 120,
 };
 
-/** Cost of climbing from `tier` to `tier + 1`. */
-export function passXpForTier(tier: number): number {
-  return Math.round(30 + tier * 0.6);
+/**
+ * Every tier costs the same. A rising cost with a flat daily budget front-
+ * loads the whole thing — twenty tiers on day one, three on day five — which
+ * is exactly the "it goes way too fast" feeling.
+ */
+export const PASS_TIER_COST = 260;
+
+/**
+ * The day's budget, and how much of it bets alone may fill. Without this an
+ * auto-player bought a third of the pass in ten minutes; the remainder has to
+ * come from the daily bonus, the wheel and the missions, which are time-gated
+ * by construction.
+ */
+export const PASS_DAILY_XP_CAP = 5_200;
+export const PASS_DAILY_BET_XP_CAP = 3_120;
+
+/** Tiers reachable in one perfect day, and days needed for the full pass. */
+export const PASS_TIERS_PER_DAY = PASS_DAILY_XP_CAP / PASS_TIER_COST;
+
+export function passXpForTier(_tier: number): number {
+  return PASS_TIER_COST;
 }
 
 /** Total pass XP to reach `tier` from zero. */
 export function totalPassXp(tier: number): number {
-  let total = 0;
-  for (let t = 0; t < tier; t++) total += passXpForTier(t);
-  return total;
+  return tier * PASS_TIER_COST;
 }
 
 export function tierFromPassXp(xp: number): { tier: number; intoTier: number; needed: number } {
-  let tier = 0;
-  let remaining = xp;
-  while (tier < PASS_TIERS && remaining >= passXpForTier(tier)) {
-    remaining -= passXpForTier(tier);
-    tier++;
-  }
-  const needed = tier >= PASS_TIERS ? 0 : passXpForTier(tier);
-  return { tier, intoTier: tier >= PASS_TIERS ? 0 : remaining, needed };
+  const tier = Math.min(PASS_TIERS, Math.floor(xp / PASS_TIER_COST));
+  const intoTier = tier >= PASS_TIERS ? 0 : xp - tier * PASS_TIER_COST;
+  return { tier, intoTier, needed: tier >= PASS_TIERS ? 0 : PASS_TIER_COST };
 }
 
 /** Price of the premium track, re-bought every week. */

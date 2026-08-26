@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       user_id: userId, game_slug: 'casino', type: 'bonus', amount: reward, balance_after: newBalance, meta: { kind: 'wheel_of_fortune' },
     });
 
-    const pass = await advancePass(userId, PASS_XP.dailyWheel);
+    const pass = await advancePass(userId, PASS_XP.dailyWheel, 'activity');
 
     return NextResponse.json({ reward, newBalance, segmentIndex, pass });
   } catch (err) {

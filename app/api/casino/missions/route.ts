@@ -84,7 +84,7 @@ export async function POST(request: Request) {
       meta: { kind: 'mission', mission: row.mission_id },
     });
 
-    const pass = await advancePass(userId, PASS_XP.mission);
+    const pass = await advancePass(userId, PASS_XP.mission, 'activity');
 
     return NextResponse.json({
       reward: row.def.reward,

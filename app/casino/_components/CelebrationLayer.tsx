@@ -62,9 +62,11 @@ function TierBanner({ tiers }: { tiers: number[] }) {
         <Crown className="h-6 w-6 text-accent-primary shrink-0" />
         <div className="min-w-0 flex-1">
           <div className="font-display font-black text-sm leading-tight">
-            {tiers.length > 1 ? `${tiers.length} paliers débloqués` : `Palier ${tiers[0]} débloqué`}
+            {tiers.length > 1
+              ? `Niveau ${tiers[tiers.length - 1]} — ${tiers.length} paliers gagnés`
+              : `Niveau ${tiers[0]} gagné`}
           </div>
-          <div className="text-[11px] text-tx-muted">Récompense à réclamer dans le Frenly Pass.</div>
+          <div className="text-[11px] text-tx-muted">Récupère ta récompense dans le Frenly Pass.</div>
         </div>
         <span className="text-[10px] font-black text-accent-primary tracking-widest shrink-0">VOIR</span>
       </Link>
@@ -74,48 +76,6 @@ function TierBanner({ tiers }: { tiers: number[] }) {
 
 function Panel({ event }: { event: Celebration }) {
   const shell = 'relative w-full max-w-sm rounded-[28px] border-4 border-brand-border bg-brand-card p-8 text-center shadow-brutal animate-in zoom-in-90 duration-300';
-
-  if (event.kind === 'level') {
-    return (
-      <div className={shell} onClick={(e) => e.stopPropagation()}>
-        <style>{`
-          @keyframes levelPop { 0% { transform: scale(0.5) rotate(-8deg); opacity: 0; } 60% { transform: scale(1.12) rotate(2deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
-          @keyframes levelRing { 0% { transform: scale(0.7); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
-        `}</style>
-
-        <div className="relative h-32 flex items-center justify-center mb-4">
-          {[0, 0.35, 0.7].map((d) => (
-            <span
-              key={d}
-              className="absolute rounded-full border-4 border-accent-primary"
-              style={{ width: 120, height: 120, animation: `levelRing 1.6s ease-out ${d}s infinite` }}
-            />
-          ))}
-          <div
-            className="relative h-28 w-28 rounded-full border-4 border-brand-border bg-accent-primary flex flex-col items-center justify-center"
-            style={{ animation: 'levelPop 520ms cubic-bezier(0.2, 1.4, 0.4, 1) both' }}
-          >
-            <span className="text-[10px] font-black uppercase tracking-widest text-brand-bg/70">Niveau</span>
-            <span className="font-display font-black text-5xl leading-none text-brand-bg tabular-nums">{event.level}</span>
-          </div>
-        </div>
-
-        <h2 className="font-display text-2xl font-black mb-1">Niveau supérieur</h2>
-        <p className="text-sm text-tx-secondary mb-4">
-          Le coffre de niveau s&apos;ouvre tout seul.
-        </p>
-
-        <div className="rounded-xl border-2 border-accent-success bg-accent-success/10 py-3 mb-5">
-          <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Coffre de niveau</div>
-          <div className="font-display font-black text-2xl text-accent-success tabular-nums">
-            +{event.reward.toLocaleString('en-US')} ₶
-          </div>
-        </div>
-
-        <DismissButton />
-      </div>
-    );
-  }
 
   if (event.kind === 'jackpot') {
     return (
