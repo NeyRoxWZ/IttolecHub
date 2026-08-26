@@ -7,7 +7,7 @@ import {
   Coins, Dices, Spade, CircleDot, Rocket, Bomb, Circle, ArrowUpDown, Ticket,
   Egg, Building2, Grid3x3, Gift, Zap, Flag, GlassWater, LayoutGrid, Layers, Hand, Dice5,
   ArrowLeft, Info, Flame, Trophy, Award, Sparkles, Gift as GiftIcon, Gem, Target, ShoppingBag,
-  Banknote, Crown, ArrowUpRight, Clock, Backpack,
+  Banknote, Crown, ArrowUpRight, Clock, Backpack, Radio,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -183,7 +183,7 @@ export default function CasinoHub() {
   // The meta pages are reached from pills rather than links, so warm them by
   // hand — otherwise every one of them starts by downloading its chunk.
   useEffect(() => {
-    for (const path of ['/casino/shop', '/casino/pass', '/casino/achievements', '/casino/leaderboard']) {
+    for (const path of ['/casino/shop', '/casino/pass', '/casino/inventaire', '/casino/achievements', '/casino/leaderboard', '/casino/direct']) {
       router.prefetch(path);
     }
   }, [router]);
@@ -424,6 +424,13 @@ export default function CasinoHub() {
               hint="115 à débloquer"
               icon={Award}
               onClick={() => { sfx.click(); router.push('/casino/achievements'); }}
+            />
+
+            <NavTile
+              label="En direct"
+              hint="tous les gains et pertes"
+              icon={Radio}
+              onClick={() => { sfx.click(); router.push('/casino/direct'); }}
             />
 
             <NavTile
