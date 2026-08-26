@@ -72,7 +72,7 @@ export default function FeedTicker() {
   const entry = feed[index];
 
   return (
-    <div className="fixed bottom-3 left-3 z-40 pointer-events-none max-w-[min(300px,calc(100vw-24px))]">
+    <div className="fixed left-3 z-40 pointer-events-none max-w-[min(300px,calc(100vw-24px))] safe-bottom">
       <div
         key={entry.id}
         className={cn(

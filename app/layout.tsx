@@ -5,14 +5,24 @@ import { ToasterProvider } from '@/components/ToasterProvider'
 import { AuthProvider } from '@/hooks/useAuth'
 
 export const metadata: Metadata = {
-  title: 'ItollecHub - Mini-jeux multijoueurs',
-  description: 'Plateforme de mini-jeux Guessr multijoueurs basés sur des APIs publiques',
+  title: 'IttolecHub',
+  description: 'Casino FrenlyCoins et mini-jeux multijoueurs.',
   manifest: '/manifest.json',
+  applicationName: 'IttolecHub',
   appleWebApp: {
     capable: true,
+    // The app paints its own dark background behind the status bar.
     statusBarStyle: 'black-translucent',
-    title: 'ItollecHub',
+    title: 'IttolecHub',
   },
+  icons: {
+    icon: [
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
+  formatDetection: { telephone: false },
 }
 
 export const viewport = {
@@ -20,7 +30,10 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#6366f1',
+  // Lets the page draw under the notch and the home indicator; the safe-area
+  // insets in globals.css keep the content clear of them.
+  viewportFit: 'cover' as const,
+  themeColor: '#13131A',
 }
 
 export default function RootLayout({

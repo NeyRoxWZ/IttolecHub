@@ -23,6 +23,7 @@ import FeedTicker from './_components/FeedTicker';
 import JackpotModal from './_components/JackpotModal';
 import OnboardingModal from './_components/OnboardingModal';
 import PrestigeModal from './_components/PrestigeModal';
+import CasinoMenu, { type MenuEntry } from './_components/CasinoMenu';
 import { secondsUntilRotation } from '@/lib/casino/shop';
 import { secondsUntilReset } from '@/lib/casino/pass';
 import DailyWheelModal from './_components/DailyWheelModal';
@@ -96,19 +97,23 @@ function ClaimTile({
       onClick={onClick}
       disabled={busy || !ready}
       className={cn(
-        TILE,
+        'relative h-16 sm:h-14 shrink-0 rounded-xl border-2 transition-all focus:outline-none',
+        'flex flex-col sm:flex-row items-center sm:gap-2 justify-center sm:justify-start px-2 sm:px-3 text-center sm:text-left',
         ready
           ? 'border-accent-success bg-accent-success text-brand-bg shadow-brutal hover:-translate-y-0.5'
           : 'border-brand-border bg-brand-card cursor-default'
       )}
     >
-      <Icon className={cn('h-4 w-4 shrink-0', !ready && 'text-tx-muted')} />
-      <div className="min-w-0 leading-tight">
-        <div className={cn('font-display font-black text-[12px] whitespace-nowrap', ready ? 'text-brand-bg' : 'text-tx-secondary')}>
+      <Icon className={cn('h-4 w-4 shrink-0 mb-0.5 sm:mb-0', !ready && 'text-tx-muted')} />
+      <div className="min-w-0 w-full leading-tight">
+        <div className={cn('font-display font-black text-[11px] sm:text-[12px] truncate', ready ? 'text-brand-bg' : 'text-tx-secondary')}>
           {label}
         </div>
-        <div className={cn('text-[9px] font-bold whitespace-nowrap flex items-center gap-1', ready ? 'text-brand-bg/70' : 'text-tx-muted')}>
-          {busy ? '···' : ready ? readyHint : (<><Clock className="h-2.5 w-2.5" />{waitLabel}</>)}
+        <div className={cn(
+          'text-[9px] font-bold truncate flex items-center justify-center sm:justify-start gap-1',
+          ready ? 'text-brand-bg/70' : 'text-tx-muted'
+        )}>
+          {busy ? '···' : ready ? readyHint : (<><Clock className="h-2.5 w-2.5 shrink-0" />{waitLabel}</>)}
         </div>
       </div>
     </button>
@@ -265,6 +270,46 @@ export default function CasinoHub() {
     toast.success(`Prestige ! Titre débloqué : ${getPrestigeTitle(result.prestigeCount)}`, { duration: 6000 });
   };
 
+  // The row of tiles and the mobile sheet read the same list, so they can't
+  // drift apart.
+  const destinations: MenuEntry[] = [
+    {
+      label: 'Missions', icon: Target, pending: claimable,
+      hint: `${missions.filter((m) => m.claimed).length}/${missions.length || 3} faites`,
+      onSelect: () => { sfx.click(); setShowMissions(true); },
+    },
+    {
+      label: 'Frenly Pass', icon: Crown, pending: passClaimable,
+      hint: `palier ${passTier ?? 0}/100`,
+      onSelect: () => { sfx.click(); router.push('/casino/pass'); },
+    },
+    {
+      label: 'Inventaire', icon: Backpack, hint: 'objets & cosmétiques',
+      onSelect: () => { sfx.click(); router.push('/casino/inventaire'); },
+    },
+    {
+      label: 'Boutique', icon: ShoppingBag, hint: `5 objets · ${formatWait(dailyResetIn)}`,
+      onSelect: () => { sfx.click(); router.push('/casino/shop'); },
+    },
+    {
+      label: 'En direct', icon: Radio, hint: 'tous les gains et pertes',
+      onSelect: () => { sfx.click(); router.push('/casino/direct'); },
+    },
+    {
+      label: 'Succès', icon: Award, hint: '115 à débloquer',
+      onSelect: () => { sfx.click(); router.push('/casino/achievements'); },
+    },
+    {
+      label: 'Classement', icon: Trophy, hint: 'saison en cours',
+      onSelect: () => { sfx.click(); router.push('/casino/leaderboard'); },
+    },
+    {
+      label: 'Cagnotte', icon: Gem,
+      hint: jackpot !== null ? `${jackpot.toLocaleString('en-US')} ₶` : '···',
+      onSelect: () => { sfx.click(); setShowJackpot(true); },
+    },
+  ];
+
   const prestigeTitle = getPrestigeTitle(stats.prestigeCount);
   const canPrestige = balance >= PRESTIGE_THRESHOLD;
   const pending = (!stats.dailyClaimedToday ? 1 : 0) + (!stats.wheelClaimedToday ? 1 : 0);
@@ -297,18 +342,24 @@ export default function CasinoHub() {
 
       <div className="max-w-6xl w-full mx-auto flex flex-col flex-1 min-h-0">
         {/* HEADER */}
-        <header className="flex items-center justify-between mb-3 gap-3 shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
+        <header className="flex items-center justify-between mb-3 gap-2 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => router.push('/?mode=solo')}
               className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <div className="min-w-0">
-              <h1 className="font-display text-xl sm:text-2xl font-black leading-none">Casino</h1>
-              {prestigeTitle && <span className="text-[10px] font-black uppercase tracking-widest text-accent-primary">{prestigeTitle}</span>}
+            <div className="min-w-0 flex-1">
+              <h1 className="font-display text-xl sm:text-2xl font-black leading-none truncate">Casino</h1>
+              {prestigeTitle && (
+                <span className="block text-[10px] font-black uppercase tracking-widest text-accent-primary truncate">
+                  {prestigeTitle}
+                </span>
+              )}
             </div>
+
+            <CasinoMenu entries={destinations} pending={claimable + passClaimable} />
 
             <button
               onClick={() => { sfx.click(); setShowGuide(true); }}
@@ -323,7 +374,7 @@ export default function CasinoHub() {
             <button
               onClick={() => { sfx.click(); setShowJackpot(true); }}
               title="Comment gagner la cagnotte ?"
-              className="h-11 flex items-center gap-2 px-3 rounded-xl border-2 border-dashed border-accent-primary/60 bg-accent-primary/5 hover:bg-accent-primary/10 transition-colors focus:outline-none"
+              className="hidden sm:flex h-11 items-center gap-2 px-3 rounded-xl border-2 border-dashed border-accent-primary/60 bg-accent-primary/5 hover:bg-accent-primary/10 transition-colors focus:outline-none"
             >
               <Gem className="h-4 w-4 shrink-0 text-accent-primary" />
               <div className="leading-tight text-left">
@@ -357,7 +408,7 @@ export default function CasinoHub() {
             collect, then where you can go. The pot moved up beside the level
             since it is neither. */}
         <div className="flex flex-col gap-2 mb-3 shrink-0">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-3 sm:flex sm:flex-wrap items-center gap-2">
             <ClaimTile
               label="Bonus du jour"
               icon={GiftIcon}
@@ -388,57 +439,17 @@ export default function CasinoHub() {
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <NavTile
-              label="Missions"
-              hint={`${missions.filter((m) => m.claimed).length}/${missions.length || 3} faites`}
-              icon={Target}
-              pending={claimable}
-              onClick={() => { sfx.click(); setShowMissions(true); }}
-            />
-
-            <NavTile
-              label="Frenly Pass"
-              hint={`palier ${passTier ?? 0}/100`}
-              icon={Crown}
-              pending={passClaimable}
-              onClick={() => { sfx.click(); router.push('/casino/pass'); }}
-            />
-
-            <NavTile
-              label="Inventaire"
-              hint="objets & cosmétiques"
-              icon={Backpack}
-              onClick={() => { sfx.click(); router.push('/casino/inventaire'); }}
-            />
-
-            <NavTile
-              label="Boutique"
-              hint={`5 objets · ${formatWait(dailyResetIn)}`}
-              icon={ShoppingBag}
-              onClick={() => { sfx.click(); router.push('/casino/shop'); }}
-            />
-
-            <NavTile
-              label="Succès"
-              hint="115 à débloquer"
-              icon={Award}
-              onClick={() => { sfx.click(); router.push('/casino/achievements'); }}
-            />
-
-            <NavTile
-              label="En direct"
-              hint="tous les gains et pertes"
-              icon={Radio}
-              onClick={() => { sfx.click(); router.push('/casino/direct'); }}
-            />
-
-            <NavTile
-              label="Classement"
-              hint="saison en cours"
-              icon={Trophy}
-              onClick={() => { sfx.click(); router.push('/casino/leaderboard'); }}
-            />
+          <div className="hidden sm:flex flex-wrap items-center gap-2">
+            {destinations.map((d) => (
+              <NavTile
+                key={d.label}
+                label={d.label}
+                hint={d.hint}
+                icon={d.icon}
+                pending={d.pending}
+                onClick={d.onSelect}
+              />
+            ))}
 
             {canPrestige ? (
               <button
