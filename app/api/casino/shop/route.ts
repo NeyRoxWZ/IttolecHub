@@ -9,14 +9,20 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('user_id');
 
+    let purchased: string[] = [];
+    if (userId) {
+      const { data } = await supabase.from('casino_shop_purchases')
+        .select('item_id').eq('user_id', userId).eq('day_key', shopDayKey());
+      purchased = (data || []).map((r) => r.item_id);
+    }
+
     return NextResponse.json({
       day: shopDayKey(),
       resetIn: secondsUntilRotation(),
       items: dailyShop(),
       crates: CRATES,
-      // Anything bought lands in the inventory, so nothing is ever
-      // "already owned" — the shop can be used as often as the player likes.
-      userId: !!userId,
+      /** Daily items already taken today — one purchase each, per rotation. */
+      purchased,
     });
   } catch (err) {
     console.error('Erreur GET shop:', err);
@@ -29,31 +35,49 @@ export async function POST(request: Request) {
     const body = await request.json();
     const userId: string = body?.user_id;
     const itemId: string = body?.item_id;
-    const quantity: number = Math.max(1, Math.min(10, Number(body?.quantity) || 1));
     if (!userId || !itemId) return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 });
 
     const crate = crateById(itemId);
     const item = crate ? null : itemById(itemId);
     if (!crate && !item) return NextResponse.json({ error: 'Objet inconnu' }, { status: 404 });
 
-    // Crates are permanent stock; the five consumables rotate daily.
+    // Crates are permanent stock and stack; the five daily items are one-shot.
+    const quantity = crate ? Math.max(1, Math.min(10, Number(body?.quantity) || 1)) : 1;
+
     if (item && !dailyShop().some((i) => i.id === itemId)) {
       return NextResponse.json({ error: "Cet objet n'est pas en boutique aujourd'hui." }, { status: 400 });
+    }
+
+    const day = shopDayKey();
+    if (item) {
+      // Claim the slot first: the primary key makes a second attempt fail,
+      // which is what stops a double-click from buying twice.
+      const { error: claimError } = await supabase.from('casino_shop_purchases')
+        .insert({ user_id: userId, day_key: day, item_id: itemId });
+      if (claimError) {
+        return NextResponse.json({ error: 'Tu as déjà pris cet objet aujourd’hui.' }, { status: 400 });
+      }
     }
 
     const unitPrice = crate ? crate.price : item!.price;
     const total = unitPrice * quantity;
 
     const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
-    if (!wallet) return NextResponse.json({ error: 'Portefeuille introuvable' }, { status: 404 });
-    if (wallet.balance < total) return NextResponse.json({ error: 'Solde insuffisant' }, { status: 400 });
+    if (!wallet || wallet.balance < total) {
+      if (item) await supabase.from('casino_shop_purchases').delete().eq('user_id', userId).eq('day_key', day).eq('item_id', itemId);
+      return NextResponse.json({ error: wallet ? 'Solde insuffisant' : 'Portefeuille introuvable' }, { status: wallet ? 400 : 404 });
+    }
 
     const afterCost = wallet.balance - total;
     const { data: charged } = await supabase.from('casino_wallets')
       .update({ balance: afterCost, updated_at: new Date().toISOString() })
       .eq('user_id', userId).eq('balance', wallet.balance)
       .select().maybeSingle();
-    if (!charged) return NextResponse.json({ error: 'Conflit, réessaye.' }, { status: 409 });
+
+    if (!charged) {
+      if (item) await supabase.from('casino_shop_purchases').delete().eq('user_id', userId).eq('day_key', day).eq('item_id', itemId);
+      return NextResponse.json({ error: 'Conflit, réessaye.' }, { status: 409 });
+    }
 
     await Promise.all([
       addToInventory(userId, itemId, quantity),
@@ -63,12 +87,13 @@ export async function POST(request: Request) {
       }),
     ]);
 
+    const name = crate ? crate.name : item!.name;
     return NextResponse.json({
       ok: true,
-      item: { id: itemId, name: crate ? crate.name : item!.name },
+      item: { id: itemId, name },
       quantity,
       newBalance: afterCost,
-      message: `${quantity > 1 ? `${quantity}× ` : ''}${crate ? crate.name : item!.name} ajouté à ton inventaire.`,
+      message: `${quantity > 1 ? `${quantity}× ` : ''}${name} ajouté à ton inventaire.`,
     });
   } catch (err) {
     console.error('Erreur achat shop:', err);

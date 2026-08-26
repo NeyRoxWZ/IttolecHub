@@ -55,6 +55,7 @@ export default function CasinoShop() {
 
   const [items, setItems] = useState<ShopItem[]>([]);
   const [crates, setCrates] = useState<CrateDef[]>([]);
+  const [purchased, setPurchased] = useState<string[]>([]);
   const [inventory, setInventory] = useState<InventoryState>({ items: [], crates: [], effects: {} });
   const [resetIn, setResetIn] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -64,15 +65,17 @@ export default function CasinoShop() {
   const [confetti, setConfetti] = useState(0);
 
   const loadShop = useCallback(async () => {
-    const res = await fetch('/api/casino/shop');
+    const qs = user ? `?user_id=${user.id}` : '';
+    const res = await fetch(`/api/casino/shop${qs}`);
     if (res.ok) {
       const data = await res.json();
       setItems(data.items || []);
       setCrates(data.crates || []);
+      setPurchased(data.purchased || []);
       setResetIn(data.resetIn || 0);
     }
     setLoading(false);
-  }, []);
+  }, [user]);
 
   const loadInventory = useCallback(async () => {
     if (!user) return;
@@ -94,10 +97,11 @@ export default function CasinoShop() {
     return () => clearInterval(t);
   }, [resetIn, loadShop]);
 
-  const buy = async (id: string, name: string, price: number) => {
+  const buy = async (id: string, name: string, price: number, once = false) => {
     if (!user) { toast.error('Connecte-toi pour acheter.'); return; }
     if (busy) return;
-    const quantity = qty[id] || 1;
+    if (once && purchased.includes(id)) return;
+    const quantity = once ? 1 : (qty[id] || 1);
     const total = price * quantity;
     if (balance < total) { toast.error('Solde insuffisant'); return; }
 
@@ -115,6 +119,7 @@ export default function CasinoShop() {
       const data = await res.json();
       if (!res.ok) { setBalance(before); toast.error(data.error || 'Erreur'); return; }
       setBalance(data.newBalance);
+      if (once) setPurchased((prev) => [...prev, id]);
       toast.success(name, { description: data.message });
       void loadInventory();
     } finally {
@@ -171,7 +176,7 @@ export default function CasinoShop() {
             </Link>
             <div className="min-w-0">
               <h1 className="font-display text-xl sm:text-2xl font-black leading-none">Boutique</h1>
-              <span className="text-[11px] text-tx-muted">Achetable autant de fois que tu veux — tout part dans ton inventaire.</span>
+              <span className="text-[11px] text-tx-muted">Un exemplaire par objet et par jour. Tout part dans ton inventaire.</span>
             </div>
           </div>
 
@@ -239,7 +244,8 @@ export default function CasinoShop() {
 
         {/* DAILY CONSUMABLES */}
         <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">
-          Objets du jour <span className="normal-case font-bold">— 5 tirés dans un catalogue de 30</span>
+          Objets du jour
+          <span className="normal-case font-bold"> — 5 tirés dans un catalogue de 30, un seul exemplaire chacun</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
           {loading && Array.from({ length: 5 }).map((_, i) => (
@@ -249,10 +255,16 @@ export default function CasinoShop() {
           {!loading && items.map((item) => {
             const meta = CATEGORY_META[item.category];
             const Icon = meta.icon;
-            const quantity = qty[item.id] || 1;
+            const taken = purchased.includes(item.id);
 
             return (
-              <div key={item.id} className="rounded-2xl border-4 border-brand-border bg-brand-card p-4 flex flex-col shadow-brutal min-h-[210px]">
+              <div
+                key={item.id}
+                className={cn(
+                  'rounded-2xl border-4 bg-brand-card p-4 flex flex-col shadow-brutal min-h-[210px] transition-colors',
+                  taken ? 'border-accent-success/60 opacity-60' : 'border-brand-border'
+                )}
+              >
                 <div className={cn('self-start flex items-center gap-1.5 px-2 py-1 rounded-lg border-2 bg-brand-inner mb-3', meta.tone)}>
                   <Icon className="h-3.5 w-3.5" />
                   <span className="text-[10px] font-black uppercase tracking-widest">{meta.label}</span>
@@ -264,14 +276,20 @@ export default function CasinoShop() {
                   {durationLabel(item)}
                 </span>
 
-                <div className="mt-auto pt-3 flex items-center gap-1.5">
-                  <QuantityStepper id={item.id} value={quantity} onBump={bump} />
+                <div className="mt-auto pt-3">
                   <button
-                    onClick={() => buy(item.id, item.name, item.price)}
-                    disabled={busy !== null || balance < item.price * quantity}
-                    className="flex-1 h-10 rounded-xl border-2 border-brand-border bg-accent-primary text-brand-bg font-display font-black text-xs tracking-wide hover:brightness-110 transition-all active:translate-y-0.5 focus:outline-none disabled:bg-brand-inner disabled:text-tx-muted disabled:cursor-not-allowed"
+                    onClick={() => buy(item.id, item.name, item.price, true)}
+                    disabled={busy !== null || taken || balance < item.price}
+                    className={cn(
+                      'w-full h-10 rounded-xl border-2 border-brand-border font-display font-black text-xs tracking-wide',
+                      'transition-all active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed',
+                      taken ? 'bg-brand-inner text-accent-success'
+                        : 'bg-accent-primary text-brand-bg hover:brightness-110 disabled:bg-brand-inner disabled:text-tx-muted'
+                    )}
                   >
-                    {busy === item.id ? '···' : `${(item.price * quantity).toLocaleString('fr-FR')} ₶`}
+                    {busy === item.id ? '···'
+                      : taken ? 'DÉJÀ PRIS'
+                      : `${item.price.toLocaleString('fr-FR')} ₶`}
                   </button>
                 </div>
               </div>
