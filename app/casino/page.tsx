@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import {
   Coins, Dices, Spade, CircleDot, Rocket, Bomb, Circle, ArrowUpDown, Ticket,
   Egg, Building2, Grid3x3, Gift, Zap, Flag, GlassWater, LayoutGrid, Layers, Hand, Dice5,
-  ArrowLeft, Info, Flame, Trophy, Award, Sparkles, Gift as GiftIcon, Gem, Target, ShoppingBag, Banknote, Crown,
+  ArrowLeft, Info, Flame, Trophy, Award, Sparkles, Gift as GiftIcon, Gem, Target, ShoppingBag,
+  Banknote, Crown, ArrowUpRight, Clock, Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,9 @@ import { CountUp, LevelBar } from './_components/CasinoUI';
 import MissionsModal, { useMissions } from './_components/MissionsModal';
 import FeedTicker from './_components/FeedTicker';
 import JackpotModal from './_components/JackpotModal';
+import PrestigeModal from './_components/PrestigeModal';
+import { secondsUntilRotation } from '@/lib/casino/shop';
+import { secondsUntilReset } from '@/lib/casino/pass';
 import DailyWheelModal from './_components/DailyWheelModal';
 import Confetti from './_components/Confetti';
 
@@ -50,40 +54,125 @@ const CASINO_GAMES: CasinoGameEntry[] = [
 
 const DISCLAIMER_KEY = 'itollec_casino_disclaimer_seen';
 
-/** One compact action pill. `done` greys it out and hides the pending dot. */
-function RewardPill({
-  label, hint, icon: Icon, tone, done, onClick, busy,
+/**
+ * Three shapes, three meanings — the bar used to be eight identical pills, so
+ * nothing said what was claimable, what merely opened a page, and what was
+ * only information.
+ *
+ *  ClaimPill  — something to collect right now, or a countdown to when it
+ *               comes back. Filled and badged when ready, dimmed with a clock
+ *               when it isn't.
+ *  NavPill    — goes to another page. Outlined, arrow in the corner.
+ *  InfoPill   — opens an explanation. Outlined, dashed, "?" in the corner.
+ */
+
+function formatWait(seconds: number): string {
+  if (seconds <= 0) return 'bientôt';
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (d > 0) return `${d}j ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function ClaimPill({
+  label, icon: Icon, ready, readyHint, waitSeconds, waitLabel, onClick, busy, tone = 'success',
 }: {
   label: string;
-  hint: string;
   icon: any;
-  tone: 'success' | 'primary' | 'neutral';
-  done?: boolean;
+  /** Is there something to collect right now? */
+  ready: boolean;
+  readyHint: string;
+  /** Time until it comes back, when there isn't. */
+  waitSeconds?: number;
+  waitLabel?: string;
   onClick: () => void;
   busy?: boolean;
+  tone?: 'success' | 'primary';
 }) {
-  const active = {
-    success: 'border-accent-success bg-accent-success/10 text-accent-success',
-    primary: 'border-accent-primary bg-accent-primary/10 text-accent-primary',
-    neutral: 'border-brand-border bg-brand-card text-accent-primary',
-  }[tone];
+  const filled = tone === 'success'
+    ? 'border-accent-success bg-accent-success text-brand-bg'
+    : 'border-accent-primary bg-accent-primary text-brand-bg';
 
   return (
     <button
       onClick={onClick}
-      disabled={busy}
+      disabled={busy || !ready}
       className={cn(
-        'relative h-12 px-3 rounded-xl border-2 flex items-center gap-2 text-left transition-all focus:outline-none',
-        'hover:-translate-y-0.5 disabled:opacity-50',
-        done ? 'border-brand-border bg-brand-card' : active
+        'relative h-14 px-3 rounded-xl border-2 flex items-center gap-2 text-left transition-all focus:outline-none',
+        ready ? `${filled} hover:-translate-y-0.5 shadow-brutal` : 'border-brand-border bg-brand-card cursor-default'
       )}
     >
-      <Icon className={cn('h-4 w-4 shrink-0', done && 'text-tx-muted')} />
+      <Icon className={cn('h-4 w-4 shrink-0', !ready && 'text-tx-muted')} />
+      <div className="min-w-0 leading-tight">
+        <div className={cn('font-display font-black text-[12px]', ready ? 'text-brand-bg' : 'text-tx-secondary')}>
+          {label}
+        </div>
+        <div className={cn('text-[9px] font-bold truncate flex items-center gap-1', ready ? 'text-brand-bg/75' : 'text-tx-muted')}>
+          {busy ? '···' : ready ? readyHint : (
+            <>
+              <Clock className="h-2.5 w-2.5" />
+              {waitLabel || `dans ${formatWait(waitSeconds || 0)}`}
+            </>
+          )}
+        </div>
+      </div>
+      {ready && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent-secondary animate-pulse" />}
+    </button>
+  );
+}
+
+function NavPill({
+  label, hint, icon: Icon, badge, onClick,
+}: {
+  label: string;
+  hint: string;
+  icon: any;
+  /** Number of things waiting behind this page. */
+  badge?: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="relative h-14 pl-3 pr-6 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-2 text-left hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none"
+    >
+      <Icon className="h-4 w-4 shrink-0 text-accent-primary" />
       <div className="min-w-0 leading-tight">
         <div className="font-display font-black text-[12px] text-tx-base">{label}</div>
-        <div className="text-[9px] font-bold text-tx-muted truncate">{busy ? '···' : hint}</div>
+        <div className="text-[9px] font-bold text-tx-muted truncate">{hint}</div>
       </div>
-      {!done && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent-secondary animate-pulse" />}
+      <ArrowUpRight className="absolute top-1.5 right-1.5 h-3 w-3 text-tx-muted" />
+      {!!badge && badge > 0 && (
+        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent-secondary text-white text-[10px] font-black flex items-center justify-center">
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function InfoPill({
+  label, value, hint, icon: Icon, onClick,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  icon: any;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="relative h-14 pl-3 pr-6 rounded-xl border-2 border-dashed border-accent-primary/60 bg-accent-primary/5 flex items-center gap-2 text-left hover:bg-accent-primary/10 hover:-translate-y-0.5 transition-all focus:outline-none"
+    >
+      <Icon className="h-4 w-4 shrink-0 text-accent-primary" />
+      <div className="min-w-0 leading-tight">
+        <div className="font-display font-black text-[13px] text-accent-primary tabular-nums">{value}</div>
+        <div className="text-[9px] font-bold text-tx-muted truncate">{label} · {hint}</div>
+      </div>
+      <span className="absolute top-1 right-1.5 text-[10px] font-black text-tx-muted">?</span>
     </button>
   );
 }
@@ -101,12 +190,24 @@ export default function CasinoHub() {
   const [showMissions, setShowMissions] = useState(false);
   const [showJackpot, setShowJackpot] = useState(false);
   const [passTier, setPassTier] = useState<number | null>(null);
+  const [showPrestige, setShowPrestige] = useState(false);
+  const [dailyResetIn, setDailyResetIn] = useState(() => secondsUntilRotation());
+  const [passResetIn, setPassResetIn] = useState(() => secondsUntilReset());
   const { missions, reload: reloadMissions, claimable } = useMissions();
   const [cashback, setCashback] = useState<{ amount: number; available: boolean } | null>(null);
   const [claimingCashback, setClaimingCashback] = useState(false);
 
   useEffect(() => {
     try { if (!localStorage.getItem(DISCLAIMER_KEY)) setShowDisclaimer(true); } catch {}
+  }, []);
+
+  // One ticking clock for the whole bar rather than one per pill.
+  useEffect(() => {
+    const t = setInterval(() => {
+      setDailyResetIn(secondsUntilRotation());
+      setPassResetIn(secondsUntilReset());
+    }, 30_000);
+    return () => clearInterval(t);
   }, []);
 
   // The meta pages are reached from pills rather than links, so warm them by
@@ -188,6 +289,7 @@ export default function CasinoHub() {
     setPrestiging(true); vibrate(HAPTIC.MEDIUM);
     const result = await prestige();
     setPrestiging(false);
+    setShowPrestige(false);
     if ('error' in result) { toast.error(result.error); return; }
     sfx.jackpot(); setConfetti((c) => c + 1);
     toast.success(`Prestige ! Titre débloqué : ${getPrestigeTitle(result.prestigeCount)}`, { duration: 6000 });
@@ -204,6 +306,15 @@ export default function CasinoHub() {
       <FeedTicker />
       {showWheel && <DailyWheelModal onClose={() => setShowWheel(false)} onSpin={claimWheelOfFortune} />}
       {showJackpot && <JackpotModal amount={jackpot} onClose={() => setShowJackpot(false)} />}
+      {showPrestige && (
+        <PrestigeModal
+          balance={balance}
+          prestigeCount={stats.prestigeCount}
+          busy={prestiging}
+          onConfirm={handlePrestige}
+          onClose={() => setShowPrestige(false)}
+        />
+      )}
       {showMissions && (
         <MissionsModal
           missions={missions}
@@ -270,119 +381,123 @@ export default function CasinoHub() {
           </div>
         </header>
 
-        {/* ACTION BAR — one wrapping row of pills. It used to be eight big
-            tiles on two rows, which ate the height the games needed and made
-            the top of the page unreadable. */}
+        {/* ACTION BAR — grouped by what the thing actually does: collect,
+            navigate, read. Each group is separated so the eye can tell them
+            apart without reading a word. */}
         <div className="flex flex-wrap items-center gap-2 mb-3 shrink-0">
-          <RewardPill
-            label="Bonus du jour"
-            hint={stats.dailyClaimedToday ? `Pris · ${stats.dailyStreak} j` : '250 à 10 000 ₶'}
-            icon={GiftIcon}
-            tone="success"
-            done={stats.dailyClaimedToday}
-            onClick={handleClaimDaily}
-            busy={claimingDaily}
-          />
+          <div className="flex items-center gap-2">
+            <span className="hidden xl:block text-[9px] font-black uppercase tracking-widest text-tx-muted rotate-180 [writing-mode:vertical-rl]">
+              À prendre
+            </span>
 
-          <RewardPill
-            label="Roue gratuite"
-            hint={stats.wheelClaimedToday ? 'Déjà tournée' : 'Jusqu’à 10 000 ₶'}
-            icon={Sparkles}
-            tone="primary"
-            done={stats.wheelClaimedToday}
-            onClick={() => { sfx.click(); setShowWheel(true); }}
-          />
+            <ClaimPill
+              label="Bonus du jour"
+              icon={GiftIcon}
+              ready={!stats.dailyClaimedToday}
+              readyHint="250 à 10 000 ₶"
+              waitSeconds={dailyResetIn}
+              onClick={handleClaimDaily}
+              busy={claimingDaily}
+            />
 
-          <RewardPill
-            label="Cashback"
-            hint={stats.cashbackClaimedToday ? 'Déjà pris'
-              : cashback?.available ? `+${cashback.amount.toLocaleString('fr-FR')} ₶`
-              : 'Rien hier'}
-            icon={Banknote}
-            tone="primary"
-            done={!cashback?.available}
-            onClick={handleClaimCashback}
-            busy={claimingCashback}
-          />
+            <ClaimPill
+              label="Roue gratuite"
+              icon={Sparkles}
+              tone="primary"
+              ready={!stats.wheelClaimedToday}
+              readyHint="jusqu’à 10 000 ₶"
+              waitSeconds={dailyResetIn}
+              onClick={() => { sfx.click(); setShowWheel(true); }}
+            />
 
-          <RewardPill
-            label="Missions"
-            hint={claimable > 0 ? `${claimable} à réclamer` : `${missions.filter((m) => m.claimed).length}/${missions.length || 3} faites`}
-            icon={Target}
-            tone="neutral"
-            done={claimable === 0}
-            onClick={() => { sfx.click(); setShowMissions(true); }}
-          />
+            <ClaimPill
+              label="Cashback"
+              icon={Banknote}
+              tone="primary"
+              ready={!!cashback?.available}
+              readyHint={cashback ? `+${cashback.amount.toLocaleString('fr-FR')} ₶` : ''}
+              waitSeconds={dailyResetIn}
+              waitLabel={stats.cashbackClaimedToday ? `pris · dans ${formatWait(dailyResetIn)}` : 'aucune perte hier'}
+              onClick={handleClaimCashback}
+              busy={claimingCashback}
+            />
+          </div>
 
-          <RewardPill
-            label="Frenly Pass"
-            hint={passTier !== null ? `Palier ${passTier} / 100` : '100 paliers'}
-            icon={Crown}
-            tone="primary"
-            done={passTier !== null && passTier > 0}
-            onClick={() => { sfx.click(); router.push('/casino/pass'); }}
-          />
+          <span className="hidden lg:block w-px h-10 bg-brand-border" />
 
-          <RewardPill
-            label="Boutique"
-            hint="5 objets/jour"
-            icon={ShoppingBag}
-            tone="neutral"
-            done
-            onClick={() => { sfx.click(); router.push('/casino/shop'); }}
-          />
+          <div className="flex items-center gap-2">
+            <NavPill
+              label="Missions"
+              hint={`${missions.filter((m) => m.claimed).length}/${missions.length || 3} · reset dans ${formatWait(dailyResetIn)}`}
+              icon={Target}
+              badge={claimable}
+              onClick={() => { sfx.click(); setShowMissions(true); }}
+            />
 
-          <button
-            onClick={() => { sfx.click(); setShowJackpot(true); }}
-            title="Comment gagner la cagnotte ?"
-            className="h-12 px-3 rounded-xl border-2 border-accent-primary/60 bg-accent-primary/10 flex items-center gap-2 hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none text-left"
-          >
-            <Gem className="h-4 w-4 shrink-0 text-accent-primary" />
-            <div className="min-w-0 leading-tight">
-              <div className="font-display font-black text-[13px] text-accent-primary tabular-nums">
-                {jackpot !== null ? `${jackpot.toLocaleString('fr-FR')} ₶` : '···'}
-              </div>
-              <div className="text-[9px] font-bold text-tx-muted">Cagnotte · 1 sur 3 000</div>
-            </div>
-          </button>
+            <NavPill
+              label="Frenly Pass"
+              hint={`palier ${passTier ?? 0}/100 · fin dans ${formatWait(passResetIn)}`}
+              icon={Crown}
+              onClick={() => { sfx.click(); router.push('/casino/pass'); }}
+            />
 
-          <div className="ml-auto flex items-center gap-2">
-            <button
+            <NavPill
+              label="Boutique"
+              hint={`5 objets · rotation dans ${formatWait(dailyResetIn)}`}
+              icon={ShoppingBag}
+              onClick={() => { sfx.click(); router.push('/casino/shop'); }}
+            />
+
+            <NavPill
+              label="Succès"
+              hint="115 à débloquer"
+              icon={Award}
               onClick={() => { sfx.click(); router.push('/casino/achievements'); }}
-              title="Succès"
-              className="h-12 w-12 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center text-accent-primary hover:border-accent-primary transition-colors focus:outline-none"
-            >
-              <Award className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => { sfx.click(); router.push('/casino/leaderboard'); }}
-              title="Classement"
-              className="h-12 w-12 rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center text-accent-primary hover:border-accent-primary transition-colors focus:outline-none"
-            >
-              <Trophy className="h-4 w-4" />
-            </button>
+            />
 
+            <NavPill
+              label="Classement"
+              hint="saison en cours"
+              icon={Trophy}
+              onClick={() => { sfx.click(); router.push('/casino/leaderboard'); }}
+            />
+          </div>
+
+          <span className="hidden lg:block w-px h-10 bg-brand-border" />
+
+          <InfoPill
+            icon={Gem}
+            value={jackpot !== null ? `${jackpot.toLocaleString('fr-FR')} ₶` : '···'}
+            label="Cagnotte"
+            hint="1 sur 3 000"
+            onClick={() => { sfx.click(); setShowJackpot(true); }}
+          />
+
+          <div className="ml-auto">
             {canPrestige ? (
               <button
-                onClick={handlePrestige}
-                disabled={prestiging}
-                className="h-12 px-4 rounded-xl border-2 border-accent-primary bg-accent-primary text-brand-bg flex items-center gap-2 font-display font-black text-xs tracking-wider hover:brightness-110 transition-all focus:outline-none"
+                onClick={() => { sfx.click(); setShowPrestige(true); }}
+                className="h-14 px-4 rounded-xl border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal flex items-center gap-2 font-display font-black text-xs tracking-wider hover:brightness-110 transition-all active:translate-y-0.5 focus:outline-none"
               >
                 <Sparkles className="h-4 w-4" />
-                {prestiging ? '···' : 'PRESTIGER'}
+                PRESTIGER
+                <span className="text-[9px] font-bold opacity-70">voir avant</span>
               </button>
             ) : (
               <div
-                className="h-12 px-3 rounded-xl border-2 border-brand-border bg-brand-card flex flex-col justify-center min-w-[104px]"
+                className="h-14 px-3 rounded-xl border-2 border-brand-border bg-brand-card flex flex-col justify-center min-w-[132px]"
                 title={`Atteins ${PRESTIGE_THRESHOLD.toLocaleString('fr-FR')} ₶ pour prestiger`}
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">Prestige</span>
                   <span className="text-[9px] font-black text-accent-primary tabular-nums">{prestigeProgress.toFixed(0)}%</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-brand-inner border border-brand-border overflow-hidden">
+                <div className="h-1.5 rounded-full bg-brand-inner border border-brand-border overflow-hidden mb-1">
                   <div className="h-full bg-accent-primary transition-all duration-500" style={{ width: `${prestigeProgress}%` }} />
                 </div>
+                <span className="text-[9px] font-bold text-tx-muted leading-none">
+                  à {PRESTIGE_THRESHOLD.toLocaleString('fr-FR')} ₶
+                </span>
               </div>
             )}
           </div>
