@@ -103,8 +103,6 @@ export default function BonneteauPage() {
 
   const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setPending(null); setPositions([0, 1, 2]); };
 
-  // Stake of the previous round, for the one-tap rebet chip.
-  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'bonneteau').slice(0, 10);
 
   const stage = (
@@ -112,8 +110,8 @@ export default function BonneteauPage() {
       {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
 
       <div
-        className="relative rounded-2xl border-4 border-brand-border px-4 pt-10 pb-6"
-        style={{ width: SLOT_W * BONNETEAU_CUPS + 32, background: 'linear-gradient(180deg, #3B2416 0%, #24160E 100%)' }}
+        className="relative rounded-2xl border-4 border-brand-border px-4 pt-16 pb-6"
+        style={{ width: SLOT_W * BONNETEAU_CUPS + 32, background: '#241610' }}
       >
         {Array.from({ length: BONNETEAU_CUPS }, (_, cupId) => {
           const slot = positions[cupId];
@@ -141,10 +139,10 @@ export default function BonneteauPage() {
               )}>
                 <div
                   className={cn(
-                    'w-full rounded-t-[42px] border-4 flex items-end justify-center pb-2 font-display font-black transition-colors',
+                    'w-full rounded-t-[46px] border-4 flex items-end justify-center pb-3 font-display font-black text-3xl transition-colors',
                     isChosen && !hasBall ? 'border-accent-secondary' : hasBall ? 'border-accent-success' : 'border-brand-border'
                   )}
-                  style={{ height: 124, background: 'linear-gradient(180deg, #E05A2B 0%, #A83C18 100%)', color: '#fff' }}
+                  style={{ height: 148, background: '#C2511F', color: '#12121A' }}
                 >
                   {slot + 1}
                 </div>
@@ -156,9 +154,19 @@ export default function BonneteauPage() {
           );
         })}
 
-        <div className="absolute top-3 left-0 right-0 text-center text-[11px] font-black uppercase tracking-widest text-white/60">
+        <div
+          className={cn(
+            'absolute top-4 left-4 right-4 text-center font-display font-black uppercase tracking-widest',
+            'text-lg sm:text-xl leading-none',
+            phase === 'shuffling' ? 'text-accent-primary animate-pulse'
+              : phase === 'choosing' ? 'text-white'
+              : result?.won ? 'text-accent-success'
+              : result ? 'text-accent-secondary'
+              : 'text-white/70'
+          )}
+        >
           {phase === 'idle' ? 'Mise pour commencer'
-            : phase === 'shuffling' ? 'Mélange...'
+            : phase === 'shuffling' ? 'Mélange…'
             : phase === 'choosing' ? 'Choisis un gobelet'
             : result?.won ? 'Gagné !' : 'Raté'}
         </div>
@@ -172,7 +180,7 @@ export default function BonneteauPage() {
 
   const panel = (
     <>
-      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'shuffling' || phase === 'choosing' || busy} />
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'shuffling' || phase === 'choosing' || busy} />
 
       {phase === 'choosing' ? (
         <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">

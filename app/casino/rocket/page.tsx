@@ -7,7 +7,7 @@ import { vibrate, HAPTIC } from '@/lib/haptic';
 import { sfx } from '@/lib/casino/sfx';
 import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
-import { generateCrashPoint, multiplierAtElapsed, CASINO_MIN_BET } from '@/lib/casino/rocket';
+import { generateCrashPoint, multiplierAtElapsed, elapsedForMultiplier, CASINO_MIN_BET } from '@/lib/casino/rocket';
 import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
@@ -30,7 +30,7 @@ const RULES: RulesSpec = {
 };
 
 type Phase = 'idle' | 'flying' | 'crashed' | 'cashed';
-const STATUS_POLL_MS = 280;
+const STATUS_POLL_MS = 110;
 const VIEW_W = 460;
 const VIEW_H = 240;
 const WINDOW_MS = 14_000;
@@ -107,6 +107,10 @@ export default function RocketPage() {
 
   const crash = (at: number) => {
     stopLoops();
+    // The poll can land a beat after the real crash, so rewind the curve to
+    // the exact point it blew up instead of leaving the trail hanging past it.
+    setPoints(projectPoints(elapsedForMultiplier(at)));
+    setMultiplier(at);
     setPhase('crashed'); setCrashedAt(at);
     vibrate(HAPTIC.ERROR); sfx.bust();
     toast.error(`Explosé à ×${at.toFixed(2)}`);
@@ -195,8 +199,6 @@ export default function RocketPage() {
     setCrashedAt(null); setPoints([{ x: 0, y: VIEW_H }]);
   };
 
-  // Stake of the previous round, for the one-tap rebet chip.
-  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'rocket').slice(0, 10);
   const flying = phase === 'flying';
   const potentialPayout = Math.round(lockedAmount * multiplier);
@@ -209,6 +211,12 @@ export default function RocketPage() {
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
       <style jsx global>{`
         @keyframes rocketBoom { 0% { transform: scale(0.4); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
+        @keyframes rocketFall {
+          0% { transform: translate(-50%, -50%) rotate(38deg); opacity: 1; }
+          30% { transform: translate(-50%, -40%) rotate(120deg); opacity: 1; }
+          100% { transform: translate(-40%, 120%) rotate(320deg); opacity: 0; }
+        }
+        @keyframes rocketSmoke { 0% { opacity: 0.85; transform: scale(0.6); } 100% { opacity: 0; transform: scale(2.2) translateY(-30px); } }
       `}</style>
 
       <div
@@ -268,11 +276,26 @@ export default function RocketPage() {
             style={{
               left: `${(head.x / VIEW_W) * 100}%`,
               top: `${(head.y / VIEW_H) * 100}%`,
-              transform: `translate(-50%, -50%) rotate(${phase === 'crashed' ? 0 : 38}deg)`,
+              transform: 'translate(-50%, -50%) rotate(38deg)',
+              // The wreck tumbles out of the chart instead of freezing mid-air.
+              animation: phase === 'crashed' ? 'rocketFall 900ms ease-in forwards' : undefined,
             }}
           >
             <ArtRocketShip size={30} crashed={phase === 'crashed'} />
           </div>
+        )}
+
+        {phase === 'crashed' && points.length > 1 && (
+          <div
+            className="absolute pointer-events-none rounded-full"
+            style={{
+              left: `${(head.x / VIEW_W) * 100}%`,
+              top: `${(head.y / VIEW_H) * 100}%`,
+              width: 70, height: 70, marginLeft: -35, marginTop: -35,
+              background: 'radial-gradient(circle, rgba(255,120,40,0.9), rgba(255,42,85,0.35) 45%, transparent 70%)',
+              animation: 'rocketSmoke 900ms ease-out forwards',
+            }}
+          />
         )}
 
         {phase === 'crashed' && (
@@ -293,7 +316,7 @@ export default function RocketPage() {
     <>
       {!flying ? (
         <>
-          <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
+          <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
           <PlayButton onClick={phase === 'idle' ? handleStart : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
             {phase === 'idle' ? `DÉCOLLER · ${amount} ₶` : 'REJOUER'}
           </PlayButton>

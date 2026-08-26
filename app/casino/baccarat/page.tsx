@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { drawBaccaratOutcome, resolveBaccarat, BACCARAT_PAYOUTS, CASINO_MIN_BET, type BaccaratBet, type BaccaratOutcome } from '@/lib/casino/baccarat';
 import {
-  GameShell, BetControls, PlayButton, PlayingCard, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { tempo } from '@/lib/casino/turbo';
@@ -92,8 +92,6 @@ export default function BaccaratPage() {
     }
   };
 
-  // Stake of the previous round, for the one-tap rebet chip.
-  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'baccarat').slice(0, 10);
 
   const stage = (
@@ -163,11 +161,11 @@ export default function BaccaratPage() {
         </div>
       </div>
 
-      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
 
-      <PlayButton onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+      <PlayRow onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
         {playing ? 'DISTRIBUTION...' : `PARIER · ${amount} ₶`}
-      </PlayButton>
+      </PlayRow>
 
       <p className="text-[11px] text-tx-muted">Sur Joueur ou Banque, une égalité rembourse ta mise.</p>
 

@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { playPassLine, resolveCraps, CRAPS_PAYOUT, CASINO_MIN_BET, type DiceRoll } from '@/lib/casino/craps';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { tempo } from '@/lib/casino/turbo';
@@ -103,8 +103,6 @@ export default function CrapsPage() {
     }
   };
 
-  // Stake of the previous round, for the one-tap rebet chip.
-  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'craps').slice(0, 10);
 
   const stage = (
@@ -150,10 +148,10 @@ export default function CrapsPage() {
 
   const panel = (
     <>
-      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={rolling} />
-      <PlayButton onClick={handleRoll} loading={rolling} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={rolling} />
+      <PlayRow onClick={handleRoll} loading={rolling} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
         {rolling ? 'ÇA ROULE...' : `LANCER LES DÉS · ${amount} ₶`}
-      </PlayButton>
+      </PlayRow>
 
       <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 space-y-1.5 text-xs">
         <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-1">Premier lancer</div>

@@ -15,6 +15,11 @@ export function generateCrashPoint(): number {
   return Math.floor(raw * 100) / 100;
 }
 
+/** Inverse of `multiplierAtElapsed` — where on the curve a crash happened. */
+export function elapsedForMultiplier(multiplier: number): number {
+  return Math.max(0, Math.log(Math.max(1, multiplier)) * ROCKET_GROWTH_TAU * 1000);
+}
+
 export function multiplierAtElapsed(elapsedMs: number): number {
   const t = Math.max(0, elapsedMs) / 1000;
   return Math.round(Math.exp(t / ROCKET_GROWTH_TAU) * 100) / 100;

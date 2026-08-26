@@ -283,8 +283,6 @@ export default function DinoPage() {
 
   const running = phase === 'running';
   const potentialPayout = Math.round(lockedAmount * multiplier);
-  // Stake of the previous round, for the one-tap rebet chip.
-  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'dino').slice(0, 10);
 
   const stage = (
@@ -377,7 +375,7 @@ export default function DinoPage() {
     <>
       {!running ? (
         <>
-          <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
+          <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
           <PlayButton onClick={phase === 'idle' ? handleStart : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
             {phase === 'idle' ? `LANCER LA COURSE · ${amount} ₶` : 'REJOUER'}
           </PlayButton>

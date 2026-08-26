@@ -95,8 +95,6 @@ export default function HiloPage() {
     await dealCard();
   };
 
-  // Stake of the previous round, for the one-tap rebet chip.
-  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'hilo').slice(0, 10);
 
   const stage = (
@@ -128,7 +126,7 @@ export default function HiloPage() {
 
   const panel = (
     <>
-      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
 
       <div className="grid grid-cols-2 gap-3">
         <button

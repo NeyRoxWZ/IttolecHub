@@ -321,13 +321,51 @@ export function ArtCrateEmpty({ size = 40, className }: ArtProps) {
 /* ---------------------------------------------------------------- */
 
 export function ArtHorse({ size = 26, className }: ArtProps) {
+  // Galloping silhouette: barrel, arched neck, muzzle, four legs, tail. The
+  // previous version was a single blob that read as a brown lump at 26px.
   return (
-    <svg viewBox="0 0 40 32" style={{ width: size * 1.25, height: size, display: 'block' }} className={className}>
-      <path d="M4 26c0-6 3-10 8-12l3-6 3 1-1 4c4-1 8 0 10 3l6 1c2 .4 3 2 2.6 3.6-.4 1.6-2 2.4-3.6 2l-3-.7c-.4 3-2.4 5.4-5 6.6V30h-3v-4h-6v4H12v-4.4C8 24.6 4 25.6 4 26z" fill="#7A4B2A" />
-      <path d="M20 13c4-1 8 0 10 3l6 1c2 .4 3 2 2.6 3.6-.4 1.6-2 2.4-3.6 2l-3-.7c-.4 3-2.4 5.4-5 6.6V30h-3z" fill="#5E3820" />
-      <path d="M15 8l-1.6-4.4 3.6 2.6zM18 7.4l1-4.6 1.8 4z" fill="#3E2416" />
-      <circle cx="31" cy="16" r="1.1" fill="#241408" />
-      <path d="M33 13c1.4-1 3-1 4 .2" stroke="#3E2416" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+    <svg viewBox="0 0 44 34" style={{ width: size * 1.3, height: size, display: 'block' }} className={className}>
+      {/* far legs, darker so the near pair reads in front */}
+      <path d="M15 20l-3 8-3 3 2 1.6 4-4 2-7z" fill="#5E3820" />
+      <path d="M27 20l2 8 3 3-2 1.6-4-4-1.6-7z" fill="#5E3820" />
+      {/* tail */}
+      <path d="M9 16c-3 1-5 4-5.6 8 2-2.6 3.6-4 6-4.6z" fill="#3E2416" />
+      {/* barrel + hindquarters */}
+      <ellipse cx="19" cy="17" rx="10" ry="6" fill="#7A4B2A" />
+      <path d="M9 15c-1 3-.6 6 1.4 8-2.4-.6-3.4-3-3.4-5z" fill="#7A4B2A" />
+      {/* neck */}
+      <path d="M26 14c1-4 4-7 8-9l3 2c-3 2-5 5-6 8z" fill="#7A4B2A" />
+      {/* head + muzzle */}
+      <path d="M33 4l5 1.4c1.6.5 2.4 1.6 2 3l-1 3.4c-.3 1-1.2 1.5-2.2 1.2l-5.4-1.6z" fill="#8A5730" />
+      <path d="M37.4 12.6l2.6.8c.8.2 1 .8.5 1.4-.6.7-1.6.8-2.5.4l-1.2-.6z" fill="#5E3820" />
+      {/* ears */}
+      <path d="M33.4 4.2l-.8-3.4 2.8 2.6zM36.2 5l.6-3.4 1.8 3z" fill="#3E2416" />
+      {/* mane */}
+      <path d="M27 13.6c1.4-4 4-7.2 7.4-9.2l1.2 1c-3 2.2-5.2 5.4-6.2 9z" fill="#3E2416" />
+      {/* near legs */}
+      <path d="M16 21l-2.4 8.4-3.4 2.8 1.6 1.8 4.6-4 2.4-7.4z" fill="#8A5730" />
+      <path d="M25 21l2.4 8.4 3.4 2.8-1.6 1.8-4.6-4-2.4-7.4z" fill="#8A5730" />
+      {/* hooves */}
+      <path d="M10.6 31.4l2.6-1.4.8 1.4-2.4 1.6zM30.8 31.4l-2.6-1.4-.8 1.4 2.4 1.6z" fill="#241408" />
+      <circle cx="36.4" cy="7.4" r="1.1" fill="#241408" />
+    </svg>
+  );
+}
+
+/** The FrenlyCoin itself - flat, thick-outlined, same language as the site. */
+export function ArtFrenlyCoin({ size = 40, className, variant = 'gold' }: ArtProps & { variant?: 'gold' | 'dark' }) {
+  const gold = variant === 'gold';
+  const disc = gold ? '#FFD000' : '#1E1E28';
+  const ink = gold ? '#12121A' : '#FFD000';
+  return (
+    <svg viewBox="0 0 40 40" style={box(size)} className={className}>
+      <circle cx="20" cy="20" r="18" fill={disc} stroke="#12121A" strokeWidth="3" />
+      <circle cx="20" cy="20" r="14" fill="none" stroke={ink} strokeWidth="1.6" opacity="0.5" />
+      <path
+        d="M15 11h6.4c3.4 0 5.6 2.1 5.6 5.4 0 3.4-2.2 5.5-5.6 5.5H18V29h-3zm3 3v5h3.2c1.8 0 2.9-1 2.9-2.5s-1.1-2.5-2.9-2.5z"
+        fill={ink}
+      />
+      <path d="M11.5 18.5h14M11.5 22.5h14" stroke={ink} strokeWidth="1.9" strokeLinecap="round" />
     </svg>
   );
 }

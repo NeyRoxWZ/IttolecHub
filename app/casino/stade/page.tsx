@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { drawStadeOutcome, resolveStade, STADE_PAYOUTS, CASINO_MIN_BET, type StadeBet, type StadeOutcome } from '@/lib/casino/stade';
 import {
-  GameShell, BetControls, PlayButton, PlayingCard, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtShield, ArtHandshake } from '../_components/CasinoArt';
@@ -95,8 +95,6 @@ export default function StadePage() {
     }
   };
 
-  // Stake of the previous round, for the one-tap rebet chip.
-  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'stade').slice(0, 10);
 
   const stage = (
@@ -158,11 +156,11 @@ export default function StadePage() {
         </div>
       </div>
 
-      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
 
-      <PlayButton onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+      <PlayRow onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
         {playing ? 'TIRAGE...' : `PARIER · ${amount} ₶`}
-      </PlayButton>
+      </PlayRow>
 
       <HistoryStrip history={gameHistory} />
     </>

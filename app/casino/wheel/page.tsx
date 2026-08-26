@@ -11,7 +11,7 @@ import {
   type WheelBet, type WheelBetType,
 } from '@/lib/casino/wheel';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import CasinoWheel, { type CasinoWheelHandle, type WheelSegment } from '../_components/CasinoWheel';
 import Confetti from '../_components/Confetti';
@@ -87,8 +87,6 @@ export default function FrenlyWheelPage() {
     }
   };
 
-  // Stake of the previous round, for the one-tap rebet chip.
-  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'wheel').slice(0, 10);
   const landedColor = lastResult ? getPocketColor(lastResult.landedNumber) : null;
 
@@ -213,11 +211,11 @@ export default function FrenlyWheelPage() {
         )}
       </div>
 
-      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={spinning} />
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={spinning} />
 
-      <PlayButton onClick={handleSpin} loading={spinning} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+      <PlayRow onClick={handleSpin} loading={spinning} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
         {spinning ? 'ÇA TOURNE...' : `LANCER · ${amount} ₶ (×${WHEEL_PAYOUTS[betType]})`}
-      </PlayButton>
+      </PlayRow>
 
       <HistoryStrip history={gameHistory} />
     </>

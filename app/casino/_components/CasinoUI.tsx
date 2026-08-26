@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { sfx, isMuted, setMuted } from '@/lib/casino/sfx';
 import { CASINO_MIN_BET } from '@/lib/casino/core';
-import { useTurbo } from '@/lib/casino/turbo';
+import { useTurbo, tempo } from '@/lib/casino/turbo';
 import { streakLabel, streakBonus, nextStreakTier } from '@/lib/casino/progression';
 import { JACKPOT_CONTRIBUTION_RATE, JACKPOT_HIT_CHANCE } from '@/lib/casino/meta';
 
@@ -116,16 +116,13 @@ export function RulesModal({ title, rules, onClose }: { title: string; rules: Ru
 /* ------------------------------------------------------------------ */
 
 export function BetControls({
-  amount, setAmount, maxBet, disabled, step = 5, lastBet,
+  amount, setAmount, maxBet, disabled, step = 5,
 }: {
   amount: number; setAmount: (v: number) => void; maxBet: number; disabled?: boolean; step?: number;
-  /** Stake of the previous round, for the one-tap rebet chip. */
-  lastBet?: number;
 }) {
   const clamp = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v || 0)));
   const bump = (delta: number) => { sfx.click(); vibrate(HAPTIC.SOFT); setAmount(clamp(amount + delta)); };
   const setTo = (v: number) => { sfx.click(); vibrate(HAPTIC.SOFT); setAmount(clamp(v)); };
-  const showRebet = !!lastBet && lastBet !== amount && lastBet <= maxBet;
 
   return (
     <div>
@@ -151,17 +148,7 @@ export function BetControls({
           <Plus className="h-4 w-4" />
         </button>
       </div>
-      <div className={cn('grid gap-2 mt-2', showRebet ? 'grid-cols-5' : 'grid-cols-4')}>
-        {showRebet && (
-          <button
-            onClick={() => setTo(lastBet!)}
-            disabled={disabled}
-            title={`Remiser ${lastBet!.toLocaleString('fr-FR')} ₶`}
-            className="h-9 rounded-lg border-2 border-accent-primary/70 bg-accent-primary/10 text-accent-primary flex items-center justify-center hover:bg-accent-primary/20 disabled:opacity-40 focus:outline-none active:scale-95 transition-transform"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </button>
-        )}
+      <div className="grid grid-cols-4 gap-2 mt-2">
         {[
           { label: '½', value: Math.floor(amount / 2) },
           { label: '×2', value: amount * 2 },
@@ -211,6 +198,66 @@ export function PlayButton({
     >
       {loading ? '···' : children}
     </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Play button + auto-replay                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One press starts the round; pressing AUTO keeps replaying the same stake
+ * until you stop it, run out, or touch the bet. Chaining rounds by hand was
+ * the slowest part of a session.
+ */
+export function PlayRow({
+  onClick, loading, disabled, children, betKey, blocked, variant = 'primary',
+}: {
+  onClick: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+  children: ReactNode;
+  /** Anything that identifies the current bet; changing it stops auto-replay. */
+  betKey?: string | number;
+  /** The game telling us a next round is impossible (no funds, no pick…). */
+  blocked?: boolean;
+  variant?: 'primary' | 'success' | 'danger';
+}) {
+  const [auto, setAuto] = useState(false);
+  const clickRef = useRef(onClick);
+  clickRef.current = onClick;
+
+  const ready = !loading && !disabled && !blocked;
+
+  // Changing the stake is the natural "stop" gesture.
+  useEffect(() => { setAuto(false); }, [betKey]);
+  useEffect(() => { if (auto && (disabled || blocked)) setAuto(false); }, [auto, disabled, blocked]);
+
+  useEffect(() => {
+    if (!auto || !ready) return;
+    const t = setTimeout(() => clickRef.current(), tempo(450));
+    return () => clearTimeout(t);
+  }, [auto, ready]);
+
+  return (
+    <div className="flex gap-2">
+      <PlayButton onClick={onClick} loading={loading} disabled={disabled} variant={variant} className="flex-1">
+        {children}
+      </PlayButton>
+      <button
+        onClick={() => { sfx.click(); vibrate(HAPTIC.SOFT); setAuto((a) => !a); }}
+        disabled={disabled}
+        title="Rejoue la même mise en boucle jusqu'à ce que tu l'arrêtes"
+        className={cn(
+          'h-16 w-16 shrink-0 rounded-2xl border-4 border-brand-border font-display font-black text-[11px] tracking-wider',
+          'flex flex-col items-center justify-center gap-0.5 transition-all active:translate-y-1 focus:outline-none disabled:opacity-40',
+          auto ? 'bg-accent-secondary text-white shadow-none translate-y-0.5' : 'bg-brand-inner text-tx-secondary shadow-brutal hover:text-tx-base'
+        )}
+      >
+        <RotateCcw className={cn('h-4 w-4', auto && 'animate-spin')} style={auto ? { animationDuration: '1.6s' } : undefined} />
+        {auto ? 'STOP' : 'AUTO'}
+      </button>
+    </div>
   );
 }
 

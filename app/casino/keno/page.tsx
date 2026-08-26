@@ -107,8 +107,6 @@ export default function KenoPage() {
 
   const handleReset = () => { sfx.click(); setPhase('picking'); setDrawn([]); setResult(null); };
 
-  // Stake of the previous round, for the one-tap rebet chip.
-  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'keno').slice(0, 10);
 
   const stage = (
@@ -187,7 +185,7 @@ export default function KenoPage() {
             </button>
           </div>
 
-          <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
+          <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
 
           <PlayButton onClick={handleDraw} loading={busy} disabled={!isLoaded || !picksComplete || amount < CASINO_MIN_BET}>
             {picksComplete ? `LANCER LE TIRAGE · ${amount} ₶` : `ENCORE ${KENO_PICK_COUNT - picks.length} NUMÉRO${KENO_PICK_COUNT - picks.length > 1 ? 'S' : ''}`}

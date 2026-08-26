@@ -8,10 +8,10 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { flipCoin, resolveCoinflip, COINFLIP_PAYOUT, CASINO_MIN_BET, type CoinSide } from '@/lib/casino/coinflip';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
-import { ArtCoinFace } from '../_components/CasinoArt';
+import { ArtFrenlyCoin } from '../_components/CasinoArt';
 import { tempo } from '@/lib/casino/turbo';
 
 const RULES: RulesSpec = {
@@ -100,8 +100,6 @@ export default function CoinflipPage() {
     }
   };
 
-  // Stake of the previous round, for the one-tap rebet chip.
-  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'coinflip').slice(0, 10);
 
   const stage = (
@@ -115,24 +113,24 @@ export default function CoinflipPage() {
             className="absolute inset-0 rounded-full border-8 flex flex-col items-center justify-center font-display font-black"
             style={{
               backfaceVisibility: 'hidden',
-              background: 'radial-gradient(circle at 35% 30%, #FFE680, #FFD000 45%, #C79A00 100%)',
-              borderColor: '#8A6B00', color: '#4A3800',
+              background: '#FFD000',
+              borderColor: '#12121A', color: '#12121A',
             }}
           >
-            <ArtCoinFace side="pile" size={64} />
-            <span className="text-sm tracking-widest">PILE</span>
+            <ArtFrenlyCoin variant="gold" size={92} />
+            <span className="text-base tracking-[0.3em] mt-1">PILE</span>
           </div>
           {/* Face */}
           <div
             className="absolute inset-0 rounded-full border-8 flex flex-col items-center justify-center font-display font-black"
             style={{
               backfaceVisibility: 'hidden', transform: 'rotateY(180deg)',
-              background: 'radial-gradient(circle at 35% 30%, #F5F7FA, #C9CFD8 45%, #8C939E 100%)',
-              borderColor: '#5A616B', color: '#2A2F38',
+              background: '#1E1E28',
+              borderColor: '#12121A', color: '#FFD000',
             }}
           >
-            <ArtCoinFace side="face" size={64} />
-            <span className="text-sm tracking-widest">FACE</span>
+            <ArtFrenlyCoin variant="dark" size={92} />
+            <span className="text-base tracking-[0.3em] mt-1">FACE</span>
           </div>
         </div>
       </div>
@@ -159,22 +157,22 @@ export default function CoinflipPage() {
               )}
               style={
                 c === 'pile'
-                  ? { background: 'radial-gradient(circle at 40% 30%, #FFE680, #FFD000 60%)', color: '#4A3800' }
-                  : { background: 'radial-gradient(circle at 40% 30%, #F5F7FA, #C0C6D0 60%)', color: '#2A2F38' }
+                  ? { background: '#FFD000', color: '#12121A' }
+                  : { background: '#1E1E28', color: '#FFD000' }
               }
             >
-              <ArtCoinFace side={c} size={26} />
+              <ArtFrenlyCoin variant={c === 'pile' ? 'gold' : 'dark'} size={30} />
               {c === 'pile' ? 'PILE' : 'FACE'}
             </button>
           ))}
         </div>
       </div>
 
-      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={flipping} />
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={flipping} />
 
-      <PlayButton onClick={handleFlip} loading={flipping} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+      <PlayRow onClick={handleFlip} loading={flipping} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
         {flipping ? 'ÇA TOURNE...' : `LANCER · ${amount} ₶ (×${COINFLIP_PAYOUT})`}
-      </PlayButton>
+      </PlayRow>
 
       <HistoryStrip history={gameHistory} />
     </>

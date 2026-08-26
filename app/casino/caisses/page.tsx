@@ -70,8 +70,6 @@ export default function CaissesPage() {
 
   const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setOpenedCrate(null); };
 
-  // Stake of the previous round, for the one-tap rebet chip.
-  const lastBet = Number(history.find((h) => h.meta?.amount)?.meta?.amount) || undefined;
   const gameHistory = history.filter((h) => h.game_slug === 'caisses').slice(0, 10);
 
   const stage = (
@@ -132,7 +130,7 @@ export default function CaissesPage() {
 
   const panel = (
     <>
-      <BetControls lastBet={lastBet} amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'choosing' || phase === 'opening' || busy} />
+      <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'choosing' || phase === 'opening' || busy} />
 
       {phase === 'choosing' ? (
         <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
