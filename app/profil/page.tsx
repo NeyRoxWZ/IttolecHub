@@ -7,8 +7,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 import { generatePassphrase } from '@/lib/words';
 import {
-  LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check, Crown, TrendingUp,
-  Coins, Flame, Award, Target, Gem, Dices,
+  LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check, Crown, Dices,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -34,14 +33,12 @@ interface CasinoProfileStats {
   cosmeticsTotal: number;
 }
 
-function Stat({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+/** Same row shape as the ItollecClicker card, so the two read as a pair. */
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
-      <div className="flex items-center gap-1.5 text-xs text-tx-secondary font-bold">
-        <Icon className="w-3.5 h-3.5 shrink-0" />
-        <span className="truncate">{label}</span>
-      </div>
-      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base tabular-nums">{value}</div>
+    <div className="flex justify-between gap-3 text-sm font-bold">
+      <span className="text-tx-secondary">{label}</span>
+      <span className="font-mono text-tx-base tabular-nums">{value}</span>
     </div>
   );
 }
@@ -249,68 +246,6 @@ export default function ProfilPage() {
                 <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
                   {user.is_discord ? 'Discord' : 'Passphrase'}
                 </div>
-              </div>
-
-              <div className="mt-4 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Casino</div>
-                    <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
-                      {casino ? `Niveau ${casino.level}` : 'Statistiques'}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Dices className="w-5 h-5 text-tx-secondary" />
-                    <Crown className="w-5 h-5 text-tx-secondary" />
-                  </div>
-                </div>
-
-                {casinoLoading ? (
-                  <div className="mt-3 text-sm text-tx-secondary font-bold">Chargement…</div>
-                ) : casino ? (
-                  <>
-                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      <Stat icon={Coins} label="Solde" value={`${casino.balance.toLocaleString('en-US')} ₶`} />
-                      <Stat icon={TrendingUp} label="Total misé" value={`${casino.totalWagered.toLocaleString('en-US')} ₶`} />
-                      <Stat icon={Gem} label="Total gagné" value={`${casino.totalWon.toLocaleString('en-US')} ₶`} />
-                      <Stat icon={Dices} label="Parties" value={casino.betsPlaced.toLocaleString('en-US')} />
-                      <Stat icon={Flame} label="Meilleure série" value={`${casino.bestStreak}`} />
-                      <Stat icon={TrendingUp} label="Plus gros multiplicateur" value={`×${casino.biggestMultiplier}`} />
-                      <Stat icon={Coins} label="Plus gros gain" value={`${casino.biggestWin.toLocaleString('en-US')} ₶`} />
-                      <Stat icon={Award} label="Succès" value={`${casino.achievements} / ${casino.achievementsTotal}`} />
-                      <Stat icon={Target} label="Missions faites" value={casino.missionsDone.toLocaleString('en-US')} />
-                      <Stat icon={Crown} label="Prestige" value={`${casino.prestigeCount}`} />
-                      <Stat icon={Gem} label="Jackpots" value={`${casino.jackpotsWon}`} />
-                      <Stat icon={Award} label="Cosmétiques" value={`${casino.cosmetics} / ${casino.cosmeticsTotal}`} />
-                    </div>
-
-                    <div className="mt-3 rounded-xl border-2 border-brand-border bg-brand-card p-3">
-                      <div className="flex items-center justify-between text-xs font-bold mb-1.5">
-                        <span className="text-tx-secondary">Niveau {casino.level}</span>
-                        <span className="text-tx-muted tabular-nums">
-                          {casino.xpIntoLevel.toLocaleString('en-US')} / {casino.xpForNext.toLocaleString('en-US')} XP
-                        </span>
-                      </div>
-                      <div className="h-2 rounded-full bg-brand-inner border border-brand-border overflow-hidden">
-                        <div
-                          className="h-full bg-accent-primary transition-all duration-500"
-                          style={{ width: `${casino.xpForNext > 0 ? (casino.xpIntoLevel / casino.xpForNext) * 100 : 100}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <Link
-                      href="/casino"
-                      className="mt-3 inline-flex text-xs font-bold text-accent-primary underline underline-offset-2"
-                    >
-                      Ouvrir le casino
-                    </Link>
-                  </>
-                ) : (
-                  <div className="mt-3 text-sm text-tx-secondary font-bold">
-                    Aucune partie jouée pour le moment.
-                  </div>
-                )}
               </div>
 
               {!user.is_discord && (
