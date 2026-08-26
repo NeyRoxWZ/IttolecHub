@@ -9,6 +9,7 @@ import { sfx, isMuted, setMuted } from '@/lib/casino/sfx';
 import { CASINO_MIN_BET } from '@/lib/casino/core';
 import { useTurbo } from '@/lib/casino/turbo';
 import { streakLabel, streakBonus, nextStreakTier } from '@/lib/casino/progression';
+import { JACKPOT_CONTRIBUTION_RATE, JACKPOT_HIT_CHANCE } from '@/lib/casino/meta';
 
 /* ------------------------------------------------------------------ */
 /* Animated number                                                      */
@@ -88,6 +89,21 @@ export function RulesModal({ title, rules, onClose }: { title: string; rules: Ru
 
         <div className="text-xs text-tx-muted">
           Redistribution moyenne : <span className="font-bold text-tx-secondary">{rules.rtp}</span>
+        </div>
+
+        {/* Identical in every game, so it lives here rather than in 20 RulesSpec. */}
+        <div className="mt-4 pt-4 border-t border-brand-border/60 space-y-2 text-[11px] text-tx-muted leading-relaxed">
+          <p>
+            <span className="font-black text-tx-secondary">Série de victoires :</span> à partir de 3 victoires
+            d&apos;affilée, un bonus s&apos;ajoute à ton bénéfice (+5%, puis +10% à 5, +20% à 7, +35% à 10).
+            Il ne s&apos;applique qu&apos;au gain, jamais à la mise rendue. Une défaite remet la série à zéro.
+          </p>
+          <p>
+            <span className="font-black text-tx-secondary">Jackpot commun :</span> chaque mise perdue verse
+            {' '}{Math.round(JACKPOT_CONTRIBUTION_RATE * 100)}% à la cagnotte partagée, et chaque mise réglée
+            tire 1 chance sur {Math.round(1 / JACKPOT_HIT_CHANCE).toLocaleString('fr-FR')} de la rafler
+            entièrement — le montant misé n&apos;y change rien.
+          </p>
         </div>
       </div>
     </div>

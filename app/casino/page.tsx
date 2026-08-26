@@ -18,6 +18,7 @@ import { PRESTIGE_THRESHOLD, getPrestigeTitle } from '@/lib/casino/meta';
 import { CountUp, LevelBar } from './_components/CasinoUI';
 import MissionsModal, { useMissions } from './_components/MissionsModal';
 import FeedTicker from './_components/FeedTicker';
+import JackpotModal from './_components/JackpotModal';
 import DailyWheelModal from './_components/DailyWheelModal';
 import Confetti from './_components/Confetti';
 
@@ -59,6 +60,7 @@ export default function CasinoHub() {
   const [prestiging, setPrestiging] = useState(false);
   const [confetti, setConfetti] = useState(0);
   const [showMissions, setShowMissions] = useState(false);
+  const [showJackpot, setShowJackpot] = useState(false);
   const { missions, reload: reloadMissions, claimable } = useMissions();
   const [cashback, setCashback] = useState<{ amount: number; available: boolean } | null>(null);
   const [claimingCashback, setClaimingCashback] = useState(false);
@@ -144,6 +146,7 @@ export default function CasinoHub() {
     <main className="lg:[@media(min-height:700px)]:h-[100dvh] lg:[@media(min-height:700px)]:overflow-hidden bg-transparent text-tx-base p-3 sm:p-4 flex flex-col">
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
       {showWheel && <DailyWheelModal onClose={() => setShowWheel(false)} onSpin={claimWheelOfFortune} />}
+      {showJackpot && <JackpotModal amount={jackpot} onClose={() => setShowJackpot(false)} />}
       {showMissions && (
         <MissionsModal
           missions={missions}
@@ -293,7 +296,10 @@ export default function CasinoHub() {
             </div>
           </button>
 
-          <div className="h-14 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-2 px-3" title="Alimenté par chaque mise perdue — 1 chance sur 3000 par mise de le rafler">
+          <button
+            onClick={() => { sfx.click(); setShowJackpot(true); }}
+            className="h-14 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-2 px-3 text-left hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none"
+          >
             <Gem className="h-5 w-5 shrink-0 text-accent-primary" />
             <div className="min-w-0">
               <div className="font-display font-black text-xs leading-tight">Jackpot commun</div>
@@ -301,7 +307,8 @@ export default function CasinoHub() {
                 {jackpot !== null ? `${jackpot.toLocaleString('fr-FR')} ₶` : '···'}
               </div>
             </div>
-          </div>
+            <span className="ml-auto shrink-0 text-[10px] font-black text-tx-muted border border-brand-border rounded px-1.5 py-0.5">?</span>
+          </button>
 
           <div className="flex gap-2">
             <button onClick={() => { sfx.click(); router.push('/casino/achievements'); }} className="flex-1 h-14 rounded-xl border-2 border-brand-border bg-brand-card flex flex-col items-center justify-center gap-0.5 hover:border-accent-primary transition-colors focus:outline-none">
