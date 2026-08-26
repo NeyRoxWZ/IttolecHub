@@ -438,6 +438,58 @@ export const COSMETICS: Cosmetic[] = [...buildCosmetics(), ...GLOBAL_COSMETICS, 
 /** Everything crates and the pass are allowed to hand out. */
 export const DROPPABLE_COSMETICS: Cosmetic[] = COSMETICS.filter((c) => !c.prestige);
 
+/* ------------------------------------------------------------------ */
+/* Sources                                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Each piece belongs to exactly one source. A cosmetic that could drop from
+ * both a crate and the pass makes neither of them worth chasing: the pass
+ * pieces are pass pieces, the crate pieces are crate pieces, and the twenty
+ * prestige pieces are neither.
+ */
+function shuffleIds(ids: string[], seed: string): string[] {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
+  const rand = () => {
+    h ^= h << 13; h >>>= 0;
+    h ^= h >> 17;
+    h ^= h << 5; h >>>= 0;
+    return h / 4294967296;
+  };
+  const out = [...ids];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+export const PASS_COSMETIC_COUNT = 112;
+
+const SOURCE_SPLIT = shuffleIds(DROPPABLE_COSMETICS.map((c) => c.id), 'frenly-source-v1');
+
+/** Only ever handed out by the Frenly Pass. */
+export const PASS_COSMETIC_IDS: string[] = SOURCE_SPLIT.slice(0, PASS_COSMETIC_COUNT);
+/** Only ever found in crates. */
+export const CRATE_COSMETIC_IDS: string[] = SOURCE_SPLIT.slice(PASS_COSMETIC_COUNT);
+
+const CRATE_SET = new Set(CRATE_COSMETIC_IDS);
+export const CRATE_COSMETICS: Cosmetic[] = DROPPABLE_COSMETICS.filter((c) => CRATE_SET.has(c.id));
+
+export type CosmeticSource = 'pass' | 'caisse' | 'prestige';
+
+export function cosmeticSource(c: Cosmetic): CosmeticSource {
+  if (c.prestige) return 'prestige';
+  return CRATE_SET.has(c.id) ? 'caisse' : 'pass';
+}
+
+export const SOURCE_LABEL: Record<CosmeticSource, string> = {
+  pass: 'Frenly Pass',
+  caisse: 'Caisses',
+  prestige: 'Prestige',
+};
+
 export const GLOBAL_SET_LABELS: { key: string; theme: string }[] = GLOBAL_SETS.map((g) => ({ key: g.key, theme: g.theme }));
 
 const BY_ID = new Map(COSMETICS.map((c) => [c.id, c]));

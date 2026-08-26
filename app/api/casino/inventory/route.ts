@@ -48,14 +48,15 @@ export async function POST(request: Request) {
     const itemId: string = body?.item_id;
     if (!userId || !itemId) return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 });
 
-    const result = await consumeItem(userId, itemId);
+    const quantity = Math.max(1, Math.min(20, Number(body?.quantity) || 1));
+    const result = await consumeItem(userId, itemId, quantity);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
 
     return NextResponse.json({
       ok: true,
       message: result.message,
       newBalance: result.newBalance,
-      opening: result.opening ?? null,
+      openings: result.openings ?? null,
     });
   } catch (err) {
     console.error('Erreur POST inventory:', err);

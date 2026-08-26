@@ -7,7 +7,7 @@
  * regular session on five days out of seven reaches tier 100.
  */
 
-import { DROPPABLE_COSMETICS, cosmeticById } from './cosmetics';
+import { PASS_COSMETIC_IDS, cosmeticById } from './cosmetics';
 import { SHOP_ITEMS } from './shop';
 import { CRATES, crateById } from './crates';
 
@@ -121,12 +121,12 @@ function shuffled<T>(list: T[], seed: string): T[] {
 const PASS_ITEM_POOL = [...SHOP_ITEMS.map((i) => i.id), ...CRATES.map((c) => c.id)];
 
 function buildTrack(): PassTier[] {
-  // 160 cosmetics over 200 slots: the premium column carries one per tier,
-  // the free column carries the remaining 60 and fills the rest with coins
-  // and consumables.
-  const pool = shuffled(DROPPABLE_COSMETICS.map((c) => c.id), 'frenly-pass-v1');
-  const premiumPool = pool.slice(0, PASS_TIERS);
-  const freePool = pool.slice(PASS_TIERS);
+  // 112 pieces belong to the pass. The premium column carries the first 72,
+  // the free column takes 40 spread across the track, and the remaining
+  // slots pay coins, consumables and crates.
+  const pool = shuffled(PASS_COSMETIC_IDS, 'frenly-pass-v1');
+  const premiumCosmetics = pool.slice(0, 72);
+  const freeCosmetics = pool.slice(72);
 
   let freeCursor = 0;
   let itemCursor = 0;
@@ -137,21 +137,24 @@ function buildTrack(): PassTier[] {
     const mod = t % 5;
 
     let free: PassReward;
-    if (mod === 0 || mod === 1) {
+    if (mod === 2 || mod === 4) {
+      free = { kind: 'cosmetic', cosmeticId: freeCosmetics[freeCursor++ % freeCosmetics.length] };
+    } else if (mod === 0) {
       // Coin tiers scale with depth so the back half is worth pushing for.
-      free = mod === 0
-        ? { kind: 'coins', amount: (milestone ? 4000 : 800) + t * 40 }
-        : { kind: 'item', itemId: PASS_ITEM_POOL[itemCursor++ % PASS_ITEM_POOL.length] };
+      free = { kind: 'coins', amount: (milestone ? 4000 : 800) + t * 40 };
+    } else if (mod === 1) {
+      free = { kind: 'item', itemId: PASS_ITEM_POOL[itemCursor++ % PASS_ITEM_POOL.length] };
     } else {
-      free = { kind: 'cosmetic', cosmeticId: freePool[freeCursor++ % freePool.length] };
+      free = { kind: 'item', itemId: CRATES[Math.min(CRATES.length - 1, Math.floor(t / 30))].id };
     }
 
-    tiers.push({
-      tier: t,
-      free,
-      premium: { kind: 'cosmetic', cosmeticId: premiumPool[t - 1] },
-      milestone,
-    });
+    const premium: PassReward = t <= premiumCosmetics.length
+      ? { kind: 'cosmetic', cosmeticId: premiumCosmetics[t - 1] }
+      : t % 2 === 0
+        ? { kind: 'item', itemId: CRATES[Math.min(CRATES.length - 1, Math.floor((t - 70) / 10))].id }
+        : { kind: 'coins', amount: 5000 + (t - 72) * 500 };
+
+    tiers.push({ tier: t, free, premium, milestone });
   }
 
   return tiers;

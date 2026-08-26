@@ -32,7 +32,7 @@ export default function InventoryPage() {
   const [game, setGame] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
-  const [opening, setOpening] = useState<CrateOpening | null>(null);
+  const [openings, setOpenings] = useState<CrateOpening[] | null>(null);
   const [confetti, setConfetti] = useState(0);
 
   const load = useCallback(async () => {
@@ -52,22 +52,22 @@ export default function InventoryPage() {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
-  const use = async (itemId: string, name: string) => {
+  const use = async (itemId: string, name: string, quantity = 1) => {
     if (!user || busy) return;
     setBusy(itemId);
     vibrate(HAPTIC.MEDIUM);
     try {
       const res = await fetch('/api/casino/inventory', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, item_id: itemId }),
+        body: JSON.stringify({ user_id: user.id, item_id: itemId, quantity }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
 
       setBalance(data.newBalance);
-      if (data.opening) {
-        setOpening(data.opening);
-        if (data.opening.count === 5) { sfx.jackpot(); setConfetti((c) => c + 1); }
+      if (data.openings?.length) {
+        setOpenings(data.openings);
+        if (data.openings.some((o: CrateOpening) => o.count === 5)) { sfx.jackpot(); setConfetti((c) => c + 1); }
         else sfx.win();
       } else {
         sfx.select();
@@ -127,7 +127,7 @@ export default function InventoryPage() {
   return (
     <main className="bg-transparent text-tx-base p-3 sm:p-4 flex flex-col min-h-[100dvh]">
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
-      {opening && <CrateOpeningModal opening={opening} onClose={() => setOpening(null)} />}
+      {openings && <CrateOpeningModal openings={openings} onClose={() => setOpenings(null)} />}
 
       <div className="max-w-6xl w-full mx-auto flex flex-col flex-1 min-h-0">
         <header className="flex items-center justify-between gap-3 mb-3 flex-wrap shrink-0">

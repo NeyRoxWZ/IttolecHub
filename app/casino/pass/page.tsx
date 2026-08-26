@@ -10,17 +10,12 @@ import { sfx } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
-import {
-  COSMETIC_GAME_ORDER, SLOT_LABEL, RARITY_COLOR, RARITY_LABEL, GLOBAL_SLUG,
-  cosmeticById, cosmeticsForGame, gameLabel, gameTheme,
-  type Cosmetic, type CosmeticSlot,
-} from '@/lib/casino/cosmetics';
+import { cosmeticById, gameLabel, gameTheme, type Cosmetic } from '@/lib/casino/cosmetics';
 import { itemById } from '@/lib/casino/shop';
 import type { PassReward, PassTier } from '@/lib/casino/pass';
 import { CountUp } from '../_components/CasinoUI';
 import CosmeticPreview, { cosmeticEffect } from '../_components/CosmeticPreview';
 import Confetti from '../_components/Confetti';
-import { refreshCosmetics } from '@/hooks/useGameCosmetics';
 
 interface PassState { tier: number; xp: number; intoTier: number; needed: number; premium: boolean }
 
@@ -40,14 +35,12 @@ export default function FrenlyPassPage() {
   const { user } = useAuth();
   const { balance, isLoaded, refresh, spendOptimistic, setBalance } = useCasinoWallet();
 
-  const [tab, setTab] = useState<'pass' | 'collection'>('pass');
   const [tiers, setTiers] = useState<PassTier[]>([]);
   const [state, setState] = useState<PassState>({ tier: 0, xp: 0, intoTier: 0, needed: 30, premium: false });
   const [owned, setOwned] = useState<string[]>([]);
   const [claimed, setClaimed] = useState<{ free: number[]; premium: number[] }>({ free: [], premium: [] });
   const [claimable, setClaimable] = useState(0);
   const [claiming, setClaiming] = useState(false);
-  const [equipped, setEquipped] = useState<Record<string, Record<string, string>>>({});
   const [premiumPrice, setPremiumPrice] = useState(25000);
   const [resetIn, setResetIn] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -74,7 +67,6 @@ export default function FrenlyPassPage() {
     }
     if (cosmRes && cosmRes.ok) {
       const data = await cosmRes.json();
-      setEquipped(data.equipped || {});
       setOwned(data.owned || []);
     }
     setLoading(false);
@@ -94,9 +86,9 @@ export default function FrenlyPassPage() {
   // The track always opens at the very beginning; jumping to the current tier
   // is a deliberate action rather than something the page does behind you.
   useEffect(() => {
-    if (loading || tab !== 'pass') return;
+    if (loading) return;
     if (trackRef.current) trackRef.current.scrollLeft = 0;
-  }, [loading, tab]);
+  }, [loading]);
 
   const jumpToCurrent = () => {
     const track = trackRef.current;
@@ -179,25 +171,6 @@ export default function FrenlyPassPage() {
     }
   };
 
-  const equip = async (gameSlug: string, slot: CosmeticSlot, cosmeticId: string | null) => {
-    if (!user) return;
-    sfx.click(); vibrate(HAPTIC.SOFT);
-    const res = await fetch('/api/casino/cosmetics', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: user.id, game_slug: gameSlug, slot, cosmetic_id: cosmeticId }),
-    });
-    const data = await res.json();
-    if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
-    setEquipped((prev) => {
-      const next = { ...prev, [gameSlug]: { ...(prev[gameSlug] || {}) } };
-      if (cosmeticId) next[gameSlug][slot] = cosmeticId;
-      else delete next[gameSlug][slot];
-      return next;
-    });
-    // The games read a shared store, so it has to hear about this too.
-    void refreshCosmetics(user.id);
-  };
-
   const pct = state.needed > 0 ? Math.min(100, (state.intoTier / state.needed) * 100) : 100;
 
   return (
@@ -217,7 +190,12 @@ export default function FrenlyPassPage() {
               </Link>
             <div className="min-w-0">
               <h1 className="font-display text-xl sm:text-2xl font-black leading-none">Frenly Pass</h1>
-              <span className="text-[11px] text-tx-muted">100 paliers · remis à zéro chaque lundi</span>
+              <span className="text-[11px] text-tx-muted">
+                100 paliers · remis à zéro chaque lundi ·{' '}
+                <Link href="/casino/inventaire" prefetch className="text-accent-primary font-bold underline underline-offset-2">
+                  ta collection
+                </Link>
+              </span>
             </div>
           </div>
 
@@ -278,24 +256,9 @@ export default function FrenlyPassPage() {
           )}
         </div>
 
-        <div className="flex gap-2 mb-3 shrink-0">
-          {([['pass', 'Récompenses'], ['collection', 'Ma collection']] as const).map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => { sfx.click(); setTab(id); }}
-              className={cn(
-                'h-10 px-4 rounded-xl border-2 font-display font-black text-xs tracking-wide focus:outline-none transition-colors',
-                tab === id ? 'border-accent-primary bg-accent-primary/10 text-accent-primary' : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
         {loading && <div className="h-64 rounded-2xl border-4 border-brand-border bg-brand-card animate-pulse" />}
 
-        {!loading && tab === 'pass' && (
+        {!loading && (
           <>
             <div className="flex items-center gap-4 mb-2 text-[10px] font-black uppercase tracking-widest text-tx-muted shrink-0">
               <span className="flex items-center gap-1.5"><Crown className="h-3 w-3 text-accent-primary" /> Premium</span>
@@ -345,10 +308,6 @@ export default function FrenlyPassPage() {
               </div>
             </div>
           </>
-        )}
-
-        {!loading && tab === 'collection' && (
-          <Collection owned={owned} equipped={equipped} onEquip={equip} />
         )}
       </div>
     </main>
@@ -476,99 +435,3 @@ function TierDetail({
 }
 
 /* ------------------------------------------------------------------ */
-
-function Collection({
-  owned, equipped, onEquip,
-}: {
-  owned: string[];
-  equipped: Record<string, Record<string, string>>;
-  onEquip: (gameSlug: string, slot: CosmeticSlot, cosmeticId: string | null) => void;
-}) {
-  const [game, setGame] = useState(COSMETIC_GAME_ORDER[0]);
-  const pieces = useMemo(() => cosmeticsForGame(game), [game]);
-  const gameEquipped = equipped[game] || {};
-  const ownedCount = pieces.filter((c) => owned.includes(c.id)).length;
-  const total = pieces.length;
-
-  return (
-    <div className="flex flex-col gap-3 min-h-0">
-      <div className="flex gap-2 overflow-x-auto pb-1 shrink-0">
-        {COSMETIC_GAME_ORDER.map((slug) => {
-          const all = cosmeticsForGame(slug);
-          const got = all.filter((c) => owned.includes(c.id)).length;
-          return (
-            <button
-              key={slug}
-              onClick={() => { sfx.click(); setGame(slug); }}
-              className={cn(
-                'h-10 px-3 rounded-xl border-2 shrink-0 font-display font-black text-xs focus:outline-none transition-colors',
-                game === slug ? 'border-accent-primary bg-accent-primary/10 text-accent-primary'
-                  : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
-              )}
-            >
-              {gameLabel(slug)} <span className="text-[10px] text-tx-muted">{got}/{all.length}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="text-[11px] text-tx-muted shrink-0">
-        {game === GLOBAL_SLUG
-          ? `Sets généraux — ${ownedCount}/${total} débloqués. Ceux-là s'appliquent à tous les jeux.`
-          : `Thème « ${gameTheme(game)} » — ${ownedCount}/${total} débloqués. Ces pièces ne s'appliquent qu'à ce jeu.`}
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {pieces.map((piece) => {
-          const isOwned = owned.includes(piece.id);
-          const isEquipped = gameEquipped[piece.slot] === piece.id;
-          const tone = RARITY_COLOR[piece.rarity];
-
-          return (
-            <div
-              key={piece.id}
-              className={cn(
-                'rounded-2xl border-4 p-3 flex flex-col items-center gap-2 transition-colors',
-                isEquipped ? 'bg-accent-primary/10' : 'bg-brand-card',
-                !isOwned && 'opacity-55'
-              )}
-              style={{ borderColor: isEquipped ? tone : undefined }}
-            >
-              <div className="w-full flex items-center justify-between gap-1">
-                <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">{SLOT_LABEL[piece.slot]}</span>
-                <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: tone }}>
-                  {RARITY_LABEL[piece.rarity]}
-                </span>
-              </div>
-
-              <div className="relative">
-                <CosmeticPreview cosmetic={piece} size={82} />
-                {!isOwned && (
-                  <span className="absolute inset-0 rounded-xl bg-black/55 flex items-center justify-center">
-                    <Lock className="h-5 w-5 text-tx-muted" />
-                  </span>
-                )}
-              </div>
-
-              <span className="font-display font-black text-[11px] leading-tight text-center">{piece.name}</span>
-              <span className="text-[10px] text-tx-muted leading-tight text-center">{cosmeticEffect(piece)}</span>
-
-              <button
-                onClick={() => onEquip(game, piece.slot, isEquipped ? null : piece.id)}
-                disabled={!isOwned}
-                className={cn(
-                  'mt-auto w-full h-8 rounded-lg border-2 font-black text-[10px] tracking-widest focus:outline-none transition-colors',
-                  !isOwned ? 'border-brand-border text-tx-muted cursor-not-allowed'
-                    : isEquipped ? 'border-accent-primary bg-accent-primary text-brand-bg'
-                    : 'border-brand-border bg-brand-inner hover:border-accent-primary'
-                )}
-              >
-                {!isOwned ? 'VERROUILLÉ' : isEquipped ? 'ÉQUIPÉ' : 'ÉQUIPER'}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}

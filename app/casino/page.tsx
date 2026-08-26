@@ -377,9 +377,10 @@ export default function CasinoHub() {
           </div>
         </header>
 
-        {/* ACTION BAR — one strip, never wrapping: it scrolls sideways on a
-            narrow screen rather than breaking into a ragged second row. */}
-        <div className="flex items-center gap-2 mb-3 shrink-0 overflow-x-auto pb-1 -mx-1 px-1">
+        {/* ACTION BAR — wraps onto as many rows as it needs. Sideways
+            scrolling hid half the entries; the three kinds are told apart by
+            fill rather than by a label on the side. */}
+        <div className="flex flex-wrap items-center gap-2 mb-3 shrink-0">
           <ClaimTile
             label="Bonus du jour"
             icon={GiftIcon}

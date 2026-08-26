@@ -2,7 +2,7 @@ import { randomInt } from 'crypto';
 import { supabase } from '@/lib/supabase/server';
 import { itemById, type ShopItem } from './shop';
 import { crateById, isCrate, RARITY_BY_COUNT, COINS_BY_RARITY, pickWeighted, type CrateOpening, type CrateReward } from './crates';
-import { DROPPABLE_COSMETICS, type Rarity } from './cosmetics';
+import { CRATE_COSMETICS, type Rarity } from './cosmetics';
 import { levelFromXp, levelUpReward, totalXpForLevel } from './progression';
 import { grantEffect } from './effects.server';
 import {
@@ -65,36 +65,76 @@ async function credit(userId: string, amount: number, kind: string): Promise<num
 
 const RARITIES: Rarity[] = ['commun', 'rare', 'epique', 'legendaire'];
 
-export async function openCrate(userId: string, crateId: string): Promise<{ ok: true; opening: CrateOpening; newBalance: number } | { ok: false; status: number; error: string }> {
+/** Take `quantity` units out of the inventory at once. */
+async function consumeMany(userId: string, itemId: string, quantity: number): Promise<number> {
+  const { data: row } = await supabase.from('casino_inventory')
+    .select('quantity').eq('user_id', userId).eq('item_id', itemId).maybeSingle();
+  if (!row) return 0;
+
+  const have = Number(row.quantity);
+  const take = Math.min(have, quantity);
+  if (take <= 0) return 0;
+
+  const left = have - take;
+  if (left <= 0) {
+    await supabase.from('casino_inventory').delete().eq('user_id', userId).eq('item_id', itemId);
+  } else {
+    await supabase.from('casino_inventory').update({ quantity: left })
+      .eq('user_id', userId).eq('item_id', itemId).eq('quantity', have);
+  }
+  return take;
+}
+
+/**
+ * Open one or more crates in a single pass. The owned set is shared across
+ * the whole batch, so ten crates opened together can never hand out the same
+ * piece twice — a duplicate is paid out in coins instead.
+ */
+export async function openCrates(
+  userId: string,
+  crateId: string,
+  quantity = 1,
+): Promise<{ ok: true; openings: CrateOpening[]; newBalance: number } | { ok: false; status: number; error: string }> {
   const crate = crateById(crateId);
   if (!crate) return { ok: false, status: 404, error: 'Caisse inconnue' };
-  if (!await consumeOne(userId, crateId)) return { ok: false, status: 400, error: 'Tu n’as pas cette caisse.' };
 
-  const count = (3 + pickWeighted(crate.countWeights, rand())) as 3 | 4 | 5;
-  const rarityOdds = RARITY_BY_COUNT[count];
+  const wanted = Math.max(1, Math.min(20, Math.floor(quantity)));
+  const opened = await consumeMany(userId, crateId, wanted);
+  if (opened === 0) return { ok: false, status: 400, error: 'Tu n’as pas cette caisse.' };
 
   const { data: inv } = await supabase.from('casino_inventory').select('item_id').eq('user_id', userId);
   const owned = new Set((inv || []).map((r) => r.item_id));
 
-  const rewards: CrateReward[] = [];
+  const openings: CrateOpening[] = [];
   const newCosmetics: string[] = [];
   let coins = 0;
 
-  for (let i = 0; i < count; i++) {
-    const rarity = RARITIES[pickWeighted(RARITIES.map((r) => rarityOdds[r]), rand())];
-    const pool = DROPPABLE_COSMETICS.filter((c) => c.rarity === rarity && !owned.has(c.id) && !newCosmetics.includes(c.id));
+  for (let c = 0; c < opened; c++) {
+    const count = (3 + pickWeighted(crate.countWeights, rand())) as 3 | 4 | 5;
+    const rarityOdds = RARITY_BY_COUNT[count];
+    const rewards: CrateReward[] = [];
+    let crateCoins = 0;
 
-    if (pool.length > 0) {
-      const pick = pool[Math.floor(rand() * pool.length)];
-      newCosmetics.push(pick.id);
-      rewards.push({ kind: 'cosmetic', rarity, cosmeticId: pick.id });
-    } else {
-      // Nothing left to collect at that rarity — pay it out instead of
-      // handing back a duplicate the player can't use.
-      const amount = COINS_BY_RARITY[rarity];
-      coins += amount;
-      rewards.push({ kind: 'coins', rarity, amount, duplicate: true });
+    for (let i = 0; i < count; i++) {
+      const rarity = RARITIES[pickWeighted(RARITIES.map((r) => rarityOdds[r]), rand())];
+      const pool = CRATE_COSMETICS.filter((x) => x.rarity === rarity && !owned.has(x.id));
+
+      if (pool.length > 0) {
+        const pick = pool[Math.floor(rand() * pool.length)];
+        owned.add(pick.id);
+        newCosmetics.push(pick.id);
+        rewards.push({ kind: 'cosmetic', rarity, cosmeticId: pick.id });
+      } else {
+        // Nothing left to collect at that rarity: paid out rather than
+        // handed back as a piece the player already has.
+        const amount = COINS_BY_RARITY[rarity];
+        crateCoins += amount;
+        rewards.push({ kind: 'coins', rarity, amount, duplicate: true });
+      }
     }
+
+    coins += crateCoins;
+    openings.push({ crateId, count, rewards, coins: crateCoins });
   }
 
   if (newCosmetics.length) {
@@ -109,16 +149,16 @@ export async function openCrate(userId: string, crateId: string): Promise<{ ok: 
   const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
   if (wallet) {
     await supabase.from('casino_wallets')
-      .update({ crates_opened: Number(wallet.crates_opened || 0) + 1 })
+      .update({ crates_opened: Number(wallet.crates_opened || 0) + opened })
       .eq('user_id', userId);
-    // Opening a crate is the one moment collection achievements can move.
+    // Opening crates is the one moment collection achievements can move.
     await checkAchievements(userId, await withCollectionStats(userId, statsFromWallet({
-      ...wallet, crates_opened: Number(wallet.crates_opened || 0) + 1,
+      ...wallet, crates_opened: Number(wallet.crates_opened || 0) + opened,
     })));
   }
 
   const { data: fresh } = await supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle();
-  return { ok: true, opening: { crateId, count, rewards, coins }, newBalance: fresh?.balance ?? wallet?.balance ?? 0 };
+  return { ok: true, openings, newBalance: fresh?.balance ?? wallet?.balance ?? 0 };
 }
 
 /* ------------------------------------------------------------------ */
@@ -129,18 +169,23 @@ export interface UseResult {
   ok: true;
   message: string;
   newBalance: number;
-  opening?: CrateOpening;
+  openings?: CrateOpening[];
 }
 
-export async function consumeItem(userId: string, itemId: string): Promise<UseResult | { ok: false; status: number; error: string }> {
+export async function consumeItem(
+  userId: string,
+  itemId: string,
+  quantity = 1,
+): Promise<UseResult | { ok: false; status: number; error: string }> {
   if (isCrate(itemId)) {
-    const res = await openCrate(userId, itemId);
+    const res = await openCrates(userId, itemId, quantity);
     if (!res.ok) return res;
+    const total = res.openings.reduce((n, o) => n + o.count, 0);
     return {
       ok: true,
-      message: `${res.opening.count} objets dans la caisse`,
+      message: `${total} objet${total > 1 ? 's' : ''} sur ${res.openings.length} caisse${res.openings.length > 1 ? 's' : ''}`,
       newBalance: res.newBalance,
-      opening: res.opening,
+      openings: res.openings,
     };
   }
 
