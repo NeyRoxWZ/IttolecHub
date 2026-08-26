@@ -99,6 +99,16 @@ export async function advancePass(userId: string, xp: number): Promise<PassProgr
   if (capped > row.claimed_free) granted.push(...await grantRange(userId, row.claimed_free, capped, 'free'));
   if (row.premium && capped > row.claimed_premium) granted.push(...await grantRange(userId, row.claimed_premium, capped, 'premium'));
 
+  const tiersGained = Math.max(0, capped - row.tier);
+  if (tiersGained > 0) {
+    const { data: w } = await supabase.from('casino_wallets').select('pass_tiers_total').eq('user_id', userId).maybeSingle();
+    if (w) {
+      await supabase.from('casino_wallets')
+        .update({ pass_tiers_total: Number(w.pass_tiers_total || 0) + tiersGained })
+        .eq('user_id', userId);
+    }
+  }
+
   await supabase.from('casino_pass').update({
     xp: newXp,
     tier: capped,
@@ -107,7 +117,7 @@ export async function advancePass(userId: string, xp: number): Promise<PassProgr
     updated_at: new Date().toISOString(),
   }).eq('user_id', userId).eq('week_key', row.week_key);
 
-  return { tier: capped, tiersGained: Math.max(0, capped - row.tier), xp: newXp, granted };
+  return { tier: capped, tiersGained, xp: newXp, granted };
 }
 
 /**

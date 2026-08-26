@@ -1,12 +1,13 @@
 import { supabase } from '@/lib/supabase/server';
 import {
-  ACHIEVEMENTS, JACKPOT_CONTRIBUTION_RATE, JACKPOT_HIT_CHANCE, JACKPOT_SEED,
+  ACHIEVEMENTS, achievementReward, JACKPOT_CONTRIBUTION_RATE, JACKPOT_HIT_CHANCE, JACKPOT_SEED,
   seasonKey, type WalletStats,
 } from './meta';
+import { cosmeticById } from './cosmetics';
 import { xpForWager, levelFromXp, levelUpReward, isFeedWorthy } from './progression';
 import {
   pickDailyMissions, missionById, isMissionComplete, missionValue,
-  dayKey, gameBit, type MissionDef,
+  dayKey, gameBit, countBits, type MissionDef,
 } from './missions';
 import { consumeEffects, type EffectMap } from './effects.server';
 
@@ -150,7 +151,7 @@ export interface SettlementInput {
 }
 
 export interface SettlementResult {
-  newAchievements: { id: string; name: string; description: string }[];
+  newAchievements: { id: string; name: string; description: string; reward: number }[];
   jackpotWon: number | null;
   xpGained: number;
   level: number;
@@ -202,6 +203,15 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
 
   const newTotalWon = Number(wallet.total_won || 0) + (input.payout > 0 ? input.payout : 0);
   const newTotalWagered = Number(wallet.total_wagered || 0) + (input.wagered || 0);
+
+  // Counters the achievement list reads. None of them can be reconstructed
+  // from the totals, so they're tracked as they happen.
+  const betsPlaced = Number(wallet.bets_placed || 0) + 1;
+  const winsCount = Number(wallet.wins_count || 0) + (isWin ? 1 : 0);
+  const gamesMask = Number(wallet.games_mask || 0) | (1 << gameBit(gameSlug));
+  const biggestWin = Math.max(Number(wallet.biggest_win || 0), input.payout);
+  const lossStreak = isLoss && !streakSaved ? Number(wallet.current_loss_streak || 0) + 1 : 0;
+  const worstStreak = Math.max(Number(wallet.worst_streak || 0), lossStreak);
   const newBiggest = Math.max(Number(wallet.biggest_multiplier || 0), base);
   let balance = input.newBalance + levelReward;
   const newAllTimeBest = Math.max(Number(wallet.all_time_best_balance || 250), balance);
@@ -214,6 +224,21 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
     bestStreak: newBestStreak,
     prestigeCount: Number(wallet.prestige_count || 0),
     biggestMultiplier: newBiggest,
+    level: after.level,
+    dailyStreak: Number(wallet.daily_streak || 0),
+    allTimeBestBalance: newAllTimeBest,
+    betsPlaced,
+    winsCount,
+    gamesMask,
+    distinctGames: countBits(gamesMask),
+    cratesOpened: Number(wallet.crates_opened || 0),
+    missionsDone: Number(wallet.missions_done || 0),
+    jackpotsWon: Number(wallet.jackpots_won || 0),
+    passTiersTotal: Number(wallet.pass_tiers_total || 0),
+    biggestWin,
+    worstStreak,
+    cosmeticsOwned: 0,
+    legendaryOwned: 0,
   };
 
   // Everything below touches a different table (or a different column set) and
@@ -263,6 +288,9 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
 
     if (hit && pool > JACKPOT_SEED) {
       jackpotWon = pool;
+      await supabase.from('casino_wallets')
+        .update({ jackpots_won: Number(wallet.jackpots_won || 0) + 1 })
+        .eq('user_id', userId);
       await supabase.from('casino_jackpot').update({
         amount: JACKPOT_SEED, last_winner_user_id: userId, last_won_amount: pool, last_won_at: new Date().toISOString(),
       }).eq('id', 1);
@@ -293,16 +321,84 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
   };
 }
 
+/** Build the achievement view of a wallet row. */
+export function statsFromWallet(wallet: any, overrides: Partial<WalletStats> = {}): WalletStats {
+  const gamesMask = Number(wallet.games_mask || 0);
+  return {
+    balance: wallet.balance,
+    totalWagered: Number(wallet.total_wagered || 0),
+    totalWon: Number(wallet.total_won || 0),
+    currentStreak: Number(wallet.current_streak || 0),
+    bestStreak: Number(wallet.best_streak || 0),
+    prestigeCount: Number(wallet.prestige_count || 0),
+    biggestMultiplier: Number(wallet.biggest_multiplier || 0),
+    level: Number(wallet.level || 1),
+    dailyStreak: Number(wallet.daily_streak || 0),
+    allTimeBestBalance: Number(wallet.all_time_best_balance || 0),
+    betsPlaced: Number(wallet.bets_placed || 0),
+    winsCount: Number(wallet.wins_count || 0),
+    gamesMask,
+    distinctGames: countBits(gamesMask),
+    cratesOpened: Number(wallet.crates_opened || 0),
+    missionsDone: Number(wallet.missions_done || 0),
+    jackpotsWon: Number(wallet.jackpots_won || 0),
+    passTiersTotal: Number(wallet.pass_tiers_total || 0),
+    biggestWin: Number(wallet.biggest_win || 0),
+    worstStreak: Number(wallet.worst_streak || 0),
+    cosmeticsOwned: 0,
+    legendaryOwned: 0,
+    ...overrides,
+  };
+}
+
+/**
+ * Collection achievements need the inventory; everything else is already in
+ * the wallet row. Filled in here so the caller doesn't pay for the query
+ * when nothing collection-related can have changed.
+ */
+export async function withCollectionStats(userId: string, stats: WalletStats): Promise<WalletStats> {
+  const { data: inv } = await supabase.from('casino_inventory').select('item_id').eq('user_id', userId);
+  let owned = 0;
+  let legendary = 0;
+  for (const row of inv || []) {
+    const c = cosmeticById(row.item_id);
+    if (!c) continue;
+    owned++;
+    if (c.rarity === 'legendaire') legendary++;
+  }
+  return { ...stats, cosmeticsOwned: owned, legendaryOwned: legendary };
+}
+
 export async function checkAchievements(userId: string, stats: WalletStats): Promise<SettlementResult['newAchievements']> {
   const { data: unlocked } = await supabase.from('casino_achievements_unlocked').select('achievement_id').eq('user_id', userId);
   const unlockedIds = new Set((unlocked || []).map((u) => u.achievement_id));
+
   const newAchievements: SettlementResult['newAchievements'] = [];
+  let coins = 0;
+  let points = 0;
+
   for (const ach of ACHIEVEMENTS) {
-    if (!unlockedIds.has(ach.id) && ach.check(stats)) {
-      await supabase.from('casino_achievements_unlocked').insert({ user_id: userId, achievement_id: ach.id });
-      newAchievements.push({ id: ach.id, name: ach.name, description: ach.description });
+    if (unlockedIds.has(ach.id) || !ach.check(stats)) continue;
+    await supabase.from('casino_achievements_unlocked').insert({ user_id: userId, achievement_id: ach.id });
+    newAchievements.push({ id: ach.id, name: ach.name, description: ach.description, reward: achievementReward(ach.points) });
+    coins += achievementReward(ach.points);
+    points += ach.points;
+  }
+
+  if (coins > 0) {
+    const { data: w } = await supabase.from('casino_wallets').select('balance, achievement_points').eq('user_id', userId).maybeSingle();
+    if (w) {
+      const newBalance = w.balance + coins;
+      await supabase.from('casino_wallets')
+        .update({ balance: newBalance, achievement_points: Number(w.achievement_points || 0) + points })
+        .eq('user_id', userId);
+      await supabase.from('casino_transactions').insert({
+        user_id: userId, game_slug: 'casino', type: 'bonus', amount: coins,
+        balance_after: newBalance, meta: { kind: 'achievement', count: newAchievements.length },
+      });
     }
   }
+
   return newAchievements;
 }
 

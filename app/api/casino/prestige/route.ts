@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import { PRESTIGE_THRESHOLD, CASINO_STARTING_BALANCE } from '@/lib/casino/meta';
-import { checkAchievements } from '@/lib/casino/metaProgression.server';
+import { checkAchievements, statsFromWallet, withCollectionStats } from '@/lib/casino/metaProgression.server';
 
 export async function POST(request: Request) {
   try {
@@ -27,15 +27,11 @@ export async function POST(request: Request) {
       user_id: userId, game_slug: 'casino', type: 'prestige', amount: CASINO_STARTING_BALANCE - wallet.balance, balance_after: CASINO_STARTING_BALANCE, meta: { fromBalance: wallet.balance, prestigeCount: newPrestigeCount },
     });
 
-    const newAchievements = await checkAchievements(userId, {
+    const stats = await withCollectionStats(userId, statsFromWallet(wallet, {
       balance: CASINO_STARTING_BALANCE,
-      totalWagered: Number(wallet.total_wagered || 0),
-      totalWon: Number(wallet.total_won || 0),
-      currentStreak: Number(wallet.current_streak || 0),
-      bestStreak: Number(wallet.best_streak || 0),
       prestigeCount: newPrestigeCount,
-      biggestMultiplier: Number(wallet.biggest_multiplier || 0),
-    });
+    }));
+    const newAchievements = await checkAchievements(userId, stats);
 
     return NextResponse.json({ newBalance: CASINO_STARTING_BALANCE, prestigeCount: newPrestigeCount, newAchievements });
   } catch (err) {

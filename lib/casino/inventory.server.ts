@@ -5,7 +5,9 @@ import { crateById, isCrate, RARITY_BY_COUNT, COINS_BY_RARITY, pickWeighted, typ
 import { COSMETICS, type Rarity } from './cosmetics';
 import { levelFromXp, levelUpReward, totalXpForLevel } from './progression';
 import { grantEffect } from './effects.server';
-import { rerollMissions, completeBestMission } from './metaProgression.server';
+import {
+  rerollMissions, completeBestMission, checkAchievements, statsFromWallet, withCollectionStats,
+} from './metaProgression.server';
 
 /**
  * Items are bought into an inventory and used from it, rather than firing the
@@ -102,9 +104,21 @@ export async function openCrate(userId: string, crateId: string): Promise<{ ok: 
     );
   }
 
-  const newBalance = coins > 0 ? await credit(userId, coins, 'crate') : (await supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle()).data?.balance ?? 0;
+  if (coins > 0) await credit(userId, coins, 'crate');
 
-  return { ok: true, opening: { crateId, count, rewards, coins }, newBalance };
+  const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
+  if (wallet) {
+    await supabase.from('casino_wallets')
+      .update({ crates_opened: Number(wallet.crates_opened || 0) + 1 })
+      .eq('user_id', userId);
+    // Opening a crate is the one moment collection achievements can move.
+    await checkAchievements(userId, await withCollectionStats(userId, statsFromWallet({
+      ...wallet, crates_opened: Number(wallet.crates_opened || 0) + 1,
+    })));
+  }
+
+  const { data: fresh } = await supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle();
+  return { ok: true, opening: { crateId, count, rewards, coins }, newBalance: fresh?.balance ?? wallet?.balance ?? 0 };
 }
 
 /* ------------------------------------------------------------------ */

@@ -60,7 +60,12 @@ export async function POST(request: Request) {
     const newBalance = wallet.balance + row.def.reward;
     const newXp = Number(wallet.xp || 0) + row.def.xp;
     await supabase.from('casino_wallets')
-      .update({ balance: newBalance, xp: newXp, updated_at: new Date().toISOString() })
+      .update({
+        balance: newBalance,
+        xp: newXp,
+        missions_done: Number(wallet.missions_done || 0) + 1,
+        updated_at: new Date().toISOString(),
+      })
       .eq('user_id', userId);
 
     await supabase.from('casino_transactions').insert({
