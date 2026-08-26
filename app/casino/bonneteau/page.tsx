@@ -109,9 +109,12 @@ export default function BonneteauPage() {
     <div className="w-full flex flex-col items-center gap-5">
       {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
 
+      {/* The cups are absolutely positioned, so the box has no natural height:
+          without an explicit one they overflowed above it and the status line
+          ended up printed across them. */}
       <div
-        className="relative rounded-2xl border-4 border-brand-border px-4 pt-16 pb-6"
-        style={{ width: SLOT_W * BONNETEAU_CUPS + 32, background: '#241610' }}
+        className="relative rounded-2xl border-4 border-brand-border px-4"
+        style={{ width: SLOT_W * BONNETEAU_CUPS + 32, height: 252, background: '#241610' }}
       >
         {Array.from({ length: BONNETEAU_CUPS }, (_, cupId) => {
           const slot = positions[cupId];
@@ -156,7 +159,7 @@ export default function BonneteauPage() {
 
         <div
           className={cn(
-            'absolute top-4 left-4 right-4 text-center font-display font-black uppercase tracking-widest',
+            'absolute top-3 left-4 right-4 text-center font-display font-black uppercase tracking-widest',
             'text-lg sm:text-xl leading-none',
             phase === 'shuffling' ? 'text-accent-primary animate-pulse'
               : phase === 'choosing' ? 'text-white'

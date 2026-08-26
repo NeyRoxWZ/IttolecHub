@@ -7,7 +7,10 @@ import { vibrate, HAPTIC } from '@/lib/haptic';
 import { sfx } from '@/lib/casino/sfx';
 import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
-import { generateCrashPoint, multiplierAtElapsed, elapsedForMultiplier, CASINO_MIN_BET } from '@/lib/casino/rocket';
+import {
+  generateCrashPoint, multiplierAtElapsed, elapsedForMultiplier,
+  ROCKET_GROWTH_TAU, CASINO_MIN_BET,
+} from '@/lib/casino/rocket';
 import {
   GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
@@ -30,7 +33,10 @@ const RULES: RulesSpec = {
 };
 
 type Phase = 'idle' | 'flying' | 'crashed' | 'cashed';
-const STATUS_POLL_MS = 110;
+/** Gap between the end of one status poll and the start of the next. */
+const STATUS_POLL_GAP_MS = 90;
+/** How far past the last server confirmation the curve may run, in ms of growth. */
+const MAX_LEAD_MS = 450;
 const VIEW_W = 460;
 const VIEW_H = 240;
 const WINDOW_MS = 14_000;
@@ -54,10 +60,15 @@ export default function RocketPage() {
   const animRef = useRef<number | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const lastBeepRef = useRef(1);
+  /** Set once the round is over, so late replies can't fire a second time. */
+  const settledRef = useRef(false);
+  /** Highest multiplier the server has confirmed the rocket was still alive at. */
+  const aliveRef = useRef(1);
+  const aliveAtRef = useRef(0);
 
   const stopLoops = () => {
     if (animRef.current) cancelAnimationFrame(animRef.current);
-    if (pollRef.current) clearInterval(pollRef.current);
+    if (pollRef.current) clearTimeout(pollRef.current);
     animRef.current = null; pollRef.current = null;
   };
   useEffect(() => () => stopLoops(), []);
@@ -91,12 +102,19 @@ export default function RocketPage() {
         return;
       }
 
-      setMultiplier(m);
-      setPoints(projectPoints(elapsed));
+      // Never draw past what the server has confirmed still alive (plus a
+      // short allowance for the round-trip). Without this the curve ran
+      // seconds ahead of the truth and the crash landed far below it.
+      const lead = Math.min(MAX_LEAD_MS, Date.now() - aliveAtRef.current);
+      const cap = user ? aliveRef.current * Math.exp(lead / 1000 / ROCKET_GROWTH_TAU) : Infinity;
+      const shown = Math.min(m, cap);
+
+      setMultiplier(shown);
+      setPoints(projectPoints(user ? elapsedForMultiplier(shown) : elapsed));
 
       // Rising beeps as it climbs past each whole multiplier.
-      if (Math.floor(m) > lastBeepRef.current) {
-        lastBeepRef.current = Math.floor(m);
+      if (Math.floor(shown) > lastBeepRef.current) {
+        lastBeepRef.current = Math.floor(shown);
         sfx.step(Math.min(10, lastBeepRef.current));
       }
 
@@ -106,6 +124,10 @@ export default function RocketPage() {
   };
 
   const crash = (at: number) => {
+    // A queued reply can arrive after the round is already over; one crash
+    // per round, one toast per round.
+    if (settledRef.current) return;
+    settledRef.current = true;
     stopLoops();
     // The poll can land a beat after the real crash, so rewind the curve to
     // the exact point it blew up instead of leaving the trail hanging past it.
@@ -116,15 +138,39 @@ export default function RocketPage() {
     toast.error(`Explosé à ×${at.toFixed(2)}`);
   };
 
+  /**
+   * Sequential polling: the next request only leaves once the previous one
+   * has answered. The old fixed interval fired faster than the server could
+   * reply, so requests piled up behind the browser's connection limit and
+   * came back seconds late — which is how the curve reached ×4.25 while the
+   * real crash had happened at ×2.33.
+   */
   const startPolling = (uid: string, rid: string) => {
-    pollRef.current = setInterval(async () => {
-      const res = await fetch(`/api/casino/rocket/status?user_id=${uid}&round_id=${rid}`);
-      const data = await res.json();
-      if (data.status === 'busted') {
-        crash(Number(data.crashPoint));
-        announceProgression(data.progression);
+    const tick = async () => {
+      if (settledRef.current) return;
+      try {
+        const res = await fetch(`/api/casino/rocket/status?user_id=${uid}&round_id=${rid}`);
+        const data = await res.json();
+        if (settledRef.current) return;
+
+        if (data.status === 'busted') {
+          crash(Number(data.crashPoint));
+          announceProgression(data.progression);
+          return;
+        }
+        if (data.status === 'active' && typeof data.multiplier === 'number') {
+          aliveRef.current = data.multiplier;
+          aliveAtRef.current = Date.now();
+        } else if (data.status && data.status !== 'active') {
+          // Cashed out elsewhere, or already settled: stop asking.
+          return;
+        }
+      } catch {
+        // Network blip — keep trying, the cap simply holds the curve steady.
       }
-    }, STATUS_POLL_MS);
+      if (!settledRef.current) pollRef.current = setTimeout(tick, STATUS_POLL_GAP_MS);
+    };
+    void tick();
   };
 
   const handleStart = async () => {
@@ -145,6 +191,9 @@ export default function RocketPage() {
       setRoundId(data.roundId); setLockedAmount(amount);
       applyServerBalance('rocket', data.newBalance, amount);
       startedAtRef.current = data.startedAt;
+      settledRef.current = false;
+      aliveRef.current = 1;
+      aliveAtRef.current = Date.now();
       setMultiplier(1); setPhase('flying');
       startAnimation(); startPolling(user.id, data.roundId);
     } else {
@@ -153,6 +202,7 @@ export default function RocketPage() {
       if ('error' in result) { toast.error(result.error); return; }
       localCrashRef.current = generateCrashPoint();
       startedAtRef.current = Date.now();
+      settledRef.current = false;
       setRoundId('local'); setLockedAmount(amount);
       setMultiplier(1); setPhase('flying');
       startAnimation();
@@ -160,7 +210,8 @@ export default function RocketPage() {
   };
 
   const handleCashout = async () => {
-    if (busy || phase !== 'flying') return;
+    if (busy || phase !== 'flying' || settledRef.current) return;
+    settledRef.current = true;
     setBusy(true); stopLoops(); vibrate(HAPTIC.MEDIUM);
 
     if (user && roundId) {

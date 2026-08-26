@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/server';
-import { CASINO_MIN_BET, CASINO_MAX_BET_ABS, type BetResolution } from './core';
+import { CASINO_MIN_BET, type BetResolution } from './core';
 import { streakBonus } from './progression';
 import { loadEffects, consumeEffects, type EffectMap } from './effects.server';
 import { recordSettlement, type SettlementResult } from './metaProgression.server';
@@ -32,7 +32,7 @@ interface SettleFailure { ok: false; status: number; error: string }
 /** Bet cap, widened while a "high roller" style item is active. */
 export function effectiveMaxBet(balance: number, effects: EffectMap): number {
   const pct = effects.max_bet_pct?.magnitude ?? 0.5;
-  return Math.max(CASINO_MIN_BET, Math.min(CASINO_MAX_BET_ABS, Math.floor(balance * pct)));
+  return Math.max(CASINO_MIN_BET, Math.floor(balance * pct));
 }
 
 /**

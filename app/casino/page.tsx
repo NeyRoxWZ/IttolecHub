@@ -201,6 +201,7 @@ export default function CasinoHub() {
   return (
     <main className="lg:[@media(min-height:700px)]:h-[100dvh] lg:[@media(min-height:700px)]:overflow-hidden bg-transparent text-tx-base p-3 sm:p-4 flex flex-col">
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
+      <FeedTicker />
       {showWheel && <DailyWheelModal onClose={() => setShowWheel(false)} onSpin={claimWheelOfFortune} />}
       {showJackpot && <JackpotModal amount={jackpot} onClose={() => setShowJackpot(false)} />}
       {showMissions && (
@@ -386,8 +387,6 @@ export default function CasinoHub() {
             )}
           </div>
         </div>
-
-        <FeedTicker />
 
         {/* GAMES — 5×4 grid that fills the remaining height exactly, so the
             cards stay big instead of being squeezed into a corner. */}

@@ -22,13 +22,25 @@ const GAME_NAMES: Record<string, string> = {
   bonneteau: 'Bonneteau', stade: 'Stade', baccarat: 'Baccarat', rps: 'PFC', craps: 'Craps',
 };
 
+/** "il y a 3 min" — the feed is only interesting if you know how fresh it is. */
+function relativeTime(iso: string, now: number): string {
+  const seconds = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 1000));
+  if (seconds < 60) return `il y a ${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `il y a ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `il y a ${hours} h`;
+  return `il y a ${Math.floor(hours / 24)} j`;
+}
+
 /**
- * One-line ticker of the big wins across all players. It's the only place the
- * solo casino feels populated, so it's live rather than polled.
+ * Big wins from everyone, as a corner overlay rather than a strip in the
+ * layout: it's ambient information, it shouldn't cost the games any height.
  */
 export default function FeedTicker() {
   const [feed, setFeed] = useState<FeedEntry[]>([]);
   const [index, setIndex] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     fetch('/api/casino/feed?limit=20')
@@ -46,8 +58,13 @@ export default function FeedTicker() {
   }, []);
 
   useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
     if (feed.length < 2) return;
-    const t = setInterval(() => setIndex((i) => (i + 1) % feed.length), 4000);
+    const t = setInterval(() => setIndex((i) => (i + 1) % feed.length), 4500);
     return () => clearInterval(t);
   }, [feed.length]);
 
@@ -55,18 +72,41 @@ export default function FeedTicker() {
   const entry = feed[index];
 
   return (
-    <div className="h-8 shrink-0 mb-3 rounded-lg border-2 border-brand-border bg-brand-card px-3 flex items-center gap-2 overflow-hidden">
-      <Radio className={cn('h-3.5 w-3.5 shrink-0', entry.pinned ? 'text-accent-primary animate-pulse' : 'text-accent-secondary')} />
-      <div key={entry.id} className="min-w-0 flex items-center gap-1.5 text-[11px] animate-in slide-in-from-bottom-2 fade-in duration-300">
-        <span className="font-black truncate max-w-[120px]">{entry.pseudo}</span>
-        <span className="text-tx-muted">
-          {entry.pinned ? 'a raflé le jackpot sur' : 'a gagné sur'}
-        </span>
-        <span className="font-bold text-tx-secondary">{GAME_NAMES[entry.game_slug] || entry.game_slug}</span>
-        <span className="font-black text-accent-success tabular-nums">+{Number(entry.amount).toLocaleString('fr-FR')} ₶</span>
-        {Number(entry.multiplier) > 1 && (
-          <span className="font-black text-accent-primary tabular-nums">×{Number(entry.multiplier)}</span>
+    <div className="fixed bottom-3 left-3 z-40 pointer-events-none max-w-[min(300px,calc(100vw-24px))]">
+      <div
+        key={entry.id}
+        className={cn(
+          'rounded-xl border-2 bg-brand-card/95 backdrop-blur px-3 py-2 shadow-brutal',
+          'animate-in slide-in-from-left-3 fade-in duration-300',
+          entry.pinned ? 'border-accent-primary' : 'border-brand-border'
         )}
+      >
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <Radio className={cn('h-3 w-3 shrink-0', entry.pinned ? 'text-accent-primary animate-pulse' : 'text-accent-secondary')} />
+          <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">
+            {entry.pinned ? 'Jackpot' : 'Gros gain'}
+          </span>
+          <span className="ml-auto text-[9px] font-bold text-tx-muted tabular-nums">
+            {relativeTime(entry.created_at, now)}
+          </span>
+        </div>
+
+        <div className="flex items-baseline gap-1.5 text-[11px] leading-tight">
+          <span className="font-black truncate max-w-[110px]">{entry.pseudo}</span>
+          <span className="text-tx-muted">sur</span>
+          <span className="font-bold text-tx-secondary truncate">{GAME_NAMES[entry.game_slug] || entry.game_slug}</span>
+        </div>
+
+        <div className="flex items-baseline gap-2 mt-0.5">
+          <span className="font-display font-black text-sm text-accent-success tabular-nums">
+            +{Number(entry.amount).toLocaleString('fr-FR')} ₶
+          </span>
+          {Number(entry.multiplier) > 1 && (
+            <span className="font-display font-black text-[11px] text-accent-primary tabular-nums">
+              ×{Number(entry.multiplier)}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

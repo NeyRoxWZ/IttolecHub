@@ -83,11 +83,17 @@ export default function FrenlyPassPage() {
     return () => clearInterval(t);
   }, [resetIn]);
 
-  // Park the view on the tier the player is actually working on.
+  // Park the view on the tier being worked on — but only once there is
+  // something behind it. scrollIntoView also nudged the page itself, which is
+  // why opening the pass never landed at the very start of the track.
   useEffect(() => {
-    if (loading || tab !== 'pass' || !trackRef.current) return;
-    const el = trackRef.current.querySelector<HTMLElement>(`[data-tier="${Math.max(1, state.tier)}"]`);
-    el?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    if (loading || tab !== 'pass') return;
+    const track = trackRef.current;
+    if (!track) return;
+
+    if (state.tier < 4) { track.scrollLeft = 0; return; }
+    const el = track.querySelector<HTMLElement>(`[data-tier="${state.tier}"]`);
+    if (el) track.scrollLeft = Math.max(0, el.offsetLeft - track.clientWidth / 2 + el.clientWidth / 2);
   }, [loading, tab, state.tier]);
 
   const buyPremium = async () => {
