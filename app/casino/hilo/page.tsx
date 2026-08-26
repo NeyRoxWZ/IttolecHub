@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { drawCard, resolveHilo, getHiloPayout, CASINO_MIN_BET, type HiloDirection } from '@/lib/casino/hilo';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip, rankLabel, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip, rankLabel, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { tempo } from '@/lib/casino/turbo';
@@ -105,7 +105,7 @@ export default function HiloPage() {
     else if (full.won) {
       vibrate(HAPTIC.SUCCESS); sfx.win();
       if (full.multiplier >= 4) setConfetti((c) => c + 1);
-      toast.success(`${rankLabel(full.nextCard)} — +${full.payout} ₶`);
+      toast.success(`${rankLabel(full.nextCard)} — +${fmt(full.payout)} ₶`);
     } else { vibrate(HAPTIC.ERROR); sfx.lose(); toast.error(`${rankLabel(full.nextCard)} — perdu`); }
 
     await dealCard();
@@ -135,7 +135,7 @@ export default function HiloPage() {
       </div>
 
       <ResultBanner state={!result ? 'idle' : result.push ? 'push' : result.won ? 'win' : 'lose'}>
-        {result?.push ? 'Égalité — remboursé' : result?.won ? `+${result.payout} ₶` : 'Perdu'}
+        {result?.push ? 'Égalité — remboursé' : result?.won ? `+${fmt(result.payout)} ₶` : 'Perdu'}
       </ResultBanner>
     </div>
   );
@@ -153,7 +153,7 @@ export default function HiloPage() {
         blocked={amount > balance}
         betKey={amount}
       >
-        {`JOUER AU HASARD · ${amount} ₶`}
+        {`JOUER AU HASARD · ${fmt(amount)} ₶`}
       </PlayRow>
 
       <div className="grid grid-cols-2 gap-3">

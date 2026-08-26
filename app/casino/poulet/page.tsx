@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { LADDER_CONFIGS, multiplierAtStep, stepOutcome, CASINO_MIN_BET } from '@/lib/casino/ladder';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtChicken, ArtCar, ArtImpact, ArtFinishFlag } from '../_components/CasinoArt';
@@ -153,14 +153,14 @@ export default function PouletPage() {
       applyServerCashout('poulet', data.newBalance, data.payout, multiplier);
       setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (multiplier >= 3) setConfetti((c) => c + 1);
-      toast.success(`Encaissé +${data.payout} ₶ à ×${multiplier}`);
+      toast.success(`Encaissé +${fmt(data.payout)} ₶ à ×${multiplier}`);
       announceProgression(data.progression);
     } else {
       const p = Math.round(lockedAmount * multiplier);
       creditLocal('poulet', p, multiplier);
       setBusy(false); setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (multiplier >= 3) setConfetti((c) => c + 1);
-      toast.success(`Encaissé +${p} ₶ à ×${multiplier}`);
+      toast.success(`Encaissé +${fmt(p)} ₶ à ×${multiplier}`);
     }
   };
 
@@ -287,7 +287,7 @@ export default function PouletPage() {
       </div>
 
       <ResultBanner state={phase === 'dead' ? 'lose' : phase === 'cashed' ? 'win' : 'idle'}>
-        {phase === 'dead' ? 'Écrasé — mise perdue' : `Encaissé +${potentialPayout} ₶`}
+        {phase === 'dead' ? 'Écrasé — mise perdue' : `Encaissé +${fmt(potentialPayout)} ₶`}
       </ResultBanner>
     </div>
   );
@@ -306,7 +306,7 @@ export default function PouletPage() {
             blocked={amount > balance}
             betKey={amount}
           >
-            {phase === 'idle' ? `LÂCHER LE POULET · ${amount} ₶` : 'REJOUER'}
+            {phase === 'idle' ? `LÂCHER LE POULET · ${fmt(amount)} ₶` : 'REJOUER'}
           </PlayRow>
         </>
       ) : (
@@ -318,7 +318,7 @@ export default function PouletPage() {
             </div>
             <div className="text-right">
               <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise</div>
-              <div className="font-display text-xl font-black">{lockedAmount} ₶</div>
+              <div className="font-display text-xl font-black">{fmt(lockedAmount)} ₶</div>
             </div>
           </div>
 
@@ -327,7 +327,7 @@ export default function PouletPage() {
           </PlayButton>
 
           <PlayButton onClick={handleCashout} disabled={busy || step === 0} variant="success" className="h-14 text-base">
-            {step === 0 ? 'FRANCHIS UNE VOIE D’ABORD' : `ENCAISSER ${potentialPayout} ₶`}
+            {step === 0 ? 'FRANCHIS UNE VOIE D’ABORD' : `ENCAISSER ${fmt(potentialPayout)} ₶`}
           </PlayButton>
         </>
       )}

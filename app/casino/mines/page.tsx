@@ -12,7 +12,7 @@ import {
   MINES_TOTAL_CELLS, MINES_MIN_COUNT, MINES_MAX_COUNT, CASINO_MIN_BET,
 } from '@/lib/casino/mines';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtGem, ArtBomb, ArtImpact } from '../_components/CasinoArt';
@@ -142,14 +142,14 @@ export default function MinesPage() {
       applyServerCashout('mines', data.newBalance, data.payout, multiplier);
       setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (multiplier >= 3) setConfetti((c) => c + 1);
-      toast.success(`Encaissé +${data.payout} ₶ à ×${multiplier}`);
+      toast.success(`Encaissé +${fmt(data.payout)} ₶ à ×${multiplier}`);
       announceProgression(data.progression);
     } else {
       const p = Math.round(lockedAmount * multiplier);
       creditLocal('mines', p, multiplier);
       setBusy(false); setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (multiplier >= 3) setConfetti((c) => c + 1);
-      toast.success(`Encaissé +${p} ₶ à ×${multiplier}`);
+      toast.success(`Encaissé +${fmt(p)} ₶ à ×${multiplier}`);
     }
   };
 
@@ -240,7 +240,7 @@ export default function MinesPage() {
       )}
 
       <ResultBanner state={phase === 'busted' ? 'lose' : phase === 'cashed' ? 'win' : 'idle'}>
-        {phase === 'busted' ? 'Mine touchée — mise perdue' : `Encaissé +${potentialPayout} ₶`}
+        {phase === 'busted' ? 'Mine touchée — mise perdue' : `Encaissé +${fmt(potentialPayout)} ₶`}
       </ResultBanner>
     </div>
   );
@@ -287,7 +287,7 @@ export default function MinesPage() {
             blocked={amount > balance}
             betKey={amount}
           >
-            {phase === 'idle' ? `MISER · ${amount} ₶` : 'REJOUER'}
+            {phase === 'idle' ? `MISER · ${fmt(amount)} ₶` : 'REJOUER'}
           </PlayRow>
         </>
       ) : (
@@ -295,7 +295,7 @@ export default function MinesPage() {
           <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 flex items-center justify-between">
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise</div>
-              <div className="font-display text-xl font-black">{lockedAmount} ₶</div>
+              <div className="font-display text-xl font-black">{fmt(lockedAmount)} ₶</div>
             </div>
             <div className="text-right">
               <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mines</div>
@@ -304,7 +304,7 @@ export default function MinesPage() {
           </div>
 
           <PlayButton onClick={handleCashout} disabled={busy || revealed.length === 0} variant="success">
-            {revealed.length === 0 ? 'RETOURNE UNE CASE' : `ENCAISSER ${potentialPayout} ₶`}
+            {revealed.length === 0 ? 'RETOURNE UNE CASE' : `ENCAISSER ${fmt(potentialPayout)} ₶`}
           </PlayButton>
 
           <p className="text-[11px] text-tx-muted -mt-2">Clique les cases de la grille pour continuer.</p>

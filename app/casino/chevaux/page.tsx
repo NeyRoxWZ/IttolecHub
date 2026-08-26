@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { runRace, resolveChevaux, HORSES, CASINO_MIN_BET } from '@/lib/casino/chevaux';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtHorse, ArtFinishFlag } from '../_components/CasinoArt';
@@ -82,7 +82,7 @@ export default function ChevauxPage() {
 
     if (r.won) {
       vibrate(HAPTIC.SUCCESS); sfx.bigWin(); setConfetti((c) => c + 1);
-      toast.success(`${winnerName} gagne — +${r.payout} ₶`);
+      toast.success(`${winnerName} gagne — +${fmt(r.payout)} ₶`);
     } else {
       vibrate(HAPTIC.ERROR); sfx.lose();
       toast.error(`${winnerName} gagne — perdu`);
@@ -135,7 +135,7 @@ export default function ChevauxPage() {
       </div>
 
       <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
-        {result?.won ? `+${result.payout} ₶` : `${HORSES.find((h) => h.id === result?.winnerId)?.name} l'emporte`}
+        {result?.won ? `+${fmt(result.payout)} ₶` : `${HORSES.find((h) => h.id === result?.winnerId)?.name} l'emporte`}
       </ResultBanner>
     </div>
   );
@@ -173,7 +173,7 @@ export default function ChevauxPage() {
         loading={phase === 'racing'}
         disabled={!isLoaded || amount < CASINO_MIN_BET || (phase !== 'done' && selected === null)}
       >
-        {phase === 'done' ? 'REJOUER' : selected === null ? 'CHOISIS UN CHEVAL' : `PARIER · ${amount} ₶`}
+        {phase === 'done' ? 'REJOUER' : selected === null ? 'CHOISIS UN CHEVAL' : `PARIER · ${fmt(amount)} ₶`}
       </PlayRow>
 
       <HistoryStrip history={gameHistory} />

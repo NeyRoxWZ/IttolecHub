@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { playPassLine, resolveCraps, CRAPS_PAYOUT, CASINO_MIN_BET, type DiceRoll } from '@/lib/casino/craps';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { tempo } from '@/lib/casino/turbo';
@@ -96,7 +96,7 @@ export default function CrapsPage() {
 
     if (r.won) {
       vibrate(HAPTIC.SUCCESS); sfx.win(); setConfetti((c) => c + 1);
-      toast.success(`Ça passe — +${r.payout} ₶`);
+      toast.success(`Ça passe — +${fmt(r.payout)} ₶`);
     } else {
       vibrate(HAPTIC.ERROR); sfx.lose();
       toast.error('Ça casse — perdu');
@@ -141,7 +141,7 @@ export default function CrapsPage() {
       </div>
 
       <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
-        {result?.won ? `Ça passe — +${result.payout} ₶` : 'Ça casse — perdu'}
+        {result?.won ? `Ça passe — +${fmt(result.payout)} ₶` : 'Ça casse — perdu'}
       </ResultBanner>
     </div>
   );
@@ -150,7 +150,7 @@ export default function CrapsPage() {
     <>
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={rolling} />
       <PlayRow balance={balance} onClick={handleRoll} loading={rolling} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
-        {rolling ? 'ÇA ROULE...' : `LANCER LES DÉS · ${amount} ₶`}
+        {rolling ? 'ÇA ROULE...' : `LANCER LES DÉS · ${fmt(amount)} ₶`}
       </PlayRow>
 
       <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 space-y-1.5 text-xs">

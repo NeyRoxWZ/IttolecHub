@@ -11,7 +11,7 @@ import {
   KENO_PICK_COUNT, KENO_POOL_SIZE, KENO_DRAW_COUNT, CASINO_MIN_BET,
 } from '@/lib/casino/keno';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { tempo } from '@/lib/casino/turbo';
@@ -98,7 +98,7 @@ export default function KenoPage() {
       vibrate(HAPTIC.SUCCESS);
       if (r.multiplier >= 90) { sfx.jackpot(); setConfetti((c) => c + 1); }
       else { sfx.win(); setConfetti((c) => c + 1); }
-      toast.success(`${r.meta.matches} correspondances — +${r.payout} ₶`);
+      toast.success(`${r.meta.matches} correspondances — +${fmt(r.payout)} ₶`);
     } else {
       vibrate(HAPTIC.ERROR); sfx.lose();
       toast.error(`${r.meta.matches} correspondances — il en faut 5.`);
@@ -176,7 +176,7 @@ export default function KenoPage() {
         state={!result ? 'idle' : result.multiplier > 1 ? 'win' : result.multiplier === 1 ? 'push' : 'lose'}
         nearMiss={result && result.multiplier === 0 && result.matches === 5 ? 'À un numéro du remboursement !' : undefined}
       >
-        {result?.won ? `${result.matches} bons — +${result.payout} ₶`
+        {result?.won ? `${result.matches} bons — +${fmt(result.payout)} ₶`
           : result?.multiplier === 1 ? `${result.matches} bons — mise remboursée`
           : `${result?.matches ?? 0} bons — perdu`}
       </ResultBanner>
@@ -207,7 +207,7 @@ export default function KenoPage() {
             blocked={amount > balance}
             betKey={amount}
           >
-            {picksComplete ? `LANCER LE TIRAGE · ${amount} ₶` : `ENCORE ${KENO_PICK_COUNT - picks.length} NUMÉRO${KENO_PICK_COUNT - picks.length > 1 ? 'S' : ''}`}
+            {picksComplete ? `LANCER LE TIRAGE · ${fmt(amount)} ₶` : `ENCORE ${KENO_PICK_COUNT - picks.length} NUMÉRO${KENO_PICK_COUNT - picks.length > 1 ? 'S' : ''}`}
           </PlayRow>
         </>
       ) : (

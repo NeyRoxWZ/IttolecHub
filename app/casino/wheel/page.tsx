@@ -11,7 +11,7 @@ import {
   type WheelBet, type WheelBetType,
 } from '@/lib/casino/wheel';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import CasinoWheel, { type CasinoWheelHandle, type WheelSegment } from '../_components/CasinoWheel';
 import Confetti from '../_components/Confetti';
@@ -81,7 +81,7 @@ export default function FrenlyWheelPage() {
       vibrate(HAPTIC.SUCCESS);
       if (result.multiplier >= 10) { sfx.bigWin(); setConfetti((c) => c + 1); }
       else sfx.win();
-      toast.success(`${result.landedNumber} — +${result.payout} ₶`);
+      toast.success(`${result.landedNumber} — +${fmt(result.payout)} ₶`);
     } else {
       vibrate(HAPTIC.ERROR); sfx.lose();
     }
@@ -114,7 +114,7 @@ export default function FrenlyWheelPage() {
       />
 
       <ResultBanner state={lastResult === null ? 'idle' : lastResult.won ? 'win' : 'lose'}>
-        {lastResult?.won ? `×${lastResult.multiplier} — +${lastResult.payout} ₶` : 'Perdu'}
+        {lastResult?.won ? `×${lastResult.multiplier} — +${fmt(lastResult.payout)} ₶` : 'Perdu'}
       </ResultBanner>
     </div>
   );
@@ -214,7 +214,7 @@ export default function FrenlyWheelPage() {
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={spinning} />
 
       <PlayRow balance={balance} onClick={handleSpin} loading={spinning} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
-        {spinning ? 'ÇA TOURNE...' : `LANCER · ${amount} ₶ (×${WHEEL_PAYOUTS[betType]})`}
+        {spinning ? 'ÇA TOURNE...' : `LANCER · ${fmt(amount)} ₶ (×${WHEEL_PAYOUTS[betType]})`}
       </PlayRow>
 
       <HistoryStrip history={gameHistory} />

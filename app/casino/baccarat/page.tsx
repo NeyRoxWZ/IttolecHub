@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { drawBaccaratOutcome, resolveBaccarat, BACCARAT_PAYOUTS, CASINO_MIN_BET, type BaccaratBet, type BaccaratOutcome } from '@/lib/casino/baccarat';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { tempo } from '@/lib/casino/turbo';
@@ -82,7 +82,7 @@ export default function BaccaratPage() {
       vibrate(HAPTIC.SUCCESS);
       if (outcome === 'tie') { sfx.jackpot(); setConfetti((c) => c + 1); }
       else { sfx.win(); setConfetti((c) => c + 1); }
-      toast.success(`${LABEL[outcome]} — +${r.payout} ₶`);
+      toast.success(`${LABEL[outcome]} — +${fmt(r.payout)} ₶`);
     } else if (r.multiplier === 1) {
       vibrate(HAPTIC.WARNING); sfx.reveal();
       toast.info('Égalité — mise remboursée.');
@@ -132,7 +132,7 @@ export default function BaccaratPage() {
       </div>
 
       <ResultBanner state={!result ? 'idle' : result.multiplier === 1 ? 'push' : result.multiplier > 1 ? 'win' : 'lose'}>
-        {result && result.multiplier > 1 ? `${LABEL[result.outcome]} — +${result.payout} ₶`
+        {result && result.multiplier > 1 ? `${LABEL[result.outcome]} — +${fmt(result.payout)} ₶`
           : result?.multiplier === 1 ? 'Égalité — remboursé'
           : result ? `${LABEL[result.outcome]} — perdu` : ''}
       </ResultBanner>
@@ -164,7 +164,7 @@ export default function BaccaratPage() {
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
 
       <PlayRow balance={balance} onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
-        {playing ? 'DISTRIBUTION...' : `PARIER · ${amount} ₶`}
+        {playing ? 'DISTRIBUTION...' : `PARIER · ${fmt(amount)} ₶`}
       </PlayRow>
 
       <p className="text-[11px] text-tx-muted">Sur Joueur ou Banque, une égalité rembourse ta mise.</p>

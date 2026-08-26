@@ -19,6 +19,15 @@ import { streakLabel, streakBonus, nextStreakTier } from '@/lib/casino/progressi
 import { JACKPOT_CONTRIBUTION_RATE, JACKPOT_HIT_CHANCE } from '@/lib/casino/meta';
 
 /* ------------------------------------------------------------------ */
+/* Number formatting                                                    */
+/* ------------------------------------------------------------------ */
+
+/** Thousands separators everywhere a coin amount is printed. */
+export function fmt(n: number): string {
+  return Math.round(n || 0).toLocaleString('en-US');
+}
+
+/* ------------------------------------------------------------------ */
 /* Animated number                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -137,7 +146,7 @@ export function BetControls({
     <div>
       <div className="flex items-center justify-between mb-2">
         <label className="text-[10px] font-black tracking-widest uppercase text-tx-muted">Ta mise</label>
-        <span className="text-[10px] font-bold text-tx-muted">max {maxBet.toLocaleString('en-US')} ₶</span>
+        <span className="text-[10px] font-bold text-tx-muted">max {fmt(maxBet)} ₶</span>
       </div>
       <div className="flex items-center gap-2">
         <button onClick={() => bump(-step)} disabled={disabled} className="h-12 w-12 shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base disabled:opacity-40 focus:outline-none active:scale-95 transition-transform">
@@ -145,20 +154,23 @@ export function BetControls({
         </button>
         <div className="flex-1 relative">
           <input
-            type="number"
-            value={draft ?? amount}
+            type="text"
+            inputMode="numeric"
+            value={draft ?? fmt(amount)}
             disabled={disabled}
             onFocus={(e) => e.currentTarget.select()}
             onChange={(e) => {
-              const raw = e.target.value;
-              setDraft(raw);
-              if (raw !== '') setAmount(clamp(Number(raw)));
+              // Keep the digits, drop the separators, then show them back
+              // grouped — a number input can't render a comma.
+              const digits = e.target.value.replace(/[^0-9]/g, '');
+              setDraft(digits === '' ? '' : fmt(Number(digits)));
+              if (digits !== '') setAmount(clamp(Number(digits)));
             }}
             onBlur={() => {
-              if (draft !== null && draft !== '') setAmount(clamp(Number(draft)));
+              if (draft !== null && draft !== '') setAmount(clamp(Number(draft.replace(/[^0-9]/g, ''))));
               setDraft(null);
             }}
-            className="w-full h-12 bg-brand-inner border-2 border-brand-border rounded-xl pl-3 pr-7 text-center font-display font-black text-lg focus:outline-none focus:border-accent-primary disabled:opacity-40"
+            className="w-full h-12 bg-brand-inner border-2 border-brand-border rounded-xl pl-3 pr-7 text-center font-display font-black text-lg tabular-nums focus:outline-none focus:border-accent-primary disabled:opacity-40"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-tx-muted font-bold pointer-events-none">₶</span>
         </div>

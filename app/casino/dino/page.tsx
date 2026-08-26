@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { LADDER_CONFIGS, multiplierAtStep, stepOutcome, CASINO_MIN_BET } from '@/lib/casino/ladder';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtDino, ArtCactus, ArtRock, ArtFire, ArtVolcano, ArtFinishFlag } from '../_components/CasinoArt';
@@ -262,13 +262,13 @@ export default function DinoPage() {
       applyServerCashout('dino', data.newBalance, data.payout, multiplier);
       setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (multiplier >= 3) setConfetti((c) => c + 1);
-      toast.success(`Encaissé +${data.payout} ₶ à ×${multiplier}`); announceProgression(data.progression);
+      toast.success(`Encaissé +${fmt(data.payout)} ₶ à ×${multiplier}`); announceProgression(data.progression);
     } else {
       const p = Math.round(lockedAmount * multiplier);
       creditLocal('dino', p, multiplier);
       setBusy(false); setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (multiplier >= 3) setConfetti((c) => c + 1);
-      toast.success(`Encaissé +${p} ₶ à ×${multiplier}`);
+      toast.success(`Encaissé +${fmt(p)} ₶ à ×${multiplier}`);
     }
   };
 
@@ -383,7 +383,7 @@ export default function DinoPage() {
       </div>
 
       <ResultBanner state={phase === 'dead' ? 'lose' : phase === 'cashed' ? 'win' : 'idle'}>
-        {phase === 'dead' ? 'Impact — mise perdue' : `Encaissé +${potentialPayout} ₶`}
+        {phase === 'dead' ? 'Impact — mise perdue' : `Encaissé +${fmt(potentialPayout)} ₶`}
       </ResultBanner>
     </div>
   );
@@ -402,7 +402,7 @@ export default function DinoPage() {
             blocked={amount > balance}
             betKey={amount}
           >
-            {phase === 'idle' ? `LANCER LA COURSE · ${amount} ₶` : 'REJOUER'}
+            {phase === 'idle' ? `LANCER LA COURSE · ${fmt(amount)} ₶` : 'REJOUER'}
           </PlayRow>
         </>
       ) : (
@@ -414,7 +414,7 @@ export default function DinoPage() {
             </div>
             <div className="text-right">
               <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise</div>
-              <div className="font-display text-xl font-black">{lockedAmount} ₶</div>
+              <div className="font-display text-xl font-black">{fmt(lockedAmount)} ₶</div>
             </div>
           </div>
 
@@ -427,7 +427,7 @@ export default function DinoPage() {
             )}
           >
             ENCAISSER
-            <div className="text-base font-black">{step === 0 ? 'attends le 1er obstacle' : `${potentialPayout} ₶`}</div>
+            <div className="text-base font-black">{step === 0 ? 'attends le 1er obstacle' : `${fmt(potentialPayout)} ₶`}</div>
           </button>
 
           <p className="text-[11px] text-tx-muted">Le dino saute tout seul. Ton seul choix : quand t’arrêter.</p>

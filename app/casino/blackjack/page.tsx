@@ -12,7 +12,7 @@ import {
   type BlackjackOutcome, CASINO_MIN_BET,
 } from '@/lib/casino/blackjack';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip,
   type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
@@ -80,8 +80,8 @@ export default function BlackjackPage() {
   }, []);
 
   const announceOutcome = (o: BlackjackOutcome, p: number) => {
-    if (o === 'blackjack') { vibrate(HAPTIC.SUCCESS); sfx.bigWin(); setConfetti((c) => c + 1); toast.success(`Blackjack ! +${p} ₶`); }
-    else if (o === 'win') { vibrate(HAPTIC.SUCCESS); sfx.win(); toast.success(`Gagné +${p} ₶`); }
+    if (o === 'blackjack') { vibrate(HAPTIC.SUCCESS); sfx.bigWin(); setConfetti((c) => c + 1); toast.success(`Blackjack ! +${fmt(p)} ₶`); }
+    else if (o === 'win') { vibrate(HAPTIC.SUCCESS); sfx.win(); toast.success(`Gagné +${fmt(p)} ₶`); }
     else if (o === 'push') { vibrate(HAPTIC.WARNING); sfx.reveal(); toast.info('Égalité — mise remboursée.'); }
     else { vibrate(HAPTIC.ERROR); sfx.lose(); toast.error('Perdu.'); }
   };
@@ -335,8 +335,8 @@ export default function BlackjackPage() {
       </div>
 
       <ResultBanner state={bannerState}>
-        {outcome === 'blackjack' ? `BLACKJACK — +${payout} ₶`
-          : outcome === 'win' ? `Gagné +${payout} ₶`
+        {outcome === 'blackjack' ? `BLACKJACK — +${fmt(payout)} ₶`
+          : outcome === 'win' ? `Gagné +${fmt(payout)} ₶`
           : outcome === 'push' ? 'Égalité — remboursé'
           : 'Perdu'}
       </ResultBanner>
@@ -357,14 +357,14 @@ export default function BlackjackPage() {
             blocked={amount > balance}
             betKey={amount}
           >
-            {phase === 'idle' ? `DISTRIBUER · ${amount} ₶` : 'REJOUER'}
+            {phase === 'idle' ? `DISTRIBUER · ${fmt(amount)} ₶` : 'REJOUER'}
           </PlayRow>
         </>
       ) : (
         <>
           <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 text-center">
             <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise en jeu</div>
-            <div className="font-display text-2xl font-black text-accent-primary">{lockedAmount} ₶</div>
+            <div className="font-display text-2xl font-black text-accent-primary">{fmt(lockedAmount)} ₶</div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -382,7 +382,7 @@ export default function BlackjackPage() {
                 : 'border-brand-border bg-brand-inner text-tx-muted cursor-not-allowed'
             )}
           >
-            DOUBLER (+{lockedAmount} ₶)
+            DOUBLER (+{fmt(lockedAmount)} ₶)
           </button>
           {!canDouble && phase === 'playing' && (
             <p className="text-[11px] text-tx-muted -mt-3">Doubler n’est possible que sur tes 2 premières cartes.</p>

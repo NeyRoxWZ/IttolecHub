@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { hideJackpot, resolveCaisses, CAISSES_COUNT, CAISSES_PAYOUT, CASINO_MIN_BET } from '@/lib/casino/caisses';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtCrate, ArtCrateEmpty } from '../_components/CasinoArt';
@@ -61,7 +61,7 @@ export default function CaissesPage() {
 
     if (r.won) {
       vibrate(HAPTIC.SUCCESS); sfx.bigWin(); setConfetti((c) => c + 1);
-      toast.success(`Jackpot ! +${r.payout} ₶`);
+      toast.success(`Jackpot ! +${fmt(r.payout)} ₶`);
     } else {
       vibrate(HAPTIC.ERROR); sfx.lose();
       toast.error(`Vide. Le lot était dans la caisse ${r.meta.jackpotCrate + 1}.`);
@@ -130,7 +130,7 @@ export default function CaissesPage() {
       </p>
 
       <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
-        {result?.won ? `+${result.payout} ₶` : 'Perdu'}
+        {result?.won ? `+${fmt(result.payout)} ₶` : 'Perdu'}
       </ResultBanner>
     </div>
   );
@@ -154,7 +154,7 @@ export default function CaissesPage() {
           blocked={amount > balance}
           betKey={amount}
         >
-          {phase === 'revealed' ? 'REJOUER' : `MISER · ${amount} ₶ (×${CAISSES_PAYOUT})`}
+          {phase === 'revealed' ? 'REJOUER' : `MISER · ${fmt(amount)} ₶ (×${CAISSES_PAYOUT})`}
         </PlayRow>
       )}
 

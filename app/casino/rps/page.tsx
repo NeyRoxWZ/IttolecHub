@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { houseMove, resolveRps, RPS_PAYOUT, CASINO_MIN_BET, type RpsMove } from '@/lib/casino/rps';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtRps } from '../_components/CasinoArt';
@@ -79,7 +79,7 @@ export default function RpsPage() {
 
     if (full.outcome === 'win') {
       vibrate(HAPTIC.SUCCESS); sfx.win(); setConfetti((c) => c + 1);
-      toast.success(`${nameOf(full.playerMove)} bat ${nameOf(full.house)} — +${full.payout} ₶`);
+      toast.success(`${nameOf(full.playerMove)} bat ${nameOf(full.house)} — +${fmt(full.payout)} ₶`);
     } else if (full.outcome === 'tie') {
       vibrate(HAPTIC.WARNING); sfx.reveal();
       toast.info('Égalité — mise remboursée.');
@@ -120,7 +120,7 @@ export default function RpsPage() {
       </div>
 
       <ResultBanner state={!result ? 'idle' : result.outcome === 'tie' ? 'push' : result.outcome === 'win' ? 'win' : 'lose'}>
-        {result?.outcome === 'win' ? `Gagné +${result.payout} ₶` : result?.outcome === 'tie' ? 'Égalité — remboursé' : 'Perdu'}
+        {result?.outcome === 'win' ? `Gagné +${fmt(result.payout)} ₶` : result?.outcome === 'tie' ? 'Égalité — remboursé' : 'Perdu'}
       </ResultBanner>
     </div>
   );
@@ -160,7 +160,7 @@ export default function RpsPage() {
         blocked={amount > balance}
         betKey={amount}
       >
-        {`COUP AU HASARD · ${amount} ₶`}
+        {`COUP AU HASARD · ${fmt(amount)} ₶`}
       </PlayRow>
 
       <HistoryStrip history={gameHistory} />

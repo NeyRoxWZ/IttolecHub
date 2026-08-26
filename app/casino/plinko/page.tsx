@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { dropBall, resolvePlinko, PLINKO_MULTIPLIERS, PLINKO_ROWS, CASINO_MIN_BET } from '@/lib/casino/plinko';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { tempo } from '@/lib/casino/turbo';
@@ -79,10 +79,10 @@ export default function PlinkoPage() {
       vibrate(HAPTIC.SUCCESS);
       if (r.multiplier >= 11) { sfx.jackpot(); setConfetti((c) => c + 1); }
       else { sfx.win(); }
-      toast.success(`×${r.multiplier} — +${r.payout} ₶`);
+      toast.success(`×${r.multiplier} — +${fmt(r.payout)} ₶`);
     } else {
       vibrate(HAPTIC.ERROR); sfx.lose();
-      toast.error(`×${r.multiplier} — tu récupères ${r.payout} ₶`);
+      toast.error(`×${r.multiplier} — tu récupères ${fmt(r.payout)} ₶`);
     }
   };
 
@@ -162,7 +162,7 @@ export default function PlinkoPage() {
     <>
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={dropping} />
       <PlayRow balance={balance} onClick={handleDrop} loading={dropping} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
-        {dropping ? 'ÇA TOMBE...' : `LÂCHER LA BILLE · ${amount} ₶`}
+        {dropping ? 'ÇA TOMBE...' : `LÂCHER LA BILLE · ${fmt(amount)} ₶`}
       </PlayRow>
 
       <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">

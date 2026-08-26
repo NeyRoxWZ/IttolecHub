@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { hideBall, resolveBonneteau, BONNETEAU_CUPS, BONNETEAU_PAYOUT, CASINO_MIN_BET } from '@/lib/casino/bonneteau';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtBall } from '../_components/CasinoArt';
@@ -94,7 +94,7 @@ export default function BonneteauPage() {
 
     if (won) {
       vibrate(HAPTIC.SUCCESS); sfx.win(); setConfetti((c) => c + 1);
-      toast.success(`Bonne pioche — +${pending.payout} ₶`);
+      toast.success(`Bonne pioche — +${fmt(pending.payout)} ₶`);
     } else {
       vibrate(HAPTIC.ERROR); sfx.lose();
       toast.error(`La bille était sous le gobelet ${ballCup + 1}.`);
@@ -183,7 +183,7 @@ export default function BonneteauPage() {
       </div>
 
       <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
-        {result?.won ? `+${result.payout} ₶` : 'Perdu'}
+        {result?.won ? `+${fmt(result.payout)} ₶` : 'Perdu'}
       </ResultBanner>
     </div>
   );
@@ -207,7 +207,7 @@ export default function BonneteauPage() {
           blocked={amount > balance}
           betKey={amount}
         >
-          {phase === 'revealed' ? 'REJOUER' : `MISER · ${amount} ₶ (×${BONNETEAU_PAYOUT})`}
+          {phase === 'revealed' ? 'REJOUER' : `MISER · ${fmt(amount)} ₶ (×${BONNETEAU_PAYOUT})`}
         </PlayRow>
       )}
 

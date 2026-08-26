@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { flipCoin, resolveCoinflip, COINFLIP_PAYOUT, CASINO_MIN_BET, type CoinSide } from '@/lib/casino/coinflip';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtFrenlyCoin } from '../_components/CasinoArt';
@@ -93,7 +93,7 @@ export default function CoinflipPage() {
 
     if (r.won) {
       vibrate(HAPTIC.SUCCESS); sfx.win(); setConfetti((c) => c + 1);
-      toast.success(`${landed === 'pile' ? 'Pile' : 'Face'} — +${r.payout} ₶`);
+      toast.success(`${landed === 'pile' ? 'Pile' : 'Face'} — +${fmt(r.payout)} ₶`);
     } else {
       vibrate(HAPTIC.ERROR); sfx.lose();
       toast.error(`${landed === 'pile' ? 'Pile' : 'Face'} — perdu`);
@@ -136,7 +136,7 @@ export default function CoinflipPage() {
       </div>
 
       <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
-        {result?.won ? `${result.landed === 'pile' ? 'Pile' : 'Face'} — +${result.payout} ₶` : `${result?.landed === 'pile' ? 'Pile' : 'Face'} — perdu`}
+        {result?.won ? `${result.landed === 'pile' ? 'Pile' : 'Face'} — +${fmt(result.payout)} ₶` : `${result?.landed === 'pile' ? 'Pile' : 'Face'} — perdu`}
       </ResultBanner>
     </div>
   );
@@ -171,7 +171,7 @@ export default function CoinflipPage() {
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={flipping} />
 
       <PlayRow balance={balance} onClick={handleFlip} loading={flipping} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
-        {flipping ? 'ÇA TOURNE...' : `LANCER · ${amount} ₶ (×${COINFLIP_PAYOUT})`}
+        {flipping ? 'ÇA TOURNE...' : `LANCER · ${fmt(amount)} ₶ (×${COINFLIP_PAYOUT})`}
       </PlayRow>
 
       <HistoryStrip history={gameHistory} />

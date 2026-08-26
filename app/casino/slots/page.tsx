@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { spinSlots, resolveSlots, CASINO_MIN_BET, type SlotSymbol } from '@/lib/casino/slots';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtCherry, ArtBell, ArtStar, ArtDiamond, ArtLemon, ArtSeven } from '../_components/CasinoArt';
@@ -170,7 +170,7 @@ export default function SlotsPage() {
       vibrate(HAPTIC.SUCCESS);
       if (result.multiplier >= 10) { sfx.bigWin(); setConfetti((c) => c + 1); }
       else sfx.win();
-      toast.success(`+${result.payout} ₶`);
+      toast.success(`+${fmt(result.payout)} ₶`);
     } else {
       vibrate(HAPTIC.ERROR);
       sfx.lose();
@@ -206,7 +206,7 @@ export default function SlotsPage() {
         state={lastResult === null ? 'idle' : lastResult.won ? 'win' : 'lose'}
         nearMiss={nearMiss ? 'À un symbole du gain !' : undefined}
       >
-        {lastResult?.won ? `×${lastResult.multiplier} — +${lastResult.payout} ₶` : 'Pas de combinaison'}
+        {lastResult?.won ? `×${lastResult.multiplier} — +${fmt(lastResult.payout)} ₶` : 'Pas de combinaison'}
       </ResultBanner>
     </div>
   );
@@ -215,7 +215,7 @@ export default function SlotsPage() {
     <>
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={spinning} />
       <PlayRow balance={balance} onClick={handleSpin} loading={spinning} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
-        {spinning ? 'ÇA TOURNE...' : `LANCER · ${amount} ₶`}
+        {spinning ? 'ÇA TOURNE...' : `LANCER · ${fmt(amount)} ₶`}
       </PlayRow>
 
       <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">

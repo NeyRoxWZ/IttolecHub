@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { scratchTicket, resolveGrattage, CASINO_MIN_BET } from '@/lib/casino/grattage';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtClover, ArtMoneyBag, ArtCrown, ArtDiamond, ArtLemon, ArtStar } from '../_components/CasinoArt';
@@ -119,7 +119,7 @@ export default function GrattagePage() {
       vibrate(HAPTIC.SUCCESS);
       if (r.multiplier >= 15) { sfx.bigWin(); setConfetti((c) => c + 1); }
       else sfx.win();
-      toast.success(`Ticket gagnant — +${r.payout} ₶`);
+      toast.success(`Ticket gagnant — +${fmt(r.payout)} ₶`);
     } else {
       vibrate(HAPTIC.ERROR);
       sfx.lose();
@@ -205,7 +205,7 @@ export default function GrattagePage() {
       >
         <div className="flex items-center justify-between mb-3">
           <span className="font-display text-xs font-black uppercase tracking-widest text-white/80">Frenly Ticket</span>
-          <span className="text-[10px] font-bold text-white/60">{phase === 'idle' ? '—' : `${amount} ₶`}</span>
+          <span className="text-[10px] font-bold text-white/60">{phase === 'idle' ? '—' : `${fmt(amount)} ₶`}</span>
         </div>
 
         {/* Scratch zone */}
@@ -251,7 +251,7 @@ export default function GrattagePage() {
       </div>
 
       <ResultBanner state={phase !== 'revealed' || !result ? 'idle' : result.won ? 'win' : 'lose'}>
-        {result?.won ? `×${result.multiplier} — +${result.payout} ₶` : 'Ticket perdant'}
+        {result?.won ? `×${result.multiplier} — +${fmt(result.payout)} ₶` : 'Ticket perdant'}
       </ResultBanner>
     </div>
   );
@@ -275,7 +275,7 @@ export default function GrattagePage() {
           blocked={amount > balance}
           betKey={amount}
         >
-          {phase === 'idle' ? `ACHETER · ${amount} ₶` : 'NOUVEAU TICKET'}
+          {phase === 'idle' ? `ACHETER · ${fmt(amount)} ₶` : 'NOUVEAU TICKET'}
         </PlayRow>
       )}
 

@@ -12,7 +12,7 @@ import {
   ROCKET_GROWTH_TAU, CASINO_MIN_BET,
 } from '@/lib/casino/rocket';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtRocketShip } from '../_components/CasinoArt';
@@ -230,7 +230,7 @@ export default function RocketPage() {
       setMultiplier(data.multiplier); setPhase('cashed');
       sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (data.multiplier >= 3) setConfetti((c) => c + 1);
-      toast.success(`Encaissé +${data.payout} ₶ à ×${data.multiplier}`);
+      toast.success(`Encaissé +${fmt(data.payout)} ₶ à ×${data.multiplier}`);
       announceProgression(data.progression);
     } else {
       const m = multiplierAtElapsed(Date.now() - startedAtRef.current);
@@ -240,7 +240,7 @@ export default function RocketPage() {
       setMultiplier(m); setBusy(false); setPhase('cashed');
       sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (m >= 3) setConfetti((c) => c + 1);
-      toast.success(`Encaissé +${p} ₶ à ×${m.toFixed(2)}`);
+      toast.success(`Encaissé +${fmt(p)} ₶ à ×${m.toFixed(2)}`);
     }
   };
 
@@ -375,7 +375,7 @@ export default function RocketPage() {
       </div>
 
       <ResultBanner state={phase === 'crashed' ? 'lose' : phase === 'cashed' ? 'win' : 'idle'}>
-        {phase === 'crashed' ? `Explosé à ×${crashedAt?.toFixed(2)} — mise perdue` : `Encaissé +${potentialPayout} ₶`}
+        {phase === 'crashed' ? `Explosé à ×${crashedAt?.toFixed(2)} — mise perdue` : `Encaissé +${fmt(potentialPayout)} ₶`}
       </ResultBanner>
     </div>
   );
@@ -394,14 +394,14 @@ export default function RocketPage() {
             loading={busy}
             disabled={!isLoaded || amount < CASINO_MIN_BET}
           >
-            {phase === 'idle' ? `DÉCOLLER · ${amount} ₶` : 'REJOUER'}
+            {phase === 'idle' ? `DÉCOLLER · ${fmt(amount)} ₶` : 'REJOUER'}
           </PlayRow>
         </>
       ) : (
         <>
           <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 text-center">
             <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise en vol</div>
-            <div className="font-display text-2xl font-black text-accent-primary">{lockedAmount} ₶</div>
+            <div className="font-display text-2xl font-black text-accent-primary">{fmt(lockedAmount)} ₶</div>
           </div>
           <button
             onClick={handleCashout}
@@ -409,7 +409,7 @@ export default function RocketPage() {
             className="h-24 w-full rounded-2xl font-display text-2xl font-black tracking-wider border-4 border-brand-border bg-accent-success text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none disabled:opacity-50"
           >
             ENCAISSER
-            <div className="text-base font-black">{potentialPayout} ₶</div>
+            <div className="text-base font-black">{fmt(potentialPayout)} ₶</div>
           </button>
         </>
       )}

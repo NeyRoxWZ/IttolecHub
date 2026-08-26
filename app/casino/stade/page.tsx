@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { drawStadeOutcome, resolveStade, STADE_PAYOUTS, CASINO_MIN_BET, type StadeBet, type StadeOutcome } from '@/lib/casino/stade';
 import {
-  GameShell, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, fmt, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtShield, ArtHandshake } from '../_components/CasinoArt';
@@ -88,7 +88,7 @@ export default function StadePage() {
       vibrate(HAPTIC.SUCCESS);
       if (outcome === 'draw') { sfx.jackpot(); setConfetti((c) => c + 1); }
       else { sfx.win(); setConfetti((c) => c + 1); }
-      toast.success(`${LABEL[outcome]} — +${r.payout} ₶`);
+      toast.success(`${LABEL[outcome]} — +${fmt(r.payout)} ₶`);
     } else {
       vibrate(HAPTIC.ERROR); sfx.lose();
       toast.error(`${LABEL[outcome]} — perdu`);
@@ -129,7 +129,7 @@ export default function StadePage() {
       </div>
 
       <ResultBanner state={!result ? 'idle' : result.won ? 'win' : 'lose'}>
-        {result?.won ? `${LABEL[result.outcome]} — +${result.payout} ₶` : result ? `${LABEL[result.outcome]} — perdu` : ''}
+        {result?.won ? `${LABEL[result.outcome]} — +${fmt(result.payout)} ₶` : result ? `${LABEL[result.outcome]} — perdu` : ''}
       </ResultBanner>
     </div>
   );
@@ -159,7 +159,7 @@ export default function StadePage() {
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
 
       <PlayRow balance={balance} onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
-        {playing ? 'TIRAGE...' : `PARIER · ${amount} ₶`}
+        {playing ? 'TIRAGE...' : `PARIER · ${fmt(amount)} ₶`}
       </PlayRow>
 
       <HistoryStrip history={gameHistory} />
