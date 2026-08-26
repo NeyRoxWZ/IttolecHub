@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Coins, Dices, Spade, CircleDot, Rocket, Bomb, Circle, ArrowUpDown, Ticket,
   Egg, Building2, Grid3x3, Gift, Zap, Flag, GlassWater, LayoutGrid, Layers, Hand, Dice5,
-  ArrowLeft, Info, Flame, Trophy, Award, Sparkles, Gift as GiftIcon, Gem, Target, ShoppingBag, Banknote,
+  ArrowLeft, Info, Flame, Trophy, Award, Sparkles, Gift as GiftIcon, Gem, Target, ShoppingBag, Banknote, Crown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -99,6 +99,7 @@ export default function CasinoHub() {
   const [confetti, setConfetti] = useState(0);
   const [showMissions, setShowMissions] = useState(false);
   const [showJackpot, setShowJackpot] = useState(false);
+  const [passTier, setPassTier] = useState<number | null>(null);
   const { missions, reload: reloadMissions, claimable } = useMissions();
   const [cashback, setCashback] = useState<{ amount: number; available: boolean } | null>(null);
   const [claimingCashback, setClaimingCashback] = useState(false);
@@ -118,6 +119,14 @@ export default function CasinoHub() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  useEffect(() => {
+    if (!user) { setPassTier(null); return; }
+    fetch(`/api/casino/pass?user_id=${user.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.state) setPassTier(d.state.tier); })
+      .catch(() => {});
+  }, [user]);
 
   // Cashback is computed from yesterday's play, so it only needs one fetch.
   useEffect(() => {
@@ -293,6 +302,15 @@ export default function CasinoHub() {
             tone="neutral"
             done={claimable === 0}
             onClick={() => { sfx.click(); setShowMissions(true); }}
+          />
+
+          <RewardPill
+            label="Frenly Pass"
+            hint={passTier !== null ? `Palier ${passTier} / 100` : '100 paliers'}
+            icon={Crown}
+            tone="primary"
+            done={passTier !== null && passTier > 0}
+            onClick={() => { sfx.click(); router.push('/casino/pass'); }}
           />
 
           <RewardPill

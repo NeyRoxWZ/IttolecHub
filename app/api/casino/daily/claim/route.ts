@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import { rollDailyBonus } from '@/lib/casino/meta';
 import { dailyStreakMultiplier } from '@/lib/casino/progression';
+import { advancePass } from '@/lib/casino/pass.server';
+import { PASS_XP } from '@/lib/casino/pass';
 
 function isSameUtcDay(a: Date, b: Date): boolean {
   return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
@@ -40,7 +42,9 @@ export async function POST(request: Request) {
       user_id: userId, game_slug: 'casino', type: 'bonus', amount: reward, balance_after: newBalance, meta: { kind: 'daily', streak: newStreak, base, streakMult },
     });
 
-    return NextResponse.json({ reward, base, streakMult, newBalance, dailyStreak: newStreak });
+    const pass = await advancePass(userId, PASS_XP.dailyBonus);
+
+    return NextResponse.json({ reward, base, streakMult, newBalance, dailyStreak: newStreak, pass });
   } catch (err) {
     console.error('Erreur daily claim:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

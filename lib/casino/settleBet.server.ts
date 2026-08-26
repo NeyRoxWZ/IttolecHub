@@ -3,6 +3,8 @@ import { CASINO_MIN_BET, CASINO_MAX_BET_ABS, type BetResolution } from './core';
 import { streakBonus } from './progression';
 import { loadEffects, consumeEffects, type EffectMap } from './effects.server';
 import { recordSettlement, type SettlementResult } from './metaProgression.server';
+import { advancePass, type PassProgress } from './pass.server';
+import { PASS_XP } from './pass';
 
 interface SettleParams {
   userId: string;
@@ -20,6 +22,7 @@ interface SettleSuccess {
   newBalance: number;
   meta: any;
   progression: SettlementResult;
+  pass: PassProgress;
   /** What boosted this settlement, so the UI can show it. */
   bonuses: { streak: number; item: number; refunded: number };
 }
@@ -92,6 +95,10 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
   // The ledger write, the consumed items and the meta progression touch
   // different tables — run them together rather than making the player wait
   // through three sequential round-trips before the animation can start.
+  // Pass XP is flat per action: a 5 ₶ bet climbs the track exactly as fast as
+  // a 5 000 ₶ one.
+  const passXp = PASS_XP.bet + (baseMultiplier > 1 ? PASS_XP.win : 0);
+
   const [, , progression] = await Promise.all([
     supabase.from('casino_transactions').insert({
       user_id: userId,
@@ -107,8 +114,11 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
     }),
   ]);
 
+  const pass = await advancePass(userId, passXp + (progression.levelsGained ? PASS_XP.levelUp * progression.levelsGained : 0));
+
   return {
     ok: true,
+    pass,
     won,
     multiplier: Math.round(multiplier * 100) / 100,
     payout,

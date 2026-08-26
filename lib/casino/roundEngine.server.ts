@@ -4,6 +4,8 @@ import { streakBonus } from './progression';
 import { loadEffects, consumeEffects } from './effects.server';
 import { effectiveMaxBet } from './settleBet.server';
 import { recordWager, recordSettlement, type SettlementResult } from './metaProgression.server';
+import { advancePass, type PassProgress } from './pass.server';
+import { PASS_XP } from './pass';
 
 // Shared by every "start a round, take steps, cash out anytime" game
 // (Mines, Tower, Poulet, Dino). casino_rounds.state holds the server-secret
@@ -118,7 +120,11 @@ export async function bustRound(userId: string, roundId: string, gameSlug: strin
     await consumeEffects(userId, effects, ['loss_refund']);
   }
 
-  return recordSettlement(userId, gameSlug, { amount, payout: 0, multiplier: 0, baseMultiplier: 0, newBalance: balance, effects });
+  const [progression] = await Promise.all([
+    recordSettlement(userId, gameSlug, { amount, payout: 0, multiplier: 0, baseMultiplier: 0, newBalance: balance, effects }),
+    advancePass(userId, PASS_XP.bet),
+  ]);
+  return progression;
 }
 
 export async function cashoutRound(userId: string, roundId: string, amount: number, baseMultiplier: number, gameSlug: string) {
@@ -154,7 +160,10 @@ export async function cashoutRound(userId: string, roundId: string, amount: numb
   });
 
   await consumeEffects(userId, effects, used);
-  const progression = await recordSettlement(userId, gameSlug, { amount, payout, multiplier, baseMultiplier, newBalance, effects });
+  const [progression, pass] = await Promise.all([
+    recordSettlement(userId, gameSlug, { amount, payout, multiplier, baseMultiplier, newBalance, effects }),
+    advancePass(userId, PASS_XP.bet + (baseMultiplier > 1 ? PASS_XP.win : 0)),
+  ]);
 
   return {
     ok: true as const,
@@ -162,6 +171,7 @@ export async function cashoutRound(userId: string, roundId: string, amount: numb
     newBalance,
     multiplier: Math.round(multiplier * 100) / 100,
     progression,
+    pass,
     bonuses: { streak: streakPct, item: itemPct },
   };
 }

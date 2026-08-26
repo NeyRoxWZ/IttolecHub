@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import { rollWheelOfFortune, WHEEL_OF_FORTUNE_SEGMENTS } from '@/lib/casino/meta';
+import { advancePass } from '@/lib/casino/pass.server';
+import { PASS_XP } from '@/lib/casino/pass';
 
 function isSameUtcDay(a: Date, b: Date): boolean {
   return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
@@ -32,7 +34,9 @@ export async function POST(request: Request) {
       user_id: userId, game_slug: 'casino', type: 'bonus', amount: reward, balance_after: newBalance, meta: { kind: 'wheel_of_fortune' },
     });
 
-    return NextResponse.json({ reward, newBalance, segmentIndex });
+    const pass = await advancePass(userId, PASS_XP.dailyWheel);
+
+    return NextResponse.json({ reward, newBalance, segmentIndex, pass });
   } catch (err) {
     console.error('Erreur wheel-of-fortune claim:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import { ensureMissions } from '@/lib/casino/metaProgression.server';
 import { dayKey } from '@/lib/casino/missions';
+import { advancePass } from '@/lib/casino/pass.server';
+import { PASS_XP } from '@/lib/casino/pass';
 
 function serialise(rows: Awaited<ReturnType<typeof ensureMissions>>) {
   return rows.map((r) => ({
@@ -67,7 +69,9 @@ export async function POST(request: Request) {
       meta: { kind: 'mission', mission: row.mission_id },
     });
 
-    return NextResponse.json({ reward: row.def.reward, xp: row.def.xp, newBalance });
+    const pass = await advancePass(userId, PASS_XP.mission);
+
+    return NextResponse.json({ reward: row.def.reward, xp: row.def.xp, newBalance, pass });
   } catch (err) {
     console.error('Erreur claim mission:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });
