@@ -214,7 +214,7 @@ export default function SlotsPage() {
   const panel = (
     <>
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={spinning} />
-      <PlayRow onClick={handleSpin} loading={spinning} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
+      <PlayRow balance={balance} onClick={handleSpin} loading={spinning} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
         {spinning ? 'ÇA TOURNE...' : `LANCER · ${amount} ₶`}
       </PlayRow>
 

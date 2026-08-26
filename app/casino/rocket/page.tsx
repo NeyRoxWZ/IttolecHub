@@ -12,7 +12,7 @@ import {
   ROCKET_GROWTH_TAU, CASINO_MIN_BET,
 } from '@/lib/casino/rocket';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtRocketShip } from '../_components/CasinoArt';
@@ -244,6 +244,23 @@ export default function RocketPage() {
     }
   };
 
+  /** Auto takes off and cashes out at a multiplier drawn fresh each flight. */
+  const autoTargetRef = useRef(0);
+
+  const autoTick = () => {
+    if (busy) return;
+    if (phase === 'idle') {
+      autoTargetRef.current = 1.3 + Math.random() * 2.2;
+      void handleStart();
+      return;
+    }
+    if (phase === 'flying') {
+      if (multiplier >= autoTargetRef.current) void handleCashout();
+      return;
+    }
+    handleReset();
+  };
+
   const handleReset = () => {
     sfx.click(); stopLoops();
     setPhase('idle'); setMultiplier(1); setRoundId(null);
@@ -368,9 +385,17 @@ export default function RocketPage() {
       {!flying ? (
         <>
           <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
-          <PlayButton onClick={phase === 'idle' ? handleStart : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+          <PlayRow
+            balance={balance}
+            onAuto={autoTick}
+            blocked={amount > balance}
+            betKey={amount}
+            onClick={phase === 'idle' ? handleStart : handleReset}
+            loading={busy}
+            disabled={!isLoaded || amount < CASINO_MIN_BET}
+          >
             {phase === 'idle' ? `DÉCOLLER · ${amount} ₶` : 'REJOUER'}
-          </PlayButton>
+          </PlayRow>
         </>
       ) : (
         <>

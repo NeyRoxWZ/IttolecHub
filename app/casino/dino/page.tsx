@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { LADDER_CONFIGS, multiplierAtStep, stepOutcome, CASINO_MIN_BET } from '@/lib/casino/ladder';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtDino, ArtCactus, ArtRock, ArtFire, ArtVolcano, ArtFinishFlag } from '../_components/CasinoArt';
@@ -272,6 +272,23 @@ export default function DinoPage() {
     }
   };
 
+  /** Auto runs the course and cashes out at a target drawn per run. */
+  const autoTargetRef = useRef(0);
+
+  const autoTick = () => {
+    if (busy) return;
+    if (phase === 'idle') {
+      autoTargetRef.current = 2 + Math.floor(Math.random() * 4);
+      void handleStart();
+      return;
+    }
+    if (running) {
+      if (step >= autoTargetRef.current) void handleCashout();
+      return;
+    }
+    handleReset();
+  };
+
   const handleReset = () => {
     sfx.click(); stopLoop();
     obstaclesRef.current = []; spawnedRef.current = 0; distanceRef.current = 0;
@@ -376,9 +393,17 @@ export default function DinoPage() {
       {!running ? (
         <>
           <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
-          <PlayButton onClick={phase === 'idle' ? handleStart : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+          <PlayRow
+            balance={balance}
+            onClick={phase === 'idle' ? handleStart : handleReset}
+            onAuto={autoTick}
+            loading={busy}
+            disabled={!isLoaded || amount < CASINO_MIN_BET}
+            blocked={amount > balance}
+            betKey={amount}
+          >
             {phase === 'idle' ? `LANCER LA COURSE · ${amount} ₶` : 'REJOUER'}
-          </PlayButton>
+          </PlayRow>
         </>
       ) : (
         <>

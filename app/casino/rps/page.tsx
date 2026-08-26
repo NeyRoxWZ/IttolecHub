@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { houseMove, resolveRps, RPS_PAYOUT, CASINO_MIN_BET, type RpsMove } from '@/lib/casino/rps';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtRps } from '../_components/CasinoArt';
@@ -45,6 +45,12 @@ export default function RpsPage() {
   const [playing, setPlaying] = useState(false);
   const [result, setResult] = useState<RpsResult | null>(null);
   const [confetti, setConfetti] = useState(0);
+
+  /** Auto throws at random — against a fair opponent it is the same odds. */
+  const autoTick = () => {
+    if (playing) return;
+    void handlePlay(MOVES[Math.floor(Math.random() * MOVES.length)].value);
+  };
 
   const handlePlay = async (move: RpsMove) => {
     if (playing) return;
@@ -144,6 +150,18 @@ export default function RpsPage() {
       </div>
 
       <p className="text-[11px] text-tx-muted">L’égalité rembourse intégralement ta mise.</p>
+
+      <PlayRow
+        balance={balance}
+        onClick={autoTick}
+        onAuto={autoTick}
+        loading={playing}
+        disabled={!isLoaded || amount < CASINO_MIN_BET}
+        blocked={amount > balance}
+        betKey={amount}
+      >
+        {`COUP AU HASARD · ${amount} ₶`}
+      </PlayRow>
 
       <HistoryStrip history={gameHistory} />
     </>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
@@ -12,7 +12,7 @@ import {
   MINES_TOTAL_CELLS, MINES_MIN_COUNT, MINES_MAX_COUNT, CASINO_MIN_BET,
 } from '@/lib/casino/mines';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtGem, ArtBomb, ArtImpact } from '../_components/CasinoArt';
@@ -153,6 +153,26 @@ export default function MinesPage() {
     }
   };
 
+  /** Auto opens random unopened tiles, then cashes out at a random target. */
+  const autoTargetRef = useRef(0);
+
+  const autoTick = () => {
+    if (busy) return;
+    if (phase === 'idle') {
+      autoTargetRef.current = 2 + Math.floor(Math.random() * 4);
+      void handleStart();
+      return;
+    }
+    if (phase === 'active') {
+      if (revealed.length >= autoTargetRef.current) { void handleCashout(); return; }
+      const free = Array.from({ length: MINES_TOTAL_CELLS }, (_, i) => i).filter((i) => !revealed.includes(i));
+      if (free.length === 0) { void handleCashout(); return; }
+      void handleReveal(free[Math.floor(Math.random() * free.length)]);
+      return;
+    }
+    handleReset();
+  };
+
   const handleReset = () => {
     sfx.click();
     setPhase('idle'); setRevealed([]); setMinePositions(null);
@@ -258,9 +278,17 @@ export default function MinesPage() {
             <p className="text-[11px] text-tx-muted mt-1">{mineCount} mine{mineCount > 1 ? 's' : ''} · {MINES_TOTAL_CELLS - mineCount} cases sûres</p>
           </div>
 
-          <PlayButton onClick={phase === 'idle' ? handleStart : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+          <PlayRow
+            balance={balance}
+            onClick={phase === 'idle' ? handleStart : handleReset}
+            onAuto={autoTick}
+            loading={busy}
+            disabled={!isLoaded || amount < CASINO_MIN_BET}
+            blocked={amount > balance}
+            betKey={amount}
+          >
             {phase === 'idle' ? `MISER · ${amount} ₶` : 'REJOUER'}
-          </PlayButton>
+          </PlayRow>
         </>
       ) : (
         <>

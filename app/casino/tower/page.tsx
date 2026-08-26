@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { LADDER_CONFIGS, multiplierAtStep, stepOutcome, CASINO_MIN_BET } from '@/lib/casino/ladder';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtDoor, ArtSkull, ArtCheck } from '../_components/CasinoArt';
@@ -147,6 +147,27 @@ export default function TowerPage() {
     }
   };
 
+  /**
+   * Auto plays a whole climb: it stakes, takes doors at random, and cashes
+   * out at a target drawn fresh each round so it isn't the same run forever.
+   */
+  const autoTargetRef = useRef(0);
+
+  const autoTick = () => {
+    if (busy) return;
+    if (phase === 'idle') {
+      autoTargetRef.current = 2 + Math.floor(Math.random() * 4);
+      void handleStart();
+      return;
+    }
+    if (phase === 'climbing') {
+      if (step >= autoTargetRef.current) void handleCashout();
+      else void handlePickDoor(Math.floor(Math.random() * DOORS));
+      return;
+    }
+    handleReset();
+  };
+
   const handleReset = () => {
     sfx.click();
     setPhase('idle'); setStep(0); setMultiplier(1); setRoundId(null); setRevealed({});
@@ -221,9 +242,17 @@ export default function TowerPage() {
       {!active ? (
         <>
           <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
-          <PlayButton onClick={phase === 'idle' ? handleStart : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+          <PlayRow
+            balance={balance}
+            onClick={phase === 'idle' ? handleStart : handleReset}
+            onAuto={autoTick}
+            loading={busy}
+            disabled={!isLoaded || amount < CASINO_MIN_BET}
+            blocked={amount > balance}
+            betKey={amount}
+          >
             {phase === 'idle' ? `MISER · ${amount} ₶` : 'REJOUER'}
-          </PlayButton>
+          </PlayRow>
         </>
       ) : (
         <>

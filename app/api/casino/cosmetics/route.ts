@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
-import { cosmeticById, COSMETIC_SLOTS, type CosmeticSlot } from '@/lib/casino/cosmetics';
+import {
+  cosmeticById, cosmeticsForGame, COSMETIC_SLOTS, type CosmeticSlot,
+} from '@/lib/casino/cosmetics';
 
 /** Owned cosmetics + what is currently equipped, per game. */
 export async function GET(request: Request) {
@@ -40,11 +42,47 @@ export async function POST(request: Request) {
     const body = await request.json();
     const userId: string = body?.user_id;
     const gameSlug: string = body?.game_slug;
+    const action: string = body?.action || 'equip';
+
+    if (!userId || !gameSlug) {
+      return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 });
+    }
+
+    // Equipping eight slots one by one meant eight round-trips and eight
+    // chances for the loadout to end up half-applied.
+    if (action === 'equip_all' || action === 'clear_all') {
+      if (action === 'clear_all') {
+        await supabase.from('casino_game_loadout').delete()
+          .eq('user_id', userId).eq('game_slug', gameSlug);
+        return NextResponse.json({ ok: true, equipped: {} });
+      }
+
+      const { data: inv } = await supabase.from('casino_inventory').select('item_id').eq('user_id', userId);
+      const owned = new Set((inv || []).map((r) => r.item_id));
+
+      // One piece per slot; a later drop simply wins the slot.
+      const rows: { user_id: string; game_slug: string; slot: string; cosmetic_id: string }[] = [];
+      const chosen: Record<string, string> = {};
+      for (const piece of cosmeticsForGame(gameSlug)) {
+        if (!owned.has(piece.id) || chosen[piece.slot]) continue;
+        chosen[piece.slot] = piece.id;
+        rows.push({ user_id: userId, game_slug: gameSlug, slot: piece.slot, cosmetic_id: piece.id });
+      }
+
+      if (rows.length === 0) {
+        return NextResponse.json({ error: 'Rien à équiper pour ce jeu.' }, { status: 400 });
+      }
+
+      await supabase.from('casino_game_loadout')
+        .upsert(rows, { onConflict: 'user_id,game_slug,slot' });
+
+      return NextResponse.json({ ok: true, equipped: chosen, count: rows.length });
+    }
+
     const slot: CosmeticSlot = body?.slot;
     const cosmeticId: string | null = body?.cosmetic_id ?? null;
-
-    if (!userId || !gameSlug || !COSMETIC_SLOTS.includes(slot)) {
-      return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 });
+    if (!COSMETIC_SLOTS.includes(slot)) {
+      return NextResponse.json({ error: 'Emplacement invalide' }, { status: 400 });
     }
 
     if (!cosmeticId) {

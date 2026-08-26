@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { runRace, resolveChevaux, HORSES, CASINO_MIN_BET } from '@/lib/casino/chevaux';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtHorse, ArtFinishFlag } from '../_components/CasinoArt';
@@ -59,16 +59,17 @@ export default function ChevauxPage() {
     rafRef.current = requestAnimationFrame(loop);
   });
 
-  const handleRace = async () => {
-    if (phase === 'racing' || selected === null) return;
+  const handleRace = async (forced?: number) => {
+    const horse = forced ?? selected;
+    if (phase === 'racing' || horse === null) return;
     if (amount > balance) { toast.error('Solde insuffisant.'); return; }
 
     setPhase('racing'); setResult(null); setProgress(HORSES.map(() => 0));
     vibrate(HAPTIC.MEDIUM); sfx.bet();
 
-    const r = await placeBet('chevaux', amount, { horseId: selected }, () => {
+    const r = await placeBet('chevaux', amount, { horseId: horse }, () => {
       const winnerId = runRace();
-      return { ...resolveChevaux(winnerId, selected), meta: { winnerId, betHorseId: selected } };
+      return { ...resolveChevaux(winnerId, horse), meta: { winnerId, betHorseId: horse } };
     });
 
     if ('error' in r) { setPhase('idle'); toast.error(r.error); return; }
@@ -89,6 +90,15 @@ export default function ChevauxPage() {
   };
 
   const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setProgress(HORSES.map(() => 0)); };
+
+  /** Auto backs a random horse each race rather than the same one forever. */
+  const autoTick = () => {
+    if (phase === 'done') { handleReset(); return; }
+    if (phase !== 'idle') return;
+    const pick = HORSES[Math.floor(Math.random() * HORSES.length)].id;
+    setSelected(pick);
+    void handleRace(pick);
+  };
 
   const gameHistory = history.filter((h) => h.game_slug === 'chevaux').slice(0, 10);
 
@@ -154,13 +164,17 @@ export default function ChevauxPage() {
 
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'racing'} />
 
-      <PlayButton
-        onClick={phase === 'done' ? handleReset : handleRace}
+      <PlayRow
+        balance={balance}
+        onAuto={autoTick}
+        betKey={amount}
+        blocked={amount > balance}
+        onClick={phase === 'done' ? handleReset : () => handleRace()}
         loading={phase === 'racing'}
         disabled={!isLoaded || amount < CASINO_MIN_BET || (phase !== 'done' && selected === null)}
       >
         {phase === 'done' ? 'REJOUER' : selected === null ? 'CHOISIS UN CHEVAL' : `PARIER · ${amount} ₶`}
-      </PlayButton>
+      </PlayRow>
 
       <HistoryStrip history={gameHistory} />
     </>

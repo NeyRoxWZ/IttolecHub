@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { drawCard, resolveHilo, getHiloPayout, CASINO_MIN_BET, type HiloDirection } from '@/lib/casino/hilo';
 import {
-  GameShell, BetControls, PlayButton, PlayingCard, ResultBanner, HistoryStrip, rankLabel, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip, rankLabel, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { tempo } from '@/lib/casino/turbo';
@@ -57,6 +57,22 @@ export default function HiloPage() {
 
   const higherPayout = card ? getHiloPayout(card, 'higher') : null;
   const lowerPayout = card ? getHiloPayout(card, 'lower') : null;
+
+  /**
+   * Auto takes whichever call is possible; when both are, it picks the side
+   * with the shorter odds — the same reflex a player has.
+   */
+  const autoTick = () => {
+    if (playing) return;
+    const options: HiloDirection[] = [];
+    if (higherPayout !== null) options.push('higher');
+    if (lowerPayout !== null) options.push('lower');
+    if (options.length === 0) return;
+    const pick = options.length === 1
+      ? options[0]
+      : (higherPayout || 99) <= (lowerPayout || 99) ? 'higher' : 'lower';
+    void handleGuess(pick);
+  };
 
   const handleGuess = async (direction: HiloDirection) => {
     if (playing || card === null) return;
@@ -127,6 +143,18 @@ export default function HiloPage() {
   const panel = (
     <>
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
+
+      <PlayRow
+        balance={balance}
+        onClick={autoTick}
+        onAuto={autoTick}
+        loading={playing}
+        disabled={!isLoaded || amount < CASINO_MIN_BET}
+        blocked={amount > balance}
+        betKey={amount}
+      >
+        {`JOUER AU HASARD · ${amount} ₶`}
+      </PlayRow>
 
       <div className="grid grid-cols-2 gap-3">
         <button

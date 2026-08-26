@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Coins, Minus, Plus, HelpCircle, X, Volume2, VolumeX, Flame, Zap, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { sfx, isMuted, setMuted } from '@/lib/casino/sfx';
@@ -125,9 +126,12 @@ export function BetControls({
 }: {
   amount: number; setAmount: (v: number) => void; maxBet: number; disabled?: boolean; step?: number;
 }) {
+  // Typing over the value meant selecting the existing "1" first; the field
+  // is allowed to sit empty until it loses focus.
+  const [draft, setDraft] = useState<string | null>(null);
   const clamp = (v: number) => Math.max(CASINO_MIN_BET, Math.min(maxBet, Math.floor(v || 0)));
   const bump = (delta: number) => { sfx.click(); vibrate(HAPTIC.SOFT); setAmount(clamp(amount + delta)); };
-  const setTo = (v: number) => { sfx.click(); vibrate(HAPTIC.SOFT); setAmount(clamp(v)); };
+  const setTo = (v: number) => { sfx.click(); vibrate(HAPTIC.SOFT); setDraft(null); setAmount(clamp(v)); };
 
   return (
     <div>
@@ -142,9 +146,18 @@ export function BetControls({
         <div className="flex-1 relative">
           <input
             type="number"
-            value={amount}
+            value={draft ?? amount}
             disabled={disabled}
-            onChange={(e) => setAmount(clamp(Number(e.target.value)))}
+            onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setDraft(raw);
+              if (raw !== '') setAmount(clamp(Number(raw)));
+            }}
+            onBlur={() => {
+              if (draft !== null && draft !== '') setAmount(clamp(Number(draft)));
+              setDraft(null);
+            }}
             className="w-full h-12 bg-brand-inner border-2 border-brand-border rounded-xl pl-3 pr-7 text-center font-display font-black text-lg focus:outline-none focus:border-accent-primary disabled:opacity-40"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-tx-muted font-bold pointer-events-none">₶</span>
@@ -211,57 +224,105 @@ export function PlayButton({
 /* ------------------------------------------------------------------ */
 
 /**
- * One press starts the round; pressing AUTO keeps replaying the same stake
- * until you stop it, run out, or touch the bet. Chaining rounds by hand was
- * the slowest part of a session.
+ * The play button plus auto-replay.
+ *
+ * `onAuto` is what a round actually does when nobody is pressing anything: a
+ * one-shot game replays the same stake, while a game with choices to make —
+ * a Keno grid, a Tower door, a Mines tile — implements it as a little state
+ * machine that picks for itself. That is the only way all twenty games can
+ * share one control.
+ *
+ * The stop threshold is the safety catch: auto halts the moment the balance
+ * would drop under the floor the player set, instead of grinding it to zero.
  */
 export function PlayRow({
-  onClick, loading, disabled, children, betKey, blocked, variant = 'primary',
+  onClick, onAuto, loading, disabled, children, betKey, blocked, variant = 'primary',
+  balance, autoDelay = 450,
 }: {
   onClick: () => void;
+  /** Defaults to `onClick`; override for games that must choose each round. */
+  onAuto?: () => void;
   loading?: boolean;
   disabled?: boolean;
   children: ReactNode;
-  /** Anything that identifies the current bet; changing it stops auto-replay. */
+  /** Anything identifying the current bet; changing it stops auto-replay. */
   betKey?: string | number;
   /** The game telling us a next round is impossible (no funds, no pick…). */
   blocked?: boolean;
   variant?: 'primary' | 'success' | 'danger';
+  /** Used by the stop threshold. */
+  balance?: number;
+  autoDelay?: number;
 }) {
   const [auto, setAuto] = useState(false);
-  const clickRef = useRef(onClick);
-  clickRef.current = onClick;
+  const [stopBelow, setStopBelow] = useState(0);
+  const [showStop, setShowStop] = useState(false);
+
+  const runRef = useRef(onAuto || onClick);
+  runRef.current = onAuto || onClick;
 
   const ready = !loading && !disabled && !blocked;
+  const belowFloor = stopBelow > 0 && balance !== undefined && balance < stopBelow;
 
   // Changing the stake is the natural "stop" gesture.
   useEffect(() => { setAuto(false); }, [betKey]);
   useEffect(() => { if (auto && (disabled || blocked)) setAuto(false); }, [auto, disabled, blocked]);
 
   useEffect(() => {
-    if (!auto || !ready) return;
-    const t = setTimeout(() => clickRef.current(), tempo(450));
+    if (!auto || !belowFloor) return;
+    setAuto(false);
+    toast.info(`Auto arrêté : ton solde est passé sous ${stopBelow.toLocaleString('en-US')} ₶.`);
+  }, [auto, belowFloor, stopBelow]);
+
+  useEffect(() => {
+    if (!auto || !ready || belowFloor) return;
+    const t = setTimeout(() => runRef.current(), tempo(autoDelay));
     return () => clearTimeout(t);
-  }, [auto, ready]);
+  }, [auto, ready, belowFloor, autoDelay]);
 
   return (
-    <div className="flex gap-2">
-      <PlayButton onClick={onClick} loading={loading} disabled={disabled} variant={variant} className="flex-1">
-        {children}
-      </PlayButton>
-      <button
-        onClick={() => { sfx.click(); vibrate(HAPTIC.SOFT); setAuto((a) => !a); }}
-        disabled={disabled}
-        title="Rejoue la même mise en boucle jusqu'à ce que tu l'arrêtes"
-        className={cn(
-          'h-16 w-16 shrink-0 rounded-2xl border-4 border-brand-border font-display font-black text-[11px] tracking-wider',
-          'flex flex-col items-center justify-center gap-0.5 transition-all active:translate-y-1 focus:outline-none disabled:opacity-40',
-          auto ? 'bg-accent-secondary text-white shadow-none translate-y-0.5' : 'bg-brand-inner text-tx-secondary shadow-brutal hover:text-tx-base'
-        )}
-      >
-        <RotateCcw className={cn('h-4 w-4', auto && 'animate-spin')} style={auto ? { animationDuration: '1.6s' } : undefined} />
-        {auto ? 'STOP' : 'AUTO'}
-      </button>
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2">
+        <PlayButton onClick={onClick} loading={loading} disabled={disabled} variant={variant} className="flex-1">
+          {children}
+        </PlayButton>
+        <button
+          onClick={() => {
+            sfx.click(); vibrate(HAPTIC.SOFT);
+            setAuto((a) => !a);
+            setShowStop(true);
+          }}
+          disabled={disabled}
+          title="Rejoue tout seul jusqu'à ce que tu l'arrêtes"
+          className={cn(
+            'h-16 w-16 shrink-0 rounded-2xl border-4 border-brand-border font-display font-black text-[11px] tracking-wider',
+            'flex flex-col items-center justify-center gap-0.5 transition-all active:translate-y-1 focus:outline-none disabled:opacity-40',
+            auto ? 'bg-accent-secondary text-white shadow-none translate-y-0.5' : 'bg-brand-inner text-tx-secondary shadow-brutal hover:text-tx-base'
+          )}
+        >
+          <RotateCcw className={cn('h-4 w-4', auto && 'animate-spin')} style={auto ? { animationDuration: '1.6s' } : undefined} />
+          {auto ? 'STOP' : 'AUTO'}
+        </button>
+      </div>
+
+      {showStop && (
+        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          <label className="text-[10px] font-black uppercase tracking-widest text-tx-muted shrink-0">
+            Stop sous
+          </label>
+          <div className="relative flex-1">
+            <input
+              type="number"
+              min={0}
+              value={stopBelow || ''}
+              placeholder="aucun seuil"
+              onChange={(e) => setStopBelow(Math.max(0, Math.floor(Number(e.target.value)) || 0))}
+              className="w-full h-9 bg-brand-inner border-2 border-brand-border rounded-lg pl-3 pr-7 text-sm font-bold tabular-nums focus:outline-none focus:border-accent-primary"
+            />
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tx-muted font-bold text-xs pointer-events-none">₶</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

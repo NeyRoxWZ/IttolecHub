@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { scratchTicket, resolveGrattage, CASINO_MIN_BET } from '@/lib/casino/grattage';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtClover, ArtMoneyBag, ArtCrown, ArtDiamond, ArtLemon, ArtStar } from '../_components/CasinoArt';
@@ -185,6 +185,13 @@ export default function GrattagePage() {
 
   const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setFaces(null); setProgress(0); };
 
+  /** Auto buys the ticket and reveals it without asking you to rub anything. */
+  const autoTick = () => {
+    if (phase === 'idle') { void handleBuy(); return; }
+    if (phase === 'scratching') { if (result) finishReveal(result); return; }
+    handleReset();
+  };
+
   const gameHistory = history.filter((h) => h.game_slug === 'grattage').slice(0, 10);
 
   const stage = (
@@ -259,9 +266,17 @@ export default function GrattagePage() {
           <p className="text-xs text-tx-secondary mt-1">Passe le doigt (ou la souris) sur la zone argentée.</p>
         </div>
       ) : (
-        <PlayButton onClick={phase === 'idle' ? handleBuy : handleReset} loading={buying} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+        <PlayRow
+          balance={balance}
+          onClick={phase === 'idle' ? handleBuy : handleReset}
+          onAuto={autoTick}
+          loading={buying}
+          disabled={!isLoaded || amount < CASINO_MIN_BET}
+          blocked={amount > balance}
+          betKey={amount}
+        >
           {phase === 'idle' ? `ACHETER · ${amount} ₶` : 'NOUVEAU TICKET'}
-        </PlayButton>
+        </PlayRow>
       )}
 
       <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">

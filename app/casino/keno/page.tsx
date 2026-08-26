@@ -11,7 +11,7 @@ import {
   KENO_PICK_COUNT, KENO_POOL_SIZE, KENO_DRAW_COUNT, CASINO_MIN_BET,
 } from '@/lib/casino/keno';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { tempo } from '@/lib/casino/turbo';
@@ -107,6 +107,17 @@ export default function KenoPage() {
 
   const handleReset = () => { sfx.click(); setPhase('picking'); setDrawn([]); setResult(null); };
 
+  /**
+   * Auto plays the whole loop on its own: a fresh random grid, the draw, then
+   * back to a new grid. Replaying the same ten numbers forever would be a
+   * strange thing to automate.
+   */
+  const autoTick = () => {
+    if (phase !== 'picking') { handleReset(); return; }
+    if (!picksComplete) { quickPick(); return; }
+    void handleDraw();
+  };
+
   const gameHistory = history.filter((h) => h.game_slug === 'keno').slice(0, 10);
 
   const stage = (
@@ -187,9 +198,17 @@ export default function KenoPage() {
 
           <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
 
-          <PlayButton onClick={handleDraw} loading={busy} disabled={!isLoaded || !picksComplete || amount < CASINO_MIN_BET}>
+          <PlayRow
+            balance={balance}
+            onClick={handleDraw}
+            onAuto={autoTick}
+            loading={busy}
+            disabled={!isLoaded || amount < CASINO_MIN_BET}
+            blocked={amount > balance}
+            betKey={amount}
+          >
             {picksComplete ? `LANCER LE TIRAGE · ${amount} ₶` : `ENCORE ${KENO_PICK_COUNT - picks.length} NUMÉRO${KENO_PICK_COUNT - picks.length > 1 ? 'S' : ''}`}
-          </PlayButton>
+          </PlayRow>
         </>
       ) : (
         <PlayButton onClick={handleReset} disabled={phase === 'drawing'}>

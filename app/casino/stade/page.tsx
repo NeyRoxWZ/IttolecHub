@@ -158,7 +158,7 @@ export default function StadePage() {
 
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
 
-      <PlayRow onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
+      <PlayRow balance={balance} onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
         {playing ? 'TIRAGE...' : `PARIER · ${amount} ₶`}
       </PlayRow>
 

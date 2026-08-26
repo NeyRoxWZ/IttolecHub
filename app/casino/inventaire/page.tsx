@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Coins, Search, Backpack, Palette, Lock, X } from 'lucide-react';
+import { ArrowLeft, Coins, Search, Backpack, Palette, Lock, X, Wand2, Eraser } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
@@ -95,6 +95,21 @@ export default function InventoryPage() {
       else delete next[gameSlug][slot];
       return next;
     });
+    void refreshCosmetics(user.id);
+  };
+
+  const equipAll = async (gameSlug: string, action: 'equip_all' | 'clear_all') => {
+    if (!user) return;
+    sfx.click(); vibrate(HAPTIC.MEDIUM);
+    const res = await fetch('/api/casino/cosmetics', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: user.id, game_slug: gameSlug, action }),
+    });
+    const data = await res.json();
+    if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
+
+    setEquipped((prev) => ({ ...prev, [gameSlug]: data.equipped || {} }));
+    toast.success(action === 'equip_all' ? `${data.count} cosmétique${data.count > 1 ? 's' : ''} équipé${data.count > 1 ? 's' : ''}` : 'Cosmétiques retirés');
     void refreshCosmetics(user.id);
   };
 
@@ -230,6 +245,7 @@ export default function InventoryPage() {
               equipped={equipped[game] || {}}
               onBack={() => { sfx.click(); setGame(null); }}
               onEquip={equip}
+              onEquipAll={equipAll}
             />
           )
         )}
@@ -239,16 +255,18 @@ export default function InventoryPage() {
 }
 
 function CosmeticGrid({
-  game, owned, equipped, onBack, onEquip,
+  game, owned, equipped, onBack, onEquip, onEquipAll,
 }: {
   game: string;
   owned: string[];
   equipped: Record<string, string>;
   onBack: () => void;
   onEquip: (gameSlug: string, slot: CosmeticSlot, cosmeticId: string | null) => void;
+  onEquipAll: (gameSlug: string, action: 'equip_all' | 'clear_all') => void;
 }) {
   const pieces = cosmeticsForGame(game);
   const ownedCount = pieces.filter((c) => owned.includes(c.id)).length;
+  const equippedCount = Object.keys(equipped).length;
 
   return (
     <div className="flex flex-col gap-3">
@@ -264,6 +282,24 @@ function CosmeticGrid({
           {game === GLOBAL_SLUG ? 'S’applique à tous les jeux' : `Thème « ${gameTheme(game)} » — ce jeu uniquement`}
           {' · '}{ownedCount}/{pieces.length}
         </span>
+
+        <div className="ml-auto flex items-center gap-2">
+          {equippedCount > 0 && (
+            <button
+              onClick={() => onEquipAll(game, 'clear_all')}
+              className="h-9 px-3 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-1.5 text-xs font-black text-tx-secondary hover:text-tx-base hover:border-tx-base focus:outline-none"
+            >
+              <Eraser className="h-3.5 w-3.5" /> Tout retirer
+            </button>
+          )}
+          <button
+            onClick={() => onEquipAll(game, 'equip_all')}
+            disabled={ownedCount === 0}
+            className="h-9 px-3 rounded-xl border-2 border-accent-primary bg-accent-primary text-brand-bg flex items-center gap-1.5 text-xs font-black hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none"
+          >
+            <Wand2 className="h-3.5 w-3.5" /> Tout équiper
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">

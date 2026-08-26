@@ -161,7 +161,7 @@ export default function PlinkoPage() {
   const panel = (
     <>
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={dropping} />
-      <PlayRow onClick={handleDrop} loading={dropping} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
+      <PlayRow balance={balance} onClick={handleDrop} loading={dropping} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
         {dropping ? 'ÇA TOMBE...' : `LÂCHER LA BILLE · ${amount} ₶`}
       </PlayRow>
 

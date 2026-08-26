@@ -170,7 +170,7 @@ export default function CoinflipPage() {
 
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={flipping} />
 
-      <PlayRow onClick={handleFlip} loading={flipping} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
+      <PlayRow balance={balance} onClick={handleFlip} loading={flipping} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
         {flipping ? 'ÇA TOURNE...' : `LANCER · ${amount} ₶ (×${COINFLIP_PAYOUT})`}
       </PlayRow>
 

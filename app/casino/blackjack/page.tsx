@@ -12,7 +12,7 @@ import {
   type BlackjackOutcome, CASINO_MIN_BET,
 } from '@/lib/casino/blackjack';
 import {
-  GameShell, BetControls, PlayButton, PlayingCard, ResultBanner, HistoryStrip,
+  GameShell, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip,
   type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
@@ -253,6 +253,21 @@ export default function BlackjackPage() {
     }
   };
 
+  /**
+   * Auto plays the textbook line: hit under 17, stand at 17 or more. Nothing
+   * clever, but it is what a distracted player does anyway.
+   */
+  const autoTick = () => {
+    if (busy) return;
+    if (phase === 'idle') { void handleDeal(); return; }
+    if (phase === 'playing') {
+      if (playerHand.total < 17) void handleHit();
+      else void handleStand();
+      return;
+    }
+    handleReset();
+  };
+
   const handleReset = () => {
     sfx.click();
     setPhase('idle'); setPlayerCards([]); setDealerCards([]);
@@ -333,9 +348,17 @@ export default function BlackjackPage() {
       {phase === 'idle' || phase === 'finished' ? (
         <>
           <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
-          <PlayButton onClick={phase === 'idle' ? handleDeal : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+          <PlayRow
+            balance={balance}
+            onClick={phase === 'idle' ? handleDeal : handleReset}
+            onAuto={autoTick}
+            loading={busy}
+            disabled={!isLoaded || amount < CASINO_MIN_BET}
+            blocked={amount > balance}
+            betKey={amount}
+          >
             {phase === 'idle' ? `DISTRIBUER · ${amount} ₶` : 'REJOUER'}
-          </PlayButton>
+          </PlayRow>
         </>
       ) : (
         <>

@@ -163,7 +163,7 @@ export default function BaccaratPage() {
 
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
 
-      <PlayRow onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
+      <PlayRow balance={balance} onClick={handlePlay} loading={playing} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
         {playing ? 'DISTRIBUTION...' : `PARIER · ${amount} ₶`}
       </PlayRow>
 

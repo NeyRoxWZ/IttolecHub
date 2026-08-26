@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { hideJackpot, resolveCaisses, CAISSES_COUNT, CAISSES_PAYOUT, CASINO_MIN_BET } from '@/lib/casino/caisses';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtCrate, ArtCrateEmpty } from '../_components/CasinoArt';
@@ -69,6 +69,13 @@ export default function CaissesPage() {
   };
 
   const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setOpenedCrate(null); };
+
+  /** Auto stakes, then opens one of the crates at random. */
+  const autoTick = () => {
+    if (phase === 'revealed') { handleReset(); return; }
+    if (phase === 'idle') { sfx.bet(); setPhase('choosing'); return; }
+    if (phase === 'choosing') void handlePick(Math.floor(Math.random() * CAISSES_COUNT));
+  };
 
   const gameHistory = history.filter((h) => h.game_slug === 'caisses').slice(0, 10);
 
@@ -138,13 +145,17 @@ export default function CaissesPage() {
           <p className="text-xs text-tx-secondary mt-1">Une seule des {CAISSES_COUNT} contient le lot.</p>
         </div>
       ) : (
-        <PlayButton
+        <PlayRow
+          balance={balance}
           onClick={() => { if (phase === 'revealed') handleReset(); else { sfx.bet(); setPhase('choosing'); } }}
+          onAuto={autoTick}
           loading={busy}
           disabled={!isLoaded || amount < CASINO_MIN_BET}
+          blocked={amount > balance}
+          betKey={amount}
         >
           {phase === 'revealed' ? 'REJOUER' : `MISER · ${amount} ₶ (×${CAISSES_PAYOUT})`}
-        </PlayButton>
+        </PlayRow>
       )}
 
       <HistoryStrip history={gameHistory} />

@@ -149,7 +149,7 @@ export default function CrapsPage() {
   const panel = (
     <>
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={rolling} />
-      <PlayRow onClick={handleRoll} loading={rolling} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
+      <PlayRow balance={balance} onClick={handleRoll} loading={rolling} disabled={!isLoaded || amount < CASINO_MIN_BET} betKey={amount} blocked={amount > balance}>
         {rolling ? 'ÇA ROULE...' : `LANCER LES DÉS · ${amount} ₶`}
       </PlayRow>
 

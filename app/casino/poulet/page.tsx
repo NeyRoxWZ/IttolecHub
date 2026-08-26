@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { LADDER_CONFIGS, multiplierAtStep, stepOutcome, CASINO_MIN_BET } from '@/lib/casino/ladder';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtChicken, ArtCar, ArtImpact, ArtFinishFlag } from '../_components/CasinoArt';
@@ -164,6 +164,24 @@ export default function PouletPage() {
     }
   };
 
+  /** Auto crosses a few lanes, then cashes out at a target drawn per round. */
+  const autoTargetRef = useRef(0);
+
+  const autoTick = () => {
+    if (busy) return;
+    if (phase === 'idle') {
+      autoTargetRef.current = 2 + Math.floor(Math.random() * 4);
+      void handleStart();
+      return;
+    }
+    if (active) {
+      if (step >= autoTargetRef.current) void handleCashout();
+      else void handleHop();
+      return;
+    }
+    handleReset();
+  };
+
   const handleReset = () => {
     sfx.click();
     setPhase('idle'); setStep(0); setMultiplier(1); setRoundId(null); setDeathLane(null);
@@ -279,9 +297,17 @@ export default function PouletPage() {
       {!active ? (
         <>
           <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={busy} />
-          <PlayButton onClick={phase === 'idle' ? handleStart : handleReset} loading={busy} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+          <PlayRow
+            balance={balance}
+            onClick={phase === 'idle' ? handleStart : handleReset}
+            onAuto={autoTick}
+            loading={busy}
+            disabled={!isLoaded || amount < CASINO_MIN_BET}
+            blocked={amount > balance}
+            betKey={amount}
+          >
             {phase === 'idle' ? `LÂCHER LE POULET · ${amount} ₶` : 'REJOUER'}
-          </PlayButton>
+          </PlayRow>
         </>
       ) : (
         <>

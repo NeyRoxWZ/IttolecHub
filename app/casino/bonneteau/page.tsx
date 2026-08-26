@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
 import { hideBall, resolveBonneteau, BONNETEAU_CUPS, BONNETEAU_PAYOUT, CASINO_MIN_BET } from '@/lib/casino/bonneteau';
 import {
-  GameShell, BetControls, PlayButton, ResultBanner, HistoryStrip, type RulesSpec,
+  GameShell, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtBall } from '../_components/CasinoArt';
@@ -103,6 +103,13 @@ export default function BonneteauPage() {
 
   const handleReset = () => { sfx.click(); setPhase('idle'); setResult(null); setPending(null); setPositions([0, 1, 2]); };
 
+  /** Auto shuffles, then takes a cup at random — the honest strategy anyway. */
+  const autoTick = () => {
+    if (phase === 'revealed') { handleReset(); return; }
+    if (phase === 'idle') { void handleStart(); return; }
+    if (phase === 'choosing') handlePick(Math.floor(Math.random() * BONNETEAU_CUPS));
+  };
+
   const gameHistory = history.filter((h) => h.game_slug === 'bonneteau').slice(0, 10);
 
   const stage = (
@@ -191,9 +198,17 @@ export default function BonneteauPage() {
           <p className="text-xs text-tx-secondary mt-1">Clique le gobelet qui cache la bille.</p>
         </div>
       ) : (
-        <PlayButton onClick={phase === 'revealed' ? handleReset : handleStart} loading={busy || phase === 'shuffling'} disabled={!isLoaded || amount < CASINO_MIN_BET}>
+        <PlayRow
+          balance={balance}
+          onClick={phase === 'revealed' ? handleReset : handleStart}
+          onAuto={autoTick}
+          loading={busy || phase === 'shuffling'}
+          disabled={!isLoaded || amount < CASINO_MIN_BET}
+          blocked={amount > balance}
+          betKey={amount}
+        >
           {phase === 'revealed' ? 'REJOUER' : `MISER · ${amount} ₶ (×${BONNETEAU_PAYOUT})`}
-        </PlayButton>
+        </PlayRow>
       )}
 
       <HistoryStrip history={gameHistory} />
