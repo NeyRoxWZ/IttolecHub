@@ -11,8 +11,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { refreshCosmetics } from '@/hooks/useGameCosmetics';
 import {
-  COSMETIC_GAME_ORDER, SLOT_LABEL, RARITY_COLOR, RARITY_LABEL, GLOBAL_SLUG,
-  cosmeticsForGame, gameLabel, gameTheme, type CosmeticSlot,
+  COSMETIC_GAME_ORDER, SLOT_LABEL, RARITY_COLOR, RARITY_LABEL, SOURCE_LABEL, GLOBAL_SLUG,
+  THEMES, cosmeticsForGame, gameLabel, type Cosmetic, type CosmeticSlot,
 } from '@/lib/casino/cosmetics';
 import type { CrateOpening } from '@/lib/casino/crates';
 import { CountUp } from '../_components/CasinoUI';
@@ -31,6 +31,8 @@ export default function InventoryPage() {
   const [equipped, setEquipped] = useState<Record<string, Record<string, string>>>({});
   const [game, setGame] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [visible, setVisible] = useState<Set<string>>(new Set());
+  const [theme, setTheme] = useState<string>('tous');
   const [busy, setBusy] = useState<string | null>(null);
   const [openings, setOpenings] = useState<CrateOpening[] | null>(null);
   const [confetti, setConfetti] = useState(0);
@@ -46,6 +48,7 @@ export default function InventoryPage() {
       const data = await cosm.json();
       setOwned(data.owned || []);
       setEquipped(data.equipped || {});
+      setVisible(new Set<string>(data.visible || []));
     }
   }, [user]);
 
@@ -128,14 +131,14 @@ export default function InventoryPage() {
   /* ---- cosmetic search: matching a piece surfaces its game ---- */
   const gameHits = useMemo(() => {
     return COSMETIC_GAME_ORDER.map((slug) => {
-      const all = cosmeticsForGame(slug);
+      // Pieces from a season that hasn't started aren't counted: the total
+      // would otherwise announce a collection nobody can complete yet.
+      const all = cosmeticsForGame(slug).filter((c) => visible.has(c.id));
       const got = all.filter((c) => owned.includes(c.id)).length;
-      const hits = q
-        ? all.filter((c) => owned.includes(c.id) && c.name.toLowerCase().includes(q)).length
-        : 0;
+      const hits = q ? all.filter((c) => c.name.toLowerCase().includes(q)).length : 0;
       return { slug, total: all.length, got, hits };
     });
-  }, [owned, q]);
+  }, [owned, visible, q]);
 
   const shownGames = q ? gameHits.filter((g) => g.hits > 0 || gameLabel(g.slug).toLowerCase().includes(q)) : gameHits;
 
@@ -222,7 +225,9 @@ export default function InventoryPage() {
                   )}
                 >
                   <span className="font-display font-black text-sm">{gameLabel(slug)}</span>
-                  <span className="text-[11px] text-tx-muted leading-tight">{gameTheme(slug)}</span>
+                  <span className="text-[11px] text-tx-muted leading-tight">
+                    {slug === GLOBAL_SLUG ? 'Tous les jeux et écrans' : `${total} pièces`}
+                  </span>
                   <div className="w-full mt-3">
                     <div className="flex items-center justify-between text-[10px] font-black mb-1">
                       <span className="text-tx-muted">Collection</span>
@@ -242,6 +247,10 @@ export default function InventoryPage() {
             <CosmeticGrid
               game={game}
               owned={owned}
+              visible={visible}
+              query={q}
+              theme={theme}
+              onTheme={setTheme}
               equipped={equipped[game] || {}}
               onBack={() => { sfx.click(); setGame(null); }}
               onEquip={equip}
@@ -255,17 +264,29 @@ export default function InventoryPage() {
 }
 
 function CosmeticGrid({
-  game, owned, equipped, onBack, onEquip, onEquipAll,
+  game, owned, visible, query, theme, onTheme, equipped, onBack, onEquip, onEquipAll,
 }: {
   game: string;
   owned: string[];
+  visible: Set<string>;
+  query: string;
+  theme: string;
+  onTheme: (key: string) => void;
   equipped: Record<string, string>;
   onBack: () => void;
   onEquip: (gameSlug: string, slot: CosmeticSlot, cosmeticId: string | null) => void;
   onEquipAll: (gameSlug: string, action: 'equip_all' | 'clear_all') => void;
 }) {
-  const pieces = cosmeticsForGame(game);
-  const ownedCount = pieces.filter((c) => owned.includes(c.id)).length;
+  const all = cosmeticsForGame(game).filter((c) => visible.has(c.id));
+  const themesHere = Array.from(new Set(all.map((c) => c.themeKey)));
+
+  const pieces = all.filter((c) => {
+    if (theme !== 'tous' && c.themeKey !== theme) return false;
+    if (query && !c.name.toLowerCase().includes(query) && !c.themeName.toLowerCase().includes(query)) return false;
+    return true;
+  });
+
+  const ownedCount = all.filter((c) => owned.includes(c.id)).length;
   const equippedCount = Object.keys(equipped).length;
 
   return (
@@ -279,8 +300,8 @@ function CosmeticGrid({
         </button>
         <span className="font-display font-black text-sm">{gameLabel(game)}</span>
         <span className="text-[11px] text-tx-muted">
-          {game === GLOBAL_SLUG ? 'S’applique à tous les jeux' : `Thème « ${gameTheme(game)} » — ce jeu uniquement`}
-          {' · '}{ownedCount}/{pieces.length}
+          {game === GLOBAL_SLUG ? 'S’applique à tous les jeux et tous les écrans' : 'Ce jeu uniquement'}
+          {' · '}{ownedCount}/{all.length} débloqués
         </span>
 
         <div className="ml-auto flex items-center gap-2">
@@ -302,6 +323,22 @@ function CosmeticGrid({
         </div>
       </div>
 
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        {[{ key: 'tous', name: 'Tous les thèmes' }, ...THEMES.filter((t) => themesHere.includes(t.key))].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => { sfx.click(); onTheme(t.key); }}
+            className={cn(
+              'h-8 px-2.5 rounded-lg border-2 shrink-0 text-[11px] font-black focus:outline-none transition-colors',
+              theme === t.key ? 'border-accent-primary bg-accent-primary/10 text-accent-primary'
+                : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
+            )}
+          >
+            {t.name}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {pieces.map((piece) => {
           const isOwned = owned.includes(piece.id);
@@ -319,7 +356,7 @@ function CosmeticGrid({
                 </div>
                 <span className="font-display font-black text-[11px] text-tx-muted">?????</span>
                 <span className="text-[10px] text-tx-muted text-center leading-tight">
-                  {piece.prestige ? `Prestige ${piece.prestige}` : 'À débloquer'}
+                  {piece.prestige ? `Prestige ${piece.prestige}` : SOURCE_LABEL[piece.source]}
                 </span>
                 <div className="mt-auto h-8" />
               </div>
@@ -341,6 +378,7 @@ function CosmeticGrid({
                   {RARITY_LABEL[piece.rarity]}
                 </span>
               </div>
+              <span className="text-[9px] font-bold text-tx-muted">{piece.themeName}</span>
 
               <CosmeticPreview cosmetic={piece} size={86} />
               <span className="font-display font-black text-[11px] leading-tight text-center">{piece.name}</span>

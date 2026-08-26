@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { ensurePass, passClaims, buyPassPremium, claimPassTier, claimAllPass } from '@/lib/casino/pass.server';
 import { supabase } from '@/lib/supabase/server';
 import {
-  PASS_TRACK, PASS_TIERS, PASS_PREMIUM_PRICE, PASS_XP,
-  passXpForTier, tierFromPassXp, secondsUntilReset, weekKey,
+  passTrack, PASS_TIERS, PASS_PREMIUM_PRICE, PASS_XP,
+  passXpForTier, tierFromPassXp, secondsUntilReset, weekKey, currentSeason, seasonsRemaining,
 } from '@/lib/casino/pass';
 
 export async function GET(request: Request) {
@@ -36,7 +36,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       week: weekKey(),
       resetIn: secondsUntilReset(),
-      tiers: PASS_TRACK,
+      season: currentSeason(),
+      seasonsRemaining: seasonsRemaining(),
+      tiers: passTrack(),
       maxTier: PASS_TIERS,
       premiumPrice: PASS_PREMIUM_PRICE,
       xpRates: PASS_XP,

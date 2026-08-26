@@ -1,11 +1,24 @@
 /**
- * Cosmetics — eight per game, twenty games, 160 pieces.
+ * Cosmetics.
  *
- * They're described as data (palettes, patterns, effect styles) rather than
- * as one-off components: that's the only way 160 pieces stay previewable in
- * the pass and applicable in-game without 160 bespoke implementations.
- * Each piece belongs to the game that drops it, so a Slots skin only ever
- * shows up in Slots.
+ * 820 pieces, generated from a theme grid rather than written one by one —
+ * that is the only way the collection can be this deep and still be
+ * previewable, searchable and applicable without 820 bespoke components.
+ *
+ *   700 tied to a game   (35 per game, 20 games)
+ *   100 general          (every game, and the screens around them)
+ *    20 prestige         (one per prestige level)
+ *
+ * They are also split by where they come from, and a piece belongs to exactly
+ * one source — a cosmetic that could drop from both a crate and the pass makes
+ * neither worth chasing:
+ *
+ *   400 pass    (40 per season, ten seasons planned ahead)
+ *   400 crates
+ *    20 prestige
+ *
+ * Pass pieces stay hidden until their season is the live one; crate pieces are
+ * visible from the start, greyed out until owned.
  */
 
 export type CosmeticSlot =
@@ -16,7 +29,7 @@ export type CosmeticSlot =
   | 'border'     // frame around the scene
   | 'particles'  // ambience while the action plays
   | 'sound'      // audio pack
-  | 'emblem';    // badge shown next to the balance in that game
+  | 'emblem';    // badge shown next to the balance
 
 export const COSMETIC_SLOTS: CosmeticSlot[] = [
   'table', 'skin', 'win_fx', 'lose_fx', 'border', 'particles', 'sound', 'emblem',
@@ -68,6 +81,93 @@ export const RARITY_COLOR: Record<Rarity, string> = {
   commun: '#8A8AA0', rare: '#4FA3FF', epique: '#B061FF', legendaire: '#FFB300',
 };
 
+export type CosmeticSource = 'pass' | 'caisse' | 'prestige';
+
+export const SOURCE_LABEL: Record<CosmeticSource, string> = {
+  pass: 'Frenly Pass',
+  caisse: 'Caisses',
+  prestige: 'Prestige',
+};
+
+export const GLOBAL_SLUG = 'global';
+
+export interface Cosmetic {
+  id: string;
+  gameSlug: string;
+  slot: CosmeticSlot;
+  name: string;
+  themeKey: string;
+  themeName: string;
+  rarity: Rarity;
+  source: CosmeticSource;
+  /** Pass pieces only: which season hands this one out. */
+  season?: number;
+  /** Prestige pieces only. */
+  prestige?: number;
+  /** Applies to every game and to the screens around them. */
+  global?: boolean;
+  params: CosmeticParams;
+}
+
+/* ------------------------------------------------------------------ */
+/* Themes                                                              */
+/* ------------------------------------------------------------------ */
+
+interface Theme {
+  key: string;
+  name: string;
+  dark: string;
+  mid: string;
+  accent: string;
+  pattern: TablePattern;
+  hue: number;
+  saturate: number;
+  winStyle: WinStyle;
+  loseStyle: LoseStyle;
+  particleStyle: ParticleStyle;
+  pack: SoundPack;
+  art: string;
+}
+
+export const THEMES: Theme[] = [
+  { key: 'brasier', name: 'Brasier', dark: '#1A0703', mid: '#5C1B06', accent: '#FF5A1F', pattern: 'rays', hue: 15, saturate: 1.5, winStyle: 'fireworks', loseStyle: 'ash', particleStyle: 'rise', pack: 'arcade', art: 'fire' },
+  { key: 'givre', name: 'Givre', dark: '#061018', mid: '#123245', accent: '#9EE7FF', pattern: 'dots', hue: 190, saturate: 1.2, winStyle: 'sparks', loseStyle: 'crack', particleStyle: 'fall', pack: 'space', art: 'diamond' },
+  { key: 'orage', name: 'Orage', dark: '#0A0A16', mid: '#1E2044', accent: '#7C5CFF', pattern: 'stripes', hue: 255, saturate: 1.4, winStyle: 'shock', loseStyle: 'static', particleStyle: 'orbit', pack: 'arcade', art: 'star' },
+  { key: 'toxique', name: 'Toxique', dark: '#0C1604', mid: '#254D0C', accent: '#A3E635', pattern: 'grid', hue: 90, saturate: 1.5, winStyle: 'confetti', loseStyle: 'drip', particleStyle: 'float', pack: 'retro', art: 'bomb' },
+  { key: 'or', name: 'Or massif', dark: '#1A1405', mid: '#4A3A0C', accent: '#FFD000', pattern: 'rays', hue: 45, saturate: 1.4, winStyle: 'coins', loseStyle: 'smoke', particleStyle: 'rise', pack: 'orchestral', art: 'crown' },
+  { key: 'neon', name: 'Néon', dark: '#04070F', mid: '#0B2038', accent: '#00E5FF', pattern: 'grid', hue: 185, saturate: 1.7, winStyle: 'shock', loseStyle: 'static', particleStyle: 'orbit', pack: 'arcade', art: 'star' },
+  { key: 'sang', name: 'Sang-froid', dark: '#14060A', mid: '#3D0D18', accent: '#FF2E4D', pattern: 'stripes', hue: 350, saturate: 1.5, winStyle: 'fireworks', loseStyle: 'drip', particleStyle: 'fall', pack: 'western', art: 'skull' },
+  { key: 'abyssal', name: 'Abyssal', dark: '#03070E', mid: '#0B2038', accent: '#38BDF8', pattern: 'plain', hue: 205, saturate: 1.1, winStyle: 'sparks', loseStyle: 'smoke', particleStyle: 'drift', pack: 'space', art: 'gem' },
+  { key: 'jungle', name: 'Jungle', dark: '#07140A', mid: '#16401F', accent: '#4ADE80', pattern: 'dots', hue: 130, saturate: 1.3, winStyle: 'confetti', loseStyle: 'ash', particleStyle: 'float', pack: 'western', art: 'clover' },
+  { key: 'onyx', name: 'Onyx', dark: '#08080B', mid: '#1B1B22', accent: '#C9CCD6', pattern: 'plain', hue: 0, saturate: 0.35, winStyle: 'sparks', loseStyle: 'ash', particleStyle: 'drift', pack: 'lounge', art: 'diamond' },
+  { key: 'bonbon', name: 'Bonbon', dark: '#2A0B2E', mid: '#B5179E', accent: '#FFCA3A', pattern: 'dots', hue: 320, saturate: 1.6, winStyle: 'confetti', loseStyle: 'drip', particleStyle: 'fall', pack: 'arcade', art: 'cherry' },
+  { key: 'sable', name: 'Sable', dark: '#1A1408', mid: '#4E3B18', accent: '#E8C284', pattern: 'stripes', hue: 38, saturate: 1.1, winStyle: 'coins', loseStyle: 'smoke', particleStyle: 'drift', pack: 'western', art: 'moneyBag' },
+  { key: 'spectre', name: 'Spectre', dark: '#0A0A12', mid: '#232338', accent: '#C4B5FD', pattern: 'plain', hue: 270, saturate: 0.8, winStyle: 'sparks', loseStyle: 'static', particleStyle: 'float', pack: 'lounge', art: 'skull' },
+  { key: 'magma', name: 'Magma', dark: '#170402', mid: '#4E1204', accent: '#FF7043', pattern: 'rays', hue: 12, saturate: 1.6, winStyle: 'shock', loseStyle: 'ash', particleStyle: 'rise', pack: 'arcade', art: 'volcano' },
+  { key: 'emeraude', name: 'Émeraude', dark: '#06160E', mid: '#0F4029', accent: '#25D07A', pattern: 'grid', hue: 155, saturate: 1.3, winStyle: 'coins', loseStyle: 'crack', particleStyle: 'orbit', pack: 'orchestral', art: 'gem' },
+  { key: 'saphir', name: 'Saphir', dark: '#060C1E', mid: '#132C63', accent: '#3E8CFF', pattern: 'rays', hue: 220, saturate: 1.3, winStyle: 'sparks', loseStyle: 'smoke', particleStyle: 'orbit', pack: 'orchestral', art: 'diamond' },
+  { key: 'rubis', name: 'Rubis', dark: '#170608', mid: '#4C1018', accent: '#FF3355', pattern: 'plain', hue: 355, saturate: 1.4, winStyle: 'fireworks', loseStyle: 'crack', particleStyle: 'rise', pack: 'orchestral', art: 'gem' },
+  { key: 'amethyste', name: 'Améthyste', dark: '#120722', mid: '#361065', accent: '#A855F7', pattern: 'dots', hue: 280, saturate: 1.4, winStyle: 'confetti', loseStyle: 'static', particleStyle: 'drift', pack: 'lounge', art: 'star' },
+  { key: 'ambre', name: 'Ambre', dark: '#1B1104', mid: '#5B3608', accent: '#FF9F1C', pattern: 'stripes', hue: 32, saturate: 1.3, winStyle: 'coins', loseStyle: 'smoke', particleStyle: 'fall', pack: 'retro', art: 'lemon' },
+  { key: 'chrome', name: 'Chrome', dark: '#0D0F12', mid: '#2A3038', accent: '#E2E8F0', pattern: 'grid', hue: 210, saturate: 0.5, winStyle: 'shock', loseStyle: 'crack', particleStyle: 'orbit', pack: 'space', art: 'coinFace' },
+  { key: 'retro', name: 'Rétro', dark: '#12071A', mid: '#3B0F52', accent: '#FF2E88', pattern: 'stripes', hue: 315, saturate: 1.5, winStyle: 'fireworks', loseStyle: 'static', particleStyle: 'rise', pack: 'retro', art: 'seven' },
+  { key: 'vapeur', name: 'Vapeur', dark: '#0B0E14', mid: '#243044', accent: '#94A3B8', pattern: 'plain', hue: 200, saturate: 0.7, winStyle: 'sparks', loseStyle: 'smoke', particleStyle: 'drift', pack: 'lounge', art: 'ball' },
+  { key: 'cosmos', name: 'Cosmos', dark: '#05050F', mid: '#141440', accent: '#818CF8', pattern: 'dots', hue: 240, saturate: 1.2, winStyle: 'fireworks', loseStyle: 'ash', particleStyle: 'orbit', pack: 'space', art: 'rocket' },
+  { key: 'rouille', name: 'Rouille', dark: '#150A05', mid: '#452012', accent: '#C2632B', pattern: 'grid', hue: 22, saturate: 1.2, winStyle: 'sparks', loseStyle: 'crack', particleStyle: 'fall', pack: 'western', art: 'rock' },
+  { key: 'marbre', name: 'Marbre', dark: '#101014', mid: '#31313C', accent: '#F1F5F9', pattern: 'plain', hue: 0, saturate: 0.4, winStyle: 'coins', loseStyle: 'crack', particleStyle: 'drift', pack: 'orchestral', art: 'crown' },
+  { key: 'prisme', name: 'Prisme', dark: '#0A0714', mid: '#241748', accent: '#F472B6', pattern: 'rays', hue: 300, saturate: 1.6, winStyle: 'confetti', loseStyle: 'drip', particleStyle: 'orbit', pack: 'arcade', art: 'diamond' },
+  { key: 'arctique', name: 'Arctique', dark: '#081218', mid: '#153A4A', accent: '#67E8F9', pattern: 'stripes', hue: 180, saturate: 1.1, winStyle: 'sparks', loseStyle: 'crack', particleStyle: 'fall', pack: 'space', art: 'diamond' },
+  { key: 'ombre', name: 'Ombre', dark: '#06060A', mid: '#161620', accent: '#6E6E80', pattern: 'plain', hue: 0, saturate: 0.3, winStyle: 'shock', loseStyle: 'smoke', particleStyle: 'float', pack: 'lounge', art: 'door' },
+  { key: 'solaire', name: 'Solaire', dark: '#1C1503', mid: '#6B4E06', accent: '#FDE047', pattern: 'rays', hue: 50, saturate: 1.5, winStyle: 'fireworks', loseStyle: 'ash', particleStyle: 'rise', pack: 'orchestral', art: 'star' },
+  { key: 'velours', name: 'Velours', dark: '#100612', mid: '#3A0F3E', accent: '#D8B4FE', pattern: 'plain', hue: 290, saturate: 1.1, winStyle: 'coins', loseStyle: 'drip', particleStyle: 'drift', pack: 'lounge', art: 'crown' },
+];
+
+export const THEME_BY_KEY = new Map(THEMES.map((t) => [t.key, t]));
+
+/* ------------------------------------------------------------------ */
+/* Rarity                                                              */
+/* ------------------------------------------------------------------ */
+
 /**
  * Rarity follows how much of the screen a piece changes: a background tint is
  * common, a full reskin of the game's own artwork is legendary.
@@ -83,381 +183,51 @@ const SLOT_RARITY: Record<CosmeticSlot, Rarity> = {
   emblem: 'legendaire',
 };
 
-/** Cosmetics that work in every game are one notch rarer than their slot. */
+/** Cosmetics that work everywhere are one notch rarer than their slot. */
 const BUMP: Record<Rarity, Rarity> = {
   commun: 'rare', rare: 'epique', epique: 'legendaire', legendaire: 'legendaire',
 };
 
-export const GLOBAL_SLUG = 'global';
+/* ------------------------------------------------------------------ */
+/* Generation                                                          */
+/* ------------------------------------------------------------------ */
 
-export interface Cosmetic {
-  id: string;
-  gameSlug: string;
-  slot: CosmeticSlot;
-  name: string;
-  rarity: Rarity;
-  /** Applies to every game rather than a single one. */
-  global?: boolean;
-  /** Locked behind this prestige level; never drops from crates or the pass. */
-  prestige?: number;
-  params: CosmeticParams;
-}
-
-interface GameTheme {
-  slug: string;
-  /** Short game name, used in the pass listing. */
-  game: string;
-  /** The theme's own identity — what makes these eight feel like a set. */
-  theme: string;
-  palette: [string, string, string];
-  pattern: TablePattern;
-  skin: string;
-  hue: number;
-  saturate: number;
-  winStyle: WinStyle;
-  loseStyle: LoseStyle;
-  particleStyle: ParticleStyle;
-  pack: SoundPack;
-  art: string;
-  /** Per-slot names, so no two pieces read the same. */
-  names: [string, string, string, string, string, string, string, string];
-}
-
-const THEMES: GameTheme[] = [
-  {
-    slug: 'slots', game: 'Slots', theme: 'Néon Vegas',
-    palette: ['#2B0B3F', '#7A1FA2', '#FF2E88'], pattern: 'rays',
-    skin: 'Gemmes', hue: 300, saturate: 1.5,
-    winStyle: 'fireworks', loseStyle: 'static', particleStyle: 'rise', pack: 'retro', art: 'cherry',
-    names: ['Tapis Néon Vegas', 'Symboles Gemmes', 'Feu d’artifice rose', 'Écran neigeux', 'Liseré néon', 'Étincelles montantes', 'Bornes d’arcade', 'Cerise dorée'],
-  },
-  {
-    slug: 'blackjack', game: '21', theme: 'Salon feutré',
-    palette: ['#0B2E1F', '#0F5132', '#D4AF37'], pattern: 'plain',
-    skin: 'Cartes ivoire', hue: 40, saturate: 0.8,
-    winStyle: 'coins', loseStyle: 'smoke', particleStyle: 'drift', pack: 'lounge', art: 'crown',
-    names: ['Tapis Salon feutré', 'Cartes ivoire', 'Pluie de jetons', 'Volute de fumée', 'Cadre laiton', 'Poussière de salon', 'Piano-bar', 'Couronne du croupier'],
-  },
-  {
-    slug: 'wheel', game: 'Wheel', theme: 'Or et velours',
-    palette: ['#1A0E2E', '#4A1B6D', '#FFD000'], pattern: 'rays',
-    skin: 'Cases dorées', hue: 45, saturate: 1.3,
-    winStyle: 'confetti', loseStyle: 'ash', particleStyle: 'orbit', pack: 'orchestral', art: 'gem',
-    names: ['Tapis Or et velours', 'Cases dorées', 'Confettis d’or', 'Pluie de cendres', 'Contour serti', 'Halo tournant', 'Fanfare', 'Gemme du croupier'],
-  },
-  {
-    slug: 'rocket', game: 'Rocket', theme: 'Orbite basse',
-    palette: ['#050A1F', '#12245C', '#4FC3F7'], pattern: 'dots',
-    skin: 'Soucoupe', hue: 190, saturate: 1.4,
-    winStyle: 'shock', loseStyle: 'smoke', particleStyle: 'rise', pack: 'space', art: 'rocket',
-    names: ['Tapis Orbite basse', 'Coque Soucoupe', 'Onde de choc', 'Épave fumante', 'Contour ionisé', 'Traînée d’étoiles', 'Radio spatiale', 'Insigne de pilote'],
-  },
-  {
-    slug: 'mines', game: 'Mines', theme: 'Galerie profonde',
-    palette: ['#12100E', '#3B2A20', '#FF6B2C'], pattern: 'grid',
-    skin: 'Roche brute', hue: 20, saturate: 1.1,
-    winStyle: 'sparks', loseStyle: 'crack', particleStyle: 'fall', pack: 'western', art: 'bomb',
-    names: ['Tapis Galerie profonde', 'Dalles Roche brute', 'Gerbe d’étincelles', 'Dalle fissurée', 'Contour de fonte', 'Poussière de charbon', 'Harmonica', 'Détonateur'],
-  },
-  {
-    slug: 'plinko', game: 'Plinko', theme: 'Bonbon',
-    palette: ['#2A0B2E', '#B5179E', '#FFCA3A'], pattern: 'dots',
-    skin: 'Bille sucre', hue: 320, saturate: 1.6,
-    winStyle: 'confetti', loseStyle: 'drip', particleStyle: 'fall', pack: 'arcade', art: 'ball',
-    names: ['Tapis Bonbon', 'Bille sucre', 'Confettis acidulés', 'Coulée de sirop', 'Contour guimauve', 'Grêle de dragées', 'Machine à bonbons', 'Bille championne'],
-  },
-  {
-    slug: 'hilo', game: 'HiLo', theme: 'Minuit',
-    palette: ['#0A0A14', '#1E2749', '#8AB4F8'], pattern: 'stripes',
-    skin: 'Dos bleu nuit', hue: 220, saturate: 0.9,
-    winStyle: 'sparks', loseStyle: 'static', particleStyle: 'drift', pack: 'lounge', art: 'star',
-    names: ['Tapis Minuit', 'Dos bleu nuit', 'Éclat argenté', 'Grésillement', 'Contour lunaire', 'Poussière d’étoiles', 'Contrebasse', 'Étoile de minuit'],
-  },
-  {
-    slug: 'grattage', game: 'Grattage', theme: 'Kiosque',
-    palette: ['#1B1006', '#6B3F16', '#FFB300'], pattern: 'stripes',
-    skin: 'Encre argent', hue: 35, saturate: 1.2,
-    winStyle: 'coins', loseStyle: 'ash', particleStyle: 'fall', pack: 'retro', art: 'clover',
-    names: ['Tapis Kiosque', 'Encre argent', 'Averse de pièces', 'Confettis gris', 'Contour carton', 'Copeaux de grattage', 'Vieille radio', 'Trèfle porte-bonheur'],
-  },
-  {
-    slug: 'poulet', game: 'Poulet', theme: 'Départementale',
-    palette: ['#0E1A0E', '#2E4E2E', '#FFE066'], pattern: 'stripes',
-    skin: 'Plumage roux', hue: 25, saturate: 1.4,
-    winStyle: 'confetti', loseStyle: 'crack', particleStyle: 'drift', pack: 'western', art: 'chicken',
-    names: ['Tapis Départementale', 'Plumage roux', 'Envol de plumes', 'Pare-brise fêlé', 'Contour glissière', 'Poussière de bitume', 'Klaxons', 'Poulet doré'],
-  },
-  {
-    slug: 'tower', game: 'Tower', theme: 'Gratte-ciel',
-    palette: ['#0A0E1A', '#22304A', '#6FE3C4'], pattern: 'grid',
-    skin: 'Verre teinté', hue: 165, saturate: 1.2,
-    winStyle: 'shock', loseStyle: 'crack', particleStyle: 'rise', pack: 'orchestral', art: 'crate',
-    names: ['Tapis Gratte-ciel', 'Verre teinté', 'Onde ascendante', 'Vitre brisée', 'Contour acier', 'Vent d’altitude', 'Cordes tendues', 'Clé de la tour'],
-  },
-  {
-    slug: 'keno', game: 'Keno', theme: 'Boulier',
-    palette: ['#10131F', '#26355C', '#FF5C7A'], pattern: 'dots',
-    skin: 'Boules laquées', hue: 340, saturate: 1.3,
-    winStyle: 'fireworks', loseStyle: 'smoke', particleStyle: 'orbit', pack: 'arcade', art: 'seven',
-    names: ['Tapis Boulier', 'Boules laquées', 'Bouquet final', 'Fumée de tirage', 'Contour de laiton', 'Boules en suspension', 'Sonnerie de tirage', 'Numéro fétiche'],
-  },
-  {
-    slug: 'caisses', game: 'Caisses', theme: 'Entrepôt',
-    palette: ['#141008', '#4A3418', '#FFC94A'], pattern: 'grid',
-    skin: 'Caisses peintes', hue: 40, saturate: 1.3,
-    winStyle: 'coins', loseStyle: 'ash', particleStyle: 'fall', pack: 'retro', art: 'moneyBag',
-    names: ['Tapis Entrepôt', 'Caisses peintes', 'Déluge de pièces', 'Sciure retombante', 'Contour palette', 'Poussière d’entrepôt', 'Monte-charge', 'Sac scellé'],
-  },
-  {
-    slug: 'coinflip', game: 'Coinflip', theme: 'Frappe royale',
-    palette: ['#161208', '#4C3B12', '#FFE9A3'], pattern: 'rays',
-    skin: 'Pièce ancienne', hue: 45, saturate: 1.1,
-    winStyle: 'sparks', loseStyle: 'static', particleStyle: 'orbit', pack: 'orchestral', art: 'coinFace',
-    names: ['Tapis Frappe royale', 'Pièce ancienne', 'Éclat de frappe', 'Voile terni', 'Contour ciselé', 'Halo de métal', 'Cuivres', 'Sceau royal'],
-  },
-  {
-    slug: 'dino', game: 'Dino', theme: 'Ère volcanique',
-    palette: ['#1A0B06', '#5A2110', '#FF7043'], pattern: 'stripes',
-    skin: 'Écailles braise', hue: 15, saturate: 1.5,
-    winStyle: 'shock', loseStyle: 'ash', particleStyle: 'rise', pack: 'arcade', art: 'volcano',
-    names: ['Tapis Ère volcanique', 'Écailles braise', 'Rugissement', 'Pluie de cendres', 'Contour de lave', 'Braises flottantes', 'Bips préhistoriques', 'Crâne fossile'],
-  },
-  {
-    slug: 'chevaux', game: 'Chevaux', theme: 'Hippodrome',
-    palette: ['#0D1A10', '#255034', '#F4E4BC'], pattern: 'stripes',
-    skin: 'Casaque rayée', hue: 100, saturate: 1.2,
-    winStyle: 'confetti', loseStyle: 'smoke', particleStyle: 'drift', pack: 'orchestral', art: 'horse',
-    names: ['Tapis Hippodrome', 'Casaque rayée', 'Confettis de tribune', 'Poussière de piste', 'Contour de lice', 'Mottes de terre', 'Trompes de départ', 'Fer à cheval'],
-  },
-  {
-    slug: 'bonneteau', game: 'Bonneteau', theme: 'Ruelle',
-    palette: ['#12100F', '#33261C', '#E5B769'], pattern: 'plain',
-    skin: 'Gobelets cuivre', hue: 30, saturate: 1.1,
-    winStyle: 'sparks', loseStyle: 'smoke', particleStyle: 'drift', pack: 'lounge', art: 'door',
-    names: ['Tapis Ruelle', 'Gobelets cuivre', 'Tour de passe-passe', 'Fumée de ruelle', 'Contour de caisse', 'Poussière de pavé', 'Accordéon', 'Gobelet marqué'],
-  },
-  {
-    slug: 'stade', game: 'Stade', theme: 'Nocturne',
-    palette: ['#08140C', '#12401F', '#B9F18D'], pattern: 'stripes',
-    skin: 'Maillot fluo', hue: 95, saturate: 1.6,
-    winStyle: 'fireworks', loseStyle: 'static', particleStyle: 'rise', pack: 'arcade', art: 'finishFlag',
-    names: ['Tapis Nocturne', 'Maillot fluo', 'Feux de tribune', 'Écran de fin', 'Contour de projecteur', 'Confettis de supporters', 'Tambours de virage', 'Fanion du club'],
-  },
-  {
-    slug: 'baccarat', game: 'Baccarat', theme: 'Riviera',
-    palette: ['#0A1420', '#123A5C', '#E8D9B0'], pattern: 'plain',
-    skin: 'Cartes crème', hue: 200, saturate: 0.9,
-    winStyle: 'coins', loseStyle: 'drip', particleStyle: 'drift', pack: 'lounge', art: 'diamond',
-    names: ['Tapis Riviera', 'Cartes crème', 'Cascade de jetons', 'Goutte de champagne', 'Contour marqueterie', 'Embruns', 'Quatuor à cordes', 'Diamant de la maison'],
-  },
-  {
-    slug: 'rps', game: 'PFC', theme: 'Dojo',
-    palette: ['#160C0C', '#4A1F1F', '#FF8A65'], pattern: 'rays',
-    skin: 'Mains d’encre', hue: 10, saturate: 1.2,
-    winStyle: 'shock', loseStyle: 'crack', particleStyle: 'rise', pack: 'western', art: 'rps',
-    names: ['Tapis Dojo', 'Mains d’encre', 'Impact net', 'Papier déchiré', 'Contour de bambou', 'Pétales emportés', 'Percussions', 'Sceau du dojo'],
-  },
-  {
-    slug: 'craps', game: 'Craps', theme: 'Arrière-salle',
-    palette: ['#0F1410', '#1F3A2A', '#FF4D4D'], pattern: 'plain',
-    skin: 'Dés ivoire', hue: 355, saturate: 1.3,
-    winStyle: 'sparks', loseStyle: 'smoke', particleStyle: 'drift', pack: 'western', art: 'skull',
-    names: ['Tapis Arrière-salle', 'Dés ivoire', 'Gerbe rouge', 'Fumée de cigare', 'Contour de feutre', 'Poussière de craie', 'Blues rugueux', 'Tête de mort porte-veine'],
-  },
+export const GAME_SLUGS = [
+  'slots', 'blackjack', 'wheel', 'rocket', 'mines', 'plinko', 'hilo', 'grattage',
+  'poulet', 'tower', 'keno', 'caisses', 'coinflip', 'dino', 'chevaux', 'bonneteau',
+  'stade', 'baccarat', 'rps', 'craps',
 ];
 
-function buildCosmetics(): Cosmetic[] {
-  const out: Cosmetic[] = [];
-  for (const t of THEMES) {
-    const [dark, mid, accent] = t.palette;
-    const params: Record<CosmeticSlot, CosmeticParams> = {
-      table: { from: dark, to: mid, pattern: t.pattern, color: accent },
-      skin: { hue: t.hue, saturate: t.saturate, color: accent },
-      win_fx: { winStyle: t.winStyle, colors: [accent, mid, '#FFFFFF'] },
-      lose_fx: { loseStyle: t.loseStyle, color: mid },
-      border: { color: accent, glow: true, animated: t.pattern === 'rays' },
-      particles: { particleStyle: t.particleStyle, color: accent },
-      sound: { pack: t.pack, color: accent },
-      emblem: { art: t.art, color: accent },
-    };
+export const GAME_LABELS: Record<string, string> = {
+  slots: 'Slots', blackjack: '21', wheel: 'Wheel', rocket: 'Rocket', mines: 'Mines',
+  plinko: 'Plinko', hilo: 'HiLo', grattage: 'Grattage', poulet: 'Poulet', tower: 'Tower',
+  keno: 'Keno', caisses: 'Caisses', coinflip: 'Coinflip', dino: 'Dino', chevaux: 'Chevaux',
+  bonneteau: 'Bonneteau', stade: 'Stade', baccarat: 'Baccarat', rps: 'PFC', craps: 'Craps',
+};
 
-    COSMETIC_SLOTS.forEach((slot, i) => {
-      out.push({
-        id: `${t.slug}:${slot}`,
-        gameSlug: t.slug,
-        slot,
-        name: t.names[i],
-        rarity: SLOT_RARITY[slot],
-        params: params[slot],
-      });
-    });
-  }
-  return out;
-}
+export const PER_GAME_COUNT = 35;
+export const GENERAL_COUNT = 100;
+export const PASS_SEASONS = 10;
+export const PASS_COSMETICS_PER_SEASON = 40;
 
-/**
- * Global sets — the same eight slots, but they apply to every game. Four
- * sets, so a player who never touches Craps still has something to chase.
- */
-const GLOBAL_SETS: { key: string; theme: string; palette: [string, string, string]; pattern: TablePattern;
-  hue: number; saturate: number; winStyle: WinStyle; loseStyle: LoseStyle;
-  particleStyle: ParticleStyle; pack: SoundPack; art: string;
-  names: [string, string, string, string, string, string, string, string] }[] = [
-  {
-    key: 'onyx', theme: 'Onyx', palette: ['#0B0B10', '#1C1C26', '#C9CCD6'], pattern: 'plain',
-    hue: 0, saturate: 0.35, winStyle: 'sparks', loseStyle: 'ash', particleStyle: 'drift',
-    pack: 'lounge', art: 'diamond',
-    names: ['Tapis Onyx', 'Nuances Onyx', 'Éclat d’onyx', 'Poussière noire', 'Contour d’onyx', 'Cendres flottantes', 'Silence feutré', 'Sceau d’onyx'],
-  },
-  {
-    key: 'or', theme: 'Or massif', palette: ['#1A1405', '#4A3A0C', '#FFD000'], pattern: 'rays',
-    hue: 45, saturate: 1.4, winStyle: 'coins', loseStyle: 'smoke', particleStyle: 'rise',
-    pack: 'orchestral', art: 'crown',
-    names: ['Tapis Or massif', 'Dorure intégrale', 'Averse dorée', 'Fumée d’encens', 'Contour d’or', 'Paillettes d’or', 'Grand orchestre', 'Couronne d’or'],
-  },
-  {
-    key: 'neon', theme: 'Néon', palette: ['#06060F', '#101038', '#00E5FF'], pattern: 'grid',
-    hue: 185, saturate: 1.7, winStyle: 'shock', loseStyle: 'static', particleStyle: 'orbit',
-    pack: 'arcade', art: 'star',
-    names: ['Tapis Néon', 'Filtre Néon', 'Impulsion cyan', 'Coupure de signal', 'Contour néon', 'Circuits flottants', 'Bornes néon', 'Étoile néon'],
-  },
-  {
-    key: 'sang', theme: 'Sang-froid', palette: ['#14060A', '#3D0D18', '#FF2E4D'], pattern: 'stripes',
-    hue: 350, saturate: 1.5, winStyle: 'fireworks', loseStyle: 'drip', particleStyle: 'fall',
-    pack: 'western', art: 'skull',
-    names: ['Tapis Sang-froid', 'Teinte Sang-froid', 'Gerbe écarlate', 'Coulée pourpre', 'Contour écarlate', 'Braises rouges', 'Blues de minuit', 'Crâne écarlate'],
-  },
-];
-
-function buildGlobalCosmetics(): Cosmetic[] {
-  const out: Cosmetic[] = [];
-  for (const g of GLOBAL_SETS) {
-    const [dark, mid, accent] = g.palette;
-    const params: Record<CosmeticSlot, CosmeticParams> = {
-      table: { from: dark, to: mid, pattern: g.pattern, color: accent },
-      skin: { hue: g.hue, saturate: g.saturate, color: accent },
-      win_fx: { winStyle: g.winStyle, colors: [accent, mid, '#FFFFFF'] },
-      lose_fx: { loseStyle: g.loseStyle, color: mid },
-      border: { color: accent, glow: true, animated: true },
-      particles: { particleStyle: g.particleStyle, color: accent },
-      sound: { pack: g.pack, color: accent },
-      emblem: { art: g.art, color: accent },
-    };
-    COSMETIC_SLOTS.forEach((slot, i) => {
-      out.push({
-        id: `${GLOBAL_SLUG}:${g.key}:${slot}`,
-        gameSlug: GLOBAL_SLUG,
-        slot,
-        name: g.names[i],
-        rarity: BUMP[SLOT_RARITY[slot]],
-        global: true,
-        params: params[slot],
-      });
-    });
-  }
-  return out;
-}
-
-export const GLOBAL_COSMETICS: Cosmetic[] = buildGlobalCosmetics();
-
-/* ------------------------------------------------------------------ */
-/* Prestige                                                            */
-/* ------------------------------------------------------------------ */
-
-/**
- * One global piece per prestige, up to twenty. These never drop from crates
- * or the pass: prestige used to leave nothing behind but a line of text, and
- * an exclusive set is the only way the reset reads as a reward.
- */
-const PRESTIGE_RAMP: { name: string; dark: string; mid: string; accent: string }[] = [
-  { name: 'Bronze', dark: '#1A1008', mid: '#5A3A16', accent: '#C87A2C' },
-  { name: 'Fer', dark: '#111318', mid: '#2E3540', accent: '#8B98A8' },
-  { name: 'Argent', dark: '#12141A', mid: '#39404C', accent: '#D6DCE6' },
-  { name: 'Or', dark: '#1A1405', mid: '#4A3A0C', accent: '#FFD000' },
-  { name: 'Émeraude', dark: '#06160E', mid: '#0F4029', accent: '#25D07A' },
-  { name: 'Saphir', dark: '#060C1E', mid: '#132C63', accent: '#3E8CFF' },
-  { name: 'Rubis', dark: '#170608', mid: '#4C1018', accent: '#FF3355' },
-  { name: 'Améthyste', dark: '#120722', mid: '#361065', accent: '#A855F7' },
-  { name: 'Obsidienne', dark: '#08080B', mid: '#1B1B22', accent: '#6E6E80' },
-  { name: 'Ambre', dark: '#1B1104', mid: '#5B3608', accent: '#FF9F1C' },
-  { name: 'Néon', dark: '#04101A', mid: '#0B3D4D', accent: '#00E5FF' },
-  { name: 'Magma', dark: '#1A0803', mid: '#5C1B06', accent: '#FF5A1F' },
-  { name: 'Givre', dark: '#081016', mid: '#173445', accent: '#9EE7FF' },
-  { name: 'Toxique', dark: '#0C1604', mid: '#254D0C', accent: '#A3E635' },
-  { name: 'Sang', dark: '#140204', mid: '#4A060F', accent: '#E11D48' },
-  { name: 'Spectre', dark: '#0A0A12', mid: '#232338', accent: '#C4B5FD' },
-  { name: 'Solaire', dark: '#1C1503', mid: '#6B4E06', accent: '#FDE047' },
-  { name: 'Abyssal', dark: '#03070E', mid: '#0B2038', accent: '#38BDF8' },
-  { name: 'Mythique', dark: '#160418', mid: '#4A0B52', accent: '#F472B6' },
-  { name: 'Absolu', dark: '#0B0B0B', mid: '#2C2C2C', accent: '#FFFFFF' },
-];
-
-const PRESTIGE_PATTERNS: TablePattern[] = ['rays', 'grid', 'dots', 'stripes', 'plain'];
-const PRESTIGE_WIN: WinStyle[] = ['fireworks', 'coins', 'shock', 'sparks', 'confetti'];
-const PRESTIGE_LOSE: LoseStyle[] = ['ash', 'smoke', 'crack', 'static', 'drip'];
-const PRESTIGE_PARTICLES: ParticleStyle[] = ['rise', 'orbit', 'drift', 'fall', 'float'];
-const PRESTIGE_PACKS: SoundPack[] = ['orchestral', 'space', 'arcade', 'lounge', 'western'];
-const PRESTIGE_ART = ['crown', 'gem', 'star', 'diamond', 'skull'];
-
-function buildPrestigeCosmetics(): Cosmetic[] {
-  return PRESTIGE_RAMP.map((ramp, i) => {
-    const level = i + 1;
-    const slot = COSMETIC_SLOTS[i % COSMETIC_SLOTS.length];
-    const params: CosmeticParams = {
-      table: { from: ramp.dark, to: ramp.mid, pattern: PRESTIGE_PATTERNS[i % 5], color: ramp.accent },
-      skin: { hue: (i * 37) % 360, saturate: 1.2 + (i % 4) * 0.15, color: ramp.accent },
-      win_fx: { winStyle: PRESTIGE_WIN[i % 5], colors: [ramp.accent, ramp.mid, '#FFFFFF'] },
-      lose_fx: { loseStyle: PRESTIGE_LOSE[i % 5], color: ramp.mid },
-      border: { color: ramp.accent, glow: true, animated: true },
-      particles: { particleStyle: PRESTIGE_PARTICLES[i % 5], color: ramp.accent },
-      sound: { pack: PRESTIGE_PACKS[i % 5], color: ramp.accent },
-      emblem: { art: PRESTIGE_ART[i % 5], color: ramp.accent },
-    }[slot];
-
-    return {
-      id: `prestige:${level}`,
-      gameSlug: GLOBAL_SLUG,
-      slot,
-      name: `${SLOT_LABEL[slot]} ${ramp.name}`,
-      rarity: 'legendaire' as Rarity,
-      global: true,
-      prestige: level,
-      params,
-    };
-  });
-}
-
-export const PRESTIGE_COSMETICS: Cosmetic[] = buildPrestigeCosmetics();
-
-export function prestigeCosmetic(level: number): Cosmetic | undefined {
-  return PRESTIGE_COSMETICS.find((c) => c.prestige === level);
-}
-
-export const COSMETICS: Cosmetic[] = [...buildCosmetics(), ...GLOBAL_COSMETICS, ...PRESTIGE_COSMETICS];
-
-/** Everything crates and the pass are allowed to hand out. */
-export const DROPPABLE_COSMETICS: Cosmetic[] = COSMETICS.filter((c) => !c.prestige);
-
-/* ------------------------------------------------------------------ */
-/* Sources                                                             */
-/* ------------------------------------------------------------------ */
-
-/**
- * Each piece belongs to exactly one source. A cosmetic that could drop from
- * both a crate and the pass makes neither of them worth chasing: the pass
- * pieces are pass pieces, the crate pieces are crate pieces, and the twenty
- * prestige pieces are neither.
- */
-function shuffleIds(ids: string[], seed: string): string[] {
+/** Deterministic PRNG: the whole catalogue must be identical for everyone. */
+function seeded(seed: string): () => number {
   let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
-  const rand = () => {
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return () => {
     h ^= h << 13; h >>>= 0;
     h ^= h >> 17;
     h ^= h << 5; h >>>= 0;
     return h / 4294967296;
   };
-  const out = [...ids];
+}
+
+function shuffled<T>(list: T[], seed: string): T[] {
+  const rand = seeded(seed);
+  const out = [...list];
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [out[i], out[j]] = [out[j], out[i]];
@@ -465,32 +235,115 @@ function shuffleIds(ids: string[], seed: string): string[] {
   return out;
 }
 
-export const PASS_COSMETIC_COUNT = 112;
-
-const SOURCE_SPLIT = shuffleIds(DROPPABLE_COSMETICS.map((c) => c.id), 'frenly-source-v1');
-
-/** Only ever handed out by the Frenly Pass. */
-export const PASS_COSMETIC_IDS: string[] = SOURCE_SPLIT.slice(0, PASS_COSMETIC_COUNT);
-/** Only ever found in crates. */
-export const CRATE_COSMETIC_IDS: string[] = SOURCE_SPLIT.slice(PASS_COSMETIC_COUNT);
-
-const CRATE_SET = new Set(CRATE_COSMETIC_IDS);
-export const CRATE_COSMETICS: Cosmetic[] = DROPPABLE_COSMETICS.filter((c) => CRATE_SET.has(c.id));
-
-export type CosmeticSource = 'pass' | 'caisse' | 'prestige';
-
-export function cosmeticSource(c: Cosmetic): CosmeticSource {
-  if (c.prestige) return 'prestige';
-  return CRATE_SET.has(c.id) ? 'caisse' : 'pass';
+function paramsFor(theme: Theme, slot: CosmeticSlot): CosmeticParams {
+  switch (slot) {
+    case 'table': return { from: theme.dark, to: theme.mid, pattern: theme.pattern, color: theme.accent };
+    case 'skin': return { hue: theme.hue, saturate: theme.saturate, color: theme.accent };
+    case 'win_fx': return { winStyle: theme.winStyle, colors: [theme.accent, theme.mid, '#FFFFFF'] };
+    case 'lose_fx': return { loseStyle: theme.loseStyle, color: theme.mid };
+    case 'border': return { color: theme.accent, glow: true, animated: theme.pattern === 'rays' };
+    case 'particles': return { particleStyle: theme.particleStyle, color: theme.accent };
+    case 'sound': return { pack: theme.pack, color: theme.accent };
+    case 'emblem': return { art: theme.art, color: theme.accent };
+  }
 }
 
-export const SOURCE_LABEL: Record<CosmeticSource, string> = {
-  pass: 'Frenly Pass',
-  caisse: 'Caisses',
-  prestige: 'Prestige',
-};
+/** Every (theme, slot) pair, in a stable order. */
+const ALL_PAIRS: { theme: Theme; slot: CosmeticSlot }[] = THEMES.flatMap(
+  (theme) => COSMETIC_SLOTS.map((slot) => ({ theme, slot }))
+);
 
-export const GLOBAL_SET_LABELS: { key: string; theme: string }[] = GLOBAL_SETS.map((g) => ({ key: g.key, theme: g.theme }));
+function buildGameCosmetics(): Cosmetic[] {
+  const out: Cosmetic[] = [];
+  for (const game of GAME_SLUGS) {
+    const pairs = shuffled(ALL_PAIRS, `game:${game}`).slice(0, PER_GAME_COUNT);
+    for (const { theme, slot } of pairs) {
+      out.push({
+        id: `${game}:${theme.key}:${slot}`,
+        gameSlug: game,
+        slot,
+        name: `${SLOT_LABEL[slot]} ${theme.name}`,
+        themeKey: theme.key,
+        themeName: theme.name,
+        rarity: SLOT_RARITY[slot],
+        source: 'caisse', // reassigned below
+        params: paramsFor(theme, slot),
+      });
+    }
+  }
+  return out;
+}
+
+function buildGeneralCosmetics(): Cosmetic[] {
+  const pairs = shuffled(ALL_PAIRS, 'general-set').slice(0, GENERAL_COUNT);
+  return pairs.map(({ theme, slot }) => ({
+    id: `${GLOBAL_SLUG}:${theme.key}:${slot}`,
+    gameSlug: GLOBAL_SLUG,
+    slot,
+    name: `${SLOT_LABEL[slot]} ${theme.name}`,
+    themeKey: theme.key,
+    themeName: theme.name,
+    rarity: BUMP[SLOT_RARITY[slot]],
+    source: 'caisse' as CosmeticSource,
+    global: true,
+    params: paramsFor(theme, slot),
+  }));
+}
+
+/* ------------------------------------------------------------------ */
+/* Prestige                                                            */
+/* ------------------------------------------------------------------ */
+
+const PRESTIGE_THEME_ORDER = [
+  'rouille', 'chrome', 'marbre', 'or', 'emeraude', 'saphir', 'rubis', 'amethyste',
+  'onyx', 'ambre', 'neon', 'magma', 'givre', 'toxique', 'sang', 'spectre',
+  'solaire', 'abyssal', 'prisme', 'cosmos',
+];
+
+function buildPrestigeCosmetics(): Cosmetic[] {
+  return PRESTIGE_THEME_ORDER.map((key, i) => {
+    const theme = THEME_BY_KEY.get(key)!;
+    const slot = COSMETIC_SLOTS[i % COSMETIC_SLOTS.length];
+    return {
+      id: `prestige:${i + 1}`,
+      gameSlug: GLOBAL_SLUG,
+      slot,
+      name: `${SLOT_LABEL[slot]} ${theme.name} · Prestige ${i + 1}`,
+      themeKey: theme.key,
+      themeName: theme.name,
+      rarity: 'legendaire' as Rarity,
+      source: 'prestige' as CosmeticSource,
+      prestige: i + 1,
+      global: true,
+      params: paramsFor(theme, slot),
+    };
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Source split                                                        */
+/* ------------------------------------------------------------------ */
+
+const DROPPABLE = [...buildGameCosmetics(), ...buildGeneralCosmetics()];
+
+/**
+ * Half the catalogue goes to the pass, split into ten seasons of forty; the
+ * rest lives in crates. The split is seeded, so it never moves.
+ */
+const SPLIT = shuffled(DROPPABLE.map((c) => c.id), 'source-split-v2');
+const PASS_IDS = SPLIT.slice(0, PASS_SEASONS * PASS_COSMETICS_PER_SEASON);
+const PASS_SEASON_OF = new Map<string, number>();
+PASS_IDS.forEach((id, i) => PASS_SEASON_OF.set(id, Math.floor(i / PASS_COSMETICS_PER_SEASON) + 1));
+
+for (const cosmetic of DROPPABLE) {
+  const season = PASS_SEASON_OF.get(cosmetic.id);
+  if (season) {
+    cosmetic.source = 'pass';
+    cosmetic.season = season;
+  }
+}
+
+export const COSMETICS: Cosmetic[] = [...DROPPABLE, ...buildPrestigeCosmetics()];
 
 const BY_ID = new Map(COSMETICS.map((c) => [c.id, c]));
 
@@ -498,23 +351,70 @@ export function cosmeticById(id: string): Cosmetic | undefined {
   return BY_ID.get(id);
 }
 
+/** Only ever found in crates. */
+export const CRATE_COSMETICS: Cosmetic[] = COSMETICS.filter((c) => c.source === 'caisse');
+
+/** The pass pieces of one season. */
+export function passCosmeticsForSeason(season: number): Cosmetic[] {
+  return COSMETICS.filter((c) => c.source === 'pass' && c.season === season);
+}
+
+export function prestigeCosmetic(level: number): Cosmetic | undefined {
+  return COSMETICS.find((c) => c.prestige === level);
+}
+
+/* ------------------------------------------------------------------ */
+/* Lookups                                                             */
+/* ------------------------------------------------------------------ */
+
 export function cosmeticsForGame(gameSlug: string): Cosmetic[] {
   return COSMETICS.filter((c) => c.gameSlug === gameSlug);
 }
 
-export function gameTheme(gameSlug: string): string {
-  if (gameSlug === GLOBAL_SLUG) return 'Tous les jeux';
-  return THEMES.find((t) => t.slug === gameSlug)?.theme ?? gameSlug;
-}
-
 export function gameLabel(gameSlug: string): string {
   if (gameSlug === GLOBAL_SLUG) return 'Général';
-  return THEMES.find((t) => t.slug === gameSlug)?.game ?? gameSlug;
+  return GAME_LABELS[gameSlug] ?? gameSlug;
 }
 
-/** "Général" first: it's the set that shows up everywhere. */
-export const COSMETIC_GAME_ORDER = [GLOBAL_SLUG, ...THEMES.map((t) => t.slug)];
+export function gameTheme(gameSlug: string): string {
+  return gameSlug === GLOBAL_SLUG ? 'Tous les jeux et tous les écrans' : `${PER_GAME_COUNT} pièces`;
+}
+
+/** "Général" first: it is the set that shows up everywhere. */
+export const COSMETIC_GAME_ORDER = [GLOBAL_SLUG, ...GAME_SLUGS];
 
 export function cosmeticsByRarity(rarity: Rarity): Cosmetic[] {
   return COSMETICS.filter((c) => c.rarity === rarity);
+}
+
+/**
+ * What the collection should list. A pass piece from a season that hasn't
+ * started yet is not shown at all — it appears, greyed out, the week its
+ * season goes live.
+ */
+export function visibleCosmetics(currentSeason: number, gameSlug?: string): Cosmetic[] {
+  return COSMETICS.filter((c) => {
+    if (gameSlug && c.gameSlug !== gameSlug) return false;
+    if (c.source === 'pass') return (c.season ?? 1) <= currentSeason;
+    return true;
+  });
+}
+
+/** Stock report, so it's obvious when new seasons need writing. */
+export function cosmeticStock() {
+  const pass = COSMETICS.filter((c) => c.source === 'pass');
+  const bySeason = Array.from({ length: PASS_SEASONS }, (_, i) => ({
+    season: i + 1,
+    count: pass.filter((c) => c.season === i + 1).length,
+  }));
+  return {
+    total: COSMETICS.length,
+    perGame: PER_GAME_COUNT,
+    general: GENERAL_COUNT,
+    pass: pass.length,
+    crate: CRATE_COSMETICS.length,
+    prestige: COSMETICS.filter((c) => c.source === 'prestige').length,
+    seasons: PASS_SEASONS,
+    bySeason,
+  };
 }

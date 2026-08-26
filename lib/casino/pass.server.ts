@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase/server';
 import {
-  PASS_TIERS, PASS_PREMIUM_PRICE, PASS_TRACK, PASS_DAILY_XP_CAP, PASS_DAILY_BET_XP_CAP,
-  tierFromPassXp, weekKey,
+  PASS_TIERS, PASS_PREMIUM_PRICE, passTrack, PASS_DAILY_XP_CAP, PASS_DAILY_BET_XP_CAP,
+  tierFromPassXp, weekKey, currentSeason,
   type PassReward,
 } from './pass';
 import { dayKey } from './missions';
@@ -76,8 +76,8 @@ async function grantRewards(userId: string, rewards: GrantedReward[]) {
   }
 }
 
-function rewardAt(tier: number, track: PassTrack): PassReward | null {
-  const def = PASS_TRACK[tier - 1];
+function rewardAt(tier: number, track: PassTrack, season = currentSeason()): PassReward | null {
+  const def = passTrack(season)[tier - 1];
   if (!def) return null;
   return track === 'free' ? def.free : def.premium;
 }

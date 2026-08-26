@@ -16,6 +16,7 @@ import type { PassReward, PassTier } from '@/lib/casino/pass';
 import { CountUp } from '../_components/CasinoUI';
 import CosmeticPreview, { cosmeticEffect } from '../_components/CosmeticPreview';
 import Confetti from '../_components/Confetti';
+import CosmeticStockPanel from '../_components/CosmeticStockPanel';
 
 interface PassState { tier: number; xp: number; intoTier: number; needed: number; premium: boolean }
 
@@ -255,6 +256,8 @@ export default function FrenlyPassPage() {
             </button>
           )}
         </div>
+
+        <CosmeticStockPanel />
 
         {loading && <div className="h-64 rounded-2xl border-4 border-brand-border bg-brand-card animate-pulse" />}
 

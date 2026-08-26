@@ -7,7 +7,9 @@
  * regular session on five days out of seven reaches tier 100.
  */
 
-import { PASS_COSMETIC_IDS, cosmeticById } from './cosmetics';
+import {
+  passCosmeticsForSeason, cosmeticById, PASS_SEASONS, PASS_COSMETICS_PER_SEASON,
+} from './cosmetics';
 import { SHOP_ITEMS } from './shop';
 import { CRATES, crateById } from './crates';
 
@@ -81,6 +83,29 @@ export function weekEnd(date: Date = new Date()): Date {
   return new Date(weekStart(date).getTime() + 7 * 24 * 60 * 60 * 1000);
 }
 
+/* ------------------------------------------------------------------ */
+/* Seasons                                                             */
+/* ------------------------------------------------------------------ */
+
+/** The Monday season 1 started on. Every week after it is the next season. */
+export const SEASON_ANCHOR_WEEK = '2026-08-24';
+
+/**
+ * Which season is live. Clamped to the last one written: running past the
+ * planned seasons repeats the final catalogue rather than handing out
+ * nothing, and the stock page is what warns that it's time to write more.
+ */
+export function currentSeason(date: Date = new Date()): number {
+  const anchor = new Date(`${SEASON_ANCHOR_WEEK}T00:00:00.000Z`).getTime();
+  const weeks = Math.floor((weekStart(date).getTime() - anchor) / (7 * 24 * 60 * 60 * 1000));
+  return Math.min(PASS_SEASONS, Math.max(1, weeks + 1));
+}
+
+/** Seasons still holding unseen cosmetics. */
+export function seasonsRemaining(date: Date = new Date()): number {
+  return Math.max(0, PASS_SEASONS - currentSeason(date));
+}
+
 /** Seconds until the pass resets, for the countdown in the UI. */
 export function secondsUntilReset(now: Date = new Date()): number {
   return Math.max(0, Math.floor((weekEnd(now).getTime() - now.getTime()) / 1000));
@@ -131,15 +156,19 @@ function shuffled<T>(list: T[], seed: string): T[] {
 /** Consumables and crates — cosmetics come from the cosmetic pool instead. */
 const PASS_ITEM_POOL = [...SHOP_ITEMS.map((i) => i.id), ...CRATES.map((c) => c.id)];
 
-function buildTrack(): PassTier[] {
-  // 112 pieces belong to the pass. The premium column carries the first 72,
-  // the free column takes 40 spread across the track, and the remaining
-  // slots pay coins, consumables and crates.
-  const pool = shuffled(PASS_COSMETIC_IDS, 'frenly-pass-v1');
-  const premiumCosmetics = pool.slice(0, 72);
-  const freeCosmetics = pool.slice(72);
+/**
+ * The track of one season. Its forty cosmetics are that season's own, so ten
+ * weeks in a row never hand out the same piece; the remaining slots pay coins,
+ * consumables and crates.
+ */
+function buildTrack(season: number): PassTier[] {
+  const pool = shuffled(passCosmeticsForSeason(season).map((c) => c.id), `pass-track-s${season}`);
+  const half = Math.floor(pool.length / 2);
+  const premiumCosmetics = pool.slice(0, half);
+  const freeCosmetics = pool.slice(half);
 
   let freeCursor = 0;
+  let premiumCursor = 0;
   let itemCursor = 0;
   const tiers: PassTier[] = [];
 
@@ -147,23 +176,24 @@ function buildTrack(): PassTier[] {
     const milestone = t % 25 === 0;
     const mod = t % 5;
 
+    // Cosmetics land every fifth tier on the free track, and on the premium
+    // one wherever the season's pool still reaches.
     let free: PassReward;
-    if (mod === 2 || mod === 4) {
-      free = { kind: 'cosmetic', cosmeticId: freeCosmetics[freeCursor++ % freeCosmetics.length] };
-    } else if (mod === 0) {
-      // Coin tiers scale with depth so the back half is worth pushing for.
-      free = { kind: 'coins', amount: (milestone ? 4000 : 800) + t * 40 };
+    if (mod === 0 && freeCursor < freeCosmetics.length) {
+      free = { kind: 'cosmetic', cosmeticId: freeCosmetics[freeCursor++] };
     } else if (mod === 1) {
       free = { kind: 'item', itemId: PASS_ITEM_POOL[itemCursor++ % PASS_ITEM_POOL.length] };
-    } else {
+    } else if (mod === 3) {
       free = { kind: 'item', itemId: CRATES[Math.min(CRATES.length - 1, Math.floor(t / 30))].id };
+    } else {
+      free = { kind: 'coins', amount: (milestone ? 4000 : 800) + t * 40 };
     }
 
-    const premium: PassReward = t <= premiumCosmetics.length
-      ? { kind: 'cosmetic', cosmeticId: premiumCosmetics[t - 1] }
-      : t % 2 === 0
-        ? { kind: 'item', itemId: CRATES[Math.min(CRATES.length - 1, Math.floor((t - 70) / 10))].id }
-        : { kind: 'coins', amount: 5000 + (t - 72) * 500 };
+    const premium: PassReward = premiumCursor < premiumCosmetics.length && t % 2 === 1
+      ? { kind: 'cosmetic', cosmeticId: premiumCosmetics[premiumCursor++] }
+      : t % 4 === 0
+        ? { kind: 'item', itemId: CRATES[Math.min(CRATES.length - 1, Math.floor(t / 25))].id }
+        : { kind: 'coins', amount: 3000 + t * 300 };
 
     tiers.push({ tier: t, free, premium, milestone });
   }
@@ -171,10 +201,23 @@ function buildTrack(): PassTier[] {
   return tiers;
 }
 
-export const PASS_TRACK: PassTier[] = buildTrack();
+const TRACK_CACHE = new Map<number, PassTier[]>();
 
-export function passTier(tier: number): PassTier | undefined {
-  return PASS_TRACK[tier - 1];
+/** The reward track for a season, built once and kept. */
+export function passTrack(season: number = currentSeason()): PassTier[] {
+  const key = Math.min(PASS_SEASONS, Math.max(1, season));
+  let track = TRACK_CACHE.get(key);
+  if (!track) {
+    track = buildTrack(key);
+    TRACK_CACHE.set(key, track);
+  }
+  return track;
+}
+
+export const COSMETICS_PER_SEASON = PASS_COSMETICS_PER_SEASON;
+
+export function passTier(tier: number, season: number = currentSeason()): PassTier | undefined {
+  return passTrack(season)[tier - 1];
 }
 
 /** Human label for a reward, shared by the pass UI and the claim toasts. */

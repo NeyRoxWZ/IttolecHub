@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import {
-  cosmeticById, cosmeticsForGame, COSMETIC_SLOTS, type CosmeticSlot,
+  cosmeticById, cosmeticsForGame, visibleCosmetics, COSMETIC_SLOTS, type CosmeticSlot,
 } from '@/lib/casino/cosmetics';
+import { currentSeason } from '@/lib/casino/pass';
 
 /** Owned cosmetics + what is currently equipped, per game. */
 export async function GET(request: Request) {
@@ -29,6 +30,10 @@ export async function GET(request: Request) {
     return NextResponse.json({
       owned: (inv.data || []).map((r) => r.item_id),
       equipped,
+      season: currentSeason(),
+      // A pass piece from a season that has not started is not listed at all;
+      // it appears, locked, the week its season goes live.
+      visible: visibleCosmetics(currentSeason()).map((c) => c.id),
     });
   } catch (err) {
     console.error('Erreur GET cosmetics:', err);
