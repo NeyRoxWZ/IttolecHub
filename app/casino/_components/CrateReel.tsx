@@ -17,7 +17,7 @@ const CARD_W = 132;
 const GAP = 10;
 const STRIDE = CARD_W + GAP;
 /** How many decoys roll past before the real one. */
-const RUNWAY = 42;
+const RUNWAY = 96;
 
 interface Cell {
   cosmetic?: Cosmetic;
@@ -65,7 +65,7 @@ export default function CrateReel({
   const cells = cellsRef.current;
 
   useEffect(() => {
-    const duration = tempo(3400);
+    const duration = tempo(5200);
     const target = RUNWAY * STRIDE;
     const start = performance.now();
     let raf = 0;
@@ -76,7 +76,7 @@ export default function CrateReel({
     const loop = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
       // Strong ease-out: fast at first, crawling at the end like a real reel.
-      const eased = 1 - Math.pow(1 - t, 4);
+      const eased = 1 - Math.pow(1 - t, 5);
       const x = target * eased;
       setOffset(x);
 
@@ -105,14 +105,21 @@ export default function CrateReel({
 
   return (
     <div className="relative w-full overflow-hidden rounded-2xl border-4 border-brand-border bg-brand-inner py-4">
-      {/* The marker the strip settles under. */}
-      <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 z-20 pointer-events-none flex flex-col justify-between items-center py-1">
-        <span className="w-0 h-0" style={{ borderLeft: '9px solid transparent', borderRight: '9px solid transparent', borderTop: `12px solid ${settled ? tone : '#FFD000'}` }} />
-        <span className="w-0 h-0" style={{ borderLeft: '9px solid transparent', borderRight: '9px solid transparent', borderBottom: `12px solid ${settled ? tone : '#FFD000'}` }} />
+      {/* A single pointer: the strip ticks past it and settles under it. */}
+      <div className="absolute left-1/2 top-0 -translate-x-1/2 z-20 pointer-events-none">
+        <span
+          className="block w-0 h-0"
+          style={{
+            borderLeft: '8px solid transparent',
+            borderRight: '8px solid transparent',
+            borderTop: `14px solid ${settled ? tone : '#FFD000'}`,
+            filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.6))',
+          }}
+        />
       </div>
       <div
-        className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[136px] z-10 pointer-events-none rounded-xl transition-colors duration-300"
-        style={{ boxShadow: settled ? `0 0 0 3px ${tone}, 0 0 26px ${tone}88` : '0 0 0 2px rgba(255,208,0,0.35)' }}
+        className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px z-10 pointer-events-none transition-colors duration-300"
+        style={{ background: settled ? tone : 'rgba(255,208,0,0.5)' }}
       />
 
       {/* Fades so the strip appears to come from and go into nothing. */}

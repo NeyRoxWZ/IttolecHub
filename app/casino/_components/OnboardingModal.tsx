@@ -196,19 +196,23 @@ const STEPS: Step[] = [
     body: (
       <>
         <p>
-          Une caisse s&apos;ouvre sur <b>3, 4 ou 5 objets</b>, et le nombre te dit tout avant même la
-          première carte :
+          Une caisse contient <b>une seule pièce</b>. Ce que tu achètes, ce n&apos;est pas une plus
+          grosse poignée : ce sont de meilleures chances sur ce tirage unique.
         </p>
         <ul className="list-disc list-inside">
-          <li><b>3</b> → rien de rare.</li>
-          <li><b>4</b> → du rare.</li>
-          <li><b>5</b> → de l&apos;épique, voire du légendaire.</li>
+          {CRATES.map((c) => (
+            <li key={c.id}>
+              <b>{c.name}</b> — {c.price.toLocaleString('en-US')} ₶ ·{' '}
+              {(c.odds.legendaire * 100).toFixed(c.odds.legendaire < 0.01 ? 1 : 0)}% de légendaire
+            </li>
+          ))}
         </ul>
         <p>
-          Une meilleure caisse ne donne pas de meilleurs objets : elle augmente les chances de
-          tomber sur un plus grand nombre. Il y en a {CRATES.length}, de{' '}
-          {CRATES[0].price.toLocaleString('en-US')} à {CRATES[CRATES.length - 1].price.toLocaleString('en-US')} ₶.
-          Jamais de doublon : si tu possèdes déjà tout à cette rareté, c&apos;est payé en ₶.
+          Le carrousel défile devant le repère et s&apos;arrête sur ta pièce — le tirage a été fait
+          sur le serveur avant que l&apos;animation ne commence, ce qui défile n&apos;est que du décor.
+        </p>
+        <p>
+          Jamais de doublon : s&apos;il ne te manque plus rien à cette rareté, c&apos;est payé en ₶.
         </p>
       </>
     ),

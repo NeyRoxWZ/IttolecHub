@@ -5,6 +5,7 @@ import { loadEffects, consumeEffects } from './effects.server';
 import { effectiveMaxBet } from './settleBet.server';
 import { recordWager, recordSettlement, type SettlementResult } from './metaProgression.server';
 import { advancePass, type PassProgress } from './pass.server';
+import { pushLive } from './live.server';
 import { PASS_XP } from './pass';
 
 // Shared by every "start a round, take steps, cash out anytime" game
@@ -123,6 +124,7 @@ export async function bustRound(userId: string, roundId: string, gameSlug: strin
   const [progression] = await Promise.all([
     recordSettlement(userId, gameSlug, { amount, payout: 0, multiplier: 0, baseMultiplier: 0, newBalance: balance, effects }),
     advancePass(userId, PASS_XP.bet),
+    pushLive(userId, gameSlug, -amount, 0),
   ]);
   return progression;
 }
@@ -165,6 +167,7 @@ export async function cashoutRound(userId: string, roundId: string, amount: numb
   const [progression, pass] = await Promise.all([
     recordSettlement(userId, gameSlug, { amount, payout, multiplier, baseMultiplier, newBalance, effects }),
     advancePass(userId, PASS_XP.bet + (baseMultiplier > 1 ? PASS_XP.win : 0)),
+    pushLive(userId, gameSlug, payout - amount, multiplier),
   ]);
 
   return {

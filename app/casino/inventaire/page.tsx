@@ -70,7 +70,7 @@ export default function InventoryPage() {
       setBalance(data.newBalance);
       if (data.openings?.length) {
         setOpenings(data.openings);
-        if (data.openings.some((o: CrateOpening) => o.count === 5)) { sfx.jackpot(); setConfetti((c) => c + 1); }
+        if (data.openings.some((o: CrateOpening) => o.reward.rarity === 'legendaire')) { sfx.jackpot(); setConfetti((c) => c + 1); }
         else sfx.win();
       } else {
         sfx.select();

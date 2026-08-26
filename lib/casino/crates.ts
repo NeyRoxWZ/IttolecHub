@@ -1,12 +1,9 @@
 /**
  * Crates.
  *
- * The tension is in the *count*: a crate opens on three, four or five
- * rewards, and the count itself tells you how good the pull is before you
- * even read it. Three rewards means nothing rare is inside, four opens the
- * door to rare, five is where épique and légendaire live. Better crates
- * don't hand out better items directly — they shift the odds of rolling a
- * bigger count.
+ * One crate, one cosmetic. What you buy is not a bigger handful — it's better
+ * odds on a single pull, which is the only thing that makes the expensive
+ * crate meaningful rather than just "more stuff".
  */
 
 import type { Rarity } from './cosmetics';
@@ -16,40 +13,42 @@ export interface CrateDef {
   name: string;
   description: string;
   price: number;
-  /** Odds of opening on 3 / 4 / 5 rewards. Must sum to 1. */
-  countWeights: [number, number, number];
+  /** Chance of each rarity on the single pull. Must sum to 1. */
+  odds: Record<Rarity, number>;
 }
 
 export const CRATES: CrateDef[] = [
   {
     id: 'crate_wood',
     name: 'Caisse en bois',
-    description: '3 à 5 objets. Rarement plus de trois — mais ça arrive.',
-    price: 800,
-    countWeights: [0.80, 0.18, 0.02],
+    description: 'Surtout du commun. Le légendaire existe, mais il se fait attendre.',
+    price: 500,
+    odds: { commun: 0.70, rare: 0.255, epique: 0.04, legendaire: 0.005 },
   },
   {
     id: 'crate_silver',
     name: 'Caisse d’argent',
-    description: 'Une chance sur trois d’ouvrir sur quatre objets ou plus.',
-    price: 2_500,
-    countWeights: [0.55, 0.35, 0.10],
+    description: 'Une fois sur cinq, de l’épique ou mieux.',
+    price: 1_800,
+    odds: { commun: 0.45, rare: 0.35, epique: 0.17, legendaire: 0.03 },
   },
   {
     id: 'crate_gold',
     name: 'Caisse d’or',
-    description: 'Trois fois sur quatre, elle s’ouvre sur quatre objets ou cinq.',
-    price: 7_000,
-    countWeights: [0.25, 0.45, 0.30],
+    description: 'Presque une sur deux sort en épique ou en légendaire.',
+    price: 6_000,
+    odds: { commun: 0.20, rare: 0.35, epique: 0.33, legendaire: 0.12 },
   },
   {
     id: 'crate_legendary',
     name: 'Caisse légendaire',
-    description: 'Jamais moins de quatre objets, et plus d’une fois sur deux : cinq.',
-    price: 20_000,
-    countWeights: [0, 0.45, 0.55],
+    description: 'Jamais de commun. Trois sur dix sortent en légendaire.',
+    price: 18_000,
+    odds: { commun: 0, rare: 0.25, epique: 0.45, legendaire: 0.30 },
   },
 ];
+
+export const RARITY_ORDER: Rarity[] = ['commun', 'rare', 'epique', 'legendaire'];
 
 export function crateById(id: string): CrateDef | undefined {
   return CRATES.find((c) => c.id === id);
@@ -59,29 +58,18 @@ export function isCrate(id: string): boolean {
   return CRATES.some((c) => c.id === id);
 }
 
-/**
- * Rarity odds for each opened count. Three rewards can never contain
- * anything rare — that's the whole point of the count telling you something.
- */
-export const RARITY_BY_COUNT: Record<3 | 4 | 5, Record<Rarity, number>> = {
-  3: { commun: 1, rare: 0, epique: 0, legendaire: 0 },
-  4: { commun: 0.70, rare: 0.30, epique: 0, legendaire: 0 },
-  5: { commun: 0.30, rare: 0.40, epique: 0.25, legendaire: 0.05 },
-};
-
-/** Coin fallback when no unowned cosmetic of that rarity is left. */
+/** Coins paid instead, when nothing of that rarity is left to collect. */
 export const COINS_BY_RARITY: Record<Rarity, number> = {
-  commun: 350,
-  rare: 1_200,
-  epique: 4_000,
-  legendaire: 15_000,
+  commun: 400,
+  rare: 1_400,
+  epique: 5_000,
+  legendaire: 20_000,
 };
 
 export interface CrateReward {
-  kind: 'cosmetic' | 'coins' | 'item';
+  kind: 'cosmetic' | 'coins';
   rarity: Rarity;
   cosmeticId?: string;
-  itemId?: string;
   amount?: number;
   /** True when the piece was already owned and got converted to coins. */
   duplicate?: boolean;
@@ -89,8 +77,8 @@ export interface CrateReward {
 
 export interface CrateOpening {
   crateId: string;
-  count: 3 | 4 | 5;
-  rewards: CrateReward[];
+  reward: CrateReward;
+  /** Coins credited by this crate, when the pull converted. */
   coins: number;
 }
 

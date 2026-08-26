@@ -4,6 +4,7 @@ import { streakBonus, prestigeWinBonus } from './progression';
 import { loadEffects, consumeEffects, type EffectMap } from './effects.server';
 import { recordSettlement, type SettlementResult } from './metaProgression.server';
 import { advancePass, type PassProgress } from './pass.server';
+import { pushLive } from './live.server';
 import { PASS_XP } from './pass';
 
 interface SettleParams {
@@ -114,6 +115,7 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
     recordSettlement(userId, gameSlug, {
       amount, payout, multiplier, baseMultiplier, newBalance, effects, wagered: amount,
     }),
+    pushLive(userId, gameSlug, netChange, multiplier),
   ]);
 
   const pass = await advancePass(userId, passXp + (progression.levelsGained ? PASS_XP.levelUp * progression.levelsGained : 0));

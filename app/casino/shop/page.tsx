@@ -13,7 +13,8 @@ import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import type { ItemCategory, ShopItem } from '@/lib/casino/shop';
-import type { CrateDef, CrateOpening } from '@/lib/casino/crates';
+import { RARITY_ORDER, type CrateDef, type CrateOpening } from '@/lib/casino/crates';
+import { RARITY_COLOR, RARITY_LABEL } from '@/lib/casino/cosmetics';
 import { CountUp } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import CrateOpeningModal from '../_components/CrateOpeningModal';
@@ -142,7 +143,7 @@ export default function CasinoShop() {
       setBalance(data.newBalance);
       if (data.openings?.length) {
         setOpenings(data.openings);
-        if (data.openings.some((o: CrateOpening) => o.count === 5)) { sfx.jackpot(); setConfetti((c) => c + 1); }
+        if (data.openings.some((o: CrateOpening) => o.reward.rarity === 'legendaire')) { sfx.jackpot(); setConfetti((c) => c + 1); }
         else sfx.win();
       } else {
         sfx.select();
@@ -201,7 +202,7 @@ export default function CasinoShop() {
         <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2 flex flex-wrap items-center gap-2">
           <Package className="h-3.5 w-3.5" /> Caisses
           <span className="normal-case font-bold text-tx-muted">
-            3 objets = rien de rare · 4 = du rare · 5 = de l&apos;épique et du légendaire
+une pièce par caisse — ce qui change, ce sont les chances de rareté
           </span>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
@@ -219,13 +220,18 @@ export default function CasinoShop() {
                 </div>
                 <p className="text-[11px] text-tx-secondary leading-snug mb-2">{crate.description}</p>
 
-                <div className="flex gap-1 mb-2">
-                  {([3, 4, 5] as const).map((c, i) => (
-                    <div key={c} className="flex-1">
-                      <div className="text-[9px] font-black text-tx-muted mb-0.5">{c} obj.</div>
-                      <div className="h-1.5 rounded-full bg-brand-inner overflow-hidden">
-                        <div className="h-full" style={{ width: `${crate.countWeights[i] * 100}%`, background: tone }} />
+                <div className="space-y-1 mb-2">
+                  {RARITY_ORDER.map((r) => (
+                    <div key={r} className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-black uppercase tracking-widest w-14 shrink-0" style={{ color: RARITY_COLOR[r] }}>
+                        {RARITY_LABEL[r]}
+                      </span>
+                      <div className="flex-1 h-1.5 rounded-full bg-brand-inner overflow-hidden">
+                        <div className="h-full" style={{ width: `${crate.odds[r] * 100}%`, background: RARITY_COLOR[r] }} />
                       </div>
+                      <span className="text-[9px] font-bold text-tx-muted w-9 text-right tabular-nums">
+                        {(crate.odds[r] * 100).toFixed(crate.odds[r] < 0.01 ? 1 : 0)}%
+                      </span>
                     </div>
                   ))}
                 </div>

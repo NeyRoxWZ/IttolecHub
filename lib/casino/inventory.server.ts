@@ -1,8 +1,11 @@
 import { randomInt } from 'crypto';
 import { supabase } from '@/lib/supabase/server';
 import { itemById, type ShopItem } from './shop';
-import { crateById, isCrate, RARITY_BY_COUNT, COINS_BY_RARITY, pickWeighted, type CrateOpening, type CrateReward } from './crates';
-import { CRATE_COSMETICS, type Rarity } from './cosmetics';
+import {
+  crateById, isCrate, COINS_BY_RARITY, RARITY_ORDER, pickWeighted,
+  type CrateOpening, type CrateReward,
+} from './crates';
+import { CRATE_COSMETICS } from './cosmetics';
 import { levelFromXp, levelUpReward, totalXpForLevel } from './progression';
 import { grantEffect } from './effects.server';
 import {
@@ -63,8 +66,6 @@ async function credit(userId: string, amount: number, kind: string): Promise<num
 /* Crates                                                              */
 /* ------------------------------------------------------------------ */
 
-const RARITIES: Rarity[] = ['commun', 'rare', 'epique', 'legendaire'];
-
 /** Take `quantity` units out of the inventory at once. */
 async function consumeMany(userId: string, itemId: string, quantity: number): Promise<number> {
   const { data: row } = await supabase.from('casino_inventory')
@@ -86,9 +87,9 @@ async function consumeMany(userId: string, itemId: string, quantity: number): Pr
 }
 
 /**
- * Open one or more crates in a single pass. The owned set is shared across
- * the whole batch, so ten crates opened together can never hand out the same
- * piece twice — a duplicate is paid out in coins instead.
+ * Open crates. Each one is a single pull whose odds come from the crate
+ * itself; the owned set is shared across the batch, so ten opened together
+ * can never hand out the same piece twice — a duplicate pays coins instead.
  */
 export async function openCrates(
   userId: string,
@@ -109,32 +110,24 @@ export async function openCrates(
   const newCosmetics: string[] = [];
   let coins = 0;
 
+  const weights = RARITY_ORDER.map((r) => crate.odds[r]);
+
   for (let c = 0; c < opened; c++) {
-    const count = (3 + pickWeighted(crate.countWeights, rand())) as 3 | 4 | 5;
-    const rarityOdds = RARITY_BY_COUNT[count];
-    const rewards: CrateReward[] = [];
-    let crateCoins = 0;
+    const rarity = RARITY_ORDER[pickWeighted(weights, rand())];
+    const pool = CRATE_COSMETICS.filter((x) => x.rarity === rarity && !owned.has(x.id));
 
-    for (let i = 0; i < count; i++) {
-      const rarity = RARITIES[pickWeighted(RARITIES.map((r) => rarityOdds[r]), rand())];
-      const pool = CRATE_COSMETICS.filter((x) => x.rarity === rarity && !owned.has(x.id));
-
-      if (pool.length > 0) {
-        const pick = pool[Math.floor(rand() * pool.length)];
-        owned.add(pick.id);
-        newCosmetics.push(pick.id);
-        rewards.push({ kind: 'cosmetic', rarity, cosmeticId: pick.id });
-      } else {
-        // Nothing left to collect at that rarity: paid out rather than
-        // handed back as a piece the player already has.
-        const amount = COINS_BY_RARITY[rarity];
-        crateCoins += amount;
-        rewards.push({ kind: 'coins', rarity, amount, duplicate: true });
-      }
+    if (pool.length > 0) {
+      const pick = pool[Math.floor(rand() * pool.length)];
+      owned.add(pick.id);
+      newCosmetics.push(pick.id);
+      openings.push({ crateId, reward: { kind: 'cosmetic', rarity, cosmeticId: pick.id }, coins: 0 });
+    } else {
+      // Nothing left to collect at that rarity: paid out rather than handed
+      // back as a piece the player already has.
+      const amount = COINS_BY_RARITY[rarity];
+      coins += amount;
+      openings.push({ crateId, reward: { kind: 'coins', rarity, amount, duplicate: true }, coins: amount });
     }
-
-    coins += crateCoins;
-    openings.push({ crateId, count, rewards, coins: crateCoins });
   }
 
   if (newCosmetics.length) {
@@ -180,10 +173,10 @@ export async function consumeItem(
   if (isCrate(itemId)) {
     const res = await openCrates(userId, itemId, quantity);
     if (!res.ok) return res;
-    const total = res.openings.reduce((n, o) => n + o.count, 0);
+    const n = res.openings.length;
     return {
       ok: true,
-      message: `${total} objet${total > 1 ? 's' : ''} sur ${res.openings.length} caisse${res.openings.length > 1 ? 's' : ''}`,
+      message: `${n} caisse${n > 1 ? 's' : ''} ouverte${n > 1 ? 's' : ''}`,
       newBalance: res.newBalance,
       openings: res.openings,
     };
