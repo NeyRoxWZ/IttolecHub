@@ -70,7 +70,7 @@ export default function AchievementsPage() {
           <div className="min-w-0">
             <h1 className="font-display text-xl sm:text-2xl font-black leading-none">Succès</h1>
             <p className="text-[11px] text-tx-muted">
-              {unlockedCount}/{achievements.length} débloqués · {points.toLocaleString('fr-FR')}/{totalPoints.toLocaleString('fr-FR')} points
+              {unlockedCount}/{achievements.length} débloqués · {points.toLocaleString('en-US')}/{totalPoints.toLocaleString('en-US')} points
             </p>
           </div>
 
@@ -147,7 +147,7 @@ export default function AchievementsPage() {
                     {tier.label}
                   </div>
                   <div className="text-[11px] font-black text-tx-muted tabular-nums">
-                    +{a.reward.toLocaleString('fr-FR')} ₶
+                    +{a.reward.toLocaleString('en-US')} ₶
                   </div>
                 </div>
               </div>

@@ -234,7 +234,7 @@ export default function CasinoShop() {
                     className="flex-1 h-10 rounded-xl border-2 border-brand-border font-display font-black text-xs tracking-wide transition-all active:translate-y-0.5 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ background: tone, color: '#12121A' }}
                   >
-                    {busy === crate.id ? '···' : `${(crate.price * quantity).toLocaleString('fr-FR')} ₶`}
+                    {busy === crate.id ? '···' : `${(crate.price * quantity).toLocaleString('en-US')} ₶`}
                   </button>
                 </div>
               </div>
@@ -289,7 +289,7 @@ export default function CasinoShop() {
                   >
                     {busy === item.id ? '···'
                       : taken ? 'DÉJÀ PRIS'
-                      : `${item.price.toLocaleString('fr-FR')} ₶`}
+                      : `${item.price.toLocaleString('en-US')} ₶`}
                   </button>
                 </div>
               </div>

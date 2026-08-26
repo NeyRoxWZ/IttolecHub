@@ -224,12 +224,12 @@ async function applyItem(userId: string, item: ShopItem, wallet: any): Promise<U
 
     case 'mystery_coins': {
       const payout = Math.round(item.price * (0.4 + rand() * 2.6));
-      return { ok: true, message: `Le sac contenait ${payout.toLocaleString('fr-FR')} ₶`, newBalance: await credit(userId, payout, 'mystery') };
+      return { ok: true, message: `Le sac contenait ${payout.toLocaleString('en-US')} ₶`, newBalance: await credit(userId, payout, 'mystery') };
     }
 
     case 'interest': {
       const gain = Math.min(5000, Math.round(balance * (item.magnitude ?? 0.02)));
-      return { ok: true, message: `+${gain.toLocaleString('fr-FR')} ₶ d'intérêts`, newBalance: await credit(userId, gain, 'interest') };
+      return { ok: true, message: `+${gain.toLocaleString('en-US')} ₶ d'intérêts`, newBalance: await credit(userId, gain, 'interest') };
     }
 
     case 'grant_scratch': {
@@ -240,7 +240,7 @@ async function applyItem(userId: string, item: ShopItem, wallet: any): Promise<U
       }
       return {
         ok: true,
-        message: total > 0 ? `Tickets : ${total.toLocaleString('fr-FR')} ₶` : 'Aucun ticket gagnant…',
+        message: total > 0 ? `Tickets : ${total.toLocaleString('en-US')} ₶` : 'Aucun ticket gagnant…',
         newBalance: total > 0 ? await credit(userId, total, 'scratch') : balance,
       };
     }
@@ -282,6 +282,6 @@ async function creditXp(userId: string, wallet: any, gain: number, message: stri
   return {
     ok: true,
     newBalance,
-    message: reward > 0 ? `${message} — coffre de niveau : +${reward.toLocaleString('fr-FR')} ₶` : message,
+    message: reward > 0 ? `${message} — coffre de niveau : +${reward.toLocaleString('en-US')} ₶` : message,
   };
 }

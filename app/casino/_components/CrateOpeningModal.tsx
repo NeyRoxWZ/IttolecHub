@@ -163,7 +163,7 @@ function Card({ reward, shown }: { reward: CrateReward; shown: boolean }) {
             {RARITY_LABEL[reward.rarity]}
           </span>
           <span className="font-display font-black text-[11px] leading-tight text-center">
-            {cosmetic?.name || `${(reward.amount || 0).toLocaleString('fr-FR')} ₶`}
+            {cosmetic?.name || `${(reward.amount || 0).toLocaleString('en-US')} ₶`}
           </span>
           <span className="text-[9px] text-tx-muted text-center leading-tight">
             {reward.duplicate ? 'Doublon → converti en ₶' : cosmetic ? gameLabel(cosmetic.gameSlug) : ''}
@@ -196,7 +196,7 @@ function Recap({
           </h2>
           <p className="text-[11px] text-tx-muted mt-1">
             {cosmetics.length} nouvelle{cosmetics.length > 1 ? 's' : ''} pièce{cosmetics.length > 1 ? 's' : ''}
-            {coins > 0 && ` · +${coins.toLocaleString('fr-FR')} ₶ de doublons`}
+            {coins > 0 && ` · +${coins.toLocaleString('en-US')} ₶ de doublons`}
           </p>
         </div>
 
@@ -229,7 +229,7 @@ function Recap({
           <div className="rounded-xl border-2 border-accent-success bg-accent-success/10 px-4 py-3 mb-5 flex items-center justify-between">
             <span className="text-sm font-bold text-tx-secondary">Doublons convertis</span>
             <span className="font-display font-black text-lg text-accent-success tabular-nums">
-              +{coins.toLocaleString('fr-FR')} ₶
+              +{coins.toLocaleString('en-US')} ₶
             </span>
           </div>
         )}

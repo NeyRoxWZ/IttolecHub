@@ -41,7 +41,7 @@ export function CountUp({ value, className, duration = 550 }: { value: number; c
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [value, duration]);
 
-  return <span className={cn('tabular-nums', className)}>{display.toLocaleString('fr-FR')}</span>;
+  return <span className={cn('tabular-nums', className)}>{display.toLocaleString('en-US')}</span>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -105,7 +105,7 @@ export function RulesModal({ title, rules, onClose }: { title: string; rules: Ru
           <p>
             <span className="font-black text-tx-secondary">Jackpot commun :</span> chaque mise perdue verse
             {' '}{Math.round(JACKPOT_CONTRIBUTION_RATE * 100)}% à la cagnotte partagée, et chaque mise réglée
-            tire 1 chance sur {Math.round(1 / JACKPOT_HIT_CHANCE).toLocaleString('fr-FR')} de la rafler
+            tire 1 chance sur {Math.round(1 / JACKPOT_HIT_CHANCE).toLocaleString('en-US')} de la rafler
             entièrement — le montant misé n&apos;y change rien.
           </p>
         </div>
@@ -131,7 +131,7 @@ export function BetControls({
     <div>
       <div className="flex items-center justify-between mb-2">
         <label className="text-[10px] font-black tracking-widest uppercase text-tx-muted">Ta mise</label>
-        <span className="text-[10px] font-bold text-tx-muted">max {maxBet.toLocaleString('fr-FR')} ₶</span>
+        <span className="text-[10px] font-bold text-tx-muted">max {maxBet.toLocaleString('en-US')} ₶</span>
       </div>
       <div className="flex items-center gap-2">
         <button onClick={() => bump(-step)} disabled={disabled} className="h-12 w-12 shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base disabled:opacity-40 focus:outline-none active:scale-95 transition-transform">
@@ -284,7 +284,8 @@ export function ResultBanner({
             'px-5 py-2.5 rounded-xl border-2 font-display font-black text-sm animate-in zoom-in-95 fade-in duration-200',
             state === 'win' && 'border-accent-success text-accent-success bg-accent-success/15',
             state === 'lose' && !nearMiss && 'border-accent-secondary text-accent-secondary bg-accent-secondary/15',
-            state === 'lose' && nearMiss && 'border-accent-primary text-accent-primary bg-accent-primary/15 animate-pulse',
+            // A near miss is highlighted, not blinking: the pulse read as a bug.
+            state === 'lose' && nearMiss && 'border-accent-primary text-accent-primary bg-accent-primary/15',
             state === 'push' && 'border-tx-secondary text-tx-secondary bg-brand-inner'
           )}
         >
@@ -609,7 +610,7 @@ export function HistoryStrip({ history }: { history: { id: string; amount: numbe
                 : 'border-accent-secondary/60 text-accent-secondary bg-accent-secondary/10'
             )}
           >
-            {h.amount > 0 ? '+' : ''}{h.amount.toLocaleString('fr-FR')}
+            {h.amount > 0 ? '+' : ''}{h.amount.toLocaleString('en-US')}
           </span>
         ))}
       </div>

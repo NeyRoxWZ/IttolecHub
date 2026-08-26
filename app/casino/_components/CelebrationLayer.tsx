@@ -108,7 +108,7 @@ function Panel({ event }: { event: Celebration }) {
         <div className="rounded-xl border-2 border-accent-success bg-accent-success/10 py-3 mb-5">
           <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Coffre de niveau</div>
           <div className="font-display font-black text-2xl text-accent-success tabular-nums">
-            +{event.reward.toLocaleString('fr-FR')} ₶
+            +{event.reward.toLocaleString('en-US')} ₶
           </div>
         </div>
 
@@ -124,7 +124,7 @@ function Panel({ event }: { event: Celebration }) {
         <h2 className="font-display text-3xl font-black text-accent-primary mb-1">JACKPOT</h2>
         <p className="text-sm text-tx-secondary mb-4">Tu rafles toute la cagnotte commune.</p>
         <div className="font-display font-black text-4xl text-accent-success tabular-nums mb-5">
-          +{event.amount.toLocaleString('fr-FR')} ₶
+          +{event.amount.toLocaleString('en-US')} ₶
         </div>
         <DismissButton />
       </div>

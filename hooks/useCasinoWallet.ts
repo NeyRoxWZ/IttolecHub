@@ -182,7 +182,7 @@ function announceProgression(progression?: Progression, pass?: PassProgress) {
   }
   for (const a of progression.newAchievements) {
     toast.success(`Succès débloqué : ${a.name}`, {
-      description: a.reward ? `${a.description} · +${a.reward.toLocaleString('fr-FR')} ₶` : a.description,
+      description: a.reward ? `${a.description} · +${a.reward.toLocaleString('en-US')} ₶` : a.description,
       duration: 5000,
     });
   }

@@ -499,7 +499,7 @@ export default function ItollecClickerPage() {
         return `Production totale ≥ ${formatShortNumber(a.condition.amount)} ₶`;
       }
       if (a.condition.type === 'clicks') {
-        return `Clics ≥ ${a.condition.count.toLocaleString('fr-FR')}`;
+        return `Clics ≥ ${a.condition.count.toLocaleString('en-US')}`;
       }
       const buildingName = buildingNameById.get(a.condition.buildingId) ?? a.condition.buildingId;
       return `Posséder ${a.condition.count} « ${buildingName} »`;

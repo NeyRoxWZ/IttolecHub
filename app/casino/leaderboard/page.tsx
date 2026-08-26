@@ -93,7 +93,7 @@ export default function LeaderboardPage() {
                     <div className="font-bold truncate">{r.pseudo}</div>
                     {prestigeTitle && <div className="text-[10px] font-black uppercase tracking-widest text-accent-primary">{prestigeTitle}</div>}
                   </div>
-                  <div className="font-display font-black tabular-nums shrink-0">{r.value.toLocaleString('fr-FR')} ₶</div>
+                  <div className="font-display font-black tabular-nums shrink-0">{r.value.toLocaleString('en-US')} ₶</div>
                 </div>
               );
             })}

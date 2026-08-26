@@ -99,7 +99,7 @@ export default function FeedTicker() {
 
         <div className="flex items-baseline gap-2 mt-0.5">
           <span className="font-display font-black text-sm text-accent-success tabular-nums">
-            +{Number(entry.amount).toLocaleString('fr-FR')} ₶
+            +{Number(entry.amount).toLocaleString('en-US')} ₶
           </span>
           {Number(entry.multiplier) > 1 && (
             <span className="font-display font-black text-[11px] text-accent-primary tabular-nums">

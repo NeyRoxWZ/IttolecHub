@@ -69,7 +69,7 @@ export default function MissionsModal({
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Erreur'); return; }
       sfx.coin();
-      toast.success(`+${data.reward.toLocaleString('fr-FR')} ₶`, { description: `+${data.xp} XP` });
+      toast.success(`+${data.reward.toLocaleString('en-US')} ₶`, { description: `+${data.xp} XP` });
       onClaimed();
     } finally {
       setBusy(null);
@@ -106,7 +106,7 @@ export default function MissionsModal({
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <span className="font-bold text-sm">{m.label}</span>
                   <span className="text-[11px] font-black text-accent-primary shrink-0 tabular-nums">
-                    +{m.reward.toLocaleString('fr-FR')} ₶
+                    +{m.reward.toLocaleString('en-US')} ₶
                   </span>
                 </div>
                 <div className="h-2 rounded-full bg-brand-bg border border-brand-border overflow-hidden mb-2">
@@ -114,7 +114,7 @@ export default function MissionsModal({
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] text-tx-muted tabular-nums">
-                    {Math.min(m.value, m.target).toLocaleString('fr-FR')} / {m.target.toLocaleString('fr-FR')} · +{m.xp} XP
+                    {Math.min(m.value, m.target).toLocaleString('en-US')} / {m.target.toLocaleString('en-US')} · +{m.xp} XP
                   </span>
                   {m.claimed ? (
                     <span className="text-[11px] font-black text-tx-muted flex items-center gap-1"><Check className="h-3 w-3" /> Réclamée</span>

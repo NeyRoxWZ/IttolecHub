@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     if (!wallet) return NextResponse.json({ error: 'Portefeuille introuvable' }, { status: 404 });
 
     if (wallet.balance < PRESTIGE_THRESHOLD) {
-      return NextResponse.json({ error: `Il faut ${PRESTIGE_THRESHOLD.toLocaleString('fr-FR')} ₶ pour prestiger.` }, { status: 400 });
+      return NextResponse.json({ error: `Il faut ${PRESTIGE_THRESHOLD.toLocaleString('en-US')} ₶ pour prestiger.` }, { status: 400 });
     }
 
     const newPrestigeCount = Number(wallet.prestige_count || 0) + 1;

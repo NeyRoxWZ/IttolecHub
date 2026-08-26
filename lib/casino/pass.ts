@@ -168,7 +168,7 @@ export function passTier(tier: number): PassTier | undefined {
 
 /** Human label for a reward, shared by the pass UI and the claim toasts. */
 export function rewardLabel(reward: PassReward): string {
-  if (reward.kind === 'coins') return `${(reward.amount || 0).toLocaleString('fr-FR')} ₶`;
+  if (reward.kind === 'coins') return `${(reward.amount || 0).toLocaleString('en-US')} ₶`;
   if (reward.kind === 'item') {
     return SHOP_ITEMS.find((i) => i.id === reward.itemId)?.name
       || crateById(reward.itemId || '')?.name

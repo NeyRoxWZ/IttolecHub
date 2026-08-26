@@ -110,7 +110,7 @@ export default function DailyWheelModal({ onClose, onSpin }: Props) {
         ) : (
           <>
             <div className="text-center mb-4">
-              <div className="font-display text-4xl font-black text-accent-primary">+{reward.toLocaleString('fr-FR')} ₶</div>
+              <div className="font-display text-4xl font-black text-accent-primary">+{reward.toLocaleString('en-US')} ₶</div>
               <p className="text-sm text-tx-secondary font-bold mt-1">Ajouté à ton solde · reviens demain</p>
             </div>
             <button

@@ -178,7 +178,7 @@ export function generateAchievements(): AchievementDef[] {
     achievements.push({
       id: `prod_${i + 1}`,
       name: `Chronique #${i + 1}`,
-      description: `Produire ${amount.toLocaleString('fr-FR')} ₶ au total.`,
+      description: `Produire ${amount.toLocaleString('en-US')} ₶ au total.`,
       category: 'production',
       condition: { type: 'total_produced', amount },
     });
@@ -195,7 +195,7 @@ export function generateAchievements(): AchievementDef[] {
     achievements.push({
       id: `click_${i + 1}`,
       name: `Doigt d’Acier #${i + 1}`,
-      description: `Cliquer ${count.toLocaleString('fr-FR')} fois.`,
+      description: `Cliquer ${count.toLocaleString('en-US')} fois.`,
       category: 'clicks',
       condition: { type: 'clicks', count },
     });

@@ -56,16 +56,16 @@ export default function JackpotModal({ amount, onClose }: { amount: number | nul
         <div className="rounded-2xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center mb-5">
           <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-1">Cagnotte actuelle</div>
           <div className="font-display text-3xl font-black text-accent-primary tabular-nums">
-            {amount !== null ? `${amount.toLocaleString('fr-FR')} ₶` : '···'}
+            {amount !== null ? `${amount.toLocaleString('en-US')} ₶` : '···'}
           </div>
         </div>
 
         <ol className="space-y-2.5 mb-5">
           {[
             `Chaque mise perdue, dans n'importe quel jeu, verse ${Math.round(JACKPOT_CONTRIBUTION_RATE * 100)}% de son montant dans la cagnotte commune.`,
-            `À chaque mise réglée — gagnée ou perdue, quel que soit le jeu ou le montant — un tirage indépendant a 1 chance sur ${oneIn.toLocaleString('fr-FR')} de te donner toute la cagnotte.`,
+            `À chaque mise réglée — gagnée ou perdue, quel que soit le jeu ou le montant — un tirage indépendant a 1 chance sur ${oneIn.toLocaleString('en-US')} de te donner toute la cagnotte.`,
             'Rien à activer, rien à miser en plus : jouer suffit. Une mise de 5 ₶ a exactement les mêmes chances qu\'une mise de 5 000 ₶.',
-            `Une fois raflée, la cagnotte redescend à ${JACKPOT_SEED.toLocaleString('fr-FR')} ₶ et repart à zéro pour tout le monde.`,
+            `Une fois raflée, la cagnotte redescend à ${JACKPOT_SEED.toLocaleString('en-US')} ₶ et repart à zéro pour tout le monde.`,
           ].map((step, i) => (
             <li key={i} className="flex gap-3 text-sm">
               <span className="shrink-0 w-6 h-6 rounded-full bg-accent-primary text-brand-bg font-black text-xs flex items-center justify-center">{i + 1}</span>
@@ -80,7 +80,7 @@ export default function JackpotModal({ amount, onClose }: { amount: number | nul
             <div className="flex items-center justify-between gap-3">
               <span className="font-black truncate">{last.pseudo || 'Un joueur'}</span>
               <span className="font-black text-accent-success tabular-nums shrink-0">
-                +{last.amount.toLocaleString('fr-FR')} ₶
+                +{last.amount.toLocaleString('en-US')} ₶
               </span>
             </div>
           ) : (

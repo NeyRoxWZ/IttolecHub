@@ -6,11 +6,45 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 import { generatePassphrase } from '@/lib/words';
-import { LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check, Crown, TrendingUp } from 'lucide-react';
+import {
+  LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check, Crown, TrendingUp,
+  Coins, Flame, Award, Target, Gem, Dices,
+} from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { getPrestigeUpgrades } from '@/lib/apex/prestige';
+
+interface CasinoProfileStats {
+  balance: number;
+  totalWagered: number;
+  totalWon: number;
+  betsPlaced: number;
+  bestStreak: number;
+  biggestMultiplier: number;
+  biggestWin: number;
+  level: number;
+  xpIntoLevel: number;
+  xpForNext: number;
+  prestigeCount: number;
+  jackpotsWon: number;
+  missionsDone: number;
+  achievements: number;
+  achievementsTotal: number;
+  cosmetics: number;
+  cosmeticsTotal: number;
+}
+
+function Stat({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
+      <div className="flex items-center gap-1.5 text-xs text-tx-secondary font-bold">
+        <Icon className="w-3.5 h-3.5 shrink-0" />
+        <span className="truncate">{label}</span>
+      </div>
+      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base tabular-nums">{value}</div>
+    </div>
+  );
+}
 
 export default function ProfilPage() {
   const { user, loading, logout, refreshUser } = useAuth();
@@ -20,16 +54,8 @@ export default function ProfilPage() {
   const [regenerating, setRegenerating] = useState(false);
   const [newWords, setNewWords] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [apexStatsLoading, setApexStatsLoading] = useState(false);
-  const [apexStats, setApexStats] = useState<{
-    updatedAt: string | null;
-    totalEarned: number;
-    achievementsUnlocked: number;
-    lifetimeStars: number;
-    stars: number;
-    prestigeLevel: number;
-    upgrades: string[];
-  } | null>(null);
+  const [casinoLoading, setCasinoLoading] = useState(false);
+  const [casino, setCasino] = useState<CasinoProfileStats | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -42,44 +68,16 @@ export default function ProfilPage() {
     let cancelled = false;
 
     const run = async () => {
-      setApexStatsLoading(true);
+      setCasinoLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('game_saves')
-          .select('save_data, updated_at')
-          .eq('user_id', user.id)
-          .eq('game_slug', 'apex')
-          .maybeSingle();
-        if (error) throw error;
-        if (cancelled) return;
-        if (!data) {
-          setApexStats(null);
-          return;
-        }
-
-        const save = data.save_data as any;
-        const totalEarned = Math.max(0, Number(save?.totalEarned ?? 0) || 0);
-        const achievementsUnlocked = Array.isArray(save?.achievements) ? save.achievements.length : 0;
-        const lifetimeStars = Math.max(0, Number(save?.prestige?.lifetimeStars ?? 0) || 0);
-        const stars = Math.max(0, Number(save?.prestige?.stars ?? 0) || 0);
-        const prestigeLevel = Math.max(0, Number(save?.prestige?.count ?? 0) || 0);
-        const upgradesObj = save?.prestige?.upgrades;
-        const upgrades = upgradesObj && typeof upgradesObj === 'object' ? Object.keys(upgradesObj).filter((k) => Boolean(upgradesObj[k])) : [];
-
-        setApexStats({
-          updatedAt: typeof data.updated_at === 'string' ? data.updated_at : null,
-          totalEarned,
-          achievementsUnlocked,
-          lifetimeStars,
-          stars,
-          prestigeLevel,
-          upgrades,
-        });
+        const res = await fetch(`/api/casino/profile?user_id=${user.id}`);
+        if (!res.ok) throw new Error('profil casino indisponible');
+        const data = await res.json();
+        if (!cancelled) setCasino(data);
       } catch {
-        if (cancelled) return;
-        setApexStats(null);
+        if (!cancelled) setCasino(null);
       } finally {
-        if (!cancelled) setApexStatsLoading(false);
+        if (!cancelled) setCasinoLoading(false);
       }
     };
 
@@ -256,59 +254,61 @@ export default function ProfilPage() {
               <div className="mt-4 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Apex</div>
-                    <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">Stats & prestige</div>
+                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Casino</div>
+                    <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
+                      {casino ? `Niveau ${casino.level}` : 'Statistiques'}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-tx-secondary" />
+                    <Dices className="w-5 h-5 text-tx-secondary" />
                     <Crown className="w-5 h-5 text-tx-secondary" />
                   </div>
                 </div>
-                {apexStatsLoading ? (
+
+                {casinoLoading ? (
                   <div className="mt-3 text-sm text-tx-secondary font-bold">Chargement…</div>
-                ) : apexStats ? (
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
-                      <div className="text-xs text-tx-secondary font-bold">Total gagné</div>
-                      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
-                        {Math.round(apexStats.totalEarned).toLocaleString('fr-FR')} ₶
+                ) : casino ? (
+                  <>
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <Stat icon={Coins} label="Solde" value={`${casino.balance.toLocaleString('en-US')} ₶`} />
+                      <Stat icon={TrendingUp} label="Total misé" value={`${casino.totalWagered.toLocaleString('en-US')} ₶`} />
+                      <Stat icon={Gem} label="Total gagné" value={`${casino.totalWon.toLocaleString('en-US')} ₶`} />
+                      <Stat icon={Dices} label="Parties" value={casino.betsPlaced.toLocaleString('en-US')} />
+                      <Stat icon={Flame} label="Meilleure série" value={`${casino.bestStreak}`} />
+                      <Stat icon={TrendingUp} label="Plus gros multiplicateur" value={`×${casino.biggestMultiplier}`} />
+                      <Stat icon={Coins} label="Plus gros gain" value={`${casino.biggestWin.toLocaleString('en-US')} ₶`} />
+                      <Stat icon={Award} label="Succès" value={`${casino.achievements} / ${casino.achievementsTotal}`} />
+                      <Stat icon={Target} label="Missions faites" value={casino.missionsDone.toLocaleString('en-US')} />
+                      <Stat icon={Crown} label="Prestige" value={`${casino.prestigeCount}`} />
+                      <Stat icon={Gem} label="Jackpots" value={`${casino.jackpotsWon}`} />
+                      <Stat icon={Award} label="Cosmétiques" value={`${casino.cosmetics} / ${casino.cosmeticsTotal}`} />
+                    </div>
+
+                    <div className="mt-3 rounded-xl border-2 border-brand-border bg-brand-card p-3">
+                      <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+                        <span className="text-tx-secondary">Niveau {casino.level}</span>
+                        <span className="text-tx-muted tabular-nums">
+                          {casino.xpIntoLevel.toLocaleString('en-US')} / {casino.xpForNext.toLocaleString('en-US')} XP
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-full bg-brand-inner border border-brand-border overflow-hidden">
+                        <div
+                          className="h-full bg-accent-primary transition-all duration-500"
+                          style={{ width: `${casino.xpForNext > 0 ? (casino.xpIntoLevel / casino.xpForNext) * 100 : 100}%` }}
+                        />
                       </div>
                     </div>
-                    <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
-                      <div className="text-xs text-tx-secondary font-bold">Succès</div>
-                      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
-                        {apexStats.achievementsUnlocked} / 150
-                      </div>
-                    </div>
-                    <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
-                      <div className="text-xs text-tx-secondary font-bold">Apex Stars</div>
-                      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
-                        {apexStats.stars.toLocaleString('fr-FR')}
-                      </div>
-                    </div>
-                    <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
-                      <div className="text-xs text-tx-secondary font-bold">Prestige (lifetime)</div>
-                      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
-                        {apexStats.lifetimeStars.toLocaleString('fr-FR')}
-                      </div>
-                    </div>
-                    <div className="rounded-xl border-2 border-brand-border bg-brand-card p-3 sm:col-span-2">
-                      <div className="text-xs text-tx-secondary font-bold">Niveau de prestige</div>
-                      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">{apexStats.prestigeLevel.toLocaleString('fr-FR')}</div>
-                      <div className="mt-2 text-xs text-tx-secondary font-bold">
-                        Upgrades:{" "}
-                        {apexStats.upgrades.length === 0
-                          ? 'Aucun'
-                          : getPrestigeUpgrades()
-                              .filter((u) => apexStats.upgrades.includes(u.id))
-                              .map((u) => u.name)
-                              .join(' • ')}
-                      </div>
-                    </div>
-                  </div>
+
+                    <Link
+                      href="/casino"
+                      className="mt-3 inline-flex text-xs font-bold text-accent-primary underline underline-offset-2"
+                    >
+                      Ouvrir le casino
+                    </Link>
+                  </>
                 ) : (
                   <div className="mt-3 text-sm text-tx-secondary font-bold">
-                    Aucune sauvegarde Apex trouvée pour le moment.
+                    Aucune partie jouée pour le moment.
                   </div>
                 )}
               </div>
@@ -437,37 +437,7 @@ export default function ProfilPage() {
               </button>
             </div>
 
-            <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
-              <div className="flex items-center justify-between h-12">
-                <h3 className="font-display text-2xl leading-none">Apex</h3>
-                <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
-                  <TrendingUp className="h-6 w-6 text-accent-primary" />
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-4 space-y-3">
-                <div className="flex justify-between text-sm font-bold">
-                  <span className="text-tx-secondary">Trésorerie</span>
-                  <span className="font-mono text-tx-base">0 ₶</span>
-                </div>
-                <div className="flex justify-between text-sm font-bold">
-                  <span className="text-tx-secondary">₶/min</span>
-                  <span className="font-mono text-tx-base">0</span>
-                </div>
-                <div className="flex justify-between text-sm font-bold">
-                  <span className="text-tx-secondary">Deals</span>
-                  <span className="font-mono text-tx-base">0</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => router.push('/apex')}
-                className="mt-6 w-full h-16 rounded-2xl font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-brutal"
-              >
-                Jouer
-              </button>
-            </div>
+            
           </div>
         </div>
       </div>

@@ -251,7 +251,7 @@ export default function FrenlyPassPage() {
               className="h-12 px-4 rounded-xl border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal flex items-center gap-2 font-display font-black text-xs tracking-wider hover:brightness-110 transition-all active:translate-y-0.5 focus:outline-none disabled:opacity-50"
             >
               <Crown className="h-4 w-4" />
-              {buying ? '···' : `DÉBLOQUER PREMIUM — ${premiumPrice.toLocaleString('fr-FR')} ₶`}
+              {buying ? '···' : `DÉBLOQUER PREMIUM — ${premiumPrice.toLocaleString('en-US')} ₶`}
             </button>
           )}
         </div>
@@ -353,7 +353,7 @@ function TierCell({
         )}
 
         <span className="text-[11px] font-bold text-tx-secondary leading-tight text-center line-clamp-2 px-0.5">
-          {reward.kind === 'coins' ? `${(reward.amount || 0).toLocaleString('fr-FR')} ₶`
+          {reward.kind === 'coins' ? `${(reward.amount || 0).toLocaleString('en-US')} ₶`
             : reward.kind === 'item' ? (itemById(reward.itemId || '')?.name || 'Objet')
             : cosmetic?.name}
         </span>
@@ -398,7 +398,7 @@ function TierDetail({
               Palier {entry.tier.tier} · {entry.track === 'free' ? 'Gratuit' : 'Premium'}
             </div>
             <h2 className="font-display text-lg font-black leading-tight">
-              {cosmetic?.name || item?.name || `${(reward.amount || 0).toLocaleString('fr-FR')} ₶`}
+              {cosmetic?.name || item?.name || `${(reward.amount || 0).toLocaleString('en-US')} ₶`}
             </h2>
           </div>
           <button onClick={onClose} className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none">
