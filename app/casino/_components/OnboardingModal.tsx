@@ -17,12 +17,18 @@ import { PASS_TIERS, PASS_PREMIUM_PRICE } from '@/lib/casino/pass';
 import { COSMETICS, COSMETIC_SLOTS, SLOT_LABEL } from '@/lib/casino/cosmetics';
 import { CRATES } from '@/lib/casino/crates';
 import { SHOP_ITEMS, SHOP_SLOTS_PER_DAY } from '@/lib/casino/shop';
-import { MISSIONS_PER_DAY } from '@/lib/casino/missions';
+import { MISSIONS_PER_SCOPE } from '@/lib/casino/missions';
+import { INITIAL_SANDBOX, type SandboxState } from '@/lib/casino/sandbox';
+import SandboxSlots from './SandboxSlots';
 
 interface Step {
   icon: any;
   title: string;
   body: ReactNode;
+  /** The demo machine is shown, with this part of it called out. */
+  play?: 'reels' | 'streak' | 'level';
+  /** Bets that must be played before the step can be left. */
+  requireBets?: number;
 }
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -50,24 +56,69 @@ const STEPS: Step[] = [
   },
   {
     icon: Dices,
-    title: '20 jeux, un tirage honnête',
+    title: 'Essaie une machine',
+    play: 'reels',
+    requireBets: 1,
     body: (
       <>
         <p>
-          Chaque résultat est tiré <b>sur le serveur</b>, avant que l&apos;animation ne commence. Ni ta
-          mise, ni ton solde, ni ton historique n&apos;influencent le tirage.
+          Voilà une vraie machine, avec de l&apos;argent d&apos;essai. <b>Lance-la.</b> Rien n&apos;est
+          débité et rien n&apos;est gagné : c&apos;est une table d&apos;entraînement.
         </p>
         <p>
-          Chaque jeu affiche sa <b>redistribution</b> (entre 90% et 98,6%) sur sa carte et dans ses
-          règles : c&apos;est la part des mises qui revient aux joueurs sur le long terme.
-          Le bouton <b>Règles</b> en haut de chaque jeu détaille les gains.
+          Trois symboles identiques et tu gagnes. Le résultat est tiré <b>sur le serveur</b> avant
+          que les rouleaux ne bougent : ni ta mise, ni ton solde, ni ton historique ne l&apos;influencent.
+        </p>
+      </>
+    ),
+  },
+  {
+    icon: Flame,
+    title: 'Enchaîne, le bonus monte',
+    play: 'streak',
+    requireBets: 3,
+    body: (
+      <>
+        <p>
+          Relance deux fois. Regarde le compteur de <b>série</b> en haut à droite : chaque victoire
+          d&apos;affilée l&apos;incrémente, et à partir de trois un bonus s&apos;ajoute à ton bénéfice.
+        </p>
+        <ul className="list-disc list-inside">
+          {[...STREAK_TIERS].reverse().map((t) => (
+            <li key={t.min}>
+              {t.min} d&apos;affilée → <b>+{pct(t.bonus)}</b> <span className="text-tx-muted">({t.label})</span>
+            </li>
+          ))}
+        </ul>
+        <p>
+          Une défaite la remet à zéro. Si tu tombes sur <b>deux symboles sur trois</b>, le casino te
+          le dit : c&apos;est un quasi-gain, pas une victoire.
+        </p>
+      </>
+    ),
+  },
+  {
+    icon: Sparkles,
+    title: 'Tu montes même en perdant',
+    play: 'level',
+    requireBets: 5,
+    body: (
+      <>
+        <p>
+          Continue à lancer et surveille la barre <b>NIV</b>. Elle avance à chaque mise,{' '}
+          <b>que tu gagnes ou que tu perdes</b> — c&apos;est ce qui fait qu&apos;une soirée
+          perdante avance quand même quelque chose.
+        </p>
+        <p>
+          Dans le vrai casino, ce niveau est ton <b>palier de Frenly Pass</b> : chacun débloque une
+          récompense à réclamer, et tout se remet à zéro le lundi.
         </p>
       </>
     ),
   },
   {
     icon: Coins,
-    title: 'Miser',
+    title: 'Miser pour de vrai',
     body: (
       <>
         <p>
@@ -124,22 +175,6 @@ const STEPS: Step[] = [
     ),
   },
   {
-    icon: Sparkles,
-    title: 'Niveaux et XP',
-    body: (
-      <>
-        <p>
-          Chaque mise donne de l&apos;XP, <b>que tu gagnes ou que tu perdes</b>. Une session perdante
-          fait quand même avancer quelque chose.
-        </p>
-        <p>
-          Chaque niveau ouvre un coffre crédité automatiquement, et plus tu montes, plus le niveau
-          suivant demande d&apos;XP.
-        </p>
-      </>
-    ),
-  },
-  {
     icon: Target,
     title: 'Les récompenses quotidiennes',
     body: (
@@ -148,7 +183,10 @@ const STEPS: Step[] = [
           <li><b>Bonus du jour</b> : de 250 à 10 000 ₶. Reviens plusieurs jours de suite et il est multiplié (×1,5 à 3 jours, ×2 à 7, ×3 à 14).</li>
           <li><b>Roue gratuite</b> : un tour offert par jour.</li>
           <li><b>Cashback</b> : <b>{pct(CASHBACK_RATE)}</b> de tes pertes de la veille, à récupérer une fois par jour.</li>
-          <li><b>{MISSIONS_PER_DAY} missions</b> tirées chaque jour, qui paient en ₶ et en XP.</li>
+          <li>
+            <b>{MISSIONS_PER_SCOPE.jour} missions du jour</b>, <b>{MISSIONS_PER_SCOPE.semaine} de la semaine</b>{' '}
+            et <b>{MISSIONS_PER_SCOPE.carriere} au long cours</b> qui ne se remettent jamais à zéro.
+          </li>
         </ul>
         <p className="text-tx-muted text-[12px]">Tout se remet à zéro à minuit.</p>
       </>
@@ -303,9 +341,17 @@ const STEPS: Step[] = [
 
 export default function OnboardingModal({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState(0);
+  // The demo wallet. It never leaves this component, and no bet is sent
+  // anywhere — the tour cannot cost or earn a single coin.
+  const [sandbox, setSandbox] = useState<SandboxState>(INITIAL_SANDBOX);
+
   const current = STEPS[step];
   const Icon = current.icon;
   const last = step === STEPS.length - 1;
+
+  // A step that asks for a spin waits for it rather than being clicked past.
+  const owed = Math.max(0, (current.requireBets ?? 0) - sandbox.bets);
+  const blocked = owed > 0;
 
   const go = (delta: number) => {
     sfx.click();
@@ -341,6 +387,16 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
           <div className="text-sm text-tx-secondary leading-relaxed space-y-3 [&_b]:text-tx-base [&_ul]:space-y-1">
             {current.body}
           </div>
+
+          {current.play && (
+            <div className="mt-4">
+              <SandboxSlots
+                state={sandbox}
+                highlight={current.play}
+                onSpin={(next) => setSandbox(next)}
+              />
+            </div>
+          )}
         </div>
 
         <div className="p-6 pt-4">
@@ -367,10 +423,13 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
             </button>
             <button
               onClick={() => (last ? onClose() : go(1))}
-              className="flex-1 py-3 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none flex items-center justify-center gap-2"
+              disabled={blocked}
+              className="flex-1 py-3 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {last ? 'JOUER' : 'SUIVANT'}
-              {!last && <ChevronRight className="h-4 w-4" />}
+              {blocked
+                ? `LANCE ${owed} FOIS`
+                : last ? 'JOUER' : 'SUIVANT'}
+              {!blocked && !last && <ChevronRight className="h-4 w-4" />}
             </button>
           </div>
         </div>
