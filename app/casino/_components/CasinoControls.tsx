@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Volume2, VolumeX, Zap } from 'lucide-react';
+import { Volume2, VolumeX, Zap, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sfx, isMuted, setMuted } from '@/lib/casino/sfx';
 import { useTurbo } from '@/lib/casino/turbo';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { screensSkinned, setScreensSkinned } from '@/lib/casino/activeCosmetics';
 
 /**
  * Sound and turbo, on every casino page rather than only inside a game — both
@@ -14,9 +15,13 @@ import { vibrate, HAPTIC } from '@/lib/haptic';
 export default function CasinoControls({ className }: { className?: string }) {
   const [turbo, setTurboMode] = useTurbo();
   const [muted, setMutedState] = useState(false);
+  const [skinned, setSkinned] = useState(true);
 
   // Read on mount only: localStorage is not available during the server render.
-  useEffect(() => { setMutedState(isMuted()); }, []);
+  useEffect(() => {
+    setMutedState(isMuted());
+    setSkinned(screensSkinned());
+  }, []);
 
   const toggleMute = () => {
     const next = !muted;
@@ -54,6 +59,25 @@ export default function CasinoControls({ className }: { className?: string }) {
         )}
       >
         <Zap className="h-4 w-4" />
+      </button>
+
+      <button
+        onClick={() => {
+          sfx.click(); vibrate(HAPTIC.SOFT);
+          const next = !skinned;
+          setSkinned(next);
+          setScreensSkinned(next);
+        }}
+        title={skinned ? 'Cosmétiques appliqués aux écrans' : 'Cosmétiques dans les jeux uniquement'}
+        aria-label="Cosmétiques sur les écrans"
+        className={cn(
+          'h-11 w-11 rounded-xl border-2 flex items-center justify-center transition-colors focus:outline-none',
+          skinned
+            ? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
+            : 'border-brand-border bg-brand-inner text-tx-muted'
+        )}
+      >
+        <Palette className="h-4 w-4" />
       </button>
     </div>
   );

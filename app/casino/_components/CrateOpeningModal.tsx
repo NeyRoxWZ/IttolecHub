@@ -7,6 +7,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { cosmeticById, RARITY_COLOR, RARITY_LABEL, gameLabel, type Rarity } from '@/lib/casino/cosmetics';
 import { crateById, RARITY_ORDER, type CrateOpening } from '@/lib/casino/crates';
 import CosmeticPreview from './CosmeticPreview';
+import EquipButton from './EquipButton';
 import CrateReel from './CrateReel';
 
 const RECAP_ORDER: Rarity[] = ['legendaire', 'epique', 'rare', 'commun'];
@@ -160,6 +161,7 @@ function Recap({ openings, onClose }: { openings: CrateOpening[]; onClose: () =>
                     <CosmeticPreview cosmetic={cosmetic} size={64} />
                     <span className="font-display font-black text-[10px] leading-tight text-center line-clamp-2">{cosmetic.name}</span>
                     <span className="text-[9px] text-tx-muted">{gameLabel(cosmetic.gameSlug)}</span>
+                    <EquipButton cosmetic={cosmetic} size="sm" className="w-full" />
                   </div>
                 );
               })}

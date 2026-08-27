@@ -21,6 +21,7 @@ import CrateOpeningModal from '../_components/CrateOpeningModal';
 import InventoryPanel, { type InventoryState } from '../_components/InventoryPanel';
 import Confetti from '../_components/Confetti';
 import CasinoControls from '../_components/CasinoControls';
+import BalanceChip from '../_components/BalanceChip';
 
 export default function InventoryPage() {
   const { user } = useAuth();
@@ -166,11 +167,7 @@ export default function InventoryPage() {
 
           <CasinoControls />
 
-            <div className="h-11 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-            <Coins className="h-4 w-4 text-accent-primary" />
-            {isLoaded ? <CountUp value={balance} className="font-display font-black text-base" /> : <span className="font-display font-black">···</span>}
-            <span className="text-tx-secondary font-bold text-sm">₶</span>
-          </div>
+            <BalanceChip balance={balance} isLoaded={isLoaded} />
         </header>
 
         <div className="flex flex-wrap items-center gap-2 mb-3 shrink-0">

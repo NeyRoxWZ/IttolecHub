@@ -12,6 +12,7 @@ import {
 import type { CrateReward } from '@/lib/casino/crates';
 import { tempo } from '@/lib/casino/turbo';
 import CosmeticPreview from './CosmeticPreview';
+import EquipButton from './EquipButton';
 
 const CARD_W = 132;
 const GAP = 10;
@@ -102,6 +103,7 @@ export default function CrateReel({
   }, [reward, onDone]);
 
   const tone = RARITY_COLOR[reward.rarity];
+  const won = reward.cosmeticId ? cosmeticById(reward.cosmeticId) : undefined;
 
   return (
     <div className="relative w-full overflow-hidden rounded-2xl border-4 border-brand-border bg-brand-inner py-4">
@@ -170,17 +172,21 @@ export default function CrateReel({
         </div>
       </div>
 
-      <div className={cn('mt-3 text-center transition-opacity duration-300', settled ? 'opacity-100' : 'opacity-0')}>
-        <div className="font-display font-black text-sm" style={{ color: tone }}>
-          {reward.cosmeticId ? cosmeticById(reward.cosmeticId)?.name : `${(reward.amount || 0).toLocaleString('en-US')} ₶`}
+      <div className={cn('mt-3 flex flex-col items-center gap-2 transition-opacity duration-300', settled ? 'opacity-100' : 'opacity-0')}>
+        <div className="text-center">
+          <div className="font-display font-black text-sm" style={{ color: tone }}>
+            {won?.name || `${(reward.amount || 0).toLocaleString('en-US')} ₶`}
+          </div>
+          <div className="text-[11px] text-tx-muted">
+            {reward.duplicate
+              ? 'Doublon → converti en ₶'
+              : won
+                ? gameLabel(won.gameSlug)
+                : ''}
+          </div>
         </div>
-        <div className="text-[11px] text-tx-muted">
-          {reward.duplicate
-            ? 'Doublon → converti en ₶'
-            : reward.cosmeticId
-              ? gameLabel(cosmeticById(reward.cosmeticId)?.gameSlug || '')
-              : ''}
-        </div>
+
+        {settled && won && <EquipButton cosmetic={won} size="sm" />}
       </div>
     </div>
   );

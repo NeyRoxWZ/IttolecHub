@@ -20,6 +20,7 @@ import Confetti from '../_components/Confetti';
 import CrateOpeningModal from '../_components/CrateOpeningModal';
 import InventoryPanel, { type InventoryState } from '../_components/InventoryPanel';
 import CasinoControls from '../_components/CasinoControls';
+import BalanceChip from '../_components/BalanceChip';
 
 const CATEGORY_META: Record<ItemCategory, { label: string; icon: any; tone: string }> = {
   protection: { label: 'Protection', icon: ShieldCheck, tone: 'text-accent-success border-accent-success/50' },
@@ -193,11 +194,7 @@ export default function CasinoShop() {
             </div>
             <CasinoControls />
 
-            <div className="h-11 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-              <Coins className="h-4 w-4 text-accent-primary" />
-              {isLoaded ? <CountUp value={balance} className="font-display font-black text-base" /> : <span className="font-display font-black">···</span>}
-              <span className="text-tx-secondary font-bold text-sm">₶</span>
-            </div>
+            <BalanceChip balance={balance} isLoaded={isLoaded} />
           </div>
         </header>
 

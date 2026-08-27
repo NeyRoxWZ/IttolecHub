@@ -94,6 +94,14 @@ function tone({ freq, duration = 0.12, type = 'sine', gain = 0.15, delay = 0, sw
 function noise(duration = 0.2, gain = 0.12) {
   const c = getCtx();
   if (!c) return;
+
+  // The pack colours the noise bursts too, otherwise a card flip or a bust
+  // sounds identical whatever is equipped.
+  const p = pack();
+  if (p) {
+    gain *= p.gain;
+    duration *= p.pitch > 1 ? 0.85 : 1.15;
+  }
   const frames = Math.floor(c.sampleRate * duration);
   const buffer = c.createBuffer(1, frames, c.sampleRate);
   const data = buffer.getChannelData(0);

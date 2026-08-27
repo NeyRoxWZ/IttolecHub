@@ -30,6 +30,7 @@ import { secondsUntilRotation } from '@/lib/casino/shop';
 import { secondsUntilReset } from '@/lib/casino/pass';
 import DailyWheelModal from './_components/DailyWheelModal';
 import Confetti from './_components/Confetti';
+import BalanceChip from './_components/BalanceChip';
 
 interface CasinoGameEntry { slug: string; name: string; short: string; icon: any; rtp: string }
 
@@ -430,12 +431,7 @@ export default function CasinoHub() {
                 <span className="font-display font-black text-sm text-accent-secondary">{stats.currentStreak}</span>
               </div>
             )}
-            <div className="h-11 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-3 sm:px-4 rounded-xl shadow-brutal">
-              <Coins className="h-4 w-4 text-accent-primary" />
-              {isLoaded ? <CountUp value={balance} className="font-display font-black text-base" /> : <span className="font-display font-black">···</span>}
-              <span className="text-tx-secondary font-bold text-sm">₶</span>
-              {isLocal && <span className="text-[8px] font-black uppercase bg-brand-card border border-brand-border px-1 py-0.5 rounded text-tx-muted" title="Connecte-toi pour sauvegarder ton solde">Local</span>}
-            </div>
+            <BalanceChip balance={balance} isLoaded={isLoaded} isLocal={isLocal} />
           </div>
         </header>
 

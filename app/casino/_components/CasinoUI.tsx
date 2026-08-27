@@ -7,12 +7,14 @@ import { ArrowLeft, Coins, Minus, Plus, HelpCircle, X, Volume2, VolumeX, Flame, 
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
-import { sfx, isMuted, setMuted } from '@/lib/casino/sfx';
+import { sfx } from '@/lib/casino/sfx';
 import { CASINO_MIN_BET } from '@/lib/casino/core';
-import { useTurbo, tempo } from '@/lib/casino/turbo';
+import { tempo } from '@/lib/casino/turbo';
 import { useGameCosmetics } from '@/hooks/useGameCosmetics';
-import { setActiveCosmetics, subscribeOutcome } from '@/lib/casino/activeCosmetics';
+import { setGameCosmetics, subscribeOutcome } from '@/lib/casino/activeCosmetics';
 import ActiveEffectsBar from './ActiveEffectsBar';
+import CasinoControls from './CasinoControls';
+import BalanceChip from './BalanceChip';
 import { tableBackground, skinFilter } from './CosmeticPreview';
 import type { CosmeticParams } from '@/lib/casino/cosmetics';
 import * as Art from './CasinoArt';
@@ -494,8 +496,6 @@ export function GameShell({
 }) {
   const router = useRouter();
   const [showRules, setShowRules] = useState(false);
-  const [mutedState, setMutedState] = useState(false);
-  const [turbo, setTurboMode] = useTurbo();
   const cosmetics = useGameCosmetics(gameSlug);
 
   const table = cosmetics.table?.params;
@@ -506,17 +506,12 @@ export function GameShell({
   const EmblemArt = emblem?.art ? EMBLEM_ART[emblem.art] : undefined;
 
   // Published so the confetti burst and the sound pack can read it without
-  // being threaded through every game component.
-  useEffect(() => { setActiveCosmetics(cosmetics); }, [cosmetics]);
-
-  useEffect(() => { setMutedState(isMuted()); }, []);
-
-  const toggleMute = () => {
-    const next = !mutedState;
-    setMutedState(next);
-    setMuted(next);
-    if (!next) sfx.click();
-  };
+  // being threaded through every game component. Cleared on the way out, or
+  // the game's skin would follow the player back to the hub.
+  useEffect(() => {
+    setGameCosmetics(cosmetics);
+    return () => setGameCosmetics({});
+  }, [cosmetics]);
 
   return (
     // Locked to the viewport on desktop so the whole game fits without any
@@ -553,42 +548,34 @@ export function GameShell({
                 <LevelBar level={level} into={xpIntoLevel ?? 0} needed={xpForNext ?? 1} />
               </div>
             )}
-            <button
-              onClick={() => { sfx.click(); vibrate(HAPTIC.SOFT); setTurboMode(!turbo); }}
-              title="Mode turbo : animations accélérées"
-              className={cn(
-                'h-11 w-11 rounded-xl border-2 flex items-center justify-center focus:outline-none transition-colors',
-                turbo ? 'border-accent-primary bg-accent-primary/15 text-accent-primary' : 'border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base'
-              )}
-            >
-              <Zap className="h-4 w-4" />
-            </button>
             {streak !== undefined && streak > 1 && (
               <div className="h-11 flex items-center gap-1.5 px-3 rounded-xl border-2 border-accent-secondary bg-accent-secondary/10">
                 <Flame className="h-4 w-4 text-accent-secondary" />
                 <span className="font-display font-black text-sm text-accent-secondary">{streak}</span>
               </div>
             )}
-            <button onClick={toggleMute} className="h-11 w-11 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center text-tx-secondary hover:text-tx-base focus:outline-none">
-              {mutedState ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            </button>
-            <div
-              className="h-11 flex items-center gap-2 bg-brand-inner border-2 px-4 rounded-xl shadow-brutal"
-              style={{ borderColor: emblem?.color }}
-            >
-              {EmblemArt ? <EmblemArt size={18} /> : <Coins className="h-4 w-4 text-accent-primary" />}
-              {isLoaded ? <CountUp value={balance} className="font-display font-black text-base" /> : <span className="font-display font-black">···</span>}
-              <span className="text-tx-secondary font-bold text-sm">₶</span>
-              {isLocal && <span className="text-[8px] font-black uppercase bg-brand-card border border-brand-border px-1 py-0.5 rounded text-tx-muted">Local</span>}
-            </div>
+            <CasinoControls />
+
+            {/* The emblem cosmetic rides on the balance chip. */}
+            {EmblemArt && (
+              <span
+                className="h-11 w-11 shrink-0 rounded-xl border-2 flex items-center justify-center"
+                style={{ borderColor: emblem?.color, background: `${emblem?.color}14` }}
+              >
+                <EmblemArt size={20} />
+              </span>
+            )}
+
+            <BalanceChip balance={balance} isLoaded={isLoaded} isLocal={isLocal} />
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 flex-1 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-3 sm:gap-4 flex-1 min-h-0">
           <div
             className={cn(
               'relative overflow-hidden bg-brand-card border-4 border-brand-border rounded-[24px]',
-              'p-4 sm:p-6 flex flex-col items-center justify-center min-h-[380px] lg:min-h-0',
+              'p-3 sm:p-6 flex flex-col items-center justify-center',
+              'min-h-[46vh] sm:min-h-[380px] lg:min-h-0',
               border?.animated && 'animate-pulse-border'
             )}
             style={{
@@ -599,9 +586,7 @@ export function GameShell({
           >
             {particles && <ParticleField color={particles.color || '#FFD000'} style={particles.particleStyle || 'drift'} />}
             {cosmetics.lose_fx && <LoseFlash params={cosmetics.lose_fx.params} />}
-            <div className="relative z-10 w-full flex flex-col items-center justify-center" style={{ filter: skin ? skinFilter(skin) : undefined }}>
-              {stage}
-            </div>
+            <StageFit filter={skin ? skinFilter(skin) : undefined}>{stage}</StageFit>
           </div>
           <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 sm:p-5 shadow-brutal flex flex-col gap-4 min-h-0">
             <ActiveEffectsBar />
@@ -627,6 +612,55 @@ const EMBLEM_ART: Record<string, (p: { size?: number }) => JSX.Element> = {
   ball: Art.ArtBall, shield: Art.ArtShield, door: Art.ArtDoor, skull: Art.ArtSkull,
   check: Art.ArtCheck,
 };
+
+/**
+ * Scales the game to the room it has.
+ *
+ * Every game draws at its natural size, which left a small one marooned in the
+ * middle of a huge card on a wide screen and overflowing on a phone. This
+ * measures both and applies the ratio, capped so nothing turns into a poster.
+ */
+function StageFit({ children, filter }: { children: ReactNode; filter?: string }) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const box = boxRef.current;
+    const inner = innerRef.current;
+    if (!box || !inner) return;
+
+    const measure = () => {
+      // Read the natural size, not the scaled one.
+      const w = inner.offsetWidth;
+      const h = inner.offsetHeight;
+      if (w === 0 || h === 0) return;
+
+      const ratio = Math.min(box.clientWidth / w, box.clientHeight / h);
+      // Never below 0.55: past that the labels stop being readable, and the
+      // page is better off scrolling.
+      setScale(Math.max(0.55, Math.min(1.6, ratio)));
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, [children]);
+
+  return (
+    <div ref={boxRef} className="relative z-10 w-full flex-1 min-h-0 flex items-center justify-center">
+      <div
+        ref={innerRef}
+        className="flex flex-col items-center justify-center"
+        style={{ filter, transform: `scale(${scale})`, transformOrigin: 'center' }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 /**
  * The equipped loss effect, played over the scene when a game reports a

@@ -10,14 +10,18 @@ import { sfx } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
-import { cosmeticById, gameLabel, gameTheme, type Cosmetic } from '@/lib/casino/cosmetics';
+import {
+  cosmeticById, gameLabel, gameTheme, RARITY_COLOR, RARITY_LABEL, type Cosmetic,
+} from '@/lib/casino/cosmetics';
 import { itemById } from '@/lib/casino/shop';
 import type { PassReward, PassTier } from '@/lib/casino/pass';
 import { CountUp } from '../_components/CasinoUI';
 import CosmeticPreview, { cosmeticEffect } from '../_components/CosmeticPreview';
 import Confetti from '../_components/Confetti';
 import CosmeticStockPanel from '../_components/CosmeticStockPanel';
+import EquipButton from '../_components/EquipButton';
 import CasinoControls from '../_components/CasinoControls';
+import BalanceChip from '../_components/BalanceChip';
 
 interface PassState { tier: number; xp: number; intoTier: number; needed: number; premium: boolean }
 
@@ -43,6 +47,7 @@ export default function FrenlyPassPage() {
   const [claimed, setClaimed] = useState<{ free: number[]; premium: number[] }>({ free: [], premium: [] });
   const [claimable, setClaimable] = useState(0);
   const [claiming, setClaiming] = useState(false);
+  const [justWon, setJustWon] = useState<Cosmetic | null>(null);
   const [premiumPrice, setPremiumPrice] = useState(25000);
   const [resetIn, setResetIn] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -145,7 +150,12 @@ export default function FrenlyPassPage() {
       setBalance(data.newBalance);
       setClaimed((prev) => ({ ...prev, [track]: [...prev[track], tier] }));
       setClaimable((c) => Math.max(0, c - 1));
-      toast.success(`Palier ${tier} réclamé`);
+
+      // A cosmetic straight from the track: offer it rather than sending the
+      // player hunting for it in the inventory.
+      const won = data.reward?.cosmeticId ? cosmeticById(data.reward.cosmeticId) : null;
+      setJustWon(won || null);
+      if (!won) toast.success(`Palier ${tier} réclamé`);
       void load();
     } finally {
       setClaiming(false);
@@ -179,6 +189,7 @@ export default function FrenlyPassPage() {
     <main className="bg-transparent text-tx-base p-3 sm:p-4 flex flex-col min-h-[100dvh]">
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
       {detail && <TierDetail entry={detail} owned={owned} onClose={() => setDetail(null)} />}
+      {justWon && <JustWon cosmetic={justWon} onClose={() => setJustWon(null)} />}
 
       <div className="max-w-6xl w-full mx-auto flex flex-col flex-1 min-h-0">
         <header className="flex items-center justify-between gap-3 mb-3 flex-wrap shrink-0">
@@ -208,11 +219,7 @@ export default function FrenlyPassPage() {
             </div>
             <CasinoControls />
 
-            <div className="h-11 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
-              <Coins className="h-4 w-4 text-accent-primary" />
-              {isLoaded ? <CountUp value={balance} className="font-display font-black text-base" /> : <span className="font-display font-black">···</span>}
-              <span className="text-tx-secondary font-bold text-sm">₶</span>
-            </div>
+            <BalanceChip balance={balance} isLoaded={isLoaded} />
           </div>
         </header>
 
@@ -380,6 +387,39 @@ function TierCell({
             : <span className="text-tx-muted">VERROUILLÉ</span>}
         </div>
       )}
+    </div>
+  );
+}
+
+/** The piece a tier just handed over, with the one action that follows. */
+function JustWon({ cosmetic, onClose }: { cosmetic: Cosmetic; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[215] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
+      <div
+        className="w-full max-w-xs bg-brand-card border-4 rounded-[28px] p-6 text-center shadow-brutal animate-in zoom-in-95 duration-200"
+        style={{ borderColor: RARITY_COLOR[cosmetic.rarity] }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: RARITY_COLOR[cosmetic.rarity] }}>
+          {RARITY_LABEL[cosmetic.rarity]}
+        </div>
+
+        <div className="flex justify-center mb-3">
+          <CosmeticPreview cosmetic={cosmetic} size={128} />
+        </div>
+
+        <div className="font-display font-black text-base leading-tight">{cosmetic.name}</div>
+        <div className="text-[11px] text-tx-muted mb-4">{gameLabel(cosmetic.gameSlug)}</div>
+
+        <EquipButton cosmetic={cosmetic} className="w-full mb-2" />
+
+        <button
+          onClick={onClose}
+          className="w-full h-9 rounded-lg border-2 border-brand-border bg-brand-inner text-[10px] font-black tracking-widest text-tx-secondary focus:outline-none"
+        >
+          PLUS TARD
+        </button>
+      </div>
     </div>
   );
 }
