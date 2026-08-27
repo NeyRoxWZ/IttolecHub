@@ -7,6 +7,8 @@ import { recordSettlement, type SettlementResult } from './metaProgression.serve
 import { advancePass, type PassProgress } from './pass.server';
 import { pushLive } from './live.server';
 import { PASS_XP } from './pass';
+import { loadBankroll, applyDelta } from './bankroll.server';
+import { endDrainedSyndicate } from './syndicate.server';
 
 interface SettleParams {
   userId: string;
@@ -27,6 +29,8 @@ interface SettleSuccess {
   pass: PassProgress;
   /** What boosted this settlement, so the UI can show it. */
   bonuses: { streak: number; item: number; prestige: number; timed: number; refunded: number };
+  /** Set when the stake came from a group pot rather than the player's wallet. */
+  pooled?: { code: string; endsAt: string; drained: boolean };
 }
 
 interface SettleFailure { ok: false; status: number; error: string }
@@ -46,23 +50,26 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
   if (!userId) return { ok: false, status: 400, error: 'user_id requis' };
   if (!Number.isInteger(amount) || amount < CASINO_MIN_BET) return { ok: false, status: 400, error: 'Mise invalide' };
 
-  const [{ data: wallet }, effects] = await Promise.all([
-    supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle(),
-    loadEffects(userId),
-  ]);
-  if (!wallet) return { ok: false, status: 404, error: 'Portefeuille introuvable' };
-  const maxBet = effectiveMaxBet(wallet.balance, effects);
-  if (amount > wallet.balance) return { ok: false, status: 400, error: 'Solde insuffisant' };
+  const [bank, effects] = await Promise.all([loadBankroll(userId), loadEffects(userId)]);
+  if (!bank) return { ok: false, status: 404, error: 'Portefeuille introuvable' };
+
+  // In a running syndicate the stake comes out of the group pot, so every
+  // check below is against the pot rather than the player's own coins.
+  const pooled = bank.kind === 'syndicate';
+  const maxBet = effectiveMaxBet(bank.balance, effects);
+  if (amount > bank.balance) {
+    return { ok: false, status: 400, error: pooled ? 'La cagnotte est trop basse' : 'Solde insuffisant' };
+  }
   if (amount > maxBet) return { ok: false, status: 400, error: `Mise max: ${maxBet} ₶` };
 
   const { won, multiplier: baseMultiplier, meta } = resolve();
   const used: string[] = [];
 
   // Bonuses lift the *profit* only — a push (x1) or a refund is untouched.
-  const currentStreak = Number(wallet.current_streak || 0);
+  const currentStreak = Number(bank.wallet.current_streak || 0);
   const streakPct = baseMultiplier > 1 ? streakBonus(currentStreak) : 0;
   const itemPct = baseMultiplier > 1 ? (effects.win_bonus?.magnitude ?? 0) : 0;
-  const prestigePct = baseMultiplier > 1 ? prestigeWinBonus(Number(wallet.prestige_count || 0)) : 0;
+  const prestigePct = baseMultiplier > 1 ? prestigeWinBonus(Number(bank.wallet.prestige_count || 0)) : 0;
   // Game of the day and happy hour, both derived from the clock.
   const timedPct = baseMultiplier > 1 ? timedWinBonus(gameSlug) : 0;
   if (itemPct > 0) used.push('win_bonus');
@@ -84,17 +91,9 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
   }
 
   const netChange = payout - amount;
-  const newBalance = wallet.balance + netChange;
-
-  const { data: updated, error: updateError } = await supabase
-    .from('casino_wallets')
-    .update({ balance: newBalance, updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .eq('balance', wallet.balance) // optimistic lock
-    .select()
-    .maybeSingle();
-
-  if (updateError || !updated) return { ok: false, status: 409, error: 'Conflit de mise à jour, réessayez.' };
+  const applied = await applyDelta(bank, userId, netChange, bank.balance);
+  if (!applied.ok) return { ok: false, status: 409, error: 'Conflit de mise à jour, réessayez.' };
+  const newBalance = applied.newBalance;
 
   const txType = baseMultiplier === 0 ? 'bet' : baseMultiplier === 1 ? 'push' : 'win';
 
@@ -116,21 +115,34 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
     }),
     consumeEffects(userId, effects, used),
     recordSettlement(userId, gameSlug, {
-      amount, payout, multiplier, baseMultiplier, newBalance, effects, wagered: amount,
+      amount, payout, multiplier, baseMultiplier, newBalance, effects, wagered: amount, pooled,
     }),
     pushLive(userId, gameSlug, netChange, multiplier),
   ]);
 
   const pass = await advancePass(userId, passXp + (progression.levelsGained ? PASS_XP.levelUp * progression.levelsGained : 0));
 
+  // Coins the settlement earned on top of the bet — a level-up bonus, a
+  // jackpot — belong to whichever bankroll played it.
+  let finalBalance = newBalance;
+  let drained = !!applied.drained;
+  if (progression.owedCoins > 0) {
+    const extra = await applyDelta(bank, userId, progression.owedCoins, newBalance);
+    if (extra.ok) { finalBalance = extra.newBalance; drained = !!extra.drained; }
+  }
+  if (pooled && drained) await endDrainedSyndicate(bank.syndicateId!);
+
   return {
     ok: true,
     pass,
+    pooled: pooled
+      ? { code: bank.syndicateCode!, endsAt: bank.endsAt!, drained }
+      : undefined,
     won,
     multiplier: Math.round(multiplier * 100) / 100,
     payout,
     netChange,
-    newBalance,
+    newBalance: finalBalance,
     meta,
     progression,
     bonuses: { streak: streakPct, item: itemPct, prestige: prestigePct, timed: timedPct, refunded },

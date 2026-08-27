@@ -13,15 +13,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import {
   SYNDICATE_DURATIONS, SYNDICATE_MIN_PLAYERS, SYNDICATE_MAX_PLAYERS,
-  SYNDICATE_MIN_BUY_IN, SYNDICATE_ROUND_MS, SYNDICATE_LADDER,
+  SYNDICATE_MIN_BUY_IN,
 } from '@/lib/casino/syndicate';
+import { CASINO_GAMES } from '@/lib/casino/games';
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 
 interface State {
   syndicate: any | null;
   members: any[];
-  rounds: any[];
+  feed: any[];
   you: any | null;
 }
 
@@ -38,7 +39,7 @@ function useAmountField(initial: string) {
 
 export default function CagnottePage() {
   const { user } = useAuth();
-  const { balance, setBalance, refresh } = useCasinoWallet();
+  const { balance, walletBalance, syndicate: live, setBalance, refresh } = useCasinoWallet();
   const [state, setState] = useState<State | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -65,18 +66,18 @@ export default function CagnottePage() {
   const syn = state?.syndicate;
   const running = syn?.status === 'running';
 
-  // A running pot only advances when somebody asks the server for it, so the
-  // page has to keep asking — one round at a time, never overlapping.
+  // The pot itself arrives over the table, so this only refreshes the parts
+  // that do not: who is in, and what everyone has been betting.
   const polling = useRef(false);
   useEffect(() => {
-    if (!running) return;
+    if (!syn || syn.status === 'done') return;
     const t = setInterval(async () => {
       if (polling.current) return;
       polling.current = true;
       try { await load(); } finally { polling.current = false; }
-    }, SYNDICATE_ROUND_MS / 2);
+    }, 3000);
     return () => clearInterval(t);
-  }, [running, load]);
+  }, [syn, load]);
 
   // Once the run closes, the payout landed in the wallet server-side.
   const wasRunning = useRef(false);
@@ -111,16 +112,23 @@ export default function CagnottePage() {
     } finally { setBusy(false); }
   };
 
-  const seedPot = Number(syn?.seed_pot || 0);
-  const pot = Number(syn?.pot || 0);
+  const seedPot = Number(live?.seedPot ?? syn?.seed_pot ?? 0);
+  const pot = running ? Number(live?.pot ?? balance) : Number(syn?.pot || 0);
   const delta = seedPot > 0 ? pot / seedPot : 1;
 
+  const endsAt = live?.endsAt ?? syn?.ends_at;
   const remaining = useMemo(() => {
-    if (!running || !syn?.ends_at) return 0;
-    return Math.max(0, Math.floor((new Date(syn.ends_at).getTime() - now) / 1000));
-  }, [running, syn?.ends_at, now]);
+    if (!running || !endsAt) return 0;
+    return Math.max(0, Math.floor((new Date(endsAt).getTime() - now) / 1000));
+  }, [running, endsAt, now]);
 
-  const lastRound = state?.rounds?.length ? state.rounds[state.rounds.length - 1] : null;
+  // The run ends on the clock, and nothing server-side is watching it — so the
+  // page that notices asks for the split.
+  useEffect(() => {
+    if (running && remaining === 0) void load();
+  }, [running, remaining, load]);
+
+
 
   return (
     <main className="min-h-screen bg-transparent text-tx-base pb-[env(safe-area-inset-bottom)]">
@@ -152,23 +160,20 @@ export default function CagnottePage() {
             <p>
               Chacun met ce qu&apos;il veut ({fmt(SYNDICATE_MIN_BUY_IN)} ₶ minimum, de{' '}
               {SYNDICATE_MIN_PLAYERS} à {SYNDICATE_MAX_PLAYERS} joueurs). L&apos;hôte lance, et
-              toutes les {SYNDICATE_ROUND_MS / 1000} secondes la cagnotte mise 8 % d&apos;elle-même.
+              pendant toute la durée choisie <b className="text-tx-base">vous jouez tous avec la
+              cagnotte au lieu de votre argent</b> : vos mises sortent d&apos;elle, vos gains y
+              retournent, et tout le monde voit le même total bouger en direct.
             </p>
             <p>
-              À la fin, chacun récupère sa part au prorata de ce qu&apos;il a mis. Si la cagnotte
-              tombe à zéro, la partie s&apos;arrête net et personne ne récupère rien.
+              À la fin du temps, la cagnotte est partagée au prorata de ce que chacun a mis au
+              départ. Si elle tombe à zéro, la partie s&apos;arrête net et personne ne récupère
+              rien.
             </p>
             <p className="text-tx-muted">
-              Ce n&apos;est pas une machine à sous : sur 5 minutes la cagnotte finit en moyenne un
-              peu sous la mise, et plus la partie est longue, plus elle peut tout perdre.
+              Les jeux gardent leur redistribution habituelle, entre 93 % et 98 %. La cagnotte
+              s&apos;érode donc doucement d&apos;elle-même : c&apos;est une bonne série qui la fait
+              monter, pas le temps qui passe.
             </p>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {SYNDICATE_LADDER.map((t) => (
-                <span key={t.multiplier} className="px-2 py-1 rounded-lg border-2 border-brand-border bg-brand-inner text-[10px] font-bold tabular-nums">
-                  {Math.round(t.chance * 100)}% → ×{t.multiplier}
-                </span>
-              ))}
-            </div>
           </div>
         )}
 
@@ -303,7 +308,7 @@ export default function CagnottePage() {
                   </div>
                   <div className="text-[11px] text-tx-muted mt-2 tabular-nums">
                     {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')} restantes
-                    {lastRound && ` · manche ${lastRound.idx}/${syn.rounds}`}
+                    {' · '}vous jouez tous avec cet argent
                   </div>
                 </>
               )}
@@ -316,31 +321,60 @@ export default function CagnottePage() {
               )}
             </div>
 
-            {running && state?.rounds?.length ? (
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-3">
-                <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">
-                  Dernières manches
+            {running && (
+              <>
+                <div className="rounded-2xl border-4 border-accent-primary bg-accent-primary/10 p-3 text-center">
+                  <div className="font-display font-black text-sm text-accent-primary">
+                    Choisis un jeu et lance-toi
+                  </div>
+                  <div className="text-[11px] text-tx-secondary mt-0.5">
+                    Ton argent à toi ({fmt(walletBalance)} ₶) est mis de côté jusqu&apos;à la fin.
+                  </div>
                 </div>
-                <div className="flex gap-1.5 overflow-x-auto pb-1">
-                  {state.rounds.slice(-14).map((r: any) => (
-                    <div
-                      key={r.idx}
-                      className={cn(
-                        'shrink-0 w-14 rounded-lg border-2 py-1.5 text-center',
-                        Number(r.multiplier) >= 1
-                          ? 'border-accent-success/50 bg-accent-success/10 text-accent-success'
-                          : 'border-accent-secondary/50 bg-accent-secondary/10 text-accent-secondary'
-                      )}
-                    >
-                      <div className="font-display font-black text-[13px] tabular-nums">
-                        ×{Number(r.multiplier).toFixed(2)}
-                      </div>
-                      <div className="text-[8px] font-bold opacity-60 tabular-nums">#{r.idx}</div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                  {CASINO_GAMES.map((game) => {
+                    const Icon = game.icon;
+                    return (
+                      <Link
+                        key={game.slug}
+                        href={`/casino/${game.slug}`}
+                        prefetch
+                        onClick={() => sfx.click()}
+                        className="group rounded-xl border-2 border-brand-border bg-brand-card p-2 flex flex-col items-center justify-center gap-1 text-center hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none"
+                      >
+                        <Icon className="h-5 w-5 text-accent-primary" />
+                        <span className="font-display font-black text-[10px] leading-tight">
+                          {game.name.replace('Frenly ', '')}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                {state?.feed?.length ? (
+                  <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-3">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">
+                      Ce que fait le groupe
                     </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                      {[...state.feed].reverse().map((f: any, i: number) => (
+                        <div key={`${f.at}-${i}`} className="flex items-center gap-2 text-[11px]">
+                          <span className="font-bold truncate flex-1 min-w-0">{f.pseudo}</span>
+                          <span className="text-tx-muted truncate shrink-0">{f.game}</span>
+                          <span className={cn(
+                            'font-display font-black tabular-nums shrink-0 w-20 text-right',
+                            f.amount >= 0 ? 'text-accent-success' : 'text-accent-secondary'
+                          )}>
+                            {f.amount >= 0 ? '+' : ''}{fmt(f.amount)} ₶
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            )}
 
             <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-4">
               <div className="flex items-center gap-2 mb-3">

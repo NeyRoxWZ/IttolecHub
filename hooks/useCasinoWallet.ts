@@ -68,8 +68,21 @@ const EMPTY_STATS: CasinoStats = {
  * open. Now the cached value renders instantly and we only revalidate in the
  * background.
  */
+/** The run this player is locked into, when there is one. */
+export interface SyndicateLive {
+  id: string;
+  code: string;
+  pot: number;
+  seedPot: number;
+  endsAt: string;
+}
+
 interface WalletSnapshot {
+  /** During a group run this is the shared pot, not the player's own coins. */
   balance: number;
+  /** Their own coins, untouched while a run is on. */
+  walletBalance: number;
+  syndicate: SyndicateLive | null;
   history: CasinoTransaction[];
   stats: CasinoStats;
   effects: EffectMap;
@@ -78,6 +91,8 @@ interface WalletSnapshot {
 
 let snapshot: WalletSnapshot = {
   balance: CASINO_STARTING_BALANCE,
+  walletBalance: CASINO_STARTING_BALANCE,
+  syndicate: null,
   history: [],
   stats: EMPTY_STATS,
   effects: {},
@@ -259,6 +274,8 @@ export function useCasinoWallet() {
         const data = await res.json();
         setSnapshot({
           balance: data.balance,
+          walletBalance: data.walletBalance ?? data.balance,
+          syndicate: data.syndicate ?? null,
           history: data.history,
           stats: data.stats ?? EMPTY_STATS,
           effects: data.effects ?? {},
@@ -276,7 +293,7 @@ export function useCasinoWallet() {
         ].slice(0, 50);
         saveLocalWallet(w);
       }
-      setSnapshot({ balance: w.balance, history: w.history, stats: EMPTY_STATS, effects: {}, isLoaded: true });
+      setSnapshot({ balance: w.balance, walletBalance: w.balance, syndicate: null, history: w.history, stats: EMPTY_STATS, effects: {}, isLoaded: true });
     }
   }, [user]);
 
@@ -303,11 +320,31 @@ export function useCasinoWallet() {
     const channel = supabase
       .channel(`casino_wallet:${user.id}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'casino_wallets', filter: `user_id=eq.${user.id}` }, (payload) => {
-        setSnapshot({ balance: (payload.new as any).balance });
+        const own = (payload.new as any).balance;
+        setSnapshot(snapshot.syndicate ? { walletBalance: own } : { balance: own, walletBalance: own });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
+
+  // The pot is one number several people are spending at once, so it has to
+  // come from the table rather than from this player's own requests.
+  const synId = store.syndicate?.id;
+  useEffect(() => {
+    if (!synId) return;
+    const channel = supabase
+      .channel(`casino_syndicate:${synId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'casino_syndicate', filter: `id=eq.${synId}` }, (payload) => {
+        const row = payload.new as any;
+        if (row.status !== 'running') { void fetchWallet(); return; }
+        setSnapshot({
+          balance: Number(row.pot),
+          syndicate: { ...snapshot.syndicate!, pot: Number(row.pot) },
+        });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [synId, fetchWallet]);
 
   // A "high roller" item widens the cap; the server enforces the same rule.
   const betPct = store.effects.max_bet_pct?.magnitude;
@@ -503,6 +540,8 @@ export function useCasinoWallet() {
 
   return {
     balance: store.balance,
+    walletBalance: store.walletBalance,
+    syndicate: store.syndicate,
     history: store.history,
     stats: store.stats,
     effects: store.effects,

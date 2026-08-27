@@ -5,6 +5,8 @@ import { timedWinBonus } from './events';
 import { loadEffects, consumeEffects } from './effects.server';
 import { effectiveMaxBet } from './settleBet.server';
 import { recordWager, recordSettlement, type SettlementResult } from './metaProgression.server';
+import { loadBankroll, applyDelta } from './bankroll.server';
+import { endDrainedSyndicate } from './syndicate.server';
 import { advancePass, type PassProgress } from './pass.server';
 import { pushLive } from './live.server';
 import { PASS_XP } from './pass';
@@ -26,23 +28,20 @@ export async function startRound({ userId, gameSlug, amount, initialState }: Sta
   if (!userId) return { ok: false as const, status: 400, error: 'user_id requis' };
   if (!Number.isInteger(amount) || amount < CASINO_MIN_BET) return { ok: false as const, status: 400, error: 'Mise invalide' };
 
-  const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
-  if (!wallet) return { ok: false as const, status: 404, error: 'Portefeuille introuvable' };
+  const bank = await loadBankroll(userId);
+  if (!bank) return { ok: false as const, status: 404, error: 'Portefeuille introuvable' };
 
   const effects = await loadEffects(userId);
-  const maxBet = effectiveMaxBet(wallet.balance, effects);
-  if (amount > wallet.balance) return { ok: false as const, status: 400, error: 'Solde insuffisant' };
+  const pooled = bank.kind === 'syndicate';
+  const maxBet = effectiveMaxBet(bank.balance, effects);
+  if (amount > bank.balance) {
+    return { ok: false as const, status: 400, error: pooled ? 'La cagnotte est trop basse' : 'Solde insuffisant' };
+  }
   if (amount > maxBet) return { ok: false as const, status: 400, error: `Mise max: ${maxBet} ₶` };
 
-  const newBalance = wallet.balance - amount;
-  const { data: updatedWallet, error: walletError } = await supabase
-    .from('casino_wallets')
-    .update({ balance: newBalance, updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .eq('balance', wallet.balance)
-    .select()
-    .maybeSingle();
-  if (walletError || !updatedWallet) return { ok: false as const, status: 409, error: 'Conflit de mise à jour, réessayez.' };
+  const staked = await applyDelta(bank, userId, -amount, bank.balance);
+  if (!staked.ok) return { ok: false as const, status: 409, error: 'Conflit de mise à jour, réessayez.' };
+  const newBalance = staked.newBalance;
 
   const { data: round, error: roundError } = await supabase
     .from('casino_rounds')
@@ -52,7 +51,7 @@ export async function startRound({ userId, gameSlug, amount, initialState }: Sta
 
   if (roundError || !round) {
     // Refund — round creation failed after we already took the bet.
-    await supabase.from('casino_wallets').update({ balance: wallet.balance }).eq('user_id', userId);
+    await applyDelta(bank, userId, amount, newBalance);
     return { ok: false as const, status: 500, error: 'Impossible de démarrer la partie.' };
   }
 
@@ -72,22 +71,21 @@ export async function getActiveRound(userId: string, roundId: string, gameSlug: 
   return { ok: true as const, round };
 }
 
-// Blackjack "double down": take an extra bet equal to the original, same
-// optimistic-lock pattern as everywhere else.
+// Blackjack "double down": take an extra bet equal to the original, from
+// whichever bankroll is paying for this round.
 export async function doubleBet(userId: string, roundId: string, gameSlug: string, currentAmount: number) {
-  const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
-  if (!wallet) return { ok: false as const, status: 404, error: 'Portefeuille introuvable' };
-  if (wallet.balance < currentAmount) return { ok: false as const, status: 400, error: 'Solde insuffisant pour doubler.' };
+  const bank = await loadBankroll(userId);
+  if (!bank) return { ok: false as const, status: 404, error: 'Portefeuille introuvable' };
+  if (bank.balance < currentAmount) {
+    return {
+      ok: false as const, status: 400,
+      error: bank.kind === 'syndicate' ? 'La cagnotte est trop basse pour doubler.' : 'Solde insuffisant pour doubler.',
+    };
+  }
 
-  const newBalance = wallet.balance - currentAmount;
-  const { data: updated, error } = await supabase
-    .from('casino_wallets')
-    .update({ balance: newBalance, updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .eq('balance', wallet.balance)
-    .select()
-    .maybeSingle();
-  if (error || !updated) return { ok: false as const, status: 409, error: 'Conflit de mise à jour, réessayez.' };
+  const staked = await applyDelta(bank, userId, -currentAmount, bank.balance);
+  if (!staked.ok) return { ok: false as const, status: 409, error: 'Conflit de mise à jour, réessayez.' };
+  const newBalance = staked.newBalance;
 
   const newAmount = currentAmount * 2;
   await supabase.from('casino_rounds').update({ amount: newAmount, updated_at: new Date().toISOString() }).eq('id', roundId);
@@ -104,16 +102,17 @@ export async function updateRoundState(roundId: string, state: any, multiplier: 
 
 export async function bustRound(userId: string, roundId: string, gameSlug: string, amount: number): Promise<SettlementResult> {
   await supabase.from('casino_rounds').update({ status: 'busted', updated_at: new Date().toISOString() }).eq('id', roundId);
-  const { data: wallet } = await supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle();
-  let balance = wallet?.balance ?? 0;
+  const bank = await loadBankroll(userId);
+  const pooled = bank?.kind === 'syndicate';
+  let balance = bank?.balance ?? 0;
 
   // Loss insurance hands part of the stake back before the settlement is logged.
   const effects = await loadEffects(userId);
-  if (effects.loss_refund) {
+  if (effects.loss_refund && bank) {
     const refunded = Math.round(amount * effects.loss_refund.magnitude);
     if (refunded > 0) {
-      balance += refunded;
-      await supabase.from('casino_wallets').update({ balance, updated_at: new Date().toISOString() }).eq('user_id', userId);
+      const back = await applyDelta(bank, userId, refunded, balance);
+      if (back.ok) balance = back.newBalance;
       await supabase.from('casino_transactions').insert({
         user_id: userId, game_slug: gameSlug, type: 'bonus', amount: refunded,
         balance_after: balance, meta: { kind: 'loss_refund', roundId },
@@ -123,16 +122,18 @@ export async function bustRound(userId: string, roundId: string, gameSlug: strin
   }
 
   const [progression] = await Promise.all([
-    recordSettlement(userId, gameSlug, { amount, payout: 0, multiplier: 0, baseMultiplier: 0, newBalance: balance, effects }),
+    recordSettlement(userId, gameSlug, { amount, payout: 0, multiplier: 0, baseMultiplier: 0, newBalance: balance, effects, pooled }),
     advancePass(userId, PASS_XP.bet),
     pushLive(userId, gameSlug, -amount, 0),
   ]);
+  if (pooled && balance <= 0) await endDrainedSyndicate(bank!.syndicateId!);
   return progression;
 }
 
 export async function cashoutRound(userId: string, roundId: string, amount: number, baseMultiplier: number, gameSlug: string) {
-  const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
-  if (!wallet) return { ok: false as const, status: 404, error: 'Portefeuille introuvable' };
+  const bank = await loadBankroll(userId);
+  if (!bank) return { ok: false as const, status: 404, error: 'Portefeuille introuvable' };
+  const wallet = bank.wallet;
 
   // Same rule as the instant games: bonuses lift the profit, never the stake.
   const effects = await loadEffects(userId);
@@ -149,15 +150,9 @@ export async function cashoutRound(userId: string, roundId: string, amount: numb
     : baseMultiplier;
   const payout = Math.round(amount * multiplier);
 
-  const newBalance = wallet.balance + payout;
-  const { data: updated, error } = await supabase
-    .from('casino_wallets')
-    .update({ balance: newBalance, updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .eq('balance', wallet.balance)
-    .select()
-    .maybeSingle();
-  if (error || !updated) return { ok: false as const, status: 409, error: 'Conflit de mise à jour, réessayez.' };
+  const paid = await applyDelta(bank, userId, payout, bank.balance);
+  if (!paid.ok) return { ok: false as const, status: 409, error: 'Conflit de mise à jour, réessayez.' };
+  const newBalance = paid.newBalance;
 
   await supabase.from('casino_rounds').update({ status: 'cashed_out', multiplier, updated_at: new Date().toISOString() }).eq('id', roundId);
   await supabase.from('casino_transactions').insert({
@@ -167,7 +162,7 @@ export async function cashoutRound(userId: string, roundId: string, amount: numb
 
   await consumeEffects(userId, effects, used);
   const [progression, pass] = await Promise.all([
-    recordSettlement(userId, gameSlug, { amount, payout, multiplier, baseMultiplier, newBalance, effects }),
+    recordSettlement(userId, gameSlug, { amount, payout, multiplier, baseMultiplier, newBalance, effects, pooled: bank.kind === 'syndicate' }),
     advancePass(userId, PASS_XP.bet + (baseMultiplier > 1 ? PASS_XP.win : 0)),
     pushLive(userId, gameSlug, payout - amount, multiplier),
   ]);

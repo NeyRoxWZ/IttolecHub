@@ -1,30 +1,22 @@
 import { supabase } from '@/lib/supabase/server';
 import {
-  SYNDICATE_MIN_PLAYERS, SYNDICATE_MAX_PLAYERS, SYNDICATE_ROUND_MS,
+  SYNDICATE_MIN_PLAYERS, SYNDICATE_MAX_PLAYERS,
   SYNDICATE_MIN_BUY_IN, SYNDICATE_MAX_BUY_IN, SYNDICATE_DURATIONS,
-  roundsFor, rollSyndicateRound, memberPayout, generateCode,
+  memberPayout, generateCode,
 } from './syndicate';
 
 /**
  * The syndicate, server side.
  *
- * There is no scheduled job anywhere in this casino, so a running pot does not
- * advance on its own: whoever reads the state plays out every round the clock
- * says should have happened by now. Each round is drawn from a seed made of
- * the syndicate id and the round index, so two players catching up at the same
- * instant compute the same sequence and the writes are idempotent.
+ * The pot is a shared bankroll, not a machine that plays itself: while the run
+ * is on, every member's bets in the real games are paid out of it and back
+ * into it (see bankroll.server). Nothing here moves money during the run — it
+ * only decides when the run is over and how the remains are split.
+ *
+ * There is no scheduled job anywhere in this casino, so the end of a run is
+ * noticed rather than triggered: whoever reads the state closes it if the
+ * clock has passed, and a bet that empties the pot closes it on the spot.
  */
-
-function roundRoll(syndicateId: string, idx: number): number {
-  const seed = `${syndicateId}:${idx}`;
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  h ^= h >>> 13; h = Math.imul(h, 1274126177); h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
-}
 
 type Row = Record<string, any>;
 
@@ -45,46 +37,15 @@ async function membersOf(syndicateId: string): Promise<Row[]> {
 async function catchUp(syn: Row): Promise<Row> {
   if (syn.status !== 'running') return syn;
 
-  const startedAt = new Date(syn.started_at).getTime();
-  const elapsed = Date.now() - startedAt;
-  const due = Math.min(syn.rounds, Math.floor(elapsed / SYNDICATE_ROUND_MS));
+  const over = Number(syn.pot) <= 0 || new Date(syn.ends_at) <= new Date();
+  return over ? settle(syn) : syn;
+}
 
-  const { data: last } = await supabase.from('casino_syndicate_rounds')
-    .select('idx, pot_after').eq('syndicate_id', syn.id)
-    .order('idx', { ascending: false }).limit(1).maybeSingle();
-
-  let idx = last ? Number(last.idx) : 0;
-  let pot = last ? Number(last.pot_after) : Number(syn.seed_pot);
-  const seedPot = Number(syn.seed_pot);
-
-  const pending: Row[] = [];
-  let bust = false;
-
-  while (idx < due && !bust) {
-    idx += 1;
-    const out = rollSyndicateRound(pot, seedPot, roundRoll(syn.id, idx));
-    pot = out.pot;
-    bust = out.bust;
-    pending.push({
-      syndicate_id: syn.id, idx,
-      stake: out.stake, payout: out.payout,
-      multiplier: out.multiplier, pot_after: out.pot,
-    });
-  }
-
-  if (pending.length) {
-    // Another reader may have written the same rounds a moment ago; the unique
-    // (syndicate_id, idx) makes that a no-op rather than a double count.
-    await supabase.from('casino_syndicate_rounds')
-      .upsert(pending, { onConflict: 'syndicate_id,idx', ignoreDuplicates: true });
-    await supabase.from('casino_syndicate').update({ pot }).eq('id', syn.id);
-    syn = { ...syn, pot };
-  }
-
-  const finished = bust || idx >= syn.rounds || new Date(syn.ends_at) <= new Date();
-  if (finished) return settle({ ...syn, pot });
-
-  return syn;
+/** Called the instant a bet empties the pot, so the run stops there. */
+export async function endDrainedSyndicate(syndicateId: string): Promise<void> {
+  const { data } = await supabase.from('casino_syndicate')
+    .select('*').eq('id', syndicateId).maybeSingle();
+  if (data && data.status === 'running') await settle(data);
 }
 
 /** Pays every member their share of what is left and closes the run. */
@@ -136,39 +97,51 @@ async function settle(syn: Row): Promise<Row> {
 export interface SyndicateState {
   syndicate: Row | null;
   members: Row[];
-  rounds: Row[];
+  /** What members have been doing with the pot, newest last. */
+  feed: Row[];
   you: Row | null;
 }
 
 async function stateOf(syn: Row | null, userId: string | null): Promise<SyndicateState> {
-  if (!syn) return { syndicate: null, members: [], rounds: [], you: null };
+  if (!syn) return { syndicate: null, members: [], feed: [], you: null };
 
   const fresh = await catchUp(syn);
   const members = await membersOf(fresh.id);
 
-  // Only the tail is worth sending: the ticker shows the last handful and the
-  // full list of a 20-minute run is 300 rows.
-  const { data: rounds } = await supabase.from('casino_syndicate_rounds')
-    .select('idx, stake, payout, multiplier, pot_after')
-    .eq('syndicate_id', fresh.id)
-    .order('idx', { ascending: false }).limit(30);
+  // The run's activity is just the members' own bets, which the ledger
+  // already records — no second copy of every round to keep in step.
+  const since = fresh.started_at || fresh.created_at;
+  const byUser = new Map(members.map((m) => [m.user_id, m.pseudo]));
+  const { data: rows } = await supabase.from('casino_transactions')
+    .select('user_id, game_slug, type, amount, created_at')
+    .in('user_id', members.map((m) => m.user_id))
+    .in('type', ['bet', 'win', 'push', 'jackpot'])
+    .gte('created_at', since)
+    .order('created_at', { ascending: false }).limit(25);
+
+  const feed = (rows || []).reverse().map((r) => ({
+    pseudo: byUser.get(r.user_id) || 'Joueur',
+    game: r.game_slug,
+    amount: Number(r.amount),
+    at: r.created_at,
+  }));
 
   return {
     syndicate: fresh,
     members,
-    rounds: (rounds || []).reverse(),
+    feed,
     you: userId ? members.find((m) => m.user_id === userId) || null : null,
   };
 }
 
 /** The run this player is in, whatever its state, or nothing. */
 export async function mySyndicate(userId: string | null): Promise<SyndicateState> {
-  if (!userId) return { syndicate: null, members: [], rounds: [], you: null };
+  if (!userId) return { syndicate: null, members: [], feed: [], you: null };
 
   const { data: membership } = await supabase.from('casino_syndicate_members')
     .select('syndicate_id').eq('user_id', userId);
   const ids = (membership || []).map((m) => m.syndicate_id);
-  if (!ids.length) return { syndicate: null, members: [], rounds: [], you: null };
+  if (!ids.length) return { syndicate: null, members: [], feed: [], you: null };
 
   const { data: syn } = await supabase.from('casino_syndicate')
     .select('*').in('id', ids).in('status', ['open', 'running'])
@@ -253,7 +226,7 @@ export async function createSyndicate(
   const { data: syn, error } = await supabase.from('casino_syndicate').insert({
     code, host_id: userId, status: 'open',
     duration_min: durationMin, min_buy_in: min,
-    seed_pot: stake, pot: stake, rounds: roundsFor(durationMin),
+    seed_pot: stake, pot: stake, rounds: 0,
   }).select().maybeSingle();
 
   if (error || !syn) return { ok: false, error: 'Création impossible', status: 500 };

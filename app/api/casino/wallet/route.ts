@@ -5,6 +5,7 @@ import { levelFromXp } from '@/lib/casino/progression';
 import { loadEffects } from '@/lib/casino/effects.server';
 import { ensurePass } from '@/lib/casino/pass.server';
 import { tierFromPassXp } from '@/lib/casino/pass';
+import { runningSyndicate } from '@/lib/casino/bankroll.server';
 
 function isSameUtcDay(a: Date, b: Date): boolean {
   return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
@@ -59,7 +60,9 @@ export async function GET(request: Request) {
     const now = new Date();
     const xp = Number(wallet.xp || 0);
     const { level, intoLevel, needed } = levelFromXp(xp);
-    const [effects, pass] = await Promise.all([loadEffects(userId), ensurePass(userId)]);
+    const [effects, pass, syn] = await Promise.all([
+      loadEffects(userId), ensurePass(userId), runningSyndicate(userId),
+    ]);
 
     // The visible level is the pass tier: one progression, reset every Monday.
     const passState = tierFromPassXp(pass?.xp ?? 0);
@@ -67,8 +70,15 @@ export async function GET(request: Request) {
     const dailyClaimedToday = !!wallet.last_daily_claim_at && isSameUtcDay(new Date(wallet.last_daily_claim_at), now);
     const wheelClaimedToday = !!wallet.last_wheel_claim_at && isSameUtcDay(new Date(wallet.last_wheel_claim_at), now);
 
+    // While a group run is on, the number every screen bets against is the
+    // pot, not the player's own coins. Swapping it here is what puts all
+    // twenty games into pooled mode without any of them knowing about it.
     return NextResponse.json({
-      balance: wallet.balance,
+      balance: syn ? Number(syn.pot) : wallet.balance,
+      walletBalance: wallet.balance,
+      syndicate: syn
+        ? { id: syn.id, code: syn.code, pot: Number(syn.pot), seedPot: Number(syn.seed_pot), endsAt: syn.ends_at }
+        : null,
       history: history || [],
       stats: {
         totalWagered: Number(wallet.total_wagered || 0),

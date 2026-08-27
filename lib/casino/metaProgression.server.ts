@@ -184,6 +184,14 @@ export interface SettlementInput {
   effects?: EffectMap;
   /** Stake to fold into total_wagered here, instead of a separate round-trip. */
   wagered?: number;
+  /**
+   * The bet was played with a syndicate pot, not this player's wallet.
+   *
+   * `newBalance` is then the pot, which must never be written to the wallet,
+   * and any coins earned here (level-up bonus, jackpot) belong to the pot too.
+   * They come back as `owedCoins` for the caller to pay into it.
+   */
+  pooled?: boolean;
 }
 
 export interface SettlementResult {
@@ -196,11 +204,14 @@ export interface SettlementResult {
   missionsCompleted: { id: string; label: string }[];
   streak: number;
   streakSaved: boolean;
+  /** Coins earned during a pooled bet, to be paid into the pot by the caller. */
+  owedCoins: number;
 }
 
 const EMPTY_RESULT: SettlementResult = {
   newAchievements: [], jackpotWon: null, xpGained: 0, level: 1,
   levelsGained: 0, levelReward: 0, missionsCompleted: [], streak: 0, streakSaved: false,
+  owedCoins: 0,
 };
 
 export async function recordSettlement(userId: string, gameSlug: string, input: SettlementInput): Promise<SettlementResult> {
@@ -249,7 +260,9 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
   const lossStreak = isLoss && !streakSaved ? Number(wallet.current_loss_streak || 0) + 1 : 0;
   const worstStreak = Math.max(Number(wallet.worst_streak || 0), lossStreak);
   const newBiggest = Math.max(Number(wallet.biggest_multiplier || 0), base);
-  let balance = input.newBalance + levelReward;
+  const pooled = !!input.pooled;
+  let owedCoins = pooled ? levelReward : 0;
+  let balance = pooled ? Number(wallet.balance) : input.newBalance + levelReward;
   const newAllTimeBest = Math.max(Number(wallet.all_time_best_balance || 250), balance);
 
   const stats: WalletStats = {
@@ -282,6 +295,8 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
   // round-trips the player sat through before the animation could even start.
   const [missionsCompleted, newAchievements] = await Promise.all([
     supabase.from('casino_wallets').update({
+      // In pooled play `balance` is the wallet's own untouched value, so this
+      // rewrites it unchanged rather than needing a second shape of update.
       balance,
       current_streak: newStreak,
       best_streak: newBestStreak,
@@ -341,13 +356,22 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
         amount: JACKPOT_SEED, last_winner_user_id: userId, last_won_amount: pool, last_won_at: new Date().toISOString(),
       }).eq('id', 1);
 
-      const { data: fresh } = await supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle();
-      if (fresh) {
-        balance = fresh.balance + pool;
-        await supabase.from('casino_wallets').update({ balance }).eq('user_id', userId);
-        await supabase.from('casino_transactions').insert({ user_id: userId, game_slug: gameSlug, type: 'jackpot', amount: pool, balance_after: balance });
-
+      if (pooled) {
+        owedCoins += pool;
+        await supabase.from('casino_transactions').insert({
+          user_id: userId, game_slug: gameSlug, type: 'jackpot', amount: pool,
+          balance_after: balance, meta: { kind: 'jackpot', pooled: true },
+        });
         await pushFeed(userId, gameSlug, pool, 0, true);
+      } else {
+        const { data: fresh } = await supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle();
+        if (fresh) {
+          balance = fresh.balance + pool;
+          await supabase.from('casino_wallets').update({ balance }).eq('user_id', userId);
+          await supabase.from('casino_transactions').insert({ user_id: userId, game_slug: gameSlug, type: 'jackpot', amount: pool, balance_after: balance });
+
+          await pushFeed(userId, gameSlug, pool, 0, true);
+        }
       }
     } else {
       await supabase.from('casino_jackpot').update({ amount: pool }).eq('id', 1);
@@ -355,6 +379,7 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
   }
 
   return {
+    owedCoins,
     newAchievements,
     jackpotWon,
     xpGained,
