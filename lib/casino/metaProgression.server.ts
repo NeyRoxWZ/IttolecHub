@@ -11,6 +11,7 @@ import {
   type MissionDef, type MissionScope,
 } from './missions';
 import { consumeEffects, type EffectMap } from './effects.server';
+import { advanceCommunity } from './community.server';
 
 /* ------------------------------------------------------------------ */
 /* Wager tracking                                                      */
@@ -312,6 +313,12 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
       ? pushFeed(userId, gameSlug, input.payout, Math.round(base * 100) / 100, false)
       : null,
     checkAchievements(userId, stats),
+    advanceCommunity(userId, {
+      wagered: input.wagered || 0,
+      plays: 1,
+      won: input.payout > 0 ? input.payout : 0,
+      crates: 0,
+    }),
   ]).then(([, , , missions, , achievements]) => [missions, achievements] as const);
 
   /* ---- progressive jackpot ---- */

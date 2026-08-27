@@ -11,6 +11,7 @@ import { grantEffect } from './effects.server';
 import {
   rerollMissions, completeBestMission, checkAchievements, statsFromWallet, withCollectionStats,
 } from './metaProgression.server';
+import { advanceCommunity } from './community.server';
 
 /**
  * Items are bought into an inventory and used from it, rather than firing the
@@ -138,6 +139,8 @@ export async function openCrates(
   }
 
   if (coins > 0) await credit(userId, coins, 'crate');
+
+  await advanceCommunity(userId, { wagered: 0, plays: 0, won: 0, crates: opened });
 
   const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
   if (wallet) {

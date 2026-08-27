@@ -8,6 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
 import { MISSION_SCOPES, SCOPE_LABEL, SCOPE_HINT, type MissionScope } from '@/lib/casino/missions';
+import CommunityQuestPanel, { useCommunity } from './CommunityQuest';
 import { celebrate } from '@/lib/casino/celebrate';
 
 export interface MissionView {
@@ -58,7 +59,8 @@ export default function MissionsModal({
 }) {
   const { user } = useAuth();
   const [busy, setBusy] = useState<string | null>(null);
-  const [tab, setTab] = useState<MissionScope>('jour');
+  const [tab, setTab] = useState<MissionScope | 'commun'>('jour');
+  const { state: community } = useCommunity();
 
   // Open on whichever category has something to collect.
   useEffect(() => {
@@ -113,7 +115,7 @@ export default function MissionsModal({
 
         {missions.length > 0 && (
           <>
-            <div className="grid grid-cols-3 gap-1.5 mb-4">
+            <div className="grid grid-cols-4 gap-1.5 mb-4">
               {MISSION_SCOPES.map((scope) => {
                 const group = missions.filter((m) => m.scope === scope);
                 const ready = group.filter((m) => m.complete && !m.claimed).length;
@@ -140,12 +142,37 @@ export default function MissionsModal({
                   </button>
                 );
               })}
+
+              {/* The shared goal sits with the others: it is a goal too. */}
+              <button
+                onClick={() => { sfx.click(); setTab('commun'); }}
+                className={cn(
+                  'relative h-12 rounded-xl border-2 px-2 flex flex-col items-center justify-center focus:outline-none transition-colors',
+                  tab === 'commun'
+                    ? 'border-accent-primary bg-accent-primary/10 text-accent-primary'
+                    : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
+                )}
+              >
+                <span className="font-display font-black text-[11px] leading-none">Commun</span>
+                <span className="text-[9px] font-bold text-tx-muted mt-0.5">
+                  {community ? `${Math.min(100, Math.round((community.progress / community.target) * 100))}%` : '···'}
+                </span>
+                {community?.completed && community.you && !community.you.claimed && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent-secondary text-white text-[10px] font-black flex items-center justify-center">
+                    1
+                  </span>
+                )}
+              </button>
             </div>
 
-            <p className="text-[10px] text-tx-muted mb-2">{SCOPE_HINT[tab]}</p>
+            {tab === 'commun' ? (
+              <CommunityQuestPanel />
+            ) : (
+              <>
+                <p className="text-[10px] text-tx-muted mb-2">{SCOPE_HINT[tab]}</p>
 
-            <div className="space-y-2.5">
-              {missions.filter((m) => m.scope === tab).map((m) => {
+                <div className="space-y-2.5">
+                  {missions.filter((m) => m.scope === tab).map((m) => {
                 const pct = Math.min(100, (m.value / m.target) * 100);
                 const key = `${m.scope}:${m.slot}`;
                 return (
@@ -192,8 +219,10 @@ export default function MissionsModal({
                     </div>
                   </div>
                 );
-              })}
-            </div>
+                  })}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

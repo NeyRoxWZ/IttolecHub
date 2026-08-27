@@ -26,6 +26,7 @@ import PrestigeModal from './_components/PrestigeModal';
 import CasinoMenu, { type MenuEntry } from './_components/CasinoMenu';
 import CasinoControls from './_components/CasinoControls';
 import ActiveEffectsBar from './_components/ActiveEffectsBar';
+import CommunityQuestPanel from './_components/CommunityQuest';
 import { secondsUntilRotation } from '@/lib/casino/shop';
 import { secondsUntilReset } from '@/lib/casino/pass';
 import DailyWheelModal from './_components/DailyWheelModal';
@@ -484,6 +485,8 @@ export default function CasinoHub() {
           </div>
 
           <ActiveEffectsBar />
+
+          <CommunityQuestPanel compact />
         </div>
 
         {/* GAMES — 5×4 grid that fills the remaining height exactly, so the
