@@ -58,7 +58,7 @@ export function useCommunity() {
   return { state, reload: load };
 }
 
-export default function CommunityQuestPanel({ compact }: { compact?: boolean }) {
+export default function CommunityQuestPanel() {
   const { user } = useAuth();
   const { setBalance } = useCasinoWallet();
   const { state, reload } = useCommunity();
@@ -117,58 +117,54 @@ export default function CommunityQuestPanel({ compact }: { compact?: boolean }) 
         <span>{state.contributors} joueur{state.contributors > 1 ? 's' : ''}</span>
       </div>
 
-      {!compact && (
-        <>
-          {/* What the bar is actually worth. Without this the goal reads as a
-              chore: a big number to fill with no stated payoff. */}
-          <div className="mt-2.5 rounded-xl border-2 border-brand-border bg-brand-bg p-2.5">
-            <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted mb-1">
-              Si la barre se remplit
-            </div>
-            <div className="text-[11px] text-tx-secondary leading-relaxed">
-              <b className="text-accent-success tabular-nums">{state.quest.reward.toLocaleString('en-US')} ₶</b>
-              {' '}pour chaque joueur qui a participé, plus{' '}
-              <b className="text-accent-primary tabular-nums">{state.quest.pool.toLocaleString('en-US')} ₶</b>
-              {' '}partagés entre eux au prorata de ce que chacun a poussé.
-            </div>
-          </div>
+      {/* What the bar is actually worth. Without this the goal reads as a
+          chore: a big number to fill with no stated payoff. */}
+      <div className="mt-2.5 rounded-xl border-2 border-brand-border bg-brand-bg p-2.5">
+        <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted mb-1">
+          Si la barre se remplit
+        </div>
+        <div className="text-[11px] text-tx-secondary leading-relaxed">
+          <b className="text-accent-success tabular-nums">{state.quest.reward.toLocaleString('en-US')} ₶</b>
+          {' '}pour chaque joueur qui a participé, plus{' '}
+          <b className="text-accent-primary tabular-nums">{state.quest.pool.toLocaleString('en-US')} ₶</b>
+          {' '}partagés entre eux au prorata de ce que chacun a poussé.
+        </div>
+      </div>
 
-          {state.you && state.you.contribution > 0 && (
-            <div className="mt-2 text-[11px] text-tx-secondary">
-              Ta part : <b className="text-tx-base tabular-nums">{state.you.contribution.toLocaleString('en-US')}</b>
-              {' · '}
-              {state.completed
-                ? <>récompense <b className="text-accent-success tabular-nums">{state.you.reward.toLocaleString('en-US')} ₶</b></>
-                : <>gain estimé <b className="text-accent-primary tabular-nums">{state.you.reward.toLocaleString('en-US')} ₶</b></>}
-            </div>
-          )}
-
-          {state.top.length > 0 && (
-            <div className="mt-2.5">
-              <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted mb-1 flex items-center gap-1">
-                <Trophy className="h-3 w-3" /> Ceux qui poussent
-              </div>
-              <div className="space-y-0.5">
-                {state.top.slice(0, 5).map((t, i) => (
-                  <div key={t.pseudo} className="flex items-center gap-2 text-[11px]">
-                    <span className="w-4 text-tx-muted font-black">{i + 1}</span>
-                    <span className="truncate flex-1">{t.pseudo}</span>
-                    <span className="font-bold text-tx-secondary tabular-nums">
-                      {t.contribution.toLocaleString('en-US')}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <p className="text-[10px] text-tx-muted mt-2 leading-snug">
-            {state.completed
-              ? 'Objectif atteint. Tous ceux qui ont participé sont payés.'
-              : 'Personne ne peut le finir seul — chaque partie de chaque joueur fait monter la barre.'}
-          </p>
-        </>
+      {state.you && state.you.contribution > 0 && (
+        <div className="mt-2 text-[11px] text-tx-secondary">
+          Ta part : <b className="text-tx-base tabular-nums">{state.you.contribution.toLocaleString('en-US')}</b>
+          {' · '}
+          {state.completed
+            ? <>récompense <b className="text-accent-success tabular-nums">{state.you.reward.toLocaleString('en-US')} ₶</b></>
+            : <>gain estimé <b className="text-accent-primary tabular-nums">{state.you.reward.toLocaleString('en-US')} ₶</b></>}
+        </div>
       )}
+
+      {state.top.length > 0 && (
+        <div className="mt-2.5">
+          <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted mb-1 flex items-center gap-1">
+            <Trophy className="h-3 w-3" /> Ceux qui poussent
+          </div>
+          <div className="space-y-0.5">
+            {state.top.slice(0, 5).map((t, i) => (
+              <div key={t.pseudo} className="flex items-center gap-2 text-[11px]">
+                <span className="w-4 text-tx-muted font-black">{i + 1}</span>
+                <span className="truncate flex-1">{t.pseudo}</span>
+                <span className="font-bold text-tx-secondary tabular-nums">
+                  {t.contribution.toLocaleString('en-US')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="text-[10px] text-tx-muted mt-2 leading-snug">
+        {state.completed
+          ? 'Objectif atteint. Tous ceux qui ont participé sont payés.'
+          : 'Personne ne peut le finir seul — chaque partie de chaque joueur fait monter la barre.'}
+      </p>
 
       {canClaim && (
         <button
