@@ -9,6 +9,17 @@ import {
 import { tableBackground } from './CosmeticPreview';
 
 /**
+ * The quadrillage globals.css draws on the body, restated as shorthand layers.
+ *
+ * A table skin used to be assigned straight to `body.style.background`, and
+ * the shorthand replaces every layer — so equipping one silently deleted the
+ * grid the whole site is built on. The skin goes *under* these instead.
+ */
+const QUADRILLAGE =
+  'linear-gradient(to right, #262635 1px, transparent 1px) 0 0 / 32px 32px, ' +
+  'linear-gradient(to bottom, #262635 1px, transparent 1px) 0 0 / 32px 32px';
+
+/**
  * The general set, applied to the whole casino.
  *
  * Mounted once by the layout, so a sound pack works on the shop page and the
@@ -30,7 +41,7 @@ export default function CasinoSkin() {
 
       if (table && screensSkinned()) {
         root.style.setProperty('--casino-skin-bg', tableBackground(table));
-        document.body.style.background = tableBackground(table);
+        document.body.style.background = `${QUADRILLAGE}, ${tableBackground(table)}`;
         document.body.style.backgroundAttachment = 'fixed';
       } else {
         root.style.removeProperty('--casino-skin-bg');
