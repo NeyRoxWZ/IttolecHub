@@ -21,6 +21,7 @@ import CrateOpeningModal from '../_components/CrateOpeningModal';
 import InventoryPanel, { type InventoryState } from '../_components/InventoryPanel';
 import CasinoControls from '../_components/CasinoControls';
 import BalanceChip from '../_components/BalanceChip';
+import { refreshActiveEffects } from '@/hooks/useActiveEffects';
 
 const CATEGORY_META: Record<ItemCategory, { label: string; icon: any; tone: string }> = {
   protection: { label: 'Protection', icon: ShieldCheck, tone: 'text-accent-success border-accent-success/50' },

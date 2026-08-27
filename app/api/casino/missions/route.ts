@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import { ensureMissions } from '@/lib/casino/metaProgression.server';
-import { dayKey } from '@/lib/casino/missions';
+import { periodKey, MISSION_SCOPES, type MissionScope } from '@/lib/casino/missions';
 import { advancePass } from '@/lib/casino/pass.server';
-import { levelFromXp, levelUpReward } from '@/lib/casino/progression';
 import { PASS_XP } from '@/lib/casino/pass';
+import { levelFromXp, levelUpReward } from '@/lib/casino/progression';
 
 function serialise(rows: Awaited<ReturnType<typeof ensureMissions>>) {
   return rows.map((r) => ({
+    scope: r.scope,
     slot: r.slot,
     id: r.mission_id,
     label: r.def.label,
@@ -25,8 +26,13 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('user_id');
     if (!userId) return NextResponse.json({ error: 'user_id requis' }, { status: 400 });
+
     const rows = await ensureMissions(userId);
-    return NextResponse.json({ missions: serialise(rows), day: dayKey() });
+    return NextResponse.json({
+      missions: serialise(rows),
+      scopes: MISSION_SCOPES,
+      periods: Object.fromEntries(MISSION_SCOPES.map((s) => [s, periodKey(s)])),
+    });
   } catch (err) {
     console.error('Erreur GET missions:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });
@@ -39,10 +45,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     const userId: string = body?.user_id;
     const slot: number = body?.slot;
+    const scope: MissionScope = MISSION_SCOPES.includes(body?.scope) ? body.scope : 'jour';
     if (!userId || typeof slot !== 'number') return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 });
 
-    const rows = await ensureMissions(userId);
-    const row = rows.find((r) => r.slot === slot);
+    const rows = await ensureMissions(userId, [scope]);
+    const row = rows.find((r) => r.slot === slot && r.scope === scope);
     if (!row) return NextResponse.json({ error: 'Mission introuvable' }, { status: 404 });
     if (row.claimed) return NextResponse.json({ error: 'Déjà réclamée' }, { status: 400 });
     if (!row.complete) return NextResponse.json({ error: 'Mission non terminée' }, { status: 400 });
@@ -51,7 +58,8 @@ export async function POST(request: Request) {
     const { data: locked } = await supabase
       .from('casino_missions')
       .update({ claimed: true })
-      .eq('user_id', userId).eq('day_key', dayKey()).eq('slot', slot).eq('claimed', false)
+      .eq('user_id', userId).eq('scope', scope).eq('period_key', row.periodKey)
+      .eq('slot', slot).eq('claimed', false)
       .select().maybeSingle();
     if (!locked) return NextResponse.json({ error: 'Déjà réclamée' }, { status: 400 });
 
@@ -81,7 +89,7 @@ export async function POST(request: Request) {
     await supabase.from('casino_transactions').insert({
       user_id: userId, game_slug: 'casino', type: 'bonus',
       amount: row.def.reward, balance_after: newBalance,
-      meta: { kind: 'mission', mission: row.mission_id },
+      meta: { kind: 'mission', mission: row.mission_id, scope },
     });
 
     const pass = await advancePass(userId, PASS_XP.mission, 'activity');

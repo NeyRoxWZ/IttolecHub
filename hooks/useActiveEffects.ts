@@ -21,7 +21,9 @@ export interface ActiveEffect {
 export type EffectMap = Record<string, ActiveEffect>;
 
 let effects: EffectMap = {};
-let loaded = false;
+/** When the store was last filled, so a fresh page doesn't trust stale data. */
+let fetchedAt = 0;
+const STALE_AFTER_MS = 15_000;
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -40,7 +42,7 @@ export async function refreshActiveEffects(userId: string) {
   if (!res.ok) return;
   const data = await res.json();
   effects = data.effects || {};
-  loaded = true;
+  fetchedAt = Date.now();
   emit();
 }
 
@@ -67,7 +69,8 @@ export function useActiveEffects(): EffectMap {
   }, [user]);
 
   useEffect(() => {
-    if (!user || loaded) return;
+    if (!user) return;
+    if (Date.now() - fetchedAt < STALE_AFTER_MS) return;
     load();
   }, [user, load]);
 

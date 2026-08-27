@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import { celebrate } from '@/lib/casino/celebrate';
+import { refreshActiveEffects } from '@/hooks/useActiveEffects';
 import {
   spinWheel as localSpinWheel,
   resolveWheelBet,
@@ -286,7 +287,12 @@ export function useCasinoWallet() {
   const scheduleRevalidate = useCallback(() => {
     if (!user) return;
     if (revalidateTimer.current) clearTimeout(revalidateTimer.current);
-    revalidateTimer.current = setTimeout(() => { void fetchWallet(); }, 2500);
+    revalidateTimer.current = setTimeout(() => {
+      void fetchWallet();
+      // A bet burns uses off the active items, so their counters have to
+      // follow — nothing else was refreshing them.
+      void refreshActiveEffects(user.id);
+    }, 2500);
   }, [user, fetchWallet]);
 
   useEffect(() => () => { if (revalidateTimer.current) clearTimeout(revalidateTimer.current); }, []);

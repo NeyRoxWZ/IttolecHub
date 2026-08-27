@@ -10,6 +10,7 @@ import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { refreshCosmetics } from '@/hooks/useGameCosmetics';
+import { refreshActiveEffects } from '@/hooks/useActiveEffects';
 import {
   COSMETIC_GAME_ORDER, SLOT_LABEL, RARITY_COLOR, RARITY_LABEL, SOURCE_LABEL, GLOBAL_SLUG,
   THEMES, cosmeticsForGame, gameLabel, type Cosmetic, type CosmeticSlot,
@@ -79,6 +80,7 @@ export default function InventoryPage() {
         toast.success(name, { description: data.message });
       }
       void load();
+      void refreshActiveEffects(user.id);
     } finally {
       setBusy(null);
     }

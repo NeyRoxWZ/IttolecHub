@@ -6,8 +6,9 @@ import {
 import { cosmeticById } from './cosmetics';
 import { xpForWager, levelFromXp, levelUpReward, isFeedWorthy } from './progression';
 import {
-  pickDailyMissions, missionById, isMissionComplete, missionValue,
-  dayKey, gameBit, countBits, type MissionDef,
+  pickMissions, missionById, isMissionComplete, missionValue,
+  periodKey, gameBit, countBits, MISSION_SCOPES,
+  type MissionDef, type MissionScope,
 } from './missions';
 import { consumeEffects, type EffectMap } from './effects.server';
 
@@ -35,6 +36,8 @@ export async function recordWager(userId: string, amount: number) {
 /* ------------------------------------------------------------------ */
 
 export interface MissionRow {
+  scope: MissionScope;
+  periodKey: string;
   slot: number;
   mission_id: string;
   progress: number;
@@ -44,32 +47,55 @@ export interface MissionRow {
   complete: boolean;
 }
 
-/** Fetch today's missions, creating them on first access of the day. */
-export async function ensureMissions(userId: string): Promise<MissionRow[]> {
-  const day = dayKey();
-  let { data } = await supabase.from('casino_missions').select('*').eq('user_id', userId).eq('day_key', day);
+/**
+ * Today's, this week's and the standing missions, created on first access of
+ * each period. Three scopes run at once so there is always one in progress.
+ */
+export async function ensureMissions(userId: string, scopes: MissionScope[] = MISSION_SCOPES): Promise<MissionRow[]> {
+  const out: MissionRow[] = [];
 
-  if (!data || data.length === 0) {
-    const picked = pickDailyMissions(userId, day);
-    const rows = picked.map((m, slot) => ({ user_id: userId, day_key: day, slot, mission_id: m.id, progress: 0, claimed: false }));
-    await supabase.from('casino_missions').insert(rows);
-    const res = await supabase.from('casino_missions').select('*').eq('user_id', userId).eq('day_key', day);
-    data = res.data;
-  }
+  for (const scope of scopes) {
+    const period = periodKey(scope);
+    let { data } = await supabase.from('casino_missions')
+      .select('*').eq('user_id', userId).eq('scope', scope).eq('period_key', period);
 
-  return (data || [])
-    .map((r) => {
+    if (!data || data.length === 0) {
+      const picked = pickMissions(scope, userId, period);
+      await supabase.from('casino_missions').insert(picked.map((m, slot) => ({
+        user_id: userId,
+        scope,
+        period_key: period,
+        // The old column is still NOT NULL; a daily key keeps it satisfied.
+        day_key: period,
+        slot,
+        mission_id: m.id,
+        progress: 0,
+        claimed: false,
+      })));
+      const res = await supabase.from('casino_missions')
+        .select('*').eq('user_id', userId).eq('scope', scope).eq('period_key', period);
+      data = res.data;
+    }
+
+    for (const r of data || []) {
       const def = missionById(r.mission_id);
-      if (!def) return null;
+      if (!def) continue;
       const progress = Number(r.progress);
-      return {
-        slot: r.slot, mission_id: r.mission_id, progress, claimed: r.claimed, def,
+      out.push({
+        scope,
+        periodKey: period,
+        slot: r.slot,
+        mission_id: r.mission_id,
+        progress,
+        claimed: r.claimed,
+        def,
         value: missionValue(def, progress),
         complete: isMissionComplete(def, progress),
-      };
-    })
-    .filter((r): r is MissionRow => r !== null)
-    .sort((a, b) => a.slot - b.slot);
+      });
+    }
+  }
+
+  return out.sort((a, b) => MISSION_SCOPES.indexOf(a.scope) - MISSION_SCOPES.indexOf(b.scope) || a.slot - b.slot);
 }
 
 interface MissionUpdateInput {
@@ -79,11 +105,12 @@ interface MissionUpdateInput {
   won: boolean;
   baseMultiplier: number;
   newStreak: number;
+  /** Totals the standing missions measure against. */
+  totals?: { cratesOpened?: number; cosmetics?: number; passTier?: number; totalWagered?: number };
 }
 
 async function advanceMissions(userId: string, input: MissionUpdateInput): Promise<MissionDef[]> {
   const rows = await ensureMissions(userId);
-  const day = dayKey();
   const newlyComplete: MissionDef[] = [];
 
   for (const row of rows) {
@@ -91,18 +118,26 @@ async function advanceMissions(userId: string, input: MissionUpdateInput): Promi
     let next = row.progress;
 
     switch (row.def.kind) {
-      case 'wager_total': next += input.amount; break;
+      case 'wager_total':
+        // A standing wager goal reads the lifetime total, not a daily tally.
+        next = row.scope === 'carriere'
+          ? Math.max(next, input.totals?.totalWagered ?? 0)
+          : next + input.amount;
+        break;
       case 'play_count': next += 1; break;
       case 'win_count': if (input.won) next += 1; break;
       case 'win_total': if (input.payout > 0) next += input.payout; break;
       case 'streak_reach': next = Math.max(next, input.newStreak); break;
       case 'multiplier_reach': next = Math.max(next, Math.floor(input.baseMultiplier)); break;
       case 'distinct_games': next = row.progress | (1 << gameBit(input.gameSlug)); break;
+      case 'crates_opened': next = Math.max(next, input.totals?.cratesOpened ?? 0); break;
+      case 'cosmetics_owned': next = Math.max(next, input.totals?.cosmetics ?? 0); break;
+      case 'tiers_reached': next = Math.max(next, input.totals?.passTier ?? 0); break;
     }
 
     if (next === row.progress) continue;
     await supabase.from('casino_missions').update({ progress: next })
-      .eq('user_id', userId).eq('day_key', day).eq('slot', row.slot);
+      .eq('user_id', userId).eq('scope', row.scope).eq('period_key', row.periodKey).eq('slot', row.slot);
 
     if (isMissionComplete(row.def, next)) newlyComplete.push(row.def);
   }
@@ -268,6 +303,10 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
     advanceMissions(userId, {
       gameSlug, amount: input.amount, payout: input.payout, won: isWin,
       baseMultiplier: base, newStreak,
+      totals: {
+        cratesOpened: Number(wallet.crates_opened || 0),
+        totalWagered: newTotalWagered,
+      },
     }),
     isWin && isFeedWorthy(input.payout, base)
       ? pushFeed(userId, gameSlug, input.payout, Math.round(base * 100) / 100, false)
@@ -406,13 +445,14 @@ export async function checkAchievements(userId: string, stats: WalletStats): Pro
 /* Mission helpers used by shop items                                  */
 /* ------------------------------------------------------------------ */
 
-/** Swap today's unclaimed missions for a fresh set. */
+/** Swap today's unclaimed missions for a fresh set. Dailies only. */
 export async function rerollMissions(userId: string): Promise<MissionRow[]> {
-  const day = dayKey();
-  await ensureMissions(userId);
+  const period = periodKey('jour');
+  await ensureMissions(userId, ['jour']);
   // Seed with the clock so the new draw differs from the deterministic one.
-  const picked = pickDailyMissions(`${userId}:${Date.now()}`, day);
-  const { data: existing } = await supabase.from('casino_missions').select('*').eq('user_id', userId).eq('day_key', day);
+  const picked = pickMissions('jour', `${userId}:${Date.now()}`, period);
+  const { data: existing } = await supabase.from('casino_missions')
+    .select('*').eq('user_id', userId).eq('scope', 'jour').eq('period_key', period);
 
   let i = 0;
   for (const row of existing || []) {
@@ -420,7 +460,7 @@ export async function rerollMissions(userId: string): Promise<MissionRow[]> {
     const def = picked[i++ % picked.length];
     await supabase.from('casino_missions')
       .update({ mission_id: def.id, progress: 0 })
-      .eq('user_id', userId).eq('day_key', day).eq('slot', row.slot);
+      .eq('user_id', userId).eq('scope', 'jour').eq('period_key', period).eq('slot', row.slot);
   }
   return ensureMissions(userId);
 }
@@ -438,6 +478,6 @@ export async function completeBestMission(userId: string): Promise<MissionRow | 
     : best.def.target;
 
   await supabase.from('casino_missions').update({ progress })
-    .eq('user_id', userId).eq('day_key', dayKey()).eq('slot', best.slot);
+    .eq('user_id', userId).eq('scope', best.scope).eq('period_key', best.periodKey).eq('slot', best.slot);
   return { ...best, progress, value: best.def.target, complete: true };
 }

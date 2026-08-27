@@ -616,10 +616,14 @@ const EMBLEM_ART: Record<string, (p: { size?: number }) => JSX.Element> = {
 /**
  * Scales the game to the room it has.
  *
- * Every game draws at its natural size, which left a small one marooned in the
- * middle of a huge card on a wide screen and overflowing on a phone. This
- * measures both and applies the ratio, capped so nothing turns into a poster.
+ * Every stage is laid out against one design width and then scaled to fit the
+ * card. Measuring the natural width instead doesn't work: nearly every stage
+ * root is `w-full`, so it reports exactly the space it was given and the ratio
+ * is always 1 — which is why a game stayed small no matter how much room it
+ * had.
  */
+const STAGE_DESIGN_WIDTH = 460;
+
 function StageFit({ children, filter }: { children: ReactNode; filter?: string }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -631,15 +635,14 @@ function StageFit({ children, filter }: { children: ReactNode; filter?: string }
     if (!box || !inner) return;
 
     const measure = () => {
-      // Read the natural size, not the scaled one.
-      const w = inner.offsetWidth;
-      const h = inner.offsetHeight;
-      if (w === 0 || h === 0) return;
+      const height = inner.offsetHeight;
+      if (height === 0) return;
 
-      const ratio = Math.min(box.clientWidth / w, box.clientHeight / h);
-      // Never below 0.55: past that the labels stop being readable, and the
-      // page is better off scrolling.
-      setScale(Math.max(0.55, Math.min(1.6, ratio)));
+      const byWidth = box.clientWidth / STAGE_DESIGN_WIDTH;
+      const byHeight = box.clientHeight / height;
+      // Fills the card, but never so large that a stage overshoots its own
+      // proportions or so small that the labels stop being readable.
+      setScale(Math.max(0.5, Math.min(1.8, Math.min(byWidth, byHeight))));
     };
 
     measure();
@@ -654,7 +657,12 @@ function StageFit({ children, filter }: { children: ReactNode; filter?: string }
       <div
         ref={innerRef}
         className="flex flex-col items-center justify-center"
-        style={{ filter, transform: `scale(${scale})`, transformOrigin: 'center' }}
+        style={{
+          width: STAGE_DESIGN_WIDTH,
+          filter,
+          transform: `scale(${scale})`,
+          transformOrigin: 'center',
+        }}
       >
         {children}
       </div>

@@ -278,7 +278,7 @@ export default function CasinoHub() {
   const destinations: MenuEntry[] = [
     {
       label: 'Missions', icon: Target, pending: claimable,
-      hint: `${missions.filter((m) => m.claimed).length}/${missions.length || 3} faites`,
+      hint: `${missions.filter((m) => m.claimed).length}/${missions.length || 10} faites`,
       onSelect: () => { sfx.click(); setShowMissions(true); },
     },
     {
