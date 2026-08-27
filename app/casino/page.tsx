@@ -24,6 +24,7 @@ import JackpotModal from './_components/JackpotModal';
 import OnboardingModal from './_components/OnboardingModal';
 import PrestigeModal from './_components/PrestigeModal';
 import CasinoMenu, { type MenuEntry } from './_components/CasinoMenu';
+import CasinoRail, { type Claim } from './_components/CasinoRail';
 import CasinoControls from './_components/CasinoControls';
 import ActiveEffectsBar from './_components/ActiveEffectsBar';
 import ChestModal, { useChest } from './_components/ChestModal';
@@ -316,6 +317,41 @@ export default function CasinoHub() {
     },
   ];
 
+  // The four things that might have something waiting. Same list for the rail
+  // and the mobile band.
+  const claims: Claim[] = [
+    {
+      label: 'Bonus du jour', icon: GiftIcon,
+      ready: !stats.dailyClaimedToday,
+      readyHint: '250 à 10 000 ₶',
+      waitLabel: formatWait(dailyResetIn),
+      busy: claimingDaily,
+      onClick: handleClaimDaily,
+    },
+    {
+      label: 'Roue gratuite', icon: Sparkles,
+      ready: !stats.wheelClaimedToday,
+      readyHint: 'jusqu’à 10 000 ₶',
+      waitLabel: formatWait(dailyResetIn),
+      onClick: () => { sfx.click(); setShowWheel(true); },
+    },
+    {
+      label: 'Coffre 7 jours', icon: Gift,
+      ready: !chest?.claimedToday,
+      readyHint: chest ? `case ${chest.next}/7` : '',
+      waitLabel: chest ? `${chest.day} j d'affilée` : formatWait(dailyResetIn),
+      onClick: () => { sfx.click(); setShowChest(true); },
+    },
+    {
+      label: 'Cashback', icon: Banknote,
+      ready: !!cashback?.available,
+      readyHint: cashback ? `+${cashback.amount.toLocaleString('en-US')} ₶` : '',
+      waitLabel: stats.cashbackClaimedToday ? formatWait(dailyResetIn) : 'rien hier',
+      busy: claimingCashback,
+      onClick: handleClaimCashback,
+    },
+  ];
+
   const prestigeTitle = getPrestigeTitle(stats.prestigeCount);
   const canPrestige = balance >= PRESTIGE_THRESHOLD;
   const pending = (!stats.dailyClaimedToday ? 1 : 0) + (!stats.wheelClaimedToday ? 1 : 0);
@@ -347,7 +383,7 @@ export default function CasinoHub() {
 
       {showGuide && <OnboardingModal onClose={closeGuide} />}
 
-      <div className="max-w-6xl w-full mx-auto flex flex-col flex-1 min-h-0">
+      <div className="max-w-6xl lg:max-w-7xl w-full mx-auto flex flex-col flex-1 min-h-0">
         {/* HEADER */}
         <header className="flex items-center justify-between mb-3 gap-2 shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -444,48 +480,23 @@ export default function CasinoHub() {
           </div>
         </header>
 
-        {/* ACTION BAR — two rows with one job each: what there is to
-            collect, then where you can go. The pot moved up beside the level
-            since it is neither. */}
-        <div className="flex flex-col gap-2 mb-3 shrink-0">
-          <div className="grid grid-cols-3 sm:flex sm:flex-wrap items-center gap-2">
-            <ClaimTile
-              label="Bonus du jour"
-              icon={GiftIcon}
-              ready={!stats.dailyClaimedToday}
-              readyHint="250 à 10 000 ₶"
-              waitLabel={formatWait(dailyResetIn)}
-              onClick={handleClaimDaily}
-              busy={claimingDaily}
-            />
-
-            <ClaimTile
-              label="Roue gratuite"
-              icon={Sparkles}
-              ready={!stats.wheelClaimedToday}
-              readyHint="jusqu’à 10 000 ₶"
-              waitLabel={formatWait(dailyResetIn)}
-              onClick={() => { sfx.click(); setShowWheel(true); }}
-            />
-
-            <ClaimTile
-              label="Coffre 7 jours"
-              icon={Gift}
-              ready={!chest?.claimedToday}
-              readyHint={chest ? `case ${chest.next}/7` : ''}
-              waitLabel={chest ? `${chest.day} j d'affilée` : formatWait(dailyResetIn)}
-              onClick={() => { sfx.click(); setShowChest(true); }}
-            />
-
-            <ClaimTile
-              label="Cashback"
-              icon={Banknote}
-              ready={!!cashback?.available}
-              readyHint={cashback ? `+${cashback.amount.toLocaleString('en-US')} ₶` : ''}
-              waitLabel={stats.cashbackClaimedToday ? formatWait(dailyResetIn) : 'rien hier'}
-              onClick={handleClaimCashback}
-              busy={claimingCashback}
-            />
+        {/* ACTION BAR — phones and small tablets keep it above the grid,
+            where there is width to spare and height is not yet the problem.
+            From lg it all moves into the rail below. */}
+        <div className="flex flex-col gap-2 mb-3 shrink-0 lg:hidden">
+          <div className="grid grid-cols-2 sm:grid-cols-4 items-stretch gap-2">
+            {claims.map((c) => (
+              <ClaimTile
+                key={c.label}
+                label={c.label}
+                icon={c.icon}
+                ready={c.ready}
+                readyHint={c.readyHint}
+                waitLabel={c.waitLabel}
+                busy={c.busy}
+                onClick={c.onClick}
+              />
+            ))}
           </div>
 
           <div className="hidden sm:flex flex-wrap items-center gap-2">
@@ -506,28 +517,36 @@ export default function CasinoHub() {
           <ActiveEffectsBar />
         </div>
 
-        {/* GAMES — 5×4 grid that fills the remaining height exactly, so the
-            cards stay big instead of being squeezed into a corner. */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 lg:grid-rows-4 gap-3 flex-1 lg:min-h-0">
-          {CASINO_GAMES.map((game) => {
-            const Icon = game.icon;
-            return (
-              <Link
-                key={game.slug}
-                href={`/casino/${game.slug}`}
-                prefetch
-                onClick={() => sfx.click()}
-                className="group h-full min-h-[128px] rounded-2xl border-4 border-brand-border bg-brand-card p-3 flex flex-col items-center justify-center gap-2 shadow-brutal transition-all hover:border-accent-primary hover:-translate-y-1 active:translate-y-0 focus:outline-none"
-              >
-                <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 group-hover:border-accent-primary group-hover:scale-105 transition-all">
-                  <Icon className="h-7 w-7 text-accent-primary" />
-                </div>
-                <span className="font-display font-black text-sm leading-tight text-center">{game.name}</span>
-                <span className="text-[11px] text-tx-secondary leading-tight text-center">{game.short}</span>
-                <span className="text-[10px] font-bold text-tx-muted mt-auto">Redistribution {game.rtp}</span>
-              </Link>
-            );
-          })}
+        <div className="flex gap-3 flex-1 min-h-0">
+          <CasinoRail
+            claims={claims}
+            destinations={destinations}
+            className="hidden lg:block"
+          />
+
+          {/* GAMES — 5×4 grid that fills the remaining height exactly, so the
+              cards stay big instead of being squeezed into a corner. */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 lg:grid-rows-4 gap-3 flex-1 lg:min-h-0">
+            {CASINO_GAMES.map((game) => {
+              const Icon = game.icon;
+              return (
+                <Link
+                  key={game.slug}
+                  href={`/casino/${game.slug}`}
+                  prefetch
+                  onClick={() => sfx.click()}
+                  className="group h-full min-h-[128px] rounded-2xl border-4 border-brand-border bg-brand-card p-3 flex flex-col items-center justify-center gap-2 shadow-brutal transition-all hover:border-accent-primary hover:-translate-y-1 active:translate-y-0 focus:outline-none"
+                >
+                  <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 group-hover:border-accent-primary group-hover:scale-105 transition-all">
+                    <Icon className="h-7 w-7 text-accent-primary" />
+                  </div>
+                  <span className="font-display font-black text-sm leading-tight text-center">{game.name}</span>
+                  <span className="text-[11px] text-tx-secondary leading-tight text-center">{game.short}</span>
+                  <span className="text-[10px] font-bold text-tx-muted mt-auto">Redistribution {game.rtp}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </div>
     </main>
