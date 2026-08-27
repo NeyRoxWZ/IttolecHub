@@ -12,6 +12,7 @@ import { CASINO_MIN_BET } from '@/lib/casino/core';
 import { useTurbo, tempo } from '@/lib/casino/turbo';
 import { useGameCosmetics } from '@/hooks/useGameCosmetics';
 import { setActiveCosmetics, subscribeOutcome } from '@/lib/casino/activeCosmetics';
+import ActiveEffectsBar from './ActiveEffectsBar';
 import { tableBackground, skinFilter } from './CosmeticPreview';
 import type { CosmeticParams } from '@/lib/casino/cosmetics';
 import * as Art from './CasinoArt';
@@ -603,6 +604,7 @@ export function GameShell({
             </div>
           </div>
           <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 sm:p-5 shadow-brutal flex flex-col gap-4 min-h-0">
+            <ActiveEffectsBar />
             {streak !== undefined && <StreakMeter streak={streak} />}
             {panel}
           </div>

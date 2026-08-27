@@ -24,6 +24,8 @@ import JackpotModal from './_components/JackpotModal';
 import OnboardingModal from './_components/OnboardingModal';
 import PrestigeModal from './_components/PrestigeModal';
 import CasinoMenu, { type MenuEntry } from './_components/CasinoMenu';
+import CasinoControls from './_components/CasinoControls';
+import ActiveEffectsBar from './_components/ActiveEffectsBar';
 import { secondsUntilRotation } from '@/lib/casino/shop';
 import { secondsUntilReset } from '@/lib/casino/pass';
 import DailyWheelModal from './_components/DailyWheelModal';
@@ -303,11 +305,6 @@ export default function CasinoHub() {
       label: 'Classement', icon: Trophy, hint: 'saison en cours',
       onSelect: () => { sfx.click(); router.push('/casino/leaderboard'); },
     },
-    {
-      label: 'Cagnotte', icon: Gem,
-      hint: jackpot !== null ? `${jackpot.toLocaleString('en-US')} ₶` : '···',
-      onSelect: () => { sfx.click(); setShowJackpot(true); },
-    },
   ];
 
   const prestigeTitle = getPrestigeTitle(stats.prestigeCount);
@@ -381,14 +378,52 @@ export default function CasinoHub() {
                 <div className="font-display font-black text-[13px] text-accent-primary tabular-nums">
                   {jackpot !== null ? `${jackpot.toLocaleString('en-US')} ₶` : '···'}
                 </div>
-                <div className="text-[9px] font-bold text-tx-muted">Cagnotte · 1 sur 3 000</div>
+                <div className="text-[9px] font-bold text-tx-muted">Cagnotte</div>
               </div>
-              <span className="text-[11px] font-black text-tx-muted leading-none self-start">?</span>
+              {/* Was a grey "?" wedged in the corner; nobody saw it. */}
+              <span className="ml-1 h-5 w-5 shrink-0 rounded-full bg-accent-primary text-brand-bg text-[11px] font-black flex items-center justify-center">
+                ?
+              </span>
             </button>
+
+            {/* Prestige sits next to the pot, same shape: both are status. */}
+            {canPrestige ? (
+              <button
+                onClick={() => { sfx.click(); setShowPrestige(true); }}
+                title="Prestiger"
+                className="hidden sm:flex h-11 items-center gap-2 px-3 rounded-xl border-2 border-accent-primary bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all focus:outline-none"
+              >
+                <Sparkles className="h-4 w-4 shrink-0" />
+                <span className="font-display font-black text-xs tracking-wider">PRESTIGER</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => { sfx.click(); setShowPrestige(true); }}
+                title={`Atteins ${PRESTIGE_THRESHOLD.toLocaleString('en-US')} ₶ pour prestiger`}
+                className="hidden sm:flex h-11 items-center gap-2 px-3 rounded-xl border-2 border-brand-border bg-brand-card hover:border-accent-primary transition-colors focus:outline-none"
+              >
+                <Sparkles className="h-4 w-4 shrink-0 text-accent-primary" />
+                <div className="leading-tight text-left min-w-[74px]">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">
+                      Prestige {stats.prestigeCount}
+                    </span>
+                    <span className="text-[9px] font-black text-accent-primary tabular-nums">
+                      {prestigeProgress.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 mt-0.5 rounded-full bg-brand-inner border border-brand-border overflow-hidden">
+                    <div className="h-full bg-accent-primary transition-all duration-500" style={{ width: `${prestigeProgress}%` }} />
+                  </div>
+                </div>
+              </button>
+            )}
 
             <div className="h-11 hidden sm:flex items-center px-3 rounded-xl border-2 border-brand-border bg-brand-inner">
               <LevelBar level={stats.level} into={stats.xpIntoLevel} needed={stats.xpForNext} />
             </div>
+
+            <CasinoControls className="hidden sm:flex" />
             {stats.currentStreak > 1 && (
               <div className="h-11 flex items-center gap-1.5 px-3 rounded-xl border-2 border-accent-secondary bg-accent-secondary/10" title="Victoires d'affilée">
                 <Flame className="h-4 w-4 text-accent-secondary" />
@@ -450,30 +485,9 @@ export default function CasinoHub() {
                 onClick={d.onSelect}
               />
             ))}
-
-            {canPrestige ? (
-              <button
-                onClick={() => { sfx.click(); setShowPrestige(true); }}
-                className={cn(TILE, 'border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 active:translate-y-0.5')}
-              >
-                <Sparkles className="h-4 w-4 shrink-0" />
-                <span className="font-display font-black text-xs tracking-wider whitespace-nowrap">PRESTIGER</span>
-              </button>
-            ) : (
-              <div className={cn(TILE, 'border-brand-border bg-brand-card w-[136px] flex-col !items-stretch justify-center gap-1')}>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">Prestige {stats.prestigeCount}</span>
-                  <span className="text-[9px] font-black text-accent-primary tabular-nums">{prestigeProgress.toFixed(0)}%</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-brand-inner border border-brand-border overflow-hidden">
-                  <div className="h-full bg-accent-primary transition-all duration-500" style={{ width: `${prestigeProgress}%` }} />
-                </div>
-                <span className="text-[9px] font-bold text-tx-muted leading-none whitespace-nowrap">
-                  à {PRESTIGE_THRESHOLD.toLocaleString('en-US')} ₶
-                </span>
-              </div>
-            )}
           </div>
+
+          <ActiveEffectsBar />
         </div>
 
         {/* GAMES — 5×4 grid that fills the remaining height exactly, so the

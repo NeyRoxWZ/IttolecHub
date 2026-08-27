@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase/client';
 import { seasonKey, getPrestigeTitle } from '@/lib/casino/meta';
 import { sfx } from '@/lib/casino/sfx';
 import PlayerCard from '../_components/PlayerCard';
+import CasinoControls from '../_components/CasinoControls';
 
 type Tab = 'alltime' | 'season';
 
@@ -67,6 +68,7 @@ export default function LeaderboardPage() {
             <h1 className="font-display text-2xl md:text-3xl font-black leading-none">Classement</h1>
             <p className="text-[11px] text-tx-muted mt-1">Clique sur un joueur pour voir sa courbe.</p>
           </div>
+          <CasinoControls className="ml-auto" />
         </header>
 
         <div className="grid grid-cols-2 gap-2 mb-6">

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
 import { useAuth } from '@/hooks/useAuth';
 import { ACHIEVEMENT_CATEGORIES, type AchievementCategory } from '@/lib/casino/meta';
+import CasinoControls from '../_components/CasinoControls';
 
 interface AchievementView {
   id: string;
@@ -82,6 +83,7 @@ export default function AchievementsPage() {
               />
             </div>
           </div>
+          <CasinoControls className="ml-auto" />
         </header>
 
         {!user && <p className="text-tx-secondary mb-4">Connecte-toi pour suivre tes succès.</p>}

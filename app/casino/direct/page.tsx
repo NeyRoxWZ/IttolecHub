@@ -8,6 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { supabase } from '@/lib/supabase/client';
 import { GAME_LABELS } from '@/lib/casino/cosmetics';
 import PlayerCard from '../_components/PlayerCard';
+import CasinoControls from '../_components/CasinoControls';
 
 interface LiveRow {
   id: number;
@@ -117,6 +118,7 @@ export default function LivePage() {
             {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
             {paused ? `REPRENDRE${bufferRef.current.length ? ` (${bufferRef.current.length})` : ''}` : 'PAUSE'}
           </button>
+          <CasinoControls />
         </header>
 
         <div className="grid grid-cols-3 gap-2 mb-3">

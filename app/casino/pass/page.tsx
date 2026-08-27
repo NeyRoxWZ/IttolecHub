@@ -17,6 +17,7 @@ import { CountUp } from '../_components/CasinoUI';
 import CosmeticPreview, { cosmeticEffect } from '../_components/CosmeticPreview';
 import Confetti from '../_components/Confetti';
 import CosmeticStockPanel from '../_components/CosmeticStockPanel';
+import CasinoControls from '../_components/CasinoControls';
 
 interface PassState { tier: number; xp: number; intoTier: number; needed: number; premium: boolean }
 
@@ -205,6 +206,8 @@ export default function FrenlyPassPage() {
               <Clock className="h-4 w-4 text-accent-primary" />
               <span className="font-display font-black text-sm tabular-nums">{formatCountdown(resetIn)}</span>
             </div>
+            <CasinoControls />
+
             <div className="h-11 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 rounded-xl shadow-brutal">
               <Coins className="h-4 w-4 text-accent-primary" />
               {isLoaded ? <CountUp value={balance} className="font-display font-black text-base" /> : <span className="font-display font-black">···</span>}
