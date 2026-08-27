@@ -27,6 +27,8 @@ import CasinoMenu, { type MenuEntry } from './_components/CasinoMenu';
 import CasinoControls from './_components/CasinoControls';
 import ActiveEffectsBar from './_components/ActiveEffectsBar';
 import CommunityQuestPanel from './_components/CommunityQuest';
+import ChestModal, { useChest } from './_components/ChestModal';
+import EventBanner from './_components/EventBanner';
 import { secondsUntilRotation } from '@/lib/casino/shop';
 import { secondsUntilReset } from '@/lib/casino/pass';
 import DailyWheelModal from './_components/DailyWheelModal';
@@ -170,6 +172,8 @@ export default function CasinoHub() {
   const [passTier, setPassTier] = useState<number | null>(null);
   const [passClaimable, setPassClaimable] = useState(0);
   const [showPrestige, setShowPrestige] = useState(false);
+  const [showChest, setShowChest] = useState(false);
+  const { state: chest } = useChest();
   const [dailyResetIn, setDailyResetIn] = useState(() => secondsUntilRotation());
   const [passResetIn, setPassResetIn] = useState(() => secondsUntilReset());
   const { missions, reload: reloadMissions, claimable } = useMissions();
@@ -320,6 +324,7 @@ export default function CasinoHub() {
       <FeedTicker />
       {showWheel && <DailyWheelModal onClose={() => setShowWheel(false)} onSpin={claimWheelOfFortune} />}
       {showJackpot && <JackpotModal amount={jackpot} onClose={() => setShowJackpot(false)} />}
+      {showChest && <ChestModal onClose={() => setShowChest(false)} />}
       {showPrestige && (
         <PrestigeModal
           balance={balance}
@@ -461,6 +466,15 @@ export default function CasinoHub() {
             />
 
             <ClaimTile
+              label="Coffre 7 jours"
+              icon={Gift}
+              ready={!chest?.claimedToday}
+              readyHint={chest ? `case ${chest.next}/7` : ''}
+              waitLabel={chest ? `${chest.day} j d'affilée` : formatWait(dailyResetIn)}
+              onClick={() => { sfx.click(); setShowChest(true); }}
+            />
+
+            <ClaimTile
               label="Cashback"
               icon={Banknote}
               ready={!!cashback?.available}
@@ -483,6 +497,8 @@ export default function CasinoHub() {
               />
             ))}
           </div>
+
+          <EventBanner />
 
           <ActiveEffectsBar />
 
