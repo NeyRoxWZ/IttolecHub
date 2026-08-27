@@ -7,7 +7,7 @@ import {
   Coins, Dices, Spade, CircleDot, Rocket, Bomb, Circle, ArrowUpDown, Ticket,
   Egg, Building2, Grid3x3, Gift, Zap, Flag, GlassWater, LayoutGrid, Layers, Hand, Dice5,
   ArrowLeft, Info, Flame, Trophy, Award, Sparkles, Gift as GiftIcon, Gem, Target, ShoppingBag,
-  Banknote, Crown, ArrowUpRight, Clock, Backpack, Radio,
+  Banknote, Crown, ArrowUpRight, Clock, Backpack, Radio, Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -26,7 +26,6 @@ import PrestigeModal from './_components/PrestigeModal';
 import CasinoMenu, { type MenuEntry } from './_components/CasinoMenu';
 import CasinoControls from './_components/CasinoControls';
 import ActiveEffectsBar from './_components/ActiveEffectsBar';
-import CommunityQuestPanel from './_components/CommunityQuest';
 import ChestModal, { useChest } from './_components/ChestModal';
 import EventBanner from './_components/EventBanner';
 import { secondsUntilRotation } from '@/lib/casino/shop';
@@ -196,7 +195,7 @@ export default function CasinoHub() {
   // The meta pages are reached from pills rather than links, so warm them by
   // hand — otherwise every one of them starts by downloading its chunk.
   useEffect(() => {
-    for (const path of ['/casino/shop', '/casino/pass', '/casino/inventaire', '/casino/achievements', '/casino/leaderboard', '/casino/direct']) {
+    for (const path of ['/casino/shop', '/casino/pass', '/casino/inventaire', '/casino/achievements', '/casino/leaderboard', '/casino/direct', '/casino/cagnotte']) {
       router.prefetch(path);
     }
   }, [router]);
@@ -298,6 +297,10 @@ export default function CasinoHub() {
     {
       label: 'Boutique', icon: ShoppingBag, hint: `5 objets · ${formatWait(dailyResetIn)}`,
       onSelect: () => { sfx.click(); router.push('/casino/shop'); },
+    },
+    {
+      label: 'Cagnotte de groupe', icon: Users, hint: 'misez et partagez',
+      onSelect: () => { sfx.click(); router.push('/casino/cagnotte'); },
     },
     {
       label: 'En direct', icon: Radio, hint: 'tous les gains et pertes',
@@ -501,8 +504,6 @@ export default function CasinoHub() {
           <EventBanner />
 
           <ActiveEffectsBar />
-
-          <CommunityQuestPanel compact />
         </div>
 
         {/* GAMES — 5×4 grid that fills the remaining height exactly, so the

@@ -46,6 +46,7 @@ export default function EventBanner({ className }: { className?: string }) {
       <Link
         href={`/casino/${game}`}
         prefetch
+        title={`Sur ${GAME_LABELS[game] || game} aujourd'hui, tes bénéfices sont majorés de ${Math.round(GAME_OF_DAY_BONUS * 100)}%. La mise remboursée ne change pas.`}
         className="h-11 px-3 rounded-xl border-2 border-accent-primary/60 bg-accent-primary/5 flex items-center gap-2 hover:bg-accent-primary/10 transition-colors focus:outline-none"
       >
         <Star className="h-4 w-4 shrink-0 text-accent-primary" />
@@ -54,12 +55,13 @@ export default function EventBanner({ className }: { className?: string }) {
             {GAME_LABELS[game] || game}
           </div>
           <div className="text-[9px] font-bold text-accent-primary">
-            Jeu du jour · +{Math.round(GAME_OF_DAY_BONUS * 100)}%
+            Jeu du jour · +{Math.round(GAME_OF_DAY_BONUS * 100)}% de gains
           </div>
         </div>
       </Link>
 
       <div
+        title={`Pendant l'heure chaude, tes bénéfices sont majorés de ${Math.round(HAPPY_HOUR_BONUS * 100)}% sur tous les jeux. La mise remboursée ne change pas.`}
         className={cn(
           'h-11 px-3 rounded-xl border-2 flex items-center gap-2',
           happy
@@ -70,10 +72,12 @@ export default function EventBanner({ className }: { className?: string }) {
         {happy ? <Flame className="h-4 w-4 shrink-0" /> : <Clock className="h-4 w-4 shrink-0 text-tx-muted" />}
         <div className="leading-tight">
           <div className={cn('font-display font-black text-[12px]', !happy && 'text-tx-secondary')}>
-            {happy ? `HEURE CHAUDE +${Math.round(HAPPY_HOUR_BONUS * 100)}%` : 'Heure chaude'}
+            {happy ? `+${Math.round(HAPPY_HOUR_BONUS * 100)}% DE GAINS` : 'Heure chaude'}
           </div>
           <div className={cn('text-[9px] font-bold tabular-nums', happy ? 'text-white/75' : 'text-tx-muted')}>
-            {happy ? `encore ${format(countdown.seconds)}` : `dans ${format(countdown.seconds)}`}
+            {happy
+              ? `sur tous les jeux · encore ${format(countdown.seconds)}`
+              : `+${Math.round(HAPPY_HOUR_BONUS * 100)}% partout dans ${format(countdown.seconds)}`}
           </div>
         </div>
       </div>

@@ -119,6 +119,20 @@ export default function CommunityQuestPanel({ compact }: { compact?: boolean }) 
 
       {!compact && (
         <>
+          {/* What the bar is actually worth. Without this the goal reads as a
+              chore: a big number to fill with no stated payoff. */}
+          <div className="mt-2.5 rounded-xl border-2 border-brand-border bg-brand-bg p-2.5">
+            <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted mb-1">
+              Si la barre se remplit
+            </div>
+            <div className="text-[11px] text-tx-secondary leading-relaxed">
+              <b className="text-accent-success tabular-nums">{state.quest.reward.toLocaleString('en-US')} ₶</b>
+              {' '}pour chaque joueur qui a participé, plus{' '}
+              <b className="text-accent-primary tabular-nums">{state.quest.pool.toLocaleString('en-US')} ₶</b>
+              {' '}partagés entre eux au prorata de ce que chacun a poussé.
+            </div>
+          </div>
+
           {state.you && state.you.contribution > 0 && (
             <div className="mt-2 text-[11px] text-tx-secondary">
               Ta part : <b className="text-tx-base tabular-nums">{state.you.contribution.toLocaleString('en-US')}</b>
