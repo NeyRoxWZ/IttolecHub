@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import Showcase from '@/app/casino/_components/Showcase';
 import { cn } from '@/lib/utils';
 
 interface CasinoProfileStats {
@@ -332,6 +333,10 @@ export default function ProfilPage() {
 
             <div className="shrink-0 w-full md:w-auto" />
           </div>
+        </div>
+
+        <div className="mt-10">
+          <Showcase />
         </div>
 
         <div className="mt-10">

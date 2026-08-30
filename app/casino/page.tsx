@@ -7,7 +7,7 @@ import {
   Coins, Dices, Spade, CircleDot, Rocket, Bomb, Circle, ArrowUpDown, Ticket,
   Egg, Building2, Grid3x3, Gift, Zap, Flag, GlassWater, LayoutGrid, Layers, Hand, Dice5,
   ArrowLeft, Info, Flame, Trophy, Award, Sparkles, Gift as GiftIcon, Gem, Target, ShoppingBag,
-  Banknote, Crown, ArrowUpRight, Clock, Backpack, Radio, Users,
+  Banknote, Crown, ArrowUpRight, Clock, Backpack, Radio, Users, Swords,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,7 @@ import CasinoControls from './_components/CasinoControls';
 import ActiveEffectsBar from './_components/ActiveEffectsBar';
 import ChestModal, { useChest } from './_components/ChestModal';
 import EventBanner from './_components/EventBanner';
+import RecapModal, { useRecap } from './_components/RecapModal';
 import { secondsUntilRotation } from '@/lib/casino/shop';
 import { secondsUntilReset } from '@/lib/casino/pass';
 import DailyWheelModal from './_components/DailyWheelModal';
@@ -151,6 +152,7 @@ export default function CasinoHub() {
   const [showPrestige, setShowPrestige] = useState(false);
   const [showChest, setShowChest] = useState(false);
   const { state: chest } = useChest();
+  const recap = useRecap();
   const [dailyResetIn, setDailyResetIn] = useState(() => secondsUntilRotation());
   const [passResetIn, setPassResetIn] = useState(() => secondsUntilReset());
   const { missions, reload: reloadMissions, claimable } = useMissions();
@@ -173,7 +175,7 @@ export default function CasinoHub() {
   // The meta pages are reached from pills rather than links, so warm them by
   // hand — otherwise every one of them starts by downloading its chunk.
   useEffect(() => {
-    for (const path of ['/casino/shop', '/casino/pass', '/casino/inventaire', '/casino/achievements', '/casino/leaderboard', '/casino/direct', '/casino/cagnotte']) {
+    for (const path of ['/casino/shop', '/casino/pass', '/casino/inventaire', '/casino/achievements', '/casino/leaderboard', '/casino/direct', '/casino/cagnotte', '/casino/potes']) {
       router.prefetch(path);
     }
   }, [router]);
@@ -281,6 +283,10 @@ export default function CasinoHub() {
       onSelect: () => { sfx.click(); router.push('/casino/cagnotte'); },
     },
     {
+      label: 'Entre potes', icon: Swords, hint: 'duels, cadeaux, chat',
+      onSelect: () => { sfx.click(); router.push('/casino/potes'); },
+    },
+    {
       label: 'En direct', icon: Radio, hint: 'tous les gains et pertes',
       onSelect: () => { sfx.click(); router.push('/casino/direct'); },
     },
@@ -341,6 +347,7 @@ export default function CasinoHub() {
       {showWheel && <DailyWheelModal onClose={() => setShowWheel(false)} onSpin={claimWheelOfFortune} />}
       {showJackpot && <JackpotModal amount={jackpot} onClose={() => setShowJackpot(false)} />}
       {showChest && <ChestModal onClose={() => setShowChest(false)} />}
+      {recap.open && <RecapModal onClose={recap.close} />}
       {showPrestige && (
         <PrestigeModal
           balance={balance}
