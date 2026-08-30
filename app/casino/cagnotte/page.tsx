@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, Users, Play, Copy, Check, Trash2, TrendingUp, TrendingDown, Info,
+  ArrowLeft, Users, Play, Copy, Check, Trash2, Info, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -147,6 +147,59 @@ export default function CagnottePage() {
 
   return (
     <main className="min-h-screen bg-transparent text-tx-base pb-[env(safe-area-inset-bottom)]">
+      {showRules && (
+        <div
+          className="fixed inset-0 z-[220] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => setShowRules(false)}
+        >
+          <div
+            className="w-full max-w-md max-h-[92dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <h2 className="font-display text-xl font-black flex items-center gap-2">
+                <Info className="h-5 w-5 text-accent-primary" /> Comment ça marche
+              </h2>
+              <button
+                onClick={() => setShowRules(false)}
+                className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-[12px] text-tx-secondary">
+              <p>
+                Chacun met ce qu&apos;il veut ({fmt(SYNDICATE_MIN_BUY_IN)} ₶ minimum, de{' '}
+                {SYNDICATE_MIN_PLAYERS} à {SYNDICATE_MAX_PLAYERS} joueurs). L&apos;hôte lance, et
+                pendant toute la durée choisie <b className="text-tx-base">vous jouez tous avec la
+                cagnotte au lieu de votre argent</b> : vos mises sortent d&apos;elle, vos gains y
+                retournent, et tout le monde voit le même total bouger en direct.
+              </p>
+              <p>
+                <b className="text-tx-base">Ton argent à toi n&apos;est pas touché</b> et ne bouge
+                pas d&apos;un centime pendant la partie — il t&apos;attend, et la cagnotte ne
+                laisse aucune trace dans tes statistiques.
+              </p>
+              <p>
+                Une fois lancée, vous restez tous dans la cagnotte jusqu&apos;au bout : impossible
+                de revenir au casino avant la fin.
+              </p>
+              <p>
+                À la fin du temps, la cagnotte est partagée au prorata de ce que chacun a mis au
+                départ. Si elle tombe à zéro, la partie s&apos;arrête net et personne ne récupère
+                rien.
+              </p>
+              <p className="text-tx-muted">
+                Les jeux gardent leur redistribution habituelle, entre 93 % et 98 %. La cagnotte
+                s&apos;érode donc doucement d&apos;elle-même : c&apos;est une bonne série qui la
+                fait monter, pas le temps qui passe.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-3xl mx-auto p-4 space-y-4">
         <div className="flex items-center gap-3">
           <Link
@@ -169,28 +222,6 @@ export default function CagnottePage() {
             <span className="font-display font-black text-[11px]">RÈGLES</span>
           </button>
         </div>
-
-        {showRules && (
-          <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-4 text-[12px] text-tx-secondary space-y-2">
-            <p>
-              Chacun met ce qu&apos;il veut ({fmt(SYNDICATE_MIN_BUY_IN)} ₶ minimum, de{' '}
-              {SYNDICATE_MIN_PLAYERS} à {SYNDICATE_MAX_PLAYERS} joueurs). L&apos;hôte lance, et
-              pendant toute la durée choisie <b className="text-tx-base">vous jouez tous avec la
-              cagnotte au lieu de votre argent</b> : vos mises sortent d&apos;elle, vos gains y
-              retournent, et tout le monde voit le même total bouger en direct.
-            </p>
-            <p>
-              À la fin du temps, la cagnotte est partagée au prorata de ce que chacun a mis au
-              départ. Si elle tombe à zéro, la partie s&apos;arrête net et personne ne récupère
-              rien.
-            </p>
-            <p className="text-tx-muted">
-              Les jeux gardent leur redistribution habituelle, entre 93 % et 98 %. La cagnotte
-              s&apos;érode donc doucement d&apos;elle-même : c&apos;est une bonne série qui la fait
-              monter, pas le temps qui passe.
-            </p>
-          </div>
-        )}
 
         {/* ---------------------------------------------------------- */}
         {/* No pot: create or join                                      */}

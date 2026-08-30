@@ -77,7 +77,13 @@ export default function PlayerCard({ pseudo, onClose }: { pseudo: string; onClos
   const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!chart || !svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / rect.width;
+
+    // The cursor used to be read against the full width while the points are
+    // drawn inset by PAD, so it pointed a little further along the curve than
+    // where the mouse was. Convert to viewBox units, then take the ratio
+    // across the plotted area only.
+    const inView = ((e.clientX - rect.left) / rect.width) * W;
+    const ratio = (inView - PAD) / (W - PAD * 2);
     const i = Math.round(ratio * (chart.pts.length - 1));
     setHover(Math.max(0, Math.min(chart.pts.length - 1, i)));
   };
@@ -144,6 +150,7 @@ export default function PlayerCard({ pseudo, onClose }: { pseudo: string; onClos
                   <svg
                     ref={svgRef}
                     viewBox={`0 0 ${W} ${H}`}
+                    preserveAspectRatio="none"
                     className="w-full block cursor-crosshair"
                     style={{ height: H }}
                     onMouseMove={onMove}
@@ -168,6 +175,7 @@ export default function PlayerCard({ pseudo, onClose }: { pseudo: string; onClos
                       strokeWidth="2.5"
                       strokeLinejoin="round"
                       strokeLinecap="round"
+                      vectorEffect="non-scaling-stroke"
                     />
 
                     {hover !== null && point && (
