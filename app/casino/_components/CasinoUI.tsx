@@ -251,9 +251,151 @@ export function PlayButton({
  * The stop threshold is the safety catch: auto halts the moment the balance
  * would drop under the floor the player set, instead of grinding it to zero.
  */
+/* ------------------------------------------------------------------ */
+/* Auto-play                                                            */
+/* ------------------------------------------------------------------ */
+
+export interface AutoControl {
+  auto: boolean;
+  toggle: () => void;
+  stop: () => void;
+  stopBelow: number;
+  setStopBelow: (n: number) => void;
+  showStop: boolean;
+  setShowStop: (b: boolean) => void;
+}
+
+/**
+ * The auto-play loop.
+ *
+ * It lives in a hook rather than inside the button because six games swap
+ * their panel once a round is under way — tower, mines, poulet, dino, rocket,
+ * blackjack. That unmounted the button, and with it the "auto is on" state, so
+ * auto would stake a round and then stop dead without ever making a choice.
+ * Those games call this at page level, where nothing unmounts it, and hand the
+ * control to the button.
+ *
+ * `ready` is the game saying a next step is possible right now: between rounds
+ * that means it can stake again, mid-round that it can take the next pick.
+ */
+export function useAutoPlay({
+  run, ready, betKey, balance, delay = 450, enabled = true,
+}: {
+  run: () => void;
+  ready: boolean;
+  betKey?: string | number;
+  balance?: number;
+  delay?: number;
+  enabled?: boolean;
+}): AutoControl {
+  const [auto, setAuto] = useState(false);
+  const [stopBelow, setStopBelow] = useState(0);
+  const [showStop, setShowStop] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  const runRef = useRef(run);
+  runRef.current = run;
+
+  const belowFloor = stopBelow > 0 && balance !== undefined && balance < stopBelow;
+
+  // Changing the stake is the natural "stop" gesture.
+  useEffect(() => { setAuto(false); }, [betKey]);
+
+  useEffect(() => {
+    if (!auto || !belowFloor) return;
+    setAuto(false);
+    toast.info(`Auto arrêté : ton solde est passé sous ${stopBelow.toLocaleString('en-US')} ₶.`);
+  }, [auto, belowFloor, stopBelow]);
+
+  // Each step schedules the next one through `tick`. Without it the effect
+  // only re-ran when one of its inputs changed, so a step that left the game
+  // in the same shape — staking a climb, then standing at floor 0 ready to
+  // pick — fired once and then waited forever.
+  useEffect(() => {
+    if (!enabled || !auto || !ready || belowFloor) return;
+    const t = setTimeout(() => {
+      runRef.current();
+      setTick((n) => n + 1);
+    }, tempo(delay));
+    return () => clearTimeout(t);
+  }, [enabled, auto, ready, belowFloor, delay, tick]);
+
+  return {
+    auto,
+    toggle: () => { setAuto((a) => !a); setShowStop(true); },
+    stop: () => setAuto(false),
+    stopBelow, setStopBelow, showStop, setShowStop,
+  };
+}
+
+/** The compact AUTO/STOP pill for panels that replace the play button. */
+export function AutoBadge({ control, className }: { control: AutoControl; className?: string }) {
+  if (!control.auto) return null;
+  return (
+    <button
+      onClick={() => { sfx.click(); vibrate(HAPTIC.SOFT); control.stop(); }}
+      className={cn(
+        'h-9 px-3 rounded-lg border-2 border-accent-secondary bg-accent-secondary text-white',
+        'font-display font-black text-[11px] tracking-wider flex items-center gap-1.5 focus:outline-none',
+        className
+      )}
+    >
+      <RotateCcw className="h-3.5 w-3.5 animate-spin" style={{ animationDuration: '1.6s' }} />
+      STOP AUTO
+    </button>
+  );
+}
+
+/**
+ * The auto target: how far a step game should push before cashing out.
+ *
+ * Auto used to draw this at random every round, which made it feel like it
+ * was playing its own game rather than yours — you could not say "always cash
+ * at floor 4". Each step game now asks for the number.
+ */
+export function AutoTargetField({
+  label, value, onChange, min, max, step = 1, suffix,
+}: {
+  label: string;
+  value: number;
+  onChange: (n: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+  suffix?: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <label className="text-[10px] font-black uppercase tracking-widest text-tx-muted shrink-0">
+        {label}
+      </label>
+      <div className="relative flex-1">
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            if (Number.isNaN(n)) return;
+            onChange(Math.min(max, Math.max(min, n)));
+          }}
+          className="w-full h-9 bg-brand-inner border-2 border-brand-border rounded-lg pl-3 pr-7 text-sm font-bold tabular-nums focus:outline-none focus:border-accent-primary"
+        />
+        {suffix && (
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tx-muted font-bold text-xs pointer-events-none">
+            {suffix}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function PlayRow({
   onClick, onAuto, loading, disabled, children, betKey, blocked, variant = 'primary',
-  balance, autoDelay = 450,
+  balance, autoDelay = 450, control, autoExtra, canAuto,
 }: {
   onClick: () => void;
   /** Defaults to `onClick`; override for games that must choose each round. */
@@ -269,32 +411,36 @@ export function PlayRow({
   /** Used by the stop threshold. */
   balance?: number;
   autoDelay?: number;
+  /**
+   * Supplied by games whose panel disappears mid-round, so the loop outlives
+   * this button. Left out, the button keeps its own.
+   */
+  control?: AutoControl;
+  /** Extra auto settings for this game, shown beside the stop threshold. */
+  autoExtra?: ReactNode;
+  /**
+   * Games where auto can start from a state the manual button refuses — the
+   * horses, where you must back a runner but auto picks one for you.
+   */
+  canAuto?: boolean;
 }) {
-  const [auto, setAuto] = useState(false);
-  const [stopBelow, setStopBelow] = useState(0);
-  const [showStop, setShowStop] = useState(false);
+  const manualReady = !loading && !disabled && !blocked;
+  const ready = canAuto !== undefined ? (canAuto && !loading && !blocked) : manualReady;
 
-  const runRef = useRef(onAuto || onClick);
-  runRef.current = onAuto || onClick;
+  // Hooks cannot be skipped, so the local loop is always created and simply
+  // switched off when the page brought its own.
+  const own = useAutoPlay({
+    run: onAuto || onClick, ready, betKey, balance,
+    delay: autoDelay, enabled: !control,
+  });
+  const ctl = control ?? own;
+  const { auto, stopBelow, setStopBelow, showStop } = ctl;
 
-  const ready = !loading && !disabled && !blocked;
-  const belowFloor = stopBelow > 0 && balance !== undefined && balance < stopBelow;
-
-  // Changing the stake is the natural "stop" gesture.
-  useEffect(() => { setAuto(false); }, [betKey]);
-  useEffect(() => { if (auto && (disabled || blocked)) setAuto(false); }, [auto, disabled, blocked]);
-
-  useEffect(() => {
-    if (!auto || !belowFloor) return;
-    setAuto(false);
-    toast.info(`Auto arrêté : ton solde est passé sous ${stopBelow.toLocaleString('en-US')} ₶.`);
-  }, [auto, belowFloor, stopBelow]);
-
-  useEffect(() => {
-    if (!auto || !ready || belowFloor) return;
-    const t = setTimeout(() => runRef.current(), tempo(autoDelay));
-    return () => clearTimeout(t);
-  }, [auto, ready, belowFloor, autoDelay]);
+  // Only a real dead end stops auto. `disabled` is transient in most games —
+  // the horses disable the button between races until a runner is backed, the
+  // cups while they shuffle — and killing auto on it meant auto switched
+  // itself off after a single round.
+  useEffect(() => { if (auto && blocked) ctl.stop(); }, [auto, blocked, ctl]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -303,12 +449,8 @@ export function PlayRow({
           {children}
         </PlayButton>
         <button
-          onClick={() => {
-            sfx.click(); vibrate(HAPTIC.SOFT);
-            setAuto((a) => !a);
-            setShowStop(true);
-          }}
-          disabled={disabled}
+          onClick={() => { sfx.click(); vibrate(HAPTIC.SOFT); ctl.toggle(); }}
+          disabled={canAuto !== undefined ? !canAuto : disabled}
           title="Rejoue tout seul jusqu'à ce que tu l'arrêtes"
           className={cn(
             'h-16 w-16 shrink-0 rounded-2xl border-4 border-brand-border font-display font-black text-[11px] tracking-wider',
@@ -322,7 +464,10 @@ export function PlayRow({
       </div>
 
       {showStop && (
-        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+        <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          {autoExtra}
+
+          <div className="flex items-center gap-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-tx-muted shrink-0">
             Stop sous
           </label>
@@ -336,6 +481,7 @@ export function PlayRow({
               className="w-full h-9 bg-brand-inner border-2 border-brand-border rounded-lg pl-3 pr-7 text-sm font-bold tabular-nums focus:outline-none focus:border-accent-primary"
             />
             <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tx-muted font-bold text-xs pointer-events-none">₶</span>
+          </div>
           </div>
         </div>
       )}

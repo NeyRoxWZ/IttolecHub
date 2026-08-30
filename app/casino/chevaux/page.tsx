@@ -172,6 +172,7 @@ export default function ChevauxPage() {
         onClick={phase === 'done' ? handleReset : () => handleRace()}
         loading={phase === 'racing'}
         disabled={!isLoaded || amount < CASINO_MIN_BET || (phase !== 'done' && selected === null)}
+        canAuto={isLoaded && amount >= CASINO_MIN_BET}
       >
         {phase === 'done' ? 'REJOUER' : selected === null ? 'CHOISIS UN CHEVAL' : `PARIER · ${fmt(amount)} ₶`}
       </PlayRow>

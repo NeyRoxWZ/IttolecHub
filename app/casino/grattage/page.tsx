@@ -9,6 +9,7 @@ import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet'
 import { scratchTicket, resolveGrattage, CASINO_MIN_BET } from '@/lib/casino/grattage';
 import {
   GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  useAutoPlay, AutoBadge,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtClover, ArtMoneyBag, ArtCrown, ArtDiamond, ArtLemon, ArtStar } from '../_components/CasinoArt';
@@ -192,6 +193,15 @@ export default function GrattagePage() {
     handleReset();
   };
 
+  // Le panneau remplace le bouton pendant la manche, ce qui démontait la
+  // boucle : elle vit donc ici, où rien ne la démonte.
+  const autoCtl = useAutoPlay({
+    run: autoTick,
+    ready: isLoaded && !buying && amount >= CASINO_MIN_BET && amount <= balance,
+    betKey: amount,
+    balance,
+  });
+
   const gameHistory = history.filter((h) => h.game_slug === 'grattage').slice(0, 10);
 
   const stage = (
@@ -261,15 +271,20 @@ export default function GrattagePage() {
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'scratching' || buying} step={1} />
 
       {phase === 'scratching' ? (
+        <>
+        {/* Le bouton de jeu a disparu : seule sortie d'une série auto. */}
+        <AutoBadge control={autoCtl} className="w-full justify-center mb-2" />
         <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
           <div className="font-display font-black text-sm text-accent-primary">Gratte ton ticket</div>
           <p className="text-xs text-tx-secondary mt-1">Passe le doigt (ou la souris) sur la zone argentée.</p>
         </div>
+        </>
       ) : (
         <PlayRow
           balance={balance}
           onClick={phase === 'idle' ? handleBuy : handleReset}
           onAuto={autoTick}
+          control={autoCtl}
           loading={buying}
           disabled={!isLoaded || amount < CASINO_MIN_BET}
           blocked={amount > balance}

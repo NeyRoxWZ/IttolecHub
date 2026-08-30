@@ -14,6 +14,7 @@ import {
 import {
   GameShell, fmt, BetControls, PlayButton, PlayRow, PlayingCard, ResultBanner, HistoryStrip,
   type RulesSpec,
+  useAutoPlay, AutoBadge,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { tempo } from '@/lib/casino/turbo';
@@ -268,6 +269,15 @@ export default function BlackjackPage() {
     handleReset();
   };
 
+  // The loop lives here, not in the button: this game swaps its panel once a
+  // round starts, which used to unmount the button and kill auto mid-round.
+  const autoCtl = useAutoPlay({
+    run: autoTick,
+    ready: isLoaded && !busy && amount >= CASINO_MIN_BET && amount <= balance,
+    betKey: amount,
+    balance,
+  });
+
   const handleReset = () => {
     sfx.click();
     setPhase('idle'); setPlayerCards([]); setDealerCards([]);
@@ -352,6 +362,7 @@ export default function BlackjackPage() {
             balance={balance}
             onClick={phase === 'idle' ? handleDeal : handleReset}
             onAuto={autoTick}
+            control={autoCtl}
             loading={busy}
             disabled={!isLoaded || amount < CASINO_MIN_BET}
             blocked={amount > balance}
@@ -362,6 +373,10 @@ export default function BlackjackPage() {
         </>
       ) : (
         <>
+          {/* Mid-round the play button is gone, so this is the only way out
+              of an auto run before it finishes. */}
+          <AutoBadge control={autoCtl} className="w-full justify-center" />
+
           <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 text-center">
             <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise en jeu</div>
             <div className="font-display text-2xl font-black text-accent-primary">{fmt(lockedAmount)} ₶</div>

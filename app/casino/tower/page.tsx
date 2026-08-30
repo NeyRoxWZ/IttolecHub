@@ -10,6 +10,7 @@ import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { LADDER_CONFIGS, multiplierAtStep, stepOutcome, CASINO_MIN_BET } from '@/lib/casino/ladder';
 import {
   GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
+  useAutoPlay, AutoBadge, AutoTargetField,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtDoor, ArtSkull, ArtCheck } from '../_components/CasinoArt';
@@ -151,12 +152,13 @@ export default function TowerPage() {
    * Auto plays a whole climb: it stakes, takes doors at random, and cashes
    * out at a target drawn fresh each round so it isn't the same run forever.
    */
+  const [autoTarget, setAutoTarget] = useState(3);
   const autoTargetRef = useRef(0);
 
   const autoTick = () => {
     if (busy) return;
     if (phase === 'idle') {
-      autoTargetRef.current = 2 + Math.floor(Math.random() * 4);
+      autoTargetRef.current = autoTarget;
       void handleStart();
       return;
     }
@@ -167,6 +169,15 @@ export default function TowerPage() {
     }
     handleReset();
   };
+
+  // The loop lives here, not in the button: this game swaps its panel once a
+  // round starts, which used to unmount the button and kill auto mid-round.
+  const autoCtl = useAutoPlay({
+    run: autoTick,
+    ready: isLoaded && !busy && amount >= CASINO_MIN_BET && amount <= balance,
+    betKey: amount,
+    balance,
+  });
 
   const handleReset = () => {
     sfx.click();
@@ -246,6 +257,15 @@ export default function TowerPage() {
             balance={balance}
             onClick={phase === 'idle' ? handleStart : handleReset}
             onAuto={autoTick}
+            control={autoCtl}
+            autoExtra={
+              <AutoTargetField
+                label="Encaisse à l’étage"
+                value={autoTarget}
+                onChange={setAutoTarget}
+                min={1} max={CONFIG.totalSteps} step={1}
+              />
+            }
             loading={busy}
             disabled={!isLoaded || amount < CASINO_MIN_BET}
             blocked={amount > balance}
@@ -256,6 +276,10 @@ export default function TowerPage() {
         </>
       ) : (
         <>
+          {/* Mid-round the play button is gone, so this is the only way out
+              of an auto run before it finishes. */}
+          <AutoBadge control={autoCtl} className="w-full justify-center" />
+
           <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 flex items-center justify-between">
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Étage</div>

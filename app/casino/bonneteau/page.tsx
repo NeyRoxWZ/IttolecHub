@@ -9,6 +9,7 @@ import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet'
 import { hideBall, resolveBonneteau, BONNETEAU_CUPS, BONNETEAU_PAYOUT, CASINO_MIN_BET } from '@/lib/casino/bonneteau';
 import {
   GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  useAutoPlay, AutoBadge,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtBall } from '../_components/CasinoArt';
@@ -110,6 +111,15 @@ export default function BonneteauPage() {
     if (phase === 'choosing') handlePick(Math.floor(Math.random() * BONNETEAU_CUPS));
   };
 
+  // Le panneau « à toi de jouer » remplace le bouton pendant le choix, ce qui
+  // démontait la boucle : elle vit donc ici.
+  const autoCtl = useAutoPlay({
+    run: autoTick,
+    ready: isLoaded && !busy && phase !== 'shuffling' && amount >= CASINO_MIN_BET && amount <= balance,
+    betKey: amount,
+    balance,
+  });
+
   const gameHistory = history.filter((h) => h.game_slug === 'bonneteau').slice(0, 10);
 
   const stage = (
@@ -193,15 +203,20 @@ export default function BonneteauPage() {
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'shuffling' || phase === 'choosing' || busy} />
 
       {phase === 'choosing' ? (
+        <>
+        {/* Le bouton de jeu a disparu : seule sortie d'une série auto. */}
+        <AutoBadge control={autoCtl} className="w-full justify-center mb-2" />
         <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
           <div className="font-display font-black text-sm text-accent-primary">À toi de jouer</div>
           <p className="text-xs text-tx-secondary mt-1">Clique le gobelet qui cache la bille.</p>
         </div>
+        </>
       ) : (
         <PlayRow
           balance={balance}
           onClick={phase === 'revealed' ? handleReset : handleStart}
           onAuto={autoTick}
+          control={autoCtl}
           loading={busy || phase === 'shuffling'}
           disabled={!isLoaded || amount < CASINO_MIN_BET}
           blocked={amount > balance}

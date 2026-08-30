@@ -9,6 +9,7 @@ import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet'
 import { hideJackpot, resolveCaisses, CAISSES_COUNT, CAISSES_PAYOUT, CASINO_MIN_BET } from '@/lib/casino/caisses';
 import {
   GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, type RulesSpec,
+  useAutoPlay, AutoBadge,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtCrate, ArtCrateEmpty } from '../_components/CasinoArt';
@@ -77,6 +78,15 @@ export default function CaissesPage() {
     if (phase === 'choosing') void handlePick(Math.floor(Math.random() * CAISSES_COUNT));
   };
 
+  // Le panneau remplace le bouton pendant la manche, ce qui démontait la
+  // boucle : elle vit donc ici, où rien ne la démonte.
+  const autoCtl = useAutoPlay({
+    run: autoTick,
+    ready: isLoaded && !busy && amount >= CASINO_MIN_BET && amount <= balance,
+    betKey: amount,
+    balance,
+  });
+
   const gameHistory = history.filter((h) => h.game_slug === 'caisses').slice(0, 10);
 
   const stage = (
@@ -140,15 +150,20 @@ export default function CaissesPage() {
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={phase === 'choosing' || phase === 'opening' || busy} />
 
       {phase === 'choosing' ? (
+        <>
+        {/* Le bouton de jeu a disparu : seule sortie d'une série auto. */}
+        <AutoBadge control={autoCtl} className="w-full justify-center mb-2" />
         <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
           <div className="font-display font-black text-sm text-accent-primary">Choisis ta caisse</div>
           <p className="text-xs text-tx-secondary mt-1">Une seule des {CAISSES_COUNT} contient le lot.</p>
         </div>
+        </>
       ) : (
         <PlayRow
           balance={balance}
           onClick={() => { if (phase === 'revealed') handleReset(); else { sfx.bet(); setPhase('choosing'); } }}
           onAuto={autoTick}
+          control={autoCtl}
           loading={busy}
           disabled={!isLoaded || amount < CASINO_MIN_BET}
           blocked={amount > balance}

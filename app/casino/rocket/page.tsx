@@ -13,6 +13,7 @@ import {
 } from '@/lib/casino/rocket';
 import {
   GameShell, fmt, BetControls, PlayButton, PlayRow, ResultBanner, HistoryStrip, CountUp, type RulesSpec,
+  useAutoPlay, AutoBadge, AutoTargetField,
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { ArtRocketShip } from '../_components/CasinoArt';
@@ -245,12 +246,13 @@ export default function RocketPage() {
   };
 
   /** Auto takes off and cashes out at a multiplier drawn fresh each flight. */
+  const [autoTarget, setAutoTarget] = useState(2);
   const autoTargetRef = useRef(0);
 
   const autoTick = () => {
     if (busy) return;
     if (phase === 'idle') {
-      autoTargetRef.current = 1.3 + Math.random() * 2.2;
+      autoTargetRef.current = autoTarget;
       void handleStart();
       return;
     }
@@ -260,6 +262,15 @@ export default function RocketPage() {
     }
     handleReset();
   };
+
+  // The loop lives here, not in the button: this game swaps its panel once a
+  // round starts, which used to unmount the button and kill auto mid-round.
+  const autoCtl = useAutoPlay({
+    run: autoTick,
+    ready: isLoaded && !busy && amount >= CASINO_MIN_BET && amount <= balance,
+    betKey: amount,
+    balance,
+  });
 
   const handleReset = () => {
     sfx.click(); stopLoops();
@@ -388,6 +399,15 @@ export default function RocketPage() {
           <PlayRow
             balance={balance}
             onAuto={autoTick}
+            control={autoCtl}
+            autoExtra={
+              <AutoTargetField
+                label="Encaisse à"
+                value={autoTarget}
+                onChange={setAutoTarget}
+                min={1.1} max={50} step={0.1} suffix="×"
+              />
+            }
             blocked={amount > balance}
             betKey={amount}
             onClick={phase === 'idle' ? handleStart : handleReset}
@@ -399,6 +419,10 @@ export default function RocketPage() {
         </>
       ) : (
         <>
+          {/* Mid-round the play button is gone, so this is the only way out
+              of an auto run before it finishes. */}
+          <AutoBadge control={autoCtl} className="w-full justify-center" />
+
           <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 text-center">
             <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise en vol</div>
             <div className="font-display text-2xl font-black text-accent-primary">{fmt(lockedAmount)} ₶</div>
