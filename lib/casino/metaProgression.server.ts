@@ -219,6 +219,7 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
   if (!wallet) return EMPTY_RESULT;
 
   const effects = input.effects ?? {};
+  const pooled = !!input.pooled;
   const base = input.baseMultiplier ?? input.multiplier;
   const isWin = base > 1;
   const isLoss = base === 0;
@@ -256,11 +257,15 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
   const betsPlaced = Number(wallet.bets_placed || 0) + 1;
   const winsCount = Number(wallet.wins_count || 0) + (isWin ? 1 : 0);
   const gamesMask = Number(wallet.games_mask || 0) | (1 << gameBit(gameSlug));
-  const biggestWin = Math.max(Number(wallet.biggest_win || 0), input.payout);
+  // Winnings made with the group's pot are the pot's, not this player's, so
+  // the money totals ignore them. What they *did* — bets placed, games tried,
+  // XP, streaks — still counts: playing is playing.
+  const biggestWin = pooled
+    ? Number(wallet.biggest_win || 0)
+    : Math.max(Number(wallet.biggest_win || 0), input.payout);
   const lossStreak = isLoss && !streakSaved ? Number(wallet.current_loss_streak || 0) + 1 : 0;
   const worstStreak = Math.max(Number(wallet.worst_streak || 0), lossStreak);
   const newBiggest = Math.max(Number(wallet.biggest_multiplier || 0), base);
-  const pooled = !!input.pooled;
   let owedCoins = pooled ? levelReward : 0;
   let balance = pooled ? Number(wallet.balance) : input.newBalance + levelReward;
   const newAllTimeBest = Math.max(Number(wallet.all_time_best_balance || 250), balance);
@@ -295,15 +300,16 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
   // round-trips the player sat through before the animation could even start.
   const [missionsCompleted, newAchievements] = await Promise.all([
     supabase.from('casino_wallets').update({
-      // In pooled play `balance` is the wallet's own untouched value, so this
-      // rewrites it unchanged rather than needing a second shape of update.
-      balance,
+      // Pooled play must not write the balance column at all: the value read
+      // a moment ago could already be stale, and rewriting it would undo a
+      // claim or a purchase that landed in between.
+      ...(pooled ? {} : { balance }),
       current_streak: newStreak,
       best_streak: newBestStreak,
-      total_won: newTotalWon,
+      ...(pooled ? {} : { total_won: newTotalWon }),
       total_wagered: newTotalWagered,
       biggest_multiplier: newBiggest,
-      all_time_best_balance: newAllTimeBest,
+      ...(pooled ? {} : { all_time_best_balance: newAllTimeBest }),
       xp: newXp,
       level: after.level,
     }).eq('user_id', userId),

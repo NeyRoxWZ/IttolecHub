@@ -21,6 +21,8 @@ export interface Bankroll {
   syndicateId?: string;
   syndicateCode?: string;
   endsAt?: string;
+  /** Copied off the membership row so the pot's ledger can name who bet. */
+  pseudo?: string;
 }
 
 /** The run this player is in, if it is still going. */
@@ -49,6 +51,9 @@ export async function loadBankroll(userId: string): Promise<Bankroll | null> {
   if (!wallet) return null;
 
   if (syn) {
+    const { data: me } = await supabase.from('casino_syndicate_members')
+      .select('pseudo').eq('syndicate_id', syn.id).eq('user_id', userId).maybeSingle();
+
     return {
       kind: 'syndicate',
       balance: Number(syn.pot),
@@ -56,6 +61,7 @@ export async function loadBankroll(userId: string): Promise<Bankroll | null> {
       syndicateId: syn.id,
       syndicateCode: syn.code,
       endsAt: syn.ends_at,
+      pseudo: me?.pseudo ?? undefined,
     };
   }
 
@@ -94,4 +100,27 @@ export async function applyDelta(
 
   if (!updated) return { ok: false, newBalance: expected };
   return { ok: true, newBalance };
+}
+
+/**
+ * The pot's own ledger line.
+ *
+ * Pooled bets must never reach casino_transactions: that table is what the
+ * player's balance curve is drawn from, and a bet made with the group's money
+ * would show as their own balance collapsing to the pot's value and bouncing
+ * back. The pot is a separate pile of money and keeps a separate book.
+ */
+export async function logPotMove(
+  bank: Bankroll, userId: string, gameSlug: string,
+  stake: number, payout: number, multiplier: number, potAfter: number
+): Promise<void> {
+  await supabase.from('casino_syndicate_rounds').insert({
+    syndicate_id: bank.syndicateId,
+    user_id: userId,
+    pseudo: bank.pseudo ?? null,
+    game_slug: gameSlug,
+    stake, payout,
+    multiplier: Math.round(multiplier * 100) / 100,
+    pot_after: potAfter,
+  });
 }

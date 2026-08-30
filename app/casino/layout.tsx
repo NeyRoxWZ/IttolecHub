@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import CelebrationLayer from './_components/CelebrationLayer';
 import CasinoSkin from './_components/CasinoSkin';
-import SyndicateBar from './_components/SyndicateBar';
+import SyndicateLock from './_components/SyndicateLock';
 
 /** Mounted once so any casino page can fire a celebration without wiring. */
 export default function CasinoLayout({ children }: { children: ReactNode }) {
@@ -9,7 +9,7 @@ export default function CasinoLayout({ children }: { children: ReactNode }) {
     <>
       <CasinoSkin />
       {children}
-      <SyndicateBar />
+      <SyndicateLock />
       <CelebrationLayer />
     </>
   );

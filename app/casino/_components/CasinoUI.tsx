@@ -20,6 +20,7 @@ import type { CosmeticParams } from '@/lib/casino/cosmetics';
 import * as Art from './CasinoArt';
 import { streakLabel, streakBonus, nextStreakTier } from '@/lib/casino/progression';
 import { JACKPOT_CONTRIBUTION_RATE, JACKPOT_HIT_CHANCE } from '@/lib/casino/meta';
+import { arenaBack } from '@/lib/casino/potMode';
 
 /* ------------------------------------------------------------------ */
 /* Number formatting                                                    */
@@ -478,7 +479,7 @@ export function PlayingCard({
 /* ------------------------------------------------------------------ */
 
 export function GameShell({
-  title, gameSlug, rules, balance, isLoaded, isLocal, streak, level, xpIntoLevel, xpForNext, stage, panel,
+  title, gameSlug, rules, balance, isLoaded, isLocal, streak, level, xpIntoLevel, xpForNext, stage, panel, onBack,
 }: {
   title: string;
   /** Which game's cosmetics to apply. */
@@ -493,10 +494,20 @@ export function GameShell({
   xpForNext?: number;
   stage: ReactNode;
   panel: ReactNode;
+  /**
+   * Where the arrow goes. The cagnotte arena renders games inside itself and
+   * passes its own handler, because during a run there is nowhere to go back
+   * to — leaving the arena is not allowed until the pot is settled.
+   */
+  onBack?: () => void;
 }) {
   const router = useRouter();
   const [showRules, setShowRules] = useState(false);
   const cosmetics = useGameCosmetics(gameSlug);
+
+  // Inside the cagnotte arena the games are mounted, not navigated to, so the
+  // arrow returns to its grid rather than out of the run.
+  const back = onBack ?? arenaBack();
 
   const table = cosmetics.table?.params;
   const border = cosmetics.border?.params;
@@ -525,13 +536,22 @@ export function GameShell({
       <div className="max-w-[1500px] w-full mx-auto flex flex-col flex-1 min-h-0">
         <header className="flex items-center justify-between gap-3 mb-3 flex-wrap shrink-0">
           <div className="flex items-center gap-3">
-            <Link
-              href="/casino"
-              prefetch
-              className="h-11 w-11 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
-            >
-              <ArrowLeft className="h-5 w-5" />
+            {back ? (
+              <button
+                onClick={() => { sfx.click(); back(); }}
+                className="h-11 w-11 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+            ) : (
+              <Link
+                href="/casino"
+                prefetch
+                className="h-11 w-11 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
+              >
+                <ArrowLeft className="h-5 w-5" />
               </Link>
+            )}
             <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-black">{title}</h1>
             <button
               onClick={() => { sfx.click(); setShowRules(true); }}

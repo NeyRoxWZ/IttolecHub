@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
+import { potMode, setPot, subscribePotMode, potModeServer } from '@/lib/casino/potMode';
 import { celebrate } from '@/lib/casino/celebrate';
 import { refreshActiveEffects } from '@/hooks/useActiveEffects';
 import {
@@ -78,10 +79,7 @@ export interface SyndicateLive {
 }
 
 interface WalletSnapshot {
-  /** During a group run this is the shared pot, not the player's own coins. */
   balance: number;
-  /** Their own coins, untouched while a run is on. */
-  walletBalance: number;
   syndicate: SyndicateLive | null;
   history: CasinoTransaction[];
   stats: CasinoStats;
@@ -91,7 +89,6 @@ interface WalletSnapshot {
 
 let snapshot: WalletSnapshot = {
   balance: CASINO_STARTING_BALANCE,
-  walletBalance: CASINO_STARTING_BALANCE,
   syndicate: null,
   history: [],
   stats: EMPTY_STATS,
@@ -247,15 +244,21 @@ function applySettlement(gameSlug: string, netChange: number, newBalance: number
   const isLoss = multiplier === 0;
   const currentStreak = isWin ? s.currentStreak + 1 : isLoss ? 0 : s.currentStreak;
 
+  // In the arena `newBalance` is the group's pot coming back from the server,
+  // so it must not be written over the player's own balance — nor counted as
+  // a personal best.
+  const pooled = potMode().active;
+  if (pooled) setPot(newBalance);
+
   setSnapshot({
-    balance: newBalance,
+    ...(pooled ? {} : { balance: newBalance }),
     history: [tx, ...snapshot.history].slice(0, 50),
     stats: {
       ...s,
       currentStreak,
       bestStreak: Math.max(s.bestStreak, currentStreak),
       biggestMultiplier: Math.max(s.biggestMultiplier, multiplier),
-      allTimeBestBalance: Math.max(s.allTimeBestBalance, newBalance),
+      allTimeBestBalance: pooled ? s.allTimeBestBalance : Math.max(s.allTimeBestBalance, newBalance),
     },
   });
 }
@@ -274,7 +277,6 @@ export function useCasinoWallet() {
         const data = await res.json();
         setSnapshot({
           balance: data.balance,
-          walletBalance: data.walletBalance ?? data.balance,
           syndicate: data.syndicate ?? null,
           history: data.history,
           stats: data.stats ?? EMPTY_STATS,
@@ -293,7 +295,7 @@ export function useCasinoWallet() {
         ].slice(0, 50);
         saveLocalWallet(w);
       }
-      setSnapshot({ balance: w.balance, walletBalance: w.balance, syndicate: null, history: w.history, stats: EMPTY_STATS, effects: {}, isLoaded: true });
+      setSnapshot({ balance: w.balance, syndicate: null, history: w.history, stats: EMPTY_STATS, effects: {}, isLoaded: true });
     }
   }, [user]);
 
@@ -320,8 +322,7 @@ export function useCasinoWallet() {
     const channel = supabase
       .channel(`casino_wallet:${user.id}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'casino_wallets', filter: `user_id=eq.${user.id}` }, (payload) => {
-        const own = (payload.new as any).balance;
-        setSnapshot(snapshot.syndicate ? { walletBalance: own } : { balance: own, walletBalance: own });
+        setSnapshot({ balance: (payload.new as any).balance });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -337,10 +338,8 @@ export function useCasinoWallet() {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'casino_syndicate', filter: `id=eq.${synId}` }, (payload) => {
         const row = payload.new as any;
         if (row.status !== 'running') { void fetchWallet(); return; }
-        setSnapshot({
-          balance: Number(row.pot),
-          syndicate: { ...snapshot.syndicate!, pot: Number(row.pot) },
-        });
+        setPot(Number(row.pot));
+        setSnapshot({ syndicate: { ...snapshot.syndicate!, pot: Number(row.pot) } });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -348,7 +347,9 @@ export function useCasinoWallet() {
 
   // A "high roller" item widens the cap; the server enforces the same rule.
   const betPct = store.effects.max_bet_pct?.magnitude;
-  const maxBet = betPct ? Math.max(1, Math.floor(store.balance * betPct)) : getMaxBet(store.balance);
+  const pot = useSyncExternalStore(subscribePotMode, potMode, potModeServer);
+  const spendable = pot.active ? pot.pot : store.balance;
+  const maxBet = betPct ? Math.max(1, Math.floor(spendable * betPct)) : getMaxBet(spendable);
 
   const spinWheelBet = useCallback(async (bet: WheelBet, amount: number): Promise<WheelSpinResult | { error: string }> => {
     if (inFlightRef.current) return { error: 'Une mise est déjà en cours.' };
@@ -539,8 +540,9 @@ export function useCasinoWallet() {
   }, [user, scheduleRevalidate]);
 
   return {
-    balance: store.balance,
-    walletBalance: store.walletBalance,
+    balance: pot.active ? pot.pot : store.balance,
+    /** Always the player's own coins, even while betting the group's pot. */
+    walletBalance: store.balance,
     syndicate: store.syndicate,
     history: store.history,
     stats: store.stats,

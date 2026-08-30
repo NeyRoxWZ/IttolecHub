@@ -70,12 +70,11 @@ export async function GET(request: Request) {
     const dailyClaimedToday = !!wallet.last_daily_claim_at && isSameUtcDay(new Date(wallet.last_daily_claim_at), now);
     const wheelClaimedToday = !!wallet.last_wheel_claim_at && isSameUtcDay(new Date(wallet.last_wheel_claim_at), now);
 
-    // While a group run is on, the number every screen bets against is the
-    // pot, not the player's own coins. Swapping it here is what puts all
-    // twenty games into pooled mode without any of them knowing about it.
+    // The balance stays the player's own, everywhere and always. The pot is
+    // reported alongside it: only the cagnotte arena swaps what it bets
+    // against, and only for as long as the player is inside it.
     return NextResponse.json({
-      balance: syn ? Number(syn.pot) : wallet.balance,
-      walletBalance: wallet.balance,
+      balance: wallet.balance,
       syndicate: syn
         ? { id: syn.id, code: syn.code, pot: Number(syn.pot), seedPot: Number(syn.seed_pot), endsAt: syn.ends_at }
         : null,

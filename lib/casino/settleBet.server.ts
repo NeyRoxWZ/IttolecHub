@@ -7,7 +7,7 @@ import { recordSettlement, type SettlementResult } from './metaProgression.serve
 import { advancePass, type PassProgress } from './pass.server';
 import { pushLive } from './live.server';
 import { PASS_XP } from './pass';
-import { loadBankroll, applyDelta } from './bankroll.server';
+import { loadBankroll, applyDelta, logPotMove } from './bankroll.server';
 import { endDrainedSyndicate } from './syndicate.server';
 
 interface SettleParams {
@@ -105,19 +105,21 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
   const passXp = PASS_XP.bet + (baseMultiplier > 1 ? PASS_XP.win : 0);
 
   const [, , progression] = await Promise.all([
-    supabase.from('casino_transactions').insert({
-      user_id: userId,
-      game_slug: gameSlug,
-      type: txType,
-      amount: netChange,
-      balance_after: newBalance,
-      meta: { ...meta, amount, multiplier, baseMultiplier, streakPct, itemPct, prestigePct, timedPct, refunded },
-    }),
+    pooled
+      ? logPotMove(bank, userId, gameSlug, amount, payout, multiplier, newBalance)
+      : supabase.from('casino_transactions').insert({
+          user_id: userId,
+          game_slug: gameSlug,
+          type: txType,
+          amount: netChange,
+          balance_after: newBalance,
+          meta: { ...meta, amount, multiplier, baseMultiplier, streakPct, itemPct, prestigePct, timedPct, refunded },
+        }),
     consumeEffects(userId, effects, used),
     recordSettlement(userId, gameSlug, {
       amount, payout, multiplier, baseMultiplier, newBalance, effects, wagered: amount, pooled,
     }),
-    pushLive(userId, gameSlug, netChange, multiplier),
+    pooled ? Promise.resolve() : pushLive(userId, gameSlug, netChange, multiplier),
   ]);
 
   const pass = await advancePass(userId, passXp + (progression.levelsGained ? PASS_XP.levelUp * progression.levelsGained : 0));

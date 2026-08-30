@@ -5,7 +5,7 @@ import { timedWinBonus } from './events';
 import { loadEffects, consumeEffects } from './effects.server';
 import { effectiveMaxBet } from './settleBet.server';
 import { recordWager, recordSettlement, type SettlementResult } from './metaProgression.server';
-import { loadBankroll, applyDelta } from './bankroll.server';
+import { loadBankroll, applyDelta, logPotMove } from './bankroll.server';
 import { endDrainedSyndicate } from './syndicate.server';
 import { advancePass, type PassProgress } from './pass.server';
 import { pushLive } from './live.server';
@@ -55,9 +55,13 @@ export async function startRound({ userId, gameSlug, amount, initialState }: Sta
     return { ok: false as const, status: 500, error: 'Impossible de démarrer la partie.' };
   }
 
-  await supabase.from('casino_transactions').insert({
-    user_id: userId, game_slug: gameSlug, type: 'bet', amount: -amount, balance_after: newBalance, meta: { roundId: round.id },
-  });
+  if (pooled) {
+    await logPotMove(bank, userId, gameSlug, amount, 0, 0, newBalance);
+  } else {
+    await supabase.from('casino_transactions').insert({
+      user_id: userId, game_slug: gameSlug, type: 'bet', amount: -amount, balance_after: newBalance, meta: { roundId: round.id },
+    });
+  }
 
   await recordWager(userId, amount);
 
@@ -89,9 +93,13 @@ export async function doubleBet(userId: string, roundId: string, gameSlug: strin
 
   const newAmount = currentAmount * 2;
   await supabase.from('casino_rounds').update({ amount: newAmount, updated_at: new Date().toISOString() }).eq('id', roundId);
-  await supabase.from('casino_transactions').insert({
-    user_id: userId, game_slug: gameSlug, type: 'bet', amount: -currentAmount, balance_after: newBalance, meta: { roundId, double: true },
-  });
+  if (bank.kind === 'syndicate') {
+    await logPotMove(bank, userId, gameSlug, currentAmount, 0, 0, newBalance);
+  } else {
+    await supabase.from('casino_transactions').insert({
+      user_id: userId, game_slug: gameSlug, type: 'bet', amount: -currentAmount, balance_after: newBalance, meta: { roundId, double: true },
+    });
+  }
 
   return { ok: true as const, newAmount, newBalance };
 }
@@ -113,10 +121,14 @@ export async function bustRound(userId: string, roundId: string, gameSlug: strin
     if (refunded > 0) {
       const back = await applyDelta(bank, userId, refunded, balance);
       if (back.ok) balance = back.newBalance;
-      await supabase.from('casino_transactions').insert({
-        user_id: userId, game_slug: gameSlug, type: 'bonus', amount: refunded,
-        balance_after: balance, meta: { kind: 'loss_refund', roundId },
-      });
+      if (pooled) {
+        await logPotMove(bank!, userId, gameSlug, 0, refunded, 0, balance);
+      } else {
+        await supabase.from('casino_transactions').insert({
+          user_id: userId, game_slug: gameSlug, type: 'bonus', amount: refunded,
+          balance_after: balance, meta: { kind: 'loss_refund', roundId },
+        });
+      }
     }
     await consumeEffects(userId, effects, ['loss_refund']);
   }
@@ -124,7 +136,7 @@ export async function bustRound(userId: string, roundId: string, gameSlug: strin
   const [progression] = await Promise.all([
     recordSettlement(userId, gameSlug, { amount, payout: 0, multiplier: 0, baseMultiplier: 0, newBalance: balance, effects, pooled }),
     advancePass(userId, PASS_XP.bet),
-    pushLive(userId, gameSlug, -amount, 0),
+    pooled ? Promise.resolve() : pushLive(userId, gameSlug, -amount, 0),
   ]);
   if (pooled && balance <= 0) await endDrainedSyndicate(bank!.syndicateId!);
   return progression;
@@ -155,16 +167,20 @@ export async function cashoutRound(userId: string, roundId: string, amount: numb
   const newBalance = paid.newBalance;
 
   await supabase.from('casino_rounds').update({ status: 'cashed_out', multiplier, updated_at: new Date().toISOString() }).eq('id', roundId);
-  await supabase.from('casino_transactions').insert({
-    user_id: userId, game_slug: gameSlug, type: 'win', amount: payout, balance_after: newBalance,
-    meta: { roundId, multiplier, baseMultiplier, streakPct, itemPct, prestigePct, timedPct },
-  });
+  if (bank.kind === 'syndicate') {
+    await logPotMove(bank, userId, gameSlug, amount, payout, multiplier, newBalance);
+  } else {
+    await supabase.from('casino_transactions').insert({
+      user_id: userId, game_slug: gameSlug, type: 'win', amount: payout, balance_after: newBalance,
+      meta: { roundId, multiplier, baseMultiplier, streakPct, itemPct, prestigePct, timedPct },
+    });
+  }
 
   await consumeEffects(userId, effects, used);
   const [progression, pass] = await Promise.all([
     recordSettlement(userId, gameSlug, { amount, payout, multiplier, baseMultiplier, newBalance, effects, pooled: bank.kind === 'syndicate' }),
     advancePass(userId, PASS_XP.bet + (baseMultiplier > 1 ? PASS_XP.win : 0)),
-    pushLive(userId, gameSlug, payout - amount, multiplier),
+    bank.kind === 'syndicate' ? Promise.resolve() : pushLive(userId, gameSlug, payout - amount, multiplier),
   ]);
 
   return {

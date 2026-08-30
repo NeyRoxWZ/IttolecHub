@@ -15,7 +15,7 @@ import {
   SYNDICATE_DURATIONS, SYNDICATE_MIN_PLAYERS, SYNDICATE_MAX_PLAYERS,
   SYNDICATE_MIN_BUY_IN,
 } from '@/lib/casino/syndicate';
-import { CASINO_GAMES } from '@/lib/casino/games';
+import Arena from './Arena';
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 
@@ -113,7 +113,7 @@ export default function CagnottePage() {
   };
 
   const seedPot = Number(live?.seedPot ?? syn?.seed_pot ?? 0);
-  const pot = running ? Number(live?.pot ?? balance) : Number(syn?.pot || 0);
+  const pot = Number(live?.pot ?? syn?.pot ?? 0);
   const delta = seedPot > 0 ? pot / seedPot : 1;
 
   const endsAt = live?.endsAt ?? syn?.ends_at;
@@ -128,7 +128,22 @@ export default function CagnottePage() {
     if (running && remaining === 0) void load();
   }, [running, remaining, load]);
 
-
+  // A run in progress takes over the whole screen: from here until the split,
+  // this is the only page there is.
+  if (running && syn) {
+    return (
+      <Arena
+        code={syn.code}
+        pot={pot}
+        seedPot={seedPot}
+        remaining={remaining}
+        members={state?.members || []}
+        feed={state?.feed || []}
+        walletBalance={walletBalance}
+        hostPseudo={state?.members.find((m: any) => m.user_id === syn.host_id)?.pseudo}
+      />
+    );
+  }
 
   return (
     <main className="min-h-screen bg-transparent text-tx-base pb-[env(safe-area-inset-bottom)]">
@@ -143,7 +158,7 @@ export default function CagnottePage() {
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-2xl font-black leading-none">Cagnotte de groupe</h1>
             <p className="text-[11px] text-tx-muted mt-1">
-              Vous misez ensemble, la cagnotte joue toute seule, vous partagez ce qu&apos;il en reste.
+              Vous misez ensemble, vous jouez avec la cagnotte, vous partagez ce qu&apos;il en reste.
             </p>
           </div>
           <button
@@ -280,101 +295,25 @@ export default function CagnottePage() {
         )}
 
         {/* ---------------------------------------------------------- */}
-        {/* A live pot                                                  */}
+        {/* A pot waiting to start                                      */}
         {/* ---------------------------------------------------------- */}
-        {syn && syn.status !== 'done' && (
+        {syn && syn.status === 'open' && (
           <>
-            <div className={cn(
-              'rounded-2xl border-4 p-5 text-center',
-              running
-                ? delta >= 1 ? 'border-accent-success bg-accent-success/5' : 'border-accent-secondary bg-accent-secondary/5'
-                : 'border-brand-border bg-brand-card'
-            )}>
+            <div className="rounded-2xl border-4 border-brand-border bg-brand-card p-5 text-center">
               <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">
-                {running ? 'Cagnotte en jeu' : 'Cagnotte en préparation'}
+                Cagnotte en préparation
               </div>
               <div className="font-display text-5xl font-black tabular-nums mt-1">
                 {fmt(pot)} <span className="text-2xl">₶</span>
               </div>
-
-              {running && (
-                <>
-                  <div className={cn(
-                    'inline-flex items-center gap-1 mt-2 px-3 py-1 rounded-full font-display font-black text-sm tabular-nums',
-                    delta >= 1 ? 'bg-accent-success/15 text-accent-success' : 'bg-accent-secondary/15 text-accent-secondary'
-                  )}>
-                    {delta >= 1 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                    ×{delta.toFixed(2)}
-                  </div>
-                  <div className="text-[11px] text-tx-muted mt-2 tabular-nums">
-                    {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')} restantes
-                    {' · '}vous jouez tous avec cet argent
-                  </div>
-                </>
-              )}
-
-              {!running && (
-                <div className="text-[11px] text-tx-muted mt-2">
-                  Code <span className="font-display font-black tracking-[0.2em] text-tx-base">{syn.code}</span>
-                  {' · '}{syn.duration_min} min
-                </div>
-              )}
+              <div className="text-[11px] text-tx-muted mt-2">
+                Code <span className="font-display font-black tracking-[0.2em] text-tx-base">{syn.code}</span>
+                {' · '}{syn.duration_min} min
+              </div>
+              <div className="text-[11px] text-accent-primary font-bold mt-2">
+                Une fois lancée, vous restez tous dedans jusqu&apos;à la fin.
+              </div>
             </div>
-
-            {running && (
-              <>
-                <div className="rounded-2xl border-4 border-accent-primary bg-accent-primary/10 p-3 text-center">
-                  <div className="font-display font-black text-sm text-accent-primary">
-                    Choisis un jeu et lance-toi
-                  </div>
-                  <div className="text-[11px] text-tx-secondary mt-0.5">
-                    Ton argent à toi ({fmt(walletBalance)} ₶) est mis de côté jusqu&apos;à la fin.
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
-                  {CASINO_GAMES.map((game) => {
-                    const Icon = game.icon;
-                    return (
-                      <Link
-                        key={game.slug}
-                        href={`/casino/${game.slug}`}
-                        prefetch
-                        onClick={() => sfx.click()}
-                        className="group rounded-xl border-2 border-brand-border bg-brand-card p-2 flex flex-col items-center justify-center gap-1 text-center hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none"
-                      >
-                        <Icon className="h-5 w-5 text-accent-primary" />
-                        <span className="font-display font-black text-[10px] leading-tight">
-                          {game.name.replace('Frenly ', '')}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-
-                {state?.feed?.length ? (
-                  <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-3">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">
-                      Ce que fait le groupe
-                    </div>
-                    <div className="space-y-1 max-h-40 overflow-y-auto">
-                      {[...state.feed].reverse().map((f: any, i: number) => (
-                        <div key={`${f.at}-${i}`} className="flex items-center gap-2 text-[11px]">
-                          <span className="font-bold truncate flex-1 min-w-0">{f.pseudo}</span>
-                          <span className="text-tx-muted truncate shrink-0">{f.game}</span>
-                          <span className={cn(
-                            'font-display font-black tabular-nums shrink-0 w-20 text-right',
-                            f.amount >= 0 ? 'text-accent-success' : 'text-accent-secondary'
-                          )}>
-                            {f.amount >= 0 ? '+' : ''}{fmt(f.amount)} ₶
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </>
-            )}
 
             <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-4">
               <div className="flex items-center gap-2 mb-3">
@@ -383,27 +322,23 @@ export default function CagnottePage() {
                   {state?.members.length}/{SYNDICATE_MAX_PLAYERS} joueurs
                 </span>
               </div>
-
               <div className="space-y-1.5">
-                {state?.members.map((m: any) => {
-                  const share = seedPot > 0 ? Number(m.contribution) / seedPot : 0;
-                  return (
-                    <div key={m.user_id} className="flex items-center gap-2 text-sm">
-                      <span className="flex-1 min-w-0 truncate font-bold">
-                        {m.pseudo}
-                        {m.user_id === syn.host_id && (
-                          <span className="ml-1.5 text-[9px] font-black uppercase text-accent-primary">hôte</span>
-                        )}
-                      </span>
-                      <span className="text-[11px] text-tx-muted tabular-nums shrink-0">
-                        {Math.round(share * 100)}%
-                      </span>
-                      <span className="font-display font-black tabular-nums shrink-0 w-24 text-right">
-                        {fmt(Math.floor(pot * share))} ₶
-                      </span>
-                    </div>
-                  );
-                })}
+                {state?.members.map((m: any) => (
+                  <div key={m.user_id} className="flex items-center gap-2 text-sm">
+                    <span className="flex-1 min-w-0 truncate font-bold">
+                      {m.pseudo}
+                      {m.user_id === syn.host_id && (
+                        <span className="ml-1.5 text-[9px] font-black uppercase text-accent-primary">hôte</span>
+                      )}
+                    </span>
+                    <span className="text-[11px] text-tx-muted tabular-nums shrink-0">
+                      {seedPot > 0 ? Math.round((Number(m.contribution) / seedPot) * 100) : 0}%
+                    </span>
+                    <span className="font-display font-black tabular-nums shrink-0 w-24 text-right">
+                      {fmt(Number(m.contribution))} ₶
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 

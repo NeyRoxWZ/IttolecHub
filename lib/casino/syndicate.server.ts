@@ -108,21 +108,17 @@ async function stateOf(syn: Row | null, userId: string | null): Promise<Syndicat
   const fresh = await catchUp(syn);
   const members = await membersOf(fresh.id);
 
-  // The run's activity is just the members' own bets, which the ledger
-  // already records — no second copy of every round to keep in step.
-  const since = fresh.started_at || fresh.created_at;
-  const byUser = new Map(members.map((m) => [m.user_id, m.pseudo]));
-  const { data: rows } = await supabase.from('casino_transactions')
-    .select('user_id, game_slug, type, amount, created_at')
-    .in('user_id', members.map((m) => m.user_id))
-    .in('type', ['bet', 'win', 'push', 'jackpot'])
-    .gte('created_at', since)
+  // The pot keeps its own book, so the run's activity comes from there rather
+  // than from the players' personal ledgers.
+  const { data: rows } = await supabase.from('casino_syndicate_rounds')
+    .select('pseudo, game_slug, stake, payout, pot_after, created_at')
+    .eq('syndicate_id', fresh.id)
     .order('created_at', { ascending: false }).limit(25);
 
   const feed = (rows || []).reverse().map((r) => ({
-    pseudo: byUser.get(r.user_id) || 'Joueur',
+    pseudo: r.pseudo || 'Joueur',
     game: r.game_slug,
-    amount: Number(r.amount),
+    amount: Number(r.payout) - Number(r.stake),
     at: r.created_at,
   }));
 
