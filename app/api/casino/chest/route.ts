@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import { CHEST_DAYS, CHEST_LENGTH, chestRewardFor } from '@/lib/casino/events';
 import { addToInventory } from '@/lib/casino/inventory.server';
+import { loadEffects, consumeEffects } from '@/lib/casino/effects.server';
 
 function isSameUtcDay(a: Date, b: Date): boolean {
   return a.getUTCFullYear() === b.getUTCFullYear()
@@ -59,7 +60,16 @@ export async function POST(request: Request) {
 
     // Continue the run, or start over after a missed day. Past the seventh
     // case it loops, so the chest never stops being worth opening.
-    const continues = last && isYesterday(last, now);
+    //
+    // A "réveil-matin" is spent only when it actually saves something: on a
+    // run that was about to be lost. Burning it on an unbroken run would make
+    // the item feel like it did nothing.
+    const effects = await loadEffects(userId);
+    const missed = !!last && !isYesterday(last, now);
+    const rescued = missed && !!effects.chest_freeze && Number(wallet.chest_day || 0) > 0;
+    if (rescued) await consumeEffects(userId, effects, ['chest_freeze']);
+
+    const continues = (last && isYesterday(last, now)) || rescued;
     const previous = continues ? Number(wallet.chest_day || 0) : 0;
     const day = previous >= CHEST_LENGTH ? 1 : previous + 1;
 
@@ -84,6 +94,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       day,
+      rescued,
       reward,
       newBalance,
       restarted: !continues && previous > 0,

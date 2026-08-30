@@ -175,7 +175,7 @@ export default function CasinoHub() {
   // The meta pages are reached from pills rather than links, so warm them by
   // hand — otherwise every one of them starts by downloading its chunk.
   useEffect(() => {
-    for (const path of ['/casino/shop', '/casino/pass', '/casino/inventaire', '/casino/achievements', '/casino/leaderboard', '/casino/direct', '/casino/cagnotte', '/casino/potes']) {
+    for (const path of ['/casino/shop', '/casino/pass', '/casino/inventaire', '/casino/achievements', '/casino/leaderboard', '/casino/direct', '/casino/cagnotte', '/casino/potes', '/casino/defi']) {
       router.prefetch(path);
     }
   }, [router]);
@@ -281,6 +281,10 @@ export default function CasinoHub() {
     {
       label: 'Cagnotte de groupe', icon: Users, hint: 'misez et partagez',
       onSelect: () => { sfx.click(); router.push('/casino/cagnotte'); },
+    },
+    {
+      label: 'Défi du jour', icon: Target, hint: 'mêmes tirages pour tous',
+      onSelect: () => { sfx.click(); router.push('/casino/defi'); },
     },
     {
       label: 'Entre potes', icon: Swords, hint: 'duels, cadeaux, chat',

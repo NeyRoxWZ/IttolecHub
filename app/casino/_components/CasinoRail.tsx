@@ -4,6 +4,7 @@ import { Clock, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import EventBanner from './EventBanner';
 import ActiveEffectsBar from './ActiveEffectsBar';
+import PushToggle from './PushToggle';
 import type { MenuEntry } from './CasinoMenu';
 
 /**
@@ -119,6 +120,7 @@ export default function CasinoRail({
       <Group title="En ce moment">
         <EventBanner className="flex-col flex-nowrap items-stretch" />
         <ActiveEffectsBar />
+        <PushToggle className="w-full justify-center" />
       </Group>
     </aside>
   );

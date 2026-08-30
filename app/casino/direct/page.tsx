@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Radio, TrendingUp, TrendingDown, Pause, Play } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 import { sfx } from '@/lib/casino/sfx';
 import { supabase } from '@/lib/supabase/client';
 import { GAME_LABELS } from '@/lib/casino/cosmetics';
@@ -36,21 +38,45 @@ function relativeTime(iso: string, now: number): string {
  * can actually be read instead of scrolling away mid-sentence.
  */
 export default function LivePage() {
+  const { user } = useAuth();
   const [rows, setRows] = useState<LiveRow[]>([]);
   const [paused, setPaused] = useState(false);
   const [opened, setOpened] = useState<string | null>(null);
+  const [reactions, setReactions] = useState<Record<number, { counts: Record<string, number>; mine: string | null }>>({});
+  const [emoji, setEmoji] = useState<string[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const bufferRef = useRef<LiveRow[]>([]);
   const pausedRef = useRef(false);
   pausedRef.current = paused;
 
   const load = useCallback(async () => {
-    const res = await fetch('/api/casino/live?limit=120');
+    const res = await fetch(`/api/casino/live?limit=120${user ? `&user_id=${user.id}` : ''}`);
     if (res.ok) {
       const data = await res.json();
       setRows(data.live || []);
+      setReactions(data.reactions || {});
+      setEmoji(data.emoji || []);
     }
-  }, []);
+  }, [user]);
+
+  const react = async (liveId: number, e: string) => {
+    if (!user) { toast.error('Connecte-toi pour réagir.'); return; }
+    sfx.click();
+    // Optimistic: the tape moves fast and a round trip before the emoji
+    // appears makes it feel like the tap missed.
+    setReactions((r) => {
+      const cur = r[liveId] || { counts: {}, mine: null };
+      const counts = { ...cur.counts };
+      if (cur.mine) counts[cur.mine] = Math.max(0, (counts[cur.mine] || 1) - 1);
+      const mine = cur.mine === e ? null : e;
+      if (mine) counts[mine] = (counts[mine] || 0) + 1;
+      return { ...r, [liveId]: { counts, mine } };
+    });
+    await fetch('/api/casino/live', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: user.id, live_id: liveId, emoji: e }),
+    });
+  };
 
   useEffect(() => { void load(); }, [load]);
 
@@ -147,19 +173,23 @@ export default function LivePage() {
             {rows.map((r) => {
               const win = r.amount > 0;
               return (
-                <button
+                <div
                   key={r.id}
-                  onClick={() => { sfx.click(); setOpened(r.pseudo); }}
                   className={cn(
-                    'w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-all',
-                    'hover:-translate-y-0.5 hover:border-accent-primary focus:outline-none',
+                    'w-full text-left px-3 py-2.5 rounded-xl border-2 transition-all',
                     'animate-in slide-in-from-top-2 fade-in duration-300',
                     win ? 'border-accent-success/40 bg-accent-success/5' : 'border-brand-border bg-brand-card'
                   )}
                 >
+                  <div className="flex items-center gap-3">
                   <span className={cn('h-2 w-2 rounded-full shrink-0', win ? 'bg-accent-success' : 'bg-accent-secondary')} />
 
-                  <span className="font-black text-sm truncate max-w-[120px]">{r.pseudo}</span>
+                  <button
+                    onClick={() => { sfx.click(); setOpened(r.pseudo); }}
+                    className="font-black text-sm truncate max-w-[120px] hover:text-accent-primary focus:outline-none"
+                  >
+                    {r.pseudo}
+                  </button>
                   <span className="text-[11px] text-tx-muted shrink-0">sur</span>
                   <span className="text-[11px] font-bold text-tx-secondary truncate">
                     {GAME_LABELS[r.game_slug] || r.game_slug}
@@ -181,7 +211,32 @@ export default function LivePage() {
                   <span className="text-[10px] font-bold text-tx-muted tabular-nums w-12 text-right shrink-0">
                     {relativeTime(r.created_at, now)}
                   </span>
-                </button>
+                  </div>
+
+                  <div className="flex items-center gap-1 mt-1.5 pl-5">
+                    {emoji.map((e) => {
+                      const n = reactions[r.id]?.counts?.[e] || 0;
+                      const mine = reactions[r.id]?.mine === e;
+                      // A reaction nobody has used stays faint until hovered:
+                      // five bright buttons on every line would drown the tape.
+                      return (
+                        <button
+                          key={e}
+                          onClick={() => void react(r.id, e)}
+                          className={cn(
+                            'h-6 px-1.5 rounded-md border text-[11px] leading-none flex items-center gap-1 transition-all focus:outline-none',
+                            mine ? 'border-accent-primary bg-accent-primary/15'
+                                 : n > 0 ? 'border-brand-border bg-brand-inner'
+                                 : 'border-transparent opacity-35 hover:opacity-100 hover:border-brand-border'
+                          )}
+                        >
+                          <span>{e}</span>
+                          {n > 0 && <span className="font-bold tabular-nums text-[10px]">{n}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
           </div>

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/casino/push/send",
+      "schedule": "0 */3 * * *"
+    }
+  ]
+}

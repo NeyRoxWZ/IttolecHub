@@ -10,6 +10,7 @@ export type ItemEffect =
   // consumables resolved during a bet settlement
   | 'loss_refund'        // magnitude = share of the stake returned on a loss
   | 'streak_shield'      // a loss doesn't reset the win streak
+  | 'chest_freeze'       // a missed day doesn't reset the 7-day chest run
   | 'win_bonus'          // magnitude = extra share of the profit
   | 'jackpot_boost'      // magnitude = multiplier on jackpot odds
   | 'xp_multiplier'      // magnitude = XP multiplier, time-based
@@ -44,6 +45,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'lucky_token', name: 'Jeton porte-bonheur', description: 'Ta prochaine mise perdue t’est intégralement remboursée.', price: 900, category: 'protection', effect: 'loss_refund', magnitude: 1, uses: 1 },
   { id: 'insurance', name: 'Assurance', description: 'La moitié de ta mise te revient sur tes 3 prochaines défaites.', price: 700, category: 'protection', effect: 'loss_refund', magnitude: 0.5, uses: 3 },
   { id: 'streak_shield', name: 'Bouclier de série', description: 'Ta prochaine défaite ne casse pas ta série de victoires.', price: 1200, category: 'protection', effect: 'streak_shield', uses: 1 },
+  { id: 'chest_freeze', name: 'Réveil-matin', description: 'Un jour d’absence ne casse pas ta série du coffre 7 jours.', price: 1800, category: 'protection', effect: 'chest_freeze', uses: 1 },
   { id: 'safety_net_plus', name: 'Filet renforcé', description: 'Tes 5 prochaines défaites te rendent 25% de la mise.', price: 550, category: 'protection', effect: 'loss_refund', magnitude: 0.25, uses: 5 },
 
   /* ---- gain ---- */
