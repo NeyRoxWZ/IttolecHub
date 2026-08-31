@@ -33,7 +33,7 @@ export default function LeaderboardPage() {
     if (tab === 'alltime') {
       supabase
         .from('casino_wallets')
-        .select('balance, prestige_count, users(pseudo)')
+        .select('balance, prestige_count, users!casino_wallets_user_id_fkey(pseudo)')
         .order('balance', { ascending: false })
         .limit(50)
         .then(({ data }) => {

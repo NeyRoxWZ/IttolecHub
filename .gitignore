@@ -4,3 +4,5 @@ node_modules
 # Secrets : ne doivent jamais repartir dans le dépôt.
 .env.local
 .env*.local
+
+.vercel
