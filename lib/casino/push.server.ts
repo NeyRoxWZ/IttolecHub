@@ -93,8 +93,14 @@ function isSameUtcDay(a: Date, b: Date): boolean {
 }
 
 /**
- * One pass over everyone who might need waking. Meant to be called by a
- * scheduler a few times a day, never by a page.
+ * One pass over everyone who might need waking.
+ *
+ * The Vercel Hobby plan allows exactly one cron run per day, so this fires
+ * once at 19:00 UTC — late enough that a missed chest is a real risk, early
+ * enough to still act on it before the UTC day turns over. Happy hour is
+ * therefore only announced on the rare day the sweep lands in its final
+ * quarter of an hour; a proper reminder for it needs a scheduler that can run
+ * more often, which any free external cron hitting this endpoint would give.
  */
 export async function pushSweep(): Promise<{ chest: number; happy: number }> {
   if (!configure()) return { chest: 0, happy: 0 };
