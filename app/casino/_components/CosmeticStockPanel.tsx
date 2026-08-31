@@ -6,7 +6,11 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 
 /** Only the catalogue owner needs to know when it's time to write more. */
-const OWNER_PSEUDOS = ['BabouinAsmathique', 'BabouinCosmetics'];
+/**
+ * Keyed on the account id, not the pseudo: this panel vanished the day the
+ * owner renamed themselves, and a gate that breaks on a rename is not a gate.
+ */
+const OWNER_IDS = ['080a255a-12df-4307-a660-f5e8dfe74468'];
 
 interface SeasonRow {
   season: number;
@@ -38,7 +42,7 @@ export default function CosmeticStockPanel() {
   const { user } = useAuth();
   const [stock, setStock] = useState<Stock | null>(null);
 
-  const isOwner = !!user && OWNER_PSEUDOS.includes(user.pseudo);
+  const isOwner = !!user && OWNER_IDS.includes(user.id);
 
   useEffect(() => {
     if (!isOwner) return;

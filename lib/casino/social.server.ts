@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/server';
 import { itemById } from './shop';
 import { addToInventory } from './inventory.server';
+import { pushGift } from './push.server';
 import {
   REFERRAL_WAGER_GOAL, REFERRAL_REWARD_INVITER, REFERRAL_REWARD_NEWCOMER, makeReferralCode,
   GIFT_MIN, GIFT_MAX, GIFT_DAILY_LIMIT, GIFT_COIN_FEE, giftCoinCost, giftItemPrice,
@@ -216,10 +217,12 @@ export async function sendGift(
     amount: value, cost, message: message?.slice(0, 200) || null,
   });
 
-  return {
-    ok: true, newBalance: afterCost,
-    delivered: item ? item.name : `${value.toLocaleString('en-US')} ₶`,
-  };
+  // The receiver has no reason to be looking at the page when this lands, so
+  // it has to go and find them.
+  const delivered = item ? item.name : `${value.toLocaleString('en-US')} ₶`;
+  await pushGift(target.id, await pseudoOf(userId), delivered);
+
+  return { ok: true, newBalance: afterCost, delivered };
 }
 
 /* ------------------------------------------------------------------ */

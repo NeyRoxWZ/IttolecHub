@@ -7,10 +7,14 @@ import { happyHourCountdown, isHappyHour } from './events';
  *
  * The rule that matters here is restraint: a casino that buzzes you all day
  * gets its notifications switched off within a week, and then it has no way
- * to reach anyone at all. So there are exactly three reasons to wake somebody
- * — their chest run is about to break, happy hour is starting, someone
- * challenged them — each device can refuse any of them, and no device is
- * pushed more than once every six hours.
+ * to reach anyone at all. So there are few reasons to wake somebody — their
+ * chest run is about to break, happy hour is starting, someone sent them
+ * coins — each device can refuse any of them, and no device is pushed more
+ * than once every six hours.
+ *
+ * A gift is the exception to that quiet window: money arriving is the one
+ * notification nobody resents, and holding it back for six hours would make
+ * it arrive long after the moment it belongs to.
  */
 
 const QUIET_HOURS = 6;
@@ -44,7 +48,7 @@ export interface PushPayload {
   tag?: string;
 }
 
-type Topic = 'chest' | 'happy_hour' | 'duels';
+type Topic = 'chest' | 'happy_hour' | 'duels' | 'gifts';
 
 /**
  * Sends to every device of one player that still wants this topic.
@@ -53,13 +57,17 @@ type Topic = 'chest' | 'happy_hour' | 'duels';
  * the app was uninstalled or the permission revoked — so it is deleted rather
  * than retried forever.
  */
-export async function pushToUser(userId: string, topic: Topic, payload: PushPayload): Promise<number> {
+export async function pushToUser(
+  userId: string, topic: Topic, payload: PushPayload, { ignoreQuietHours = false } = {}
+): Promise<number> {
   if (!configure()) return 0;
 
-  const cutoff = new Date(Date.now() - QUIET_HOURS * 3600_000).toISOString();
-  const { data: subs } = await supabase.from('casino_push')
-    .select('*').eq('user_id', userId).eq(topic, true)
-    .or(`last_sent_at.is.null,last_sent_at.lt.${cutoff}`);
+  let query = supabase.from('casino_push').select('*').eq('user_id', userId).eq(topic, true);
+  if (!ignoreQuietHours) {
+    const cutoff = new Date(Date.now() - QUIET_HOURS * 3600_000).toISOString();
+    query = query.or(`last_sent_at.is.null,last_sent_at.lt.${cutoff}`);
+  }
+  const { data: subs } = await query;
 
   let sent = 0;
   for (const s of subs || []) {
@@ -147,4 +155,19 @@ export async function pushSweep(): Promise<{ chest: number; happy: number }> {
   }
 
   return { chest, happy };
+}
+
+/** Fired the instant a gift lands, not on the daily sweep. */
+export async function pushGift(toUserId: string, fromPseudo: string, what: string): Promise<number> {
+  return pushToUser(
+    toUserId,
+    'gifts',
+    {
+      title: `${fromPseudo} t’a offert quelque chose`,
+      body: what,
+      url: '/casino/potes',
+      tag: 'gift',
+    },
+    { ignoreQuietHours: true },
+  );
 }
