@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/casino/push/send?slot=morning",
+      "schedule": "0 7 * * *"
+    },
+    {
       "path": "/api/casino/push/send",
       "schedule": "0 19 * * *"
     }

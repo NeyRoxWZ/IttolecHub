@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { pushSweep } from '@/lib/casino/push.server';
+import { pushMorning, pushSweep } from '@/lib/casino/push.server';
 
 /**
  * The scheduled sweep.
@@ -18,8 +18,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
 
+  // Two daily runs share this route: the morning one announces what reset
+  // overnight, the evening one warns about a chest about to break.
+  const slot = new URL(request.url).searchParams.get('slot');
+
   try {
-    return NextResponse.json(await pushSweep());
+    return NextResponse.json(slot === 'morning' ? await pushMorning() : await pushSweep());
   } catch (err) {
     console.error('Erreur sweep push:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

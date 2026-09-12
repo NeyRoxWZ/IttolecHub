@@ -4,6 +4,7 @@ import CelebrationLayer from './_components/CelebrationLayer';
 import CasinoSkin from './_components/CasinoSkin';
 import SyndicateLock from './_components/SyndicateLock';
 import GiftWatcher from './_components/GiftWatcher';
+import PushPrompt from './_components/PushPrompt';
 import PatchNotesModal from '@/components/PatchNotesModal';
 
 /**
@@ -24,6 +25,7 @@ export default function CasinoLayout({ children }: { children: ReactNode }) {
       {children}
       <SyndicateLock />
       <GiftWatcher />
+      <PushPrompt />
       <PatchNotesModal area="casino" />
       <CelebrationLayer />
     </>

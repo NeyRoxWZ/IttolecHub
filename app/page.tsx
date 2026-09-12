@@ -249,16 +249,29 @@ export default function Home() {
               <Image
                 src="/logo-site.png"
                 alt="ItollecHub"
-                width={500}
-                height={500}
-                className="h-14 w-14 object-contain select-none drop-shadow-[3px_3px_0_rgba(0,0,0,0.85)]"
+                width={1219}
+                height={635}
+                className="h-12 w-auto object-contain select-none"
                 priority
                 onError={() => setLogoVisible(false)}
               />
             )}
           </div>
 
-          <div className="flex-1 hidden md:block" />
+          {/* The logo carries its own glow, so no drop shadow on top of it. */}
+          <div className="flex-1 hidden md:flex justify-start">
+            {logoVisible && (
+              <Image
+                src="/logo-site.png"
+                alt="ItollecHub"
+                width={1219}
+                height={635}
+                className="h-16 w-auto object-contain select-none"
+                priority
+                onError={() => setLogoVisible(false)}
+              />
+            )}
+          </div>
 
           <div className="hidden md:flex items-center rounded-2xl border-2 border-brand-border bg-brand-inner p-2 gap-2">
             <button
@@ -273,20 +286,6 @@ export default function Home() {
             >
               Multiplayer
             </button>
-            {/* The brand mark sits between the two modes, larger than the pill
-                and spilling past it so it reads as an emblem rather than a
-                third button. Negative margins keep the pill its own height. */}
-            {logoVisible && (
-              <Image
-                src="/logo-site.png"
-                alt="ItollecHub"
-                width={500}
-                height={500}
-                className="h-20 w-20 -my-5 mx-1 object-contain select-none drop-shadow-[5px_5px_0_rgba(0,0,0,0.85)]"
-                priority
-                onError={() => setLogoVisible(false)}
-              />
-            )}
             <button
               type="button"
               onClick={() => handleSetMode('solo')}

@@ -17,27 +17,36 @@
       "details": "Le casino et ItollecClicker affichent chacun leurs propres nouveautés à l'ouverture, une seule fois par version."
     },
     {
-      "id": "2026-09-12-03",
-      "date": "2026-09-12",
-      "scope": "site",
-      "type": "amelioration",
-      "title": "Le logo prend place entre Multijoueur et Solo"
-    },
-    {
-      "id": "2026-09-12-04",
-      "date": "2026-09-12",
-      "scope": "site",
-      "type": "amelioration",
-      "title": "Patch notes pliables",
-      "details": "Chaque version et chaque zone se replient d'un clic ; la dernière version s'ouvre, les anciennes restent pliées."
-    },
-    {
       "id": "2026-09-12-05",
       "date": "2026-09-12",
       "scope": "site",
       "type": "nouveau",
       "title": "Une app par jeu sur l'écran d'accueil",
       "details": "Ajouter le casino ou ItollecClicker à l'écran d'accueil depuis leur page installe une app qui s'ouvre directement sur ce jeu, avec sa propre icône."
+    },
+    {
+      "id": "2026-09-12-06",
+      "date": "2026-09-12",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Sections des patch notes pliées par défaut",
+      "details": "Chaque version affiche ses zones repliées ; on ouvre celle qu'on veut, et le navigateur retient ce qu'on a ouvert."
+    },
+    {
+      "id": "2026-09-12-07",
+      "date": "2026-09-12",
+      "scope": "casino",
+      "type": "nouveau",
+      "title": "Notifications proposées dans l'app du casino",
+      "details": "En ouvrant le casino depuis l'écran d'accueil, on te propose d'activer les notifications : coffre du jour, missions et défi du jour, récap du lundi, nouveau pass du mois et cadeaux reçus."
+    },
+    {
+      "id": "2026-09-12-08",
+      "date": "2026-09-12",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Nouveau logo",
+      "details": "Le logo ItollecHub est refait et reprend sa place en haut à gauche."
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ChevronDown } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   RELEASES, GROUP_META, GROUP_ORDER, scopeOf, formatReleaseDate,
@@ -23,29 +23,12 @@ export default function PatchNotesPage() {
   // A game's popup links here already filtered on its area. Read from the URL
   // after mount: useSearchParams would force a Suspense boundary on a page
   // that is otherwise static.
-  // The newest version starts unfolded, older ones folded — plus whichever
-  // version the link points at.
-  const [openVersions, setOpenVersions] = useState<Set<string>>(
-    () => new Set(RELEASES[0] ? [RELEASES[0].version] : [])
-  );
-
   useEffect(() => {
     const zone = new URLSearchParams(window.location.search).get('zone');
     if (zone && (GROUP_ORDER as string[]).includes(zone)) setFilter(zone as ScopeGroup);
     const target = window.location.hash.match(/^#v(\d+\.\d+\.\d+)$/)?.[1];
-    if (target) {
-      setOpenVersions((prev) => new Set(prev).add(target));
-      requestAnimationFrame(() => document.getElementById(`v${target}`)?.scrollIntoView());
-    }
+    if (target) requestAnimationFrame(() => document.getElementById(`v${target}`)?.scrollIntoView());
   }, []);
-
-  const toggleVersion = (version: string) =>
-    setOpenVersions((prev) => {
-      const next = new Set(prev);
-      if (next.has(version)) next.delete(version);
-      else next.add(version);
-      return next;
-    });
 
   const presentGroups = useMemo(
     () => GROUP_ORDER.filter((g) => RELEASES.some((r) => r.entries.some((e) => scopeOf(e.scope).group === g))),
@@ -104,38 +87,20 @@ export default function PatchNotesPage() {
             <div className="space-y-6">
               {visible.map((release) => {
                 const latest = release.version === RELEASES[0].version;
-                const open = openVersions.has(release.version);
                 return (
                   <section
                     key={release.version}
                     id={`v${release.version}`}
                     className="bg-brand-card border-4 border-brand-border rounded-[28px] p-5 sm:p-6 shadow-brutal scroll-mt-4"
                   >
-                    <button
-                      type="button"
-                      onClick={() => toggleVersion(release.version)}
-                      aria-expanded={open}
-                      className="w-full text-left group"
-                    >
-                      <div className="flex items-baseline justify-between gap-3 mb-1">
-                        <span className={cn('font-display font-black text-sm', latest ? 'text-accent-primary' : 'text-tx-muted')}>
-                          v{release.version}{latest && ' · dernière'}
-                        </span>
-                        <span className="text-[11px] text-tx-muted">{formatReleaseDate(release.date)}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <h2 className="font-display text-2xl font-black leading-tight">{release.title}</h2>
-                        <span className="ml-auto shrink-0 flex items-center gap-1 text-[11px] font-bold text-tx-muted group-hover:text-tx-base">
-                          {open ? 'Replier' : `${release.entries.length} changements`}
-                          <ChevronDown className={cn('h-4 w-4 transition-transform', !open && '-rotate-90')} />
-                        </span>
-                      </div>
-                    </button>
-                    {open && (
-                      <div className="mt-5">
-                        <PatchNotesView entries={release.entries} />
-                      </div>
-                    )}
+                    <div className="flex items-baseline justify-between gap-3 mb-1">
+                      <span className={cn('font-display font-black text-sm', latest ? 'text-accent-primary' : 'text-tx-muted')}>
+                        v{release.version}{latest && ' · dernière'}
+                      </span>
+                      <span className="text-[11px] text-tx-muted">{formatReleaseDate(release.date)}</span>
+                    </div>
+                    <h2 className="font-display text-2xl font-black leading-tight mb-5">{release.title}</h2>
+                    <PatchNotesView entries={release.entries} />
                   </section>
                 );
               })}

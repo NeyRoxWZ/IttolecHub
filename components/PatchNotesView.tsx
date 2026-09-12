@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   groupByArea, GROUP_META, TYPE_META, CHANGE_TYPES, type PatchEntry, type ScopeGroup,
 } from '@/lib/patch-notes';
+
+const UNFOLDED_KEY = 'itollec_patch_unfolded';
 
 /**
  * One version's changes: area, then game, then change.
@@ -15,24 +17,37 @@ import {
  * game is a row, a change is a line, and colour is only used where it tells
  * you something: a type dot appears only when a version mixes several kinds.
  *
- * Each area folds, so a player can close what they do not play.
+ * Areas start folded: the version reads as a short list of areas with their
+ * counts, and a player opens the one they play. When a filter leaves a single
+ * area there is nothing to choose between, so it shows open.
  */
 export default function PatchNotesView({ entries }: { entries: PatchEntry[] }) {
   const areas = groupByArea(entries);
   const types = CHANGE_TYPES.filter((t) => entries.some((e) => e.type === t));
   const mixed = types.length > 1;
-  const [folded, setFolded] = useState<Set<ScopeGroup>>(new Set());
+  const [unfolded, setUnfolded] = useState<Set<ScopeGroup>>(new Set());
+
+  // Remembered in this browser, per area: open Casino once and it stays open
+  // on every version and every visit. Read after mount so the server render
+  // and the first client render agree.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(UNFOLDED_KEY) || '[]');
+      if (Array.isArray(saved)) setUnfolded(new Set(saved as ScopeGroup[]));
+    } catch {}
+  }, []);
 
   const toggle = (group: ScopeGroup) =>
-    setFolded((prev) => {
+    setUnfolded((prev) => {
       const next = new Set(prev);
       if (next.has(group)) next.delete(group);
       else next.add(group);
+      try { localStorage.setItem(UNFOLDED_KEY, JSON.stringify(Array.from(next))); } catch {}
       return next;
     });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {mixed && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-tx-muted">
           {types.map((t) => (
@@ -45,7 +60,7 @@ export default function PatchNotesView({ entries }: { entries: PatchEntry[] }) {
       )}
 
       {areas.map(({ group, count, scopes }) => {
-        const open = !folded.has(group);
+        const open = areas.length === 1 || unfolded.has(group);
         return (
           <section key={group}>
             <button

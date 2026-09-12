@@ -48,7 +48,7 @@ export interface PushPayload {
   tag?: string;
 }
 
-type Topic = 'chest' | 'happy_hour' | 'duels' | 'gifts';
+type Topic = 'chest' | 'happy_hour' | 'duels' | 'gifts' | 'daily' | 'recap' | 'pass';
 
 /**
  * Sends to every device of one player that still wants this topic.
@@ -77,8 +77,11 @@ export async function pushToUser(
         JSON.stringify(payload),
       );
       sent += 1;
-      await supabase.from('casino_push')
-        .update({ last_sent_at: new Date().toISOString() }).eq('endpoint', s.endpoint);
+      // A gift sent at night must not eat the morning reminder's window.
+      if (!ignoreQuietHours) {
+        await supabase.from('casino_push')
+          .update({ last_sent_at: new Date().toISOString() }).eq('endpoint', s.endpoint);
+      }
     } catch (err: any) {
       if (err?.statusCode === 404 || err?.statusCode === 410) {
         await supabase.from('casino_push').delete().eq('endpoint', s.endpoint);
@@ -155,6 +158,64 @@ export async function pushSweep(): Promise<{ chest: number; happy: number }> {
   }
 
   return { chest, happy };
+}
+
+/**
+ * The morning sweep, at 07:00 UTC (9h in Paris in summer, 8h in winter).
+ *
+ * Daily missions, the challenge and the chest turn over at midnight UTC, the
+ * weekly recap on Monday and the pass on the first of the month — all at an
+ * hour nobody should be woken for, so the news waits for the morning.
+ *
+ * One notification per player, never three: on a Monday that is also the
+ * first of the month the new pass wins over the recap, and the recap over
+ * the daily missions. A player who switched a topic off falls through to the
+ * next one they still want.
+ */
+export async function pushMorning(now = new Date()): Promise<{ pass: number; recap: number; daily: number }> {
+  const counts = { pass: 0, recap: 0, daily: 0 };
+  if (!configure()) return counts;
+
+  const { data: subs } = await supabase.from('casino_push').select('user_id, daily, recap, pass');
+  const wants = new Map<string, { daily: boolean; recap: boolean; pass: boolean }>();
+  for (const s of subs || []) {
+    const w = wants.get(s.user_id) ?? { daily: false, recap: false, pass: false };
+    w.daily ||= !!s.daily;
+    w.recap ||= !!s.recap;
+    w.pass ||= !!s.pass;
+    wants.set(s.user_id, w);
+  }
+
+  const firstOfMonth = now.getUTCDate() === 1;
+  const monday = now.getUTCDay() === 1;
+  const month = now.toLocaleDateString('fr-FR', { month: 'long', timeZone: 'UTC' });
+
+  for (const [userId, w] of Array.from(wants.entries())) {
+    if (firstOfMonth && w.pass) {
+      counts.pass += await pushToUser(userId, 'pass', {
+        title: 'Nouveau Frenly Pass',
+        body: `Le pass de ${month} est arrivé : nouveaux paliers, nouvelles récompenses.`,
+        url: '/casino/pass',
+        tag: 'pass',
+      });
+    } else if (monday && w.recap) {
+      counts.recap += await pushToUser(userId, 'recap', {
+        title: 'Ton récap de la semaine est prêt',
+        body: 'Mises, gains, jeu préféré et ta place au classement. Les missions de la semaine sont aussi neuves.',
+        url: '/casino',
+        tag: 'recap',
+      });
+    } else if (w.daily) {
+      counts.daily += await pushToUser(userId, 'daily', {
+        title: 'Nouvelle journée au casino',
+        body: 'Coffre, missions et défi du jour sont remis à zéro.',
+        url: '/casino',
+        tag: 'daily',
+      });
+    }
+  }
+
+  return counts;
 }
 
 /** Fired the instant a gift lands, not on the daily sweep. */
