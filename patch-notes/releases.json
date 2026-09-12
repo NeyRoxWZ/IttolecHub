@@ -1,3 +1,546 @@
 {
-  "releases": []
+  "releases": [
+    {
+      "version": "1.0.0",
+      "date": "2026-09-12",
+      "title": "ItollecHub 1.0 — le lancement",
+      "entries": [
+        {
+          "id": "2026-09-12-01",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Comptes",
+          "details": "Crée ton compte avec un pseudo et une passphrase, ou connecte-toi avec Discord. Ton pseudo se change à tout moment depuis ton profil, et le nouveau s'affiche partout."
+        },
+        {
+          "id": "2026-09-12-02",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Accueil Multijoueur et Solo",
+          "details": "Passe d'un mode à l'autre en un clic : les jeux entre amis d'un côté, ItollecClicker et le casino de l'autre."
+        },
+        {
+          "id": "2026-09-12-03",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Salles multijoueur",
+          "details": "Crée une salle, partage son code ou son QR code, et tes amis la rejoignent depuis leur téléphone. Chaque jeu se règle : nombre de manches, temps, difficulté. Tu peux reprendre ta dernière salle."
+        },
+        {
+          "id": "2026-09-12-04",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Profil et statistiques",
+          "details": "Ton profil rassemble tes statistiques du casino, avec le détail jeu par jeu, et celles d'ItollecClicker."
+        },
+        {
+          "id": "2026-09-12-05",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Application installable",
+          "details": "Ajoute ItollecHub à l'écran d'accueil de ton téléphone pour l'ouvrir comme une vraie application."
+        },
+        {
+          "id": "2026-09-12-06",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Thème clair et sombre"
+        },
+        {
+          "id": "2026-09-12-07",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Conditions et confidentialité",
+          "details": "Les règles du site et ce qu'il fait de tes données : pas de publicité, pas d'outil de suivi, rien de revendu."
+        },
+        {
+          "id": "2026-09-12-08",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Patch notes",
+          "details": "Chaque nouvelle version s'affiche une fois à l'ouverture des jeux solo, et tout l'historique reste consultable depuis le bas de l'accueil."
+        },
+        {
+          "id": "2026-09-12-09",
+          "date": "2026-09-12",
+          "scope": "pokeguessr",
+          "type": "nouveau",
+          "title": "PokéGuessr",
+          "details": "Devine le Pokémon. Trois modes — Facile (image floue), Classique (ombre), Expert (inversé) — et le choix des générations, de Kanto à Paldea."
+        },
+        {
+          "id": "2026-09-12-10",
+          "date": "2026-09-12",
+          "scope": "flagguessr",
+          "type": "nouveau",
+          "title": "FlagGuessr",
+          "details": "Reconnais les drapeaux du monde entier, ou d'un seul continent."
+        },
+        {
+          "id": "2026-09-12-11",
+          "date": "2026-09-12",
+          "scope": "infiltre",
+          "type": "nouveau",
+          "title": "L'Infiltré",
+          "details": "Démasquez l'intrus parmi vous. Choisis l'univers — lieux, objets, animaux, métiers ou concepts abstraits — puis débat et vote chronométrés."
+        },
+        {
+          "id": "2026-09-12-12",
+          "date": "2026-09-12",
+          "scope": "undercover",
+          "type": "nouveau",
+          "title": "Undercover",
+          "details": "Chacun reçoit un mot, les imposteurs un mot proche : bluffez pour survivre. Nombre d'imposteurs, Mr. White, rôles secrets et tours d'indices se règlent."
+        },
+        {
+          "id": "2026-09-12-13",
+          "date": "2026-09-12",
+          "scope": "drawguessr",
+          "type": "nouveau",
+          "title": "DrawGuessr",
+          "details": "Un joueur dessine, les autres devinent. Trois niveaux de difficulté."
+        },
+        {
+          "id": "2026-09-12-14",
+          "date": "2026-09-12",
+          "scope": "budgetguessr",
+          "type": "nouveau",
+          "title": "BudgetGuessr",
+          "details": "Estime le budget de films : le plus proche marque le plus de points."
+        },
+        {
+          "id": "2026-09-12-15",
+          "date": "2026-09-12",
+          "scope": "rentguessr",
+          "type": "nouveau",
+          "title": "RentGuessr",
+          "details": "Devine le loyer mensuel d'un logement."
+        },
+        {
+          "id": "2026-09-12-16",
+          "date": "2026-09-12",
+          "scope": "logoguessr",
+          "type": "nouveau",
+          "title": "LogoGuessr",
+          "details": "Reconnais la marque à partir de son logo, en trois difficultés."
+        },
+        {
+          "id": "2026-09-12-17",
+          "date": "2026-09-12",
+          "scope": "jaugeguessr",
+          "type": "nouveau",
+          "title": "JaugeGuessr",
+          "details": "Place le curseur à la bonne intensité sur la jauge, avec des zones plus ou moins fines selon la difficulté."
+        },
+        {
+          "id": "2026-09-12-18",
+          "date": "2026-09-12",
+          "scope": "wikiracing",
+          "type": "nouveau",
+          "title": "WikiRacing",
+          "details": "Relie deux pages Wikipédia en suivant les liens, le plus vite possible. Trajets faciles ou concepts éloignés."
+        },
+        {
+          "id": "2026-09-12-19",
+          "date": "2026-09-12",
+          "scope": "clicker",
+          "type": "nouveau",
+          "title": "ItollecClicker",
+          "details": "Clique sur le Grand Sceau pour gagner des ₶ et bâtis ton empire, de La Plume jusqu'à la Légion d'Honneur Suprême : 19 bâtiments qui produisent pour toi."
+        },
+        {
+          "id": "2026-09-12-20",
+          "date": "2026-09-12",
+          "scope": "clicker",
+          "type": "nouveau",
+          "title": "540 améliorations et 260 succès",
+          "details": "Les améliorations multiplient ta production et tes clics, et chaque succès ajoute un bonus permanent."
+        },
+        {
+          "id": "2026-09-12-21",
+          "date": "2026-09-12",
+          "scope": "clicker",
+          "type": "nouveau",
+          "title": "Décret Impérial",
+          "details": "Il apparaît au hasard : clique dessus pour un bonus temporaire comme Frenzy, Lucky ou Click Frenzy."
+        },
+        {
+          "id": "2026-09-12-22",
+          "date": "2026-09-12",
+          "scope": "clicker",
+          "type": "nouveau",
+          "title": "Révolutionnaires",
+          "details": "Ils absorbent une partie de ta production. Clique trois fois dessus pour les éliminer et récupérer un gros gain."
+        },
+        {
+          "id": "2026-09-12-23",
+          "date": "2026-09-12",
+          "scope": "clicker",
+          "type": "nouveau",
+          "title": "Combo",
+          "details": "Vingt clics en cinq secondes doublent la valeur de tes clics tant que tu tiens le rythme."
+        },
+        {
+          "id": "2026-09-12-24",
+          "date": "2026-09-12",
+          "scope": "clicker",
+          "type": "nouveau",
+          "title": "Prestige",
+          "details": "Abdique pour repartir de zéro contre des Médailles, et achète des bonus permanents : Cent-Jours et Sainte-Hélène."
+        },
+        {
+          "id": "2026-09-12-25",
+          "date": "2026-09-12",
+          "scope": "clicker",
+          "type": "nouveau",
+          "title": "Sauvegarde en ligne",
+          "details": "Connecté, ta partie te suit d'un appareil à l'autre."
+        },
+        {
+          "id": "2026-09-12-26",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Le casino FrenlyCoins",
+          "details": "Vingt jeux en monnaie virtuelle, sans argent réel. Tu démarres avec 250 ₶, un filet de sécurité te relance quand tu tombes presque à zéro, et la mise maximale grandit avec ton solde."
+        },
+        {
+          "id": "2026-09-12-27",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Récompenses quotidiennes",
+          "details": "Bonus du jour, roue gratuite, cashback de 5 % sur tes pertes de la veille, et un coffre 7 jours qui rapporte de plus en plus si tu reviens chaque jour."
+        },
+        {
+          "id": "2026-09-12-28",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Frenly Pass",
+          "details": "100 paliers qui se remettent à zéro le 1er de chaque mois, avec une voie gratuite et une voie premium à 25 000 ₶. Ton niveau, c'est ton palier. Chaque récompense se réclame à la main, et ce que tu oublies t'est versé au changement de mois."
+        },
+        {
+          "id": "2026-09-12-29",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Missions",
+          "details": "Trois missions du jour, trois de la semaine et quatre de carrière, pour gagner des ₶ et de l'XP."
+        },
+        {
+          "id": "2026-09-12-30",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "115 succès",
+          "details": "Répartis en seize catégories, de la découverte aux défis extrêmes."
+        },
+        {
+          "id": "2026-09-12-31",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Boutique",
+          "details": "Cinq objets différents chaque jour, parmi vingt-sept : protections contre les pertes, bonus de gain, XP, tickets de jackpot et bien d'autres. Chacun s'achète une fois par jour."
+        },
+        {
+          "id": "2026-09-12-32",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Objets actifs",
+          "details": "Tes effets en cours sont toujours visibles, avec leur durée ou les mises qui leur restent, et plusieurs se cumulent."
+        },
+        {
+          "id": "2026-09-12-33",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Caisses",
+          "details": "Quatre caisses — bois, argent, or et légendaire — qui défilent comme dans CS:GO et donnent une pièce chacune. Plus la caisse est chère, meilleures sont les chances de rareté, et un doublon est remboursé en ₶."
+        },
+        {
+          "id": "2026-09-12-34",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "820 cosmétiques",
+          "details": "Trente thèmes sur huit emplacements : tapis, skin, effets de victoire et de défaite, contour, particules, pack sonore et emblème. Chaque pièce vient d'une seule source — pass, caisses ou prestige — et l'inventaire indique où elle s'applique."
+        },
+        {
+          "id": "2026-09-12-35",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Prestige",
+          "details": "Dès 1 000 000 ₶, repars de zéro en échange d'un bonus de gain permanent et de cosmétiques réservés au prestige, jusqu'au prestige 20."
+        },
+        {
+          "id": "2026-09-12-36",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Jackpot commun",
+          "details": "1 % de chaque perte alimente un pot partagé par tout le monde, et chaque mise a une chance sur 3 000 de le remporter."
+        },
+        {
+          "id": "2026-09-12-37",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Séries de victoires",
+          "details": "Dès trois victoires d'affilée, ton bénéfice est majoré : +5 %, puis +10 %, +20 % et jusqu'à +35 % à dix victoires."
+        },
+        {
+          "id": "2026-09-12-38",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Jeu du jour et heure chaude",
+          "details": "Un jeu mis en avant chaque jour avec +15 % de gains, et une heure où tous les jeux rapportent +20 %."
+        },
+        {
+          "id": "2026-09-12-39",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Coffre-fort",
+          "details": "Bloque des ₶ pendant 24 heures et récupère-les avec 10 % d'intérêts."
+        },
+        {
+          "id": "2026-09-12-40",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Quête commune",
+          "details": "Un objectif hebdomadaire impossible à atteindre seul : tout le casino y contribue, et chaque participant touche une récompense et une part au prorata."
+        },
+        {
+          "id": "2026-09-12-41",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Mode auto et turbo",
+          "details": "Les vingt jeux jouent tout seuls avec un seuil d'arrêt, et les jeux à paliers te demandent où encaisser. Le turbo accélère les animations, et le son se coupe partout."
+        },
+        {
+          "id": "2026-09-12-42",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Fil en direct et classements",
+          "details": "Tous les gains et pertes du casino défilent en temps réel, avec des réactions. Classements all-time et de saison, et une fiche par joueur avec sa courbe de solde."
+        },
+        {
+          "id": "2026-09-12-43",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Cagnotte de groupe",
+          "details": "De deux à huit joueurs mettent de l'argent en commun et jouent ensemble avec la cagnotte, sans toucher à leur solde, pendant 5, 10 ou 20 minutes. À la fin, elle est partagée au prorata."
+        },
+        {
+          "id": "2026-09-12-44",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Entre potes",
+          "details": "Duels en un tirage, cadeaux avec message, parrainage récompensé et chat en direct. Une fenêtre te prévient dès qu'on t'envoie quelque chose."
+        },
+        {
+          "id": "2026-09-12-45",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Défi du jour",
+          "details": "Les mêmes vingt tirages pour tout le monde et la même cagnotte de départ : seule ta façon de miser compte. Le podium est récompensé."
+        },
+        {
+          "id": "2026-09-12-46",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Notifications et récap",
+          "details": "Active les notifications pour être prévenu de ton coffre et de tes cadeaux, et retrouve le récap de ta semaine chaque lundi."
+        },
+        {
+          "id": "2026-09-12-47",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Tutoriel jouable",
+          "details": "Une partie d'essai guidée, gratuite, pour découvrir le casino avant de miser."
+        },
+        {
+          "id": "2026-09-12-48",
+          "date": "2026-09-12",
+          "scope": "slots",
+          "type": "nouveau",
+          "title": "Frenly Slots",
+          "details": "Trois rouleaux : trois symboles identiques paient, jusqu'à ×42 pour les diamants. Redistribution ~94 %."
+        },
+        {
+          "id": "2026-09-12-49",
+          "date": "2026-09-12",
+          "scope": "blackjack",
+          "type": "nouveau",
+          "title": "Frenly 21",
+          "details": "Approche-toi de 21 sans dépasser face au croupier. Double sur tes deux premières cartes, et un blackjack paie ×2,5. Redistribution ~98 %."
+        },
+        {
+          "id": "2026-09-12-50",
+          "date": "2026-09-12",
+          "scope": "wheel",
+          "type": "nouveau",
+          "title": "Frenly Wheel",
+          "details": "37 cases : parie sur une couleur (×2), une douzaine (×3) ou un numéro plein (×36). Redistribution ~97 %."
+        },
+        {
+          "id": "2026-09-12-51",
+          "date": "2026-09-12",
+          "scope": "rocket",
+          "type": "nouveau",
+          "title": "Frenly Rocket",
+          "details": "Le multiplicateur grimpe tant que la fusée vole : encaisse avant l'explosion. Redistribution ~95 %."
+        },
+        {
+          "id": "2026-09-12-52",
+          "date": "2026-09-12",
+          "scope": "mines",
+          "type": "nouveau",
+          "title": "Frenly Mines",
+          "details": "Grille de 25 cases : choisis le nombre de mines et retourne les cases sûres pour faire monter ton gain. Redistribution ~96 %."
+        },
+        {
+          "id": "2026-09-12-53",
+          "date": "2026-09-12",
+          "scope": "plinko",
+          "type": "nouveau",
+          "title": "Frenly Plinko",
+          "details": "Lâche la bille : elle finit dans l'une des neuf cases du bas, jusqu'à ×11 sur les bords. Redistribution ~97 %."
+        },
+        {
+          "id": "2026-09-12-54",
+          "date": "2026-09-12",
+          "scope": "hilo",
+          "type": "nouveau",
+          "title": "Frenly HiLo",
+          "details": "La carte suivante sera-t-elle plus haute ou plus basse ? La cote s'adapte à la carte affichée. Redistribution ~96 %."
+        },
+        {
+          "id": "2026-09-12-55",
+          "date": "2026-09-12",
+          "scope": "grattage",
+          "type": "nouveau",
+          "title": "Frenly Grattage",
+          "details": "Gratte ton ticket : trois symboles identiques et tu gagnes, jusqu'à ×35 pour les diamants. Redistribution ~90 %."
+        },
+        {
+          "id": "2026-09-12-56",
+          "date": "2026-09-12",
+          "scope": "poulet",
+          "type": "nouveau",
+          "title": "Frenly Poulet",
+          "details": "Fais traverser le poulet voie par voie et encaisse avant qu'une voiture surgisse. Dix voies. Redistribution ~96 %."
+        },
+        {
+          "id": "2026-09-12-57",
+          "date": "2026-09-12",
+          "scope": "tower",
+          "type": "nouveau",
+          "title": "Frenly Tower",
+          "details": "Grimpe huit étages en choisissant la bonne porte : une seule est piégée à chaque étage. Redistribution ~96 %."
+        },
+        {
+          "id": "2026-09-12-58",
+          "date": "2026-09-12",
+          "scope": "keno",
+          "type": "nouveau",
+          "title": "Frenly Keno",
+          "details": "Coche dix numéros : six correspondances remboursent la mise, et dix paient ×600. Redistribution ~94,5 %."
+        },
+        {
+          "id": "2026-09-12-59",
+          "date": "2026-09-12",
+          "scope": "caisses",
+          "type": "nouveau",
+          "title": "Frenly Caisses",
+          "details": "Cinq caisses, un seul jackpot : choisis la bonne. Redistribution ~93 %."
+        },
+        {
+          "id": "2026-09-12-60",
+          "date": "2026-09-12",
+          "scope": "coinflip",
+          "type": "nouveau",
+          "title": "Frenly Coinflip",
+          "details": "Pile ou face, ×1,94 sur le bon côté. Redistribution ~97 %."
+        },
+        {
+          "id": "2026-09-12-61",
+          "date": "2026-09-12",
+          "scope": "dino",
+          "type": "nouveau",
+          "title": "Frenly Dino",
+          "details": "Le dino court et saute les obstacles, et ton multiplicateur monte à chaque obstacle franchi. Encaisse entre deux obstacles. Redistribution ~95 %."
+        },
+        {
+          "id": "2026-09-12-62",
+          "date": "2026-09-12",
+          "scope": "chevaux",
+          "type": "nouveau",
+          "title": "Frenly Chevaux",
+          "details": "Mise sur l'un des cinq chevaux, de ×2,35 pour le favori à ×18,8 pour l'outsider : tous ont la même espérance de gain. Redistribution ~94 %."
+        },
+        {
+          "id": "2026-09-12-63",
+          "date": "2026-09-12",
+          "scope": "bonneteau",
+          "type": "nouveau",
+          "title": "Frenly Bonneteau",
+          "details": "Suis la bille pendant le mélange et choisis le bon gobelet. Redistribution ~93 %."
+        },
+        {
+          "id": "2026-09-12-64",
+          "date": "2026-09-12",
+          "scope": "stade",
+          "type": "nouveau",
+          "title": "Frenly Stade",
+          "details": "Domicile ou extérieur : parie sur la carte la plus haute, ou sur le match nul. Redistribution ~96 %."
+        },
+        {
+          "id": "2026-09-12-65",
+          "date": "2026-09-12",
+          "scope": "baccarat",
+          "type": "nouveau",
+          "title": "Frenly Baccarat",
+          "details": "Joueur, Banque ou Égalité : la main la plus proche de 9 l'emporte. Redistribution ~98,9 % sur la Banque."
+        },
+        {
+          "id": "2026-09-12-66",
+          "date": "2026-09-12",
+          "scope": "rps",
+          "type": "nouveau",
+          "title": "Pierre-Feuille-Ciseaux",
+          "details": "Affronte la maison, et l'égalité te rembourse. Redistribution ~96 %."
+        },
+        {
+          "id": "2026-09-12-67",
+          "date": "2026-09-12",
+          "scope": "craps",
+          "type": "nouveau",
+          "title": "Frenly Craps",
+          "details": "Lance les deux dés sur « Ça passe » : le pari le plus équitable du casino. Redistribution ~98,6 %."
+        }
+      ]
+    }
+  ]
 }

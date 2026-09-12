@@ -253,7 +253,7 @@ export default function Home() {
                 alt="ItollecHub"
                 width={500}
                 height={500}
-                className="h-11 w-11 object-contain select-none"
+                className="h-14 w-14 object-contain select-none drop-shadow-[3px_3px_0_rgba(0,0,0,0.85)]"
                 priority
                 onError={() => setLogoVisible(false)}
               />
@@ -270,7 +270,7 @@ export default function Home() {
                 alt="ItollecHub"
                 width={500}
                 height={500}
-                className="h-16 w-16 object-contain select-none"
+                className="h-24 w-24 object-contain select-none drop-shadow-[5px_5px_0_rgba(0,0,0,0.85)]"
                 priority
                 onError={() => setLogoVisible(false)}
               />

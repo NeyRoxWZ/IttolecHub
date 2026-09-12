@@ -29,7 +29,10 @@ function countBits(n: number): number {
 }
 
 async function casinoStats(userId: string) {
-  const { data: w } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
+  const { data: w, error } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
+  // A failed read must not look like a player with no games: the page would
+  // say "no games yet" to someone with hundreds.
+  if (error) throw error;
   if (!w) return null;
 
   const [ledger, unlocked, inventory, duels, challenge, podiums, syndicates, giftsSent, giftsReceived] = await Promise.all([
@@ -155,10 +158,11 @@ async function casinoStats(userId: string) {
 }
 
 async function clickerStats(userId: string) {
-  const { data } = await supabase.from('game_saves')
+  const { data, error } = await supabase.from('game_saves')
     .select('save_data, updated_at')
     .eq('user_id', userId).eq('game_slug', 'itollec-clicker')
     .maybeSingle();
+  if (error) throw error;
   if (!data?.save_data) return null;
 
   const s = data.save_data as any;
