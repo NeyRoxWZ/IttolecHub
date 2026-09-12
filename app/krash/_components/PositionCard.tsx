@@ -4,16 +4,17 @@ import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
 import {
-  ASSET_BY_ID, SECTORS, formatPrice, liquidationPrice, positionValue, tradeFee,
+  ASSET_BY_ID, SECTORS, dividendFor, formatPrice, liquidationPrice, positionValue, tradeFee,
 } from '@/lib/krash/assets';
 import type { KrashPosition } from '../_lib/useKrashPositions';
 
-/** Gain or loss if the position were withdrawn now, fees included. */
+/** Gain or loss if the position were withdrawn now, fees and dividends included. */
 export function livePnl(p: KrashPosition, price: number | null) {
   if (price === null) return null;
   const value = positionValue(p, price);
-  const payout = value - Math.min(value, tradeFee(p.stake, p.leverage));
-  return { value, payout, pnl: payout - p.stake - p.fee };
+  const dividend = value > 0 ? dividendFor(p, Date.now() / 1000) : 0;
+  const payout = value - Math.min(value, tradeFee(p.stake, p.leverage)) + dividend;
+  return { value, dividend, payout, pnl: payout - p.stake - p.fee };
 }
 
 /**
@@ -83,6 +84,7 @@ export default function PositionCard({
         <div className="text-[11px] text-tx-muted leading-tight">
           <div>Mise {position.stake.toLocaleString('fr-FR')} ₶</div>
           <div className="tabular-nums">{formatPrice(position.entry_price)} → {price !== null ? formatPrice(price) : '…'}</div>
+          {!!live?.dividend && <div className="text-accent-primary font-bold">Dividendes +{live.dividend.toLocaleString('fr-FR')} ₶</div>}
         </div>
         <div className="text-right">
           <div className={cn('font-display font-black text-xl tabular-nums leading-none', winning ? 'text-accent-success' : 'text-rose-400')}>

@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Info, Newspaper } from 'lucide-react';
+import { Info, Newspaper, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
 import { CATEGORIES, CERTAINTY, type KrashNews, type NewsCategory, type Certainty } from '@/lib/krash/newsMeta';
-import type { MarketId } from '@/lib/krash/assets';
+import { FLASH, flashMultiplier, type MarketId } from '@/lib/krash/assets';
+import { useKrashFlash, type FlashBet } from '../_lib/useKrashFlash';
+import { useKrashWallet } from '../_lib/useKrashWallet';
 
 function ago(seconds: number): string {
   if (seconds < 45) return 'à l’instant';
@@ -43,11 +45,105 @@ function playArrival(n: KrashNews) {
   }
 }
 
+const FLASH_STAKES = [25, 50, 100, 250];
+const FLASH_STAKE_KEY = 'krash_flash_stake';
+
+/**
+ * The flash bet under a fresh headline: higher or lower one minute after it
+ * came out, on its first target. Open for a few seconds only.
+ */
+function FlashStrip({
+  news, now, bet, onPlace,
+}: {
+  news: KrashNews;
+  now: number;
+  bet: FlashBet | undefined;
+  onPlace: (side: 'up' | 'down', stake: number) => void;
+}) {
+  const { balance } = useKrashWallet();
+  const [stake, setStake] = useState(50);
+  useEffect(() => {
+    try { const saved = Number(localStorage.getItem(FLASH_STAKE_KEY)); if (FLASH_STAKES.includes(saved)) setStake(saved); } catch {}
+  }, []);
+
+  const hint = news.hints[0];
+  if (!hint) return null;
+  const left = Math.ceil(FLASH.window - (now - news.at));
+
+  if (bet) {
+    const verdictIn = Math.max(0, Math.ceil((Date.parse(bet.resolve_at) / 1000) - now));
+    return (
+      <div className={cn(
+        'mt-2 rounded-lg border-2 px-2.5 py-1.5 text-[11px] font-bold flex items-center gap-2',
+        bet.status === 'won' ? 'border-accent-success text-accent-success' : bet.status === 'lost' ? 'border-rose-500/60 text-rose-400' : 'border-accent-primary/60 text-accent-primary'
+      )}>
+        <Zap className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">
+          Flash {bet.side === 'up' ? '↑' : '↓'} {hint.label} · {bet.stake} ₶ x{Number(bet.multiplier).toFixed(2)}
+        </span>
+        <span className="ml-auto shrink-0">
+          {bet.status === 'pending' ? (verdictIn > 0 ? `verdict dans ${verdictIn} s` : 'verdict…') : bet.status === 'won' ? `+${bet.payout} ₶` : 'perdu'}
+        </span>
+      </div>
+    );
+  }
+
+  if (left <= 0 || news.event) return null;
+  const maxStake = Math.floor(balance * FLASH.maxStakePct);
+  const upMult = flashMultiplier(hint.up, 'up', news.certainty);
+  const downMult = flashMultiplier(hint.up, 'down', news.certainty);
+  const pick = (s: number) => { sfx.click(); setStake(s); try { localStorage.setItem(FLASH_STAKE_KEY, String(s)); } catch {} };
+
+  return (
+    <div className="mt-2 rounded-lg border-2 border-accent-primary/70 bg-accent-primary/5 p-2">
+      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-accent-primary">
+        <Zap className="h-3.5 w-3.5" /> Pari flash sur {hint.label}
+        <span className="ml-auto tabular-nums">{left} s</span>
+      </div>
+      <div className="mt-1.5 h-1 rounded-full bg-brand-border overflow-hidden">
+        <div className="h-full bg-accent-primary transition-all duration-1000 ease-linear" style={{ width: `${(left / FLASH.window) * 100}%` }} />
+      </div>
+      <div className="mt-1.5 flex gap-1">
+        {FLASH_STAKES.map((s) => (
+          <button
+            key={s}
+            disabled={s > maxStake}
+            onClick={() => pick(s)}
+            className={cn('flex-1 h-7 rounded-md border text-[10px] font-black disabled:opacity-30', stake === s ? 'border-accent-primary text-accent-primary' : 'border-brand-border text-tx-muted')}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+        <button
+          disabled={stake > maxStake}
+          onClick={() => onPlace('up', stake)}
+          className="h-9 rounded-md bg-accent-success text-brand-bg font-display font-black text-[12px] disabled:opacity-40"
+        >
+          ↑ MONTE · x{upMult.toFixed(2)}
+        </button>
+        <button
+          disabled={stake > maxStake}
+          onClick={() => onPlace('down', stake)}
+          className="h-9 rounded-md bg-rose-500 text-white font-display font-black text-[12px] disabled:opacity-40"
+        >
+          ↓ BAISSE · x{downMult.toFixed(2)}
+        </button>
+      </div>
+      <p className="mt-1 text-[10px] text-tx-muted leading-snug">
+        Gagné si {hint.label} a bougé dans ton sens {FLASH.horizon} s après la news. Le côté évident rapporte peu, le pari risqué rapporte gros.
+      </p>
+    </div>
+  );
+}
+
 /**
  * The headlines. Each one is coloured by kind, says how sure its effect is,
  * and shows the likely direction per target. Headlines about other markets
  * stay visible but dimmed: a war moves oil stocks and bitcoin alike, so the
- * whole feed is worth a glance.
+ * whole feed is worth a glance. A fresh one offers a flash bet for a few
+ * seconds.
  */
 export default function NewsFeed({
   news, market, now, className,
@@ -55,6 +151,15 @@ export default function NewsFeed({
   const [legend, setLegend] = useState(false);
   const seen = useRef<Set<string> | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
+  const flash = useKrashFlash();
+
+  // The feed only refreshes every tick; a local clock keeps the countdowns smooth.
+  const [clock, setClock] = useState(now);
+  useEffect(() => setClock(now), [now]);
+  useEffect(() => {
+    const id = setInterval(() => setClock((c) => c + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // Flash and sound what arrives after the page is open, not the backlog.
   useEffect(() => {
@@ -79,6 +184,8 @@ export default function NewsFeed({
     }, 6000);
     return () => clearTimeout(timer);
   }, [news]);
+
+  const betByNews = new Map(flash.bets.map((b) => [b.news_id, b]));
 
   return (
     <section className={cn('bg-brand-card border-4 border-brand-border rounded-[24px] shadow-brutal flex flex-col min-h-0', className)}>
@@ -116,6 +223,7 @@ export default function NewsFeed({
           <p className="text-[11px] text-tx-muted leading-snug border-t border-brand-border pt-2">
             « ↑ Luxe 88 % » : 88 % de chances que le luxe monte. Le marché sent venir la news, une partie du mouvement est déjà faite quand elle tombe.
             Un <b className="text-rose-400">KRACH</b> ou un <b className="text-accent-success">BULL RUN</b> secoue tous les marchés d’un coup, souvent annoncé par une rumeur quelques minutes avant.
+            Le <b className="text-accent-primary">pari flash</b> apparaît {FLASH.window} s sous chaque nouvelle news.
           </p>
         </div>
       )}
@@ -126,17 +234,20 @@ export default function NewsFeed({
           const meta = CATEGORIES[n.category];
           const relevant = n.markets.includes(market);
           const big = n.event && !n.rumour;
+          const bet = betByNews.get(n.id);
+          const flashOpen = !big && clock - n.at < FLASH.window;
           return (
             <article
               key={n.id}
               className={cn(
-                'rounded-xl border-2 border-l-[6px] px-3 py-2.5 transition-all duration-700',
+                // Neutral cards: the category colour lives in the label's dot,
+                // not in a thick side stripe the rounded corners bend.
+                'rounded-xl border-2 px-3 py-2.5 transition-all duration-700',
                 big
                   ? n.event === 'krach'
                     ? 'border-rose-500 bg-rose-500/15'
                     : 'border-accent-success bg-accent-success/10'
-                  : cn('border-brand-border bg-brand-inner', meta.border),
-                !relevant && !big && 'opacity-55',
+                  : 'border-brand-border bg-brand-inner',
                 fresh.has(n.id) && 'ring-2 ring-rose-400 animate-in slide-in-from-top-2 fade-in duration-500'
               )}
             >
@@ -146,16 +257,23 @@ export default function NewsFeed({
                     {n.event === 'krach' ? '▼ Krach' : '▲ Bull run'}
                   </span>
                 ) : (
-                  <span className={meta.text}>{meta.label}</span>
+                  <span className={cn('flex items-center gap-1.5', meta.text)}>
+                    <span className={cn('h-2 w-2 rounded-full', meta.dot)} />
+                    {meta.label}
+                  </span>
                 )}
                 <span className="text-tx-muted">· {CERTAINTY[n.certainty].label}</span>
+                {relevant && !big && <span className="text-accent-primary">· Ton marché</span>}
                 {fresh.has(n.id) && <span className="text-rose-400">· Nouveau</span>}
-                <span className="ml-auto text-tx-muted normal-case tracking-normal font-bold">{ago(now - n.at)}</span>
+                <span className="ml-auto text-tx-muted normal-case tracking-normal font-bold">{ago(clock - n.at)}</span>
               </div>
               <p className={cn('leading-snug mt-1', big ? 'font-display font-black text-base' : 'text-[13px] font-bold')}>{n.text}</p>
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {n.hints.map((h, i) => <HintChip key={i} label={h.label} up={h.up} certainty={n.certainty} />)}
               </div>
+              {(flashOpen || bet) && (
+                <FlashStrip news={n} now={clock} bet={bet} onPlace={(side, stake) => { void flash.place(n.id, 0, side, stake); }} />
+              )}
             </article>
           );
         })}

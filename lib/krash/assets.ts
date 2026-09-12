@@ -256,6 +256,59 @@ export function liquidationPrice(p: { side: 'long' | 'short'; leverage: number; 
   return p.entry_price * (1 + 1 / p.leverage);
 }
 
+/* ------------------------------------------------------------------ */
+/* Dividends                                                            */
+/* ------------------------------------------------------------------ */
+
+/** Company shares pay for being held: a reason to keep a good position open. */
+export const DIVIDEND_MARKETS: MarketId[] = ['frx', 'global'];
+export const DIVIDEND_RATE_PER_HALF_HOUR = 0.0025;
+export const DIVIDEND_CAP = 0.03;
+
+/** Earned by a long company position by `nowSeconds`; on the stake, so leverage does not inflate it. */
+export function dividendFor(
+  p: { market: string; side: 'long' | 'short'; stake: number; opened_at: string }, nowSeconds: number,
+): number {
+  if (p.side !== 'long' || !DIVIDEND_MARKETS.includes(p.market as MarketId)) return 0;
+  const halfHours = Math.floor((nowSeconds - Date.parse(p.opened_at) / 1000) / 1800);
+  return Math.floor(p.stake * Math.min(DIVIDEND_CAP, Math.max(0, halfHours) * DIVIDEND_RATE_PER_HALF_HOUR));
+}
+
+/* ------------------------------------------------------------------ */
+/* Flash bets                                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A quick call on a fresh headline: will its target be higher or lower a
+ * minute after publication? Odds follow the published chances with a small
+ * edge, so backing the obvious side pays little and the long shot pays a lot.
+ */
+export const FLASH = {
+  /** Seconds after publication during which a bet is accepted. */
+  window: 25,
+  /** The verdict compares the price at publication with this many seconds later. */
+  horizon: 60,
+  edge: 0.9,
+  /**
+   * How much of the published chance survives to the verdict. Most of a
+   * headline's move happens before it is published, so the minute after is
+   * noisier than the odds suggest; paying on the raw chance let the long shot
+   * return more than it cost. Measured by simulation.
+   */
+  realism: 0.8,
+  minMultiplier: 1.1,
+  maxMultiplier: 5,
+  minStake: 10,
+  maxStakePct: 0.25,
+};
+
+export function flashMultiplier(up: number, side: 'up' | 'down', certainty?: string): number {
+  const published = certainty === 'pile' ? 0.5 : side === 'up' ? up : 1 - up;
+  const chance = 0.5 + (published - 0.5) * FLASH.realism;
+  const raw = FLASH.edge / Math.max(chance, 0.05);
+  return Math.round(Math.min(FLASH.maxMultiplier, Math.max(FLASH.minMultiplier, raw)) * 100) / 100;
+}
+
 /** Enough decimals to see a 1 % move, whatever the scale of the price. */
 export function formatPrice(price: number): string {
   if (price >= 1000) return price.toLocaleString('fr-FR', { maximumFractionDigits: 0 });

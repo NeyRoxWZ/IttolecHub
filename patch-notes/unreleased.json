@@ -127,6 +127,30 @@
       "type": "nouveau",
       "title": "Cosmétiques Krash",
       "details": "Des titres affichés au classement (Stagiaire de la corbeille, Trader fou, Loup de la Bourse) et des couleurs de courbe (néon, or, Matrix)."
+    },
+    {
+      "id": "2026-09-12-17",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Pari flash sur les news",
+      "details": "Pendant 25 secondes après chaque news, parie si sa cible sera plus haute ou plus basse une minute plus tard. Le côté évident rapporte peu, le pari risqué jusqu'à x5."
+    },
+    {
+      "id": "2026-09-12-18",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Dividendes",
+      "details": "Une position à l'achat sur une entreprise (FRX 40 ou Global 50) rapporte 0,25 % de sa mise par demi-heure gardée, jusqu'à 3 %, versés au retrait."
+    },
+    {
+      "id": "2026-09-12-19",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Notifications dans l'app Krash",
+      "details": "Ouverte depuis l'écran d'accueil, l'app Krash propose d'activer les notifications ; le message du matin annonce aussi le coffre et les missions Krash."
     }
   ]
 }

@@ -2,15 +2,16 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, X } from 'lucide-react';
+import { ChevronRight, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
 import { useKrashWallet } from './_lib/useKrashWallet';
 import {
-  ASSET_BY_ID, MARKETS, MARKET_ORDER, SECTORS, assetsOf, formatPrice, liquidationPrice, positionValue,
+  ASSETS, ASSET_BY_ID, MARKETS, MARKET_ORDER, SECTORS, assetsOf, formatPrice, liquidationPrice, positionValue,
   type Asset, type MarketId,
 } from '@/lib/krash/assets';
 import KrashShell from './_components/KrashShell';
+import KrashRail from './_components/KrashRail';
 import PriceChart, { type ChartLine } from './_components/PriceChart';
 import NewsFeed from './_components/NewsFeed';
 import TradePanel from './_components/TradePanel';
@@ -32,12 +33,23 @@ function sizeLabel(asset: Asset): string {
   return `${size} capitalisation`;
 }
 
+const fold = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/** Every market at once: by code, name, sector or market, accents ignored. */
+function searchAssets(query: string): Asset[] {
+  const q = fold(query.trim());
+  return ASSETS
+    .filter((a) => [a.id, a.name, SECTORS[a.sector].label, MARKETS[a.market].label].some((field) => fold(field).includes(q)))
+    .sort((x, y) => Number(!fold(x.id).startsWith(q) && !fold(x.name).startsWith(q)) - Number(!fold(y.id).startsWith(q) && !fold(y.name).startsWith(q)) || y.cap - x.cap)
+    .slice(0, 40);
+}
+
 function change(a?: MarketAsset) {
   return a ? (a.price / a.hourAgo - 1) * 100 : 0;
 }
 
-function AssetRow({ id, data, selected, onPick, holding }: {
-  id: string; data?: MarketAsset; selected: boolean; onPick: () => void; holding: boolean;
+function AssetRow({ id, data, selected, onPick, holding, showMarket = false }: {
+  id: string; data?: MarketAsset; selected: boolean; onPick: () => void; holding: boolean; showMarket?: boolean;
 }) {
   const asset = ASSET_BY_ID.get(id)!;
   const c = change(data);
@@ -56,7 +68,7 @@ function AssetRow({ id, data, selected, onPick, holding }: {
           <span className="font-display font-black text-sm">{asset.id}</span>
           {holding && <span className="h-1.5 w-1.5 rounded-full bg-accent-primary" title="Position ouverte" />}
         </div>
-        <div className="text-[10px] text-tx-muted truncate">{asset.name}</div>
+        <div className="text-[10px] text-tx-muted truncate">{asset.name}{showMarket && ` · ${MARKETS[asset.market].label}`}</div>
       </div>
       <div className="text-right shrink-0">
         <div className={cn(
@@ -165,10 +177,21 @@ export default function KrashMarketPage() {
   const c = change(current);
   const holdings = new Set(positions.open.map((p) => p.asset));
 
-  const pick = (id: string) => { sfx.select(); setSelected((s) => ({ ...s, [market]: id })); };
+  const [query, setQuery] = useState('');
+  const searching = query.trim().length > 0;
+  // A search result can live on another market: switch to it.
+  const pick = (id: string) => {
+    const target = ASSET_BY_ID.get(id);
+    if (!target) return;
+    sfx.select();
+    setMarket(target.market);
+    setSelected((s) => ({ ...s, [target.market]: id }));
+    setQuery('');
+  };
 
   return (
     <KrashShell wide badge={positions.open.length}>
+      <div className="2xl:h-[calc(100dvh-96px)] 2xl:flex 2xl:flex-col">
       {intro && (
         <div className="relative mb-4 bg-brand-card border-4 border-rose-400/70 rounded-[24px] p-4 pr-12 shadow-brutal">
           <button
@@ -209,9 +232,11 @@ export default function KrashMarketPage() {
 
       {/* Three columns only when the middle one can still hold the chart and
           the ticket side by side; below that the news drops under them. */}
-      <div className="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[250px_minmax(0,1fr)] xl:grid-cols-[250px_minmax(0,1fr)_340px]">
+      <div className="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[250px_minmax(0,1fr)] xl:grid-cols-[236px_250px_minmax(0,1fr)] 2xl:grid-cols-[236px_250px_minmax(0,1fr)_340px] 2xl:grid-rows-[minmax(0,1fr)] 2xl:flex-1 2xl:min-h-0">
+        <KrashRail openPositions={positions.open.length} className="lg:col-span-2 xl:col-span-1 xl:row-span-2 2xl:row-span-1 2xl:min-h-0 2xl:overflow-y-auto" />
+
         {/* Assets */}
-        <aside className="bg-brand-card border-4 border-brand-border rounded-[24px] shadow-brutal p-3 lg:max-h-[calc(100vh-120px)] flex flex-col min-h-0">
+        <aside className="bg-brand-card border-4 border-brand-border rounded-[24px] shadow-brutal p-3 lg:max-h-[calc(100vh-120px)] 2xl:max-h-none flex flex-col min-h-0">
           <div className="flex flex-wrap gap-1.5 mb-2">
             {MARKET_ORDER.map((m) => (
               <button
@@ -226,18 +251,38 @@ export default function KrashMarketPage() {
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-tx-muted px-1 mb-1">{MARKETS[market].description} Variation sur 1 h.</p>
+          <div className="relative mb-2">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-tx-muted" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher : Xvidia, BTC, or…"
+              aria-label="Rechercher un actif"
+              className="w-full h-9 rounded-xl border-2 border-brand-border bg-brand-inner pl-8 pr-8 text-[12px] font-bold placeholder:text-tx-muted placeholder:font-normal focus:outline-none focus:border-rose-400"
+            />
+            {searching && (
+              <button onClick={() => setQuery('')} aria-label="Effacer" className="absolute right-2 top-1/2 -translate-y-1/2 text-tx-muted hover:text-tx-base">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <p className="text-[10px] text-tx-muted px-1 mb-1">
+            {searching ? 'Tous les marchés. Clique pour y aller.' : `${MARKETS[market].description} Variation sur 1 h.`}
+          </p>
           <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto min-h-0 -mx-1 px-1 pb-1">
-            {assetsOf(market).map((a) => (
+            {searching && searchAssets(query).length === 0 && (
+              <p className="text-[12px] text-tx-muted px-2 py-4">Rien ne correspond.</p>
+            )}
+            {(searching ? searchAssets(query) : assetsOf(market)).map((a) => (
               <div key={a.id} className="shrink-0 w-[170px] lg:w-auto">
-                <AssetRow id={a.id} data={byId.get(a.id)} selected={a.id === assetId} onPick={() => pick(a.id)} holding={holdings.has(a.id)} />
+                <AssetRow id={a.id} data={byId.get(a.id)} selected={a.id === assetId} onPick={() => pick(a.id)} holding={holdings.has(a.id)} showMarket={searching} />
               </div>
             ))}
           </div>
         </aside>
 
         {/* Chart and ticket */}
-        <div className="space-y-4 min-w-0">
+        <div className="space-y-4 min-w-0 2xl:space-y-0 2xl:flex 2xl:flex-col 2xl:gap-4 2xl:min-h-0 2xl:overflow-y-auto">
           <section className="bg-brand-card border-4 border-brand-border rounded-[24px] shadow-brutal p-4">
             <div className="flex flex-wrap items-end gap-x-4 gap-y-2 mb-3">
               <div className="min-w-0">
@@ -254,7 +299,7 @@ export default function KrashMarketPage() {
                 </div>
               </div>
             </div>
-            <PriceChart points={points} lines={lines} colors={chartColors} news={snapshot?.news.filter((n) => n.markets.includes(market)) ?? []} />
+            <PriceChart points={points} lines={lines} colors={chartColors} height={250} news={snapshot?.news.filter((n) => n.markets.includes(market)) ?? []} />
             <div className="mt-2 flex gap-1.5">
               {(['15m', '1h', '6h'] as Range[]).map((r) => (
                 <button
@@ -272,7 +317,7 @@ export default function KrashMarketPage() {
             </div>
           </section>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 2xl:flex-1 2xl:min-h-0">
             <TradePanel
               asset={asset}
               price={price}
@@ -315,8 +360,9 @@ export default function KrashMarketPage() {
           news={snapshot?.news ?? []}
           market={market}
           now={now}
-          className="max-h-[70vh] lg:col-span-2 xl:col-span-1 xl:max-h-[calc(100vh-120px)]"
+          className="max-h-[70vh] lg:col-span-2 xl:col-start-2 2xl:col-start-auto 2xl:col-span-1 2xl:max-h-none"
         />
+      </div>
       </div>
     </KrashShell>
   );

@@ -30,7 +30,7 @@ export interface KrashNews {
   category: NewsCategory;
   certainty: Certainty;
   text: string;
-  hints: { label: string; up: number; markets: MarketId[] }[];
+  hints: { label: string; up: number; markets: MarketId[]; ref: string }[];
   markets: MarketId[];
   arc?: string;
   chapter?: number;

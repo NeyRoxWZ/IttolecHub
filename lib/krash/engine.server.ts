@@ -152,6 +152,8 @@ export interface NewsHint {
   /** Chance the target goes up, as published. */
   up: number;
   markets: MarketId[];
+  /** The asset a flash bet on this target is judged on: the target itself, or its largest member. */
+  ref: string;
 }
 
 export interface NewsEvent {
@@ -344,6 +346,7 @@ function resolveHeadline(
       label: targetLabel(target, company),
       up: target.up,
       markets: Array.from(new Set(assets.map((a) => a.market))),
+      ref: [...assets].sort((x, y) => y.cap - x.cap)[0].id,
     });
   });
 
@@ -423,6 +426,14 @@ function slotOf(t: number): number {
 function publish(n: ResolvedNews): NewsEvent {
   const { effects: _hidden, effectAt: _start, ...pub } = n;
   return pub;
+}
+
+/** One headline by id, whether or not it is published yet — callers check the time. */
+export function newsById(id: string): NewsEvent | null {
+  const slot = Number(id);
+  if (!Number.isInteger(slot)) return null;
+  const n = newsAtSlot(slot);
+  return n ? publish(n) : null;
 }
 
 /** Published headlines in (from, to], newest first. */

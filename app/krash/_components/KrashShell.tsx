@@ -3,20 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, BarChart3, Briefcase, LifeBuoy, Sparkles, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { isMuted, setMuted, sfx } from '@/lib/casino/sfx';
-import { KRASH_REFILL_AMOUNT, KRASH_REFILL_BELOW } from '@/lib/krash/assets';
 import { useKrashWallet } from '../_lib/useKrashWallet';
-import { claimableCount, useKrashProgression } from '../_lib/useKrashProgression';
-
-const NAV = [
-  { href: '/krash', label: 'Marché', icon: BarChart3 },
-  { href: '/krash/placements', label: 'Placements', icon: Briefcase },
-  { href: '/krash/progression', label: 'Progression', icon: Sparkles },
-  { href: '/krash/classement', label: 'Classement', icon: Trophy },
-];
 
 function SoundToggle() {
   const [muted, setMutedState] = useState(false);
@@ -41,100 +32,35 @@ function SoundToggle() {
   );
 }
 
-/** Low on coins: the daily refill, or why it is not available yet. */
-function RefillBanner() {
-  const wallet = useKrashWallet();
-  if (!wallet.loaded || wallet.balance >= KRASH_REFILL_BELOW) return null;
-
-  const next = wallet.nextRefillAt
-    ? new Date(wallet.nextRefillAt).toLocaleString('fr-FR', { weekday: 'long', hour: '2-digit', minute: '2-digit' })
-    : null;
-
-  return (
-    <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[20px] border-4 border-accent-primary/70 bg-brand-card p-4 shadow-brutal">
-      <LifeBuoy className="h-6 w-6 text-accent-primary shrink-0" />
-      <div className="flex-1 min-w-[200px]">
-        <div className="font-display font-black">Portefeuille presque vide</div>
-        <div className="text-[12px] text-tx-muted">
-          {wallet.canRefill
-            ? `Récupère ${KRASH_REFILL_AMOUNT.toLocaleString('fr-FR')} ₶ pour repartir. Une fois par jour.`
-            : wallet.refillBlocked === 'positions'
-              ? 'Retire d’abord tes positions ouvertes : le renflouement n’est possible que les mains vides.'
-              : `Prochain renflouement : ${next ?? 'bientôt'}. En attendant : coffre du jour et missions dans Progression.`}
-        </div>
-      </div>
-      {wallet.canRefill && (
-        <button
-          onClick={() => wallet.refill()}
-          className="h-11 px-5 rounded-xl bg-accent-primary text-brand-bg border-2 border-brand-border font-display font-black tracking-wider"
-        >
-          RENFLOUER
-        </button>
-      )}
-    </div>
-  );
-}
-
-/** Header, navigation and the Krash balance shared by every Krash page. */
+/**
+ * Header shared by every Krash page, laid out like the casino's: back
+ * button, title, sound and balance. The market page is the hub (its rail
+ * leads everywhere); every other page is one step away from it.
+ */
 export default function KrashShell({
-  title, children, wide = false, badge,
+  title, children, wide = false,
 }: { title?: string; children: ReactNode; wide?: boolean; badge?: number }) {
   const pathname = usePathname();
   const { user, loading } = useAuth();
   const wallet = useKrashWallet();
-  const { progression } = useKrashProgression();
-  const toCollect = claimableCount(progression);
-
-  const badges: Record<string, number | undefined> = {
-    '/krash/placements': badge,
-    '/krash/progression': toCollect,
-  };
+  const isHub = pathname === '/krash';
 
   return (
-    <main className="min-h-screen bg-brand-bg text-tx-base px-3 sm:px-5 pt-3 md:pt-5 pb-12">
-      <div className={cn('mx-auto', wide ? 'max-w-[1400px]' : 'max-w-5xl')}>
+    <main className="min-h-screen bg-brand-bg text-tx-base px-3 sm:px-5 pt-3 md:pt-5 pb-12 2xl:pb-4">
+      <div className={cn('mx-auto', wide ? 'max-w-[1600px]' : 'max-w-5xl')}>
         <header className="flex flex-wrap items-center gap-3 mb-4">
           <Link
-            href="/"
-            aria-label="Accueil"
+            href={isHub ? '/?mode=solo' : '/krash'}
+            aria-label={isHub ? 'Accueil' : 'Retour au marché'}
             onClick={() => sfx.click()}
-            className="h-11 w-11 shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base transition-colors"
+            className="h-11 w-11 shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div className="leading-none">
+          <div className="leading-none min-w-0">
             <div className="font-display text-3xl font-black tracking-wider text-rose-400 drop-shadow-[3px_3px_0_rgba(0,0,0,0.8)]">KRASH</div>
             {title && <div className="text-[11px] font-bold uppercase tracking-widest text-tx-muted mt-1">{title}</div>}
           </div>
-
-          <nav className="order-last w-full md:order-none md:w-auto md:ml-4 grid grid-cols-4 md:flex gap-1.5">
-            {NAV.map(({ href, label, icon: Icon }) => {
-              const active = pathname === href;
-              const count = badges[href];
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={() => sfx.click()}
-                  className={cn(
-                    'relative h-10 px-2 md:px-3 rounded-xl border-2 flex items-center justify-center gap-1.5 font-display font-black text-[10px] md:text-[11px] tracking-wider uppercase transition-colors',
-                    active ? 'border-rose-400 text-rose-300 bg-rose-400/10' : 'border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base'
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <span className="hidden sm:inline">{label}</span>
-                  {!!count && (
-                    <span className={cn(
-                      'absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full text-white text-[10px] flex items-center justify-center border-2 border-brand-bg',
-                      href === '/krash/progression' ? 'bg-fuchsia-500 animate-pulse' : 'bg-rose-500'
-                    )}>
-                      {count}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
 
           <div className="ml-auto flex items-center gap-2">
             <SoundToggle />
@@ -163,12 +89,7 @@ export default function KrashShell({
               SE CONNECTER
             </Link>
           </div>
-        ) : (
-          <>
-            <RefillBanner />
-            {children}
-          </>
-        )}
+        ) : children}
       </div>
     </main>
   );

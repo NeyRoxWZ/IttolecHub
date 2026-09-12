@@ -30,7 +30,7 @@ export interface Claim {
   onClick: () => void;
 }
 
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
+export function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
       <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted mb-1 px-0.5">
@@ -41,7 +41,7 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function ClaimTile({ claim }: { claim: Claim }) {
+export function ClaimTile({ claim }: { claim: Claim }) {
   const { icon: Icon } = claim;
   return (
     <button
@@ -76,7 +76,7 @@ function ClaimTile({ claim }: { claim: Claim }) {
   );
 }
 
-function NavTile({ entry }: { entry: MenuEntry }) {
+export function NavTile({ entry }: { entry: MenuEntry }) {
   const { icon: Icon } = entry;
   return (
     <button

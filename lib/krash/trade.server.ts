@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase/server';
 import {
-  ASSET_BY_ID, KRASH_MAX_STAKE_PCT, KRASH_MIN_STAKE, KRASH_REFILL_AMOUNT, KRASH_REFILL_BELOW,
+  ASSET_BY_ID, KRASH_MAX_STAKE_PCT, KRASH_MIN_STAKE, KRASH_REFILL_AMOUNT, KRASH_REFILL_BELOW, dividendFor,
   LEVERAGES, LEVERAGE_UNLOCK, liquidationPrice, positionValue, tradeFee, type Leverage,
 } from './assets';
 import { firstCrossing, nowTick, priceAt } from './engine.server';
@@ -211,14 +211,14 @@ export async function sweepLiquidations(positions: PositionRow[]): Promise<Posit
 
 export async function closePosition(
   userId: string, positionId: string,
-): Promise<Result<{ position: PositionRow; payout: number; pnl: number; balance: number | null }>> {
+): Promise<Result<{ position: PositionRow; payout: number; pnl: number; dividend: number; balance: number | null }>> {
   const { data: row } = await supabase.from('krash_positions')
     .select('*').eq('id', positionId).eq('user_id', userId).maybeSingle();
   if (!row) return { ok: false, status: 404, error: 'Position introuvable' };
 
   const [pos] = await sweepLiquidations([row as PositionRow]);
   if (pos.status === 'liquidated') {
-    return { ok: true, position: pos, payout: 0, pnl: -(pos.stake + pos.fee), balance: await krashBalance(userId) };
+    return { ok: true, position: pos, payout: 0, pnl: -(pos.stake + pos.fee), dividend: 0, balance: await krashBalance(userId) };
   }
   if (pos.status !== 'open') return { ok: false, status: 409, error: 'Position déjà fermée' };
 
@@ -226,7 +226,9 @@ export async function closePosition(
   const price = priceAt(pos.asset, t);
   const value = positionValue(pos, price);
   const closeFee = Math.min(value, tradeFee(pos.stake, pos.leverage));
-  const payout = value - closeFee;
+  // Long company positions earn a dividend for the time they were held.
+  const dividend = value > 0 ? dividendFor(pos, t) : 0;
+  const payout = value - closeFee + dividend;
 
   const { data: closed } = await supabase.from('krash_positions').update({
     status: 'closed', exit_price: price, closed_at: iso(t), payout, checked_until: iso(t),
@@ -241,7 +243,7 @@ export async function closePosition(
   ]);
   const balance = credited ?? await krashBalance(userId);
 
-  return { ok: true, position: closed as PositionRow, payout, pnl, balance };
+  return { ok: true, position: closed as PositionRow, payout, pnl, dividend, balance };
 }
 
 export async function closeAll(userId: string): Promise<Result<{ closed: number; payout: number; pnl: number; balance: number | null }>> {

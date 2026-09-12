@@ -26,7 +26,7 @@ const REASONS = [
  * dialog, not the browser's — the browser's prompt only fires once the player
  * taps "Activer", so a "not now" here never burns the one real request.
  */
-export default function PushPrompt() {
+export default function PushPrompt({ reasons = REASONS }: { reasons?: string[] }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [key, setKey] = useState<string | null>(null);
@@ -91,7 +91,7 @@ export default function PushPrompt() {
         </h2>
         <p className="text-[12px] text-tx-muted mt-1 mb-4">On te prévient seulement pour :</p>
         <ul className="space-y-2 mb-6">
-          {REASONS.map((r) => (
+          {reasons.map((r) => (
             <li key={r} className="flex gap-2.5 text-[13px] leading-snug text-tx-secondary">
               <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent-primary" />
               {r}
