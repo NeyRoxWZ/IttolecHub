@@ -22,6 +22,22 @@
       "scope": "site",
       "type": "amelioration",
       "title": "Le logo prend place entre Multijoueur et Solo"
+    },
+    {
+      "id": "2026-09-12-04",
+      "date": "2026-09-12",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Patch notes pliables",
+      "details": "Chaque version et chaque zone se replient d'un clic ; la dernière version s'ouvre, les anciennes restent pliées."
+    },
+    {
+      "id": "2026-09-12-05",
+      "date": "2026-09-12",
+      "scope": "site",
+      "type": "nouveau",
+      "title": "Une app par jeu sur l'écran d'accueil",
+      "details": "Ajouter le casino ou ItollecClicker à l'écran d'accueil depuis leur page installe une app qui s'ouvre directement sur ce jeu, avec sa propre icône."
     }
   ]
 }

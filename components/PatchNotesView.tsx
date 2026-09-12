@@ -1,6 +1,10 @@
+'use client';
+
+import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  groupByArea, GROUP_META, TYPE_META, CHANGE_TYPES, type PatchEntry,
+  groupByArea, GROUP_META, TYPE_META, CHANGE_TYPES, type PatchEntry, type ScopeGroup,
 } from '@/lib/patch-notes';
 
 /**
@@ -10,14 +14,25 @@ import {
  * box with two coloured badges, and sixty-seven of those read as noise. Now a
  * game is a row, a change is a line, and colour is only used where it tells
  * you something: a type dot appears only when a version mixes several kinds.
+ *
+ * Each area folds, so a player can close what they do not play.
  */
 export default function PatchNotesView({ entries }: { entries: PatchEntry[] }) {
   const areas = groupByArea(entries);
   const types = CHANGE_TYPES.filter((t) => entries.some((e) => e.type === t));
   const mixed = types.length > 1;
+  const [folded, setFolded] = useState<Set<ScopeGroup>>(new Set());
+
+  const toggle = (group: ScopeGroup) =>
+    setFolded((prev) => {
+      const next = new Set(prev);
+      if (next.has(group)) next.delete(group);
+      else next.add(group);
+      return next;
+    });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {mixed && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-tx-muted">
           {types.map((t) => (
@@ -29,49 +44,65 @@ export default function PatchNotesView({ entries }: { entries: PatchEntry[] }) {
         </div>
       )}
 
-      {areas.map(({ group, count, scopes }) => (
-        <section key={group}>
-          <h3 className="flex items-center gap-2 mb-2">
-            <span className={cn('h-3.5 w-1.5 rounded-full', GROUP_META[group].bar)} />
-            <span className="font-display font-black text-sm uppercase tracking-widest">{GROUP_META[group].label}</span>
-            <span className="text-[11px] font-bold text-tx-muted">{count}</span>
-          </h3>
+      {areas.map(({ group, count, scopes }) => {
+        const open = !folded.has(group);
+        return (
+          <section key={group}>
+            <button
+              type="button"
+              onClick={() => toggle(group)}
+              aria-expanded={open}
+              className="w-full flex items-center gap-2 py-1.5 mb-1 text-left group"
+            >
+              <span className={cn('h-3.5 w-1.5 rounded-full', GROUP_META[group].bar)} />
+              <span className="font-display font-black text-sm uppercase tracking-widest">{GROUP_META[group].label}</span>
+              <span className="text-[11px] font-bold text-tx-muted">{count}</span>
+              <ChevronDown
+                className={cn(
+                  'ml-auto h-4 w-4 text-tx-muted group-hover:text-tx-base transition-transform',
+                  !open && '-rotate-90'
+                )}
+              />
+            </button>
 
-          <div className="rounded-2xl border-2 border-brand-border bg-brand-inner divide-y divide-brand-border/70">
-            {scopes.map(({ scope, entries: list }) => {
-              // A game described by a single entry titled after itself reads
-              // best as one line, not a heading over a line that repeats it.
-              const single = list.length === 1 && list[0].title === scope.label;
+            {open && (
+              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner divide-y divide-brand-border/70">
+                {scopes.map(({ scope, entries: list }) => {
+                  // A game described by a single entry titled after itself reads
+                  // best as one line, not a heading over a line that repeats it.
+                  const single = list.length === 1 && list[0].title === scope.label;
 
-              return (
-                <div key={scope.id} className="px-4 py-3">
-                  {!single && <div className="font-bold text-[13px] text-tx-base mb-1.5">{scope.label}</div>}
-                  <ul className="space-y-2">
-                    {list.map((entry) => (
-                      <li key={entry.id} className="flex gap-2.5">
-                        {mixed && (
-                          <span
-                            title={TYPE_META[entry.type]?.label}
-                            className={cn('mt-[7px] h-2 w-2 shrink-0 rounded-full', TYPE_META[entry.type]?.dot ?? 'bg-tx-muted')}
-                          />
-                        )}
-                        <div className="min-w-0">
-                          <div className={cn('text-[13px] leading-snug', single ? 'font-bold text-tx-base' : 'font-semibold text-tx-secondary')}>
-                            {entry.title}
-                          </div>
-                          {entry.details && (
-                            <p className="text-[12px] text-tx-muted leading-relaxed mt-0.5">{entry.details}</p>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      ))}
+                  return (
+                    <div key={scope.id} className="px-4 py-3">
+                      {!single && <div className="font-bold text-[13px] text-tx-base mb-1.5">{scope.label}</div>}
+                      <ul className="space-y-2">
+                        {list.map((entry) => (
+                          <li key={entry.id} className="flex gap-2.5">
+                            {mixed && (
+                              <span
+                                title={TYPE_META[entry.type]?.label}
+                                className={cn('mt-[7px] h-2 w-2 shrink-0 rounded-full', TYPE_META[entry.type]?.dot ?? 'bg-tx-muted')}
+                              />
+                            )}
+                            <div className="min-w-0">
+                              <div className={cn('text-[13px] leading-snug', single ? 'font-bold text-tx-base' : 'font-semibold text-tx-secondary')}>
+                                {entry.title}
+                              </div>
+                              {entry.details && (
+                                <p className="text-[12px] text-tx-muted leading-relaxed mt-0.5">{entry.details}</p>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }
