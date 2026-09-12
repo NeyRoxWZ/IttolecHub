@@ -7,42 +7,12 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 import { generatePassphrase } from '@/lib/words';
 import {
-  LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check, Crown, Dices,
+  LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Showcase from '@/app/casino/_components/Showcase';
+import ProfileStats from './ProfileStats';
 import { cn } from '@/lib/utils';
-
-interface CasinoProfileStats {
-  balance: number;
-  totalWagered: number;
-  totalWon: number;
-  betsPlaced: number;
-  bestStreak: number;
-  biggestMultiplier: number;
-  biggestWin: number;
-  level: number;
-  xpIntoLevel: number;
-  xpForNext: number;
-  prestigeCount: number;
-  jackpotsWon: number;
-  missionsDone: number;
-  achievements: number;
-  achievementsTotal: number;
-  cosmetics: number;
-  cosmeticsTotal: number;
-}
-
-/** Same row shape as the ItollecClicker card, so the two read as a pair. */
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-3 text-sm font-bold">
-      <span className="text-tx-secondary">{label}</span>
-      <span className="font-mono text-tx-base tabular-nums">{value}</span>
-    </div>
-  );
-}
 
 export default function ProfilPage() {
   const { user, loading, logout, refreshUser } = useAuth();
@@ -52,38 +22,12 @@ export default function ProfilPage() {
   const [regenerating, setRegenerating] = useState(false);
   const [newWords, setNewWords] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [casinoLoading, setCasinoLoading] = useState(false);
-  const [casino, setCasino] = useState<CasinoProfileStats | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/connexion?next=%2Fprofil');
     }
   }, [user, loading, router]);
-
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-
-    const run = async () => {
-      setCasinoLoading(true);
-      try {
-        const res = await fetch(`/api/casino/profile?user_id=${user.id}`);
-        if (!res.ok) throw new Error('profil casino indisponible');
-        const data = await res.json();
-        if (!cancelled) setCasino(data);
-      } catch {
-        if (!cancelled) setCasino(null);
-      } finally {
-        if (!cancelled) setCasinoLoading(false);
-      }
-    };
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
 
   if (loading || !user) {
     return <div className="pt-20 text-center">Chargement...</div>;
@@ -336,49 +280,10 @@ export default function ProfilPage() {
         </div>
 
         <div className="mt-10">
-          <Showcase />
-        </div>
-
-        <div className="mt-10">
-          <h2 className="font-display text-2xl md:text-3xl font-black tracking-wider uppercase text-center md:text-left">
+          <h2 className="font-display text-2xl md:text-3xl font-black tracking-wider uppercase text-center md:text-left mb-6">
             Statistiques
           </h2>
-
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
-              <div className="flex items-center justify-between h-12">
-                <h3 className="font-display text-2xl leading-none">ItollecClicker</h3>
-                <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
-                  <Crown className="h-6 w-6 text-accent-secondary" />
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-4 space-y-3">
-                <div className="flex justify-between text-sm font-bold">
-                  <span className="text-tx-secondary">Livres Tournois</span>
-                  <span className="font-mono text-tx-base">0 ₶</span>
-                </div>
-                <div className="flex justify-between text-sm font-bold">
-                  <span className="text-tx-secondary">Bâtiments</span>
-                  <span className="font-mono text-tx-base">0</span>
-                </div>
-                <div className="flex justify-between text-sm font-bold">
-                  <span className="text-tx-secondary">Succès</span>
-                  <span className="font-mono text-tx-base">0 / 200</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => router.push('/itollec-clicker')}
-                className="mt-6 w-full h-16 rounded-2xl font-display font-black tracking-wider uppercase transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-brutal"
-              >
-                Jouer
-              </button>
-            </div>
-
-            
-          </div>
+          <ProfileStats userId={user.id} />
         </div>
       </div>
     </main>

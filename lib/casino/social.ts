@@ -60,10 +60,3 @@ export const CHAT_MAX_LENGTH = 300;
 export const CHAT_HISTORY = 60;
 /** Minimum gap between two messages from the same player. */
 export const CHAT_COOLDOWN_MS = 1_500;
-
-/* ------------------------------------------------------------------ */
-/* Showcase                                                            */
-/* ------------------------------------------------------------------ */
-
-/** How many pieces a player may put on display on their profile. */
-export const SHOWCASE_SLOTS = 6;
