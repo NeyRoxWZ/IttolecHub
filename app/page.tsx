@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
+import PatchNotesModal from '@/components/PatchNotesModal';
 import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, TrendingUp, LogOut, Menu, X, RotateCcw, Coins } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -200,6 +202,7 @@ export default function Home() {
 
   return (
     <main className="bg-transparent min-h-screen md:h-screen flex flex-col justify-between md:overflow-hidden relative">
+      {mode === 'solo' && <PatchNotesModal />}
       {easterEggActive && (
         <div 
           className="fixed inset-0 z-[9999] pointer-events-none"
@@ -235,7 +238,7 @@ export default function Home() {
 
       <header className="pt-3 md:pt-5 text-center px-6">
         <div className="w-full max-w-5xl mx-auto flex items-center justify-between gap-4 mb-3">
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center gap-2">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
@@ -244,9 +247,35 @@ export default function Home() {
             >
               <Menu className="h-5 w-5" />
             </button>
+            {logoVisible && (
+              <Image
+                src="/logo-site.png"
+                alt="ItollecHub"
+                width={500}
+                height={500}
+                className="h-11 w-11 object-contain select-none"
+                priority
+                onError={() => setLogoVisible(false)}
+              />
+            )}
           </div>
 
-          <div className="flex-1 hidden md:block" />
+          {/* The logo used to sit huge and centred under the navigation, pushing
+              the game list down on every screen. It is the brand mark, so it
+              lives where one looks for it: top left. */}
+          <div className="flex-1 hidden md:flex items-center">
+            {logoVisible && (
+              <Image
+                src="/logo-site.png"
+                alt="ItollecHub"
+                width={500}
+                height={500}
+                className="h-16 w-16 object-contain select-none"
+                priority
+                onError={() => setLogoVisible(false)}
+              />
+            )}
+          </div>
 
           <div className="hidden md:flex rounded-2xl border-2 border-brand-border bg-brand-inner p-2 gap-2">
             <button
@@ -315,19 +344,6 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex items-center justify-center">
-          {logoVisible && (
-            <Image
-              src="/logo-site.png"
-              alt="ItollecHub"
-              width={560}
-              height={240}
-              className="h-32 md:h-48 w-auto select-none"
-              priority
-              onError={() => setLogoVisible(false)}
-            />
-          )}
-        </div>
       </header>
 
       {mobileMenuOpen && (
@@ -709,10 +725,9 @@ export default function Home() {
 
       <footer className="pb-2 md:pb-3 px-6">
         <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold tracking-widest uppercase text-tx-muted">
-          <a href="#" className="hover:text-tx-secondary transition-colors">Conditions</a>
-          <a href="#" className="hover:text-tx-secondary transition-colors">Confidentialité</a>
-          <a href="#" className="hover:text-tx-secondary transition-colors">Contact</a>
-          <a href="#" className="hover:text-tx-secondary transition-colors">Patch Notes</a>
+          <Link href="/conditions" className="hover:text-tx-secondary transition-colors">Conditions</Link>
+          <Link href="/confidentialite" className="hover:text-tx-secondary transition-colors">Confidentialité</Link>
+          <Link href="/patch-notes" className="hover:text-tx-secondary transition-colors">Patch Notes</Link>
         </div>
       </footer>
     </main>

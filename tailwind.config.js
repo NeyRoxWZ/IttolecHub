@@ -5,6 +5,9 @@ module.exports = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './games/**/*.{js,ts,jsx,tsx,mdx}',
+    // Class names are also built in lib/ (patch notes, casino effects);
+    // without this they were never generated.
+    './lib/**/*.{js,ts,jsx,tsx}',
   ],
   darkMode: 'class',
   theme: {

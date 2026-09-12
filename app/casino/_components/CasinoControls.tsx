@@ -72,8 +72,8 @@ export default function CasinoControls({ className }: { className?: string }) {
         // what the button changed. It only concerns the general set: pieces
         // tied to a game always show inside that game either way.
         title={skinned
-          ? 'Cosmétiques sur toutes les pages (activé) — ton set général habille aussi l’accueil du casino, la boutique, le pass… Clique pour le limiter aux jeux.'
-          : 'Cosmétiques dans les jeux uniquement (désactivé) — les pages du casino gardent leur fond normal. Clique pour habiller aussi l’accueil, la boutique, le pass…'}
+          ? 'Cosmétiques sur toutes les pages (activé) — le Tapis et le Contour de ton set général habillent aussi l’accueil du casino, la boutique, le pass… Les autres pièces ne changent pas. Clique pour les limiter aux jeux.'
+          : 'Cosmétiques dans les jeux uniquement (désactivé) — les pages du casino gardent leur fond normal. Clique pour que le Tapis et le Contour de ton set général habillent aussi l’accueil, la boutique, le pass…'}
         aria-label={skinned ? 'Cosmétiques sur toutes les pages : activé' : 'Cosmétiques sur toutes les pages : désactivé'}
         className={cn(
           'h-11 w-11 rounded-xl border-2 flex items-center justify-center transition-colors focus:outline-none',

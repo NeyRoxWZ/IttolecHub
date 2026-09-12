@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "note": "node scripts/patch-notes.mjs add",
+    "notes:status": "node scripts/patch-notes.mjs status",
+    "release": "node scripts/patch-notes.mjs release"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

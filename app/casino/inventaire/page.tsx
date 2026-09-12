@@ -24,6 +24,24 @@ import Confetti from '../_components/Confetti';
 import CasinoControls from '../_components/CasinoControls';
 import BalanceChip from '../_components/BalanceChip';
 
+/** Where a cosmetic actually shows, in the words the toggle uses. */
+function reachOf(piece: { gameSlug: string; slot: string }): { label: string; hint: string; cls: string } {
+  if (piece.gameSlug !== GLOBAL_SLUG) {
+    return { label: 'Ce jeu', hint: 'Uniquement dans ce jeu, où il passe devant le set général.', cls: 'border-brand-border text-tx-muted' };
+  }
+  if (piece.slot === 'table' || piece.slot === 'border') {
+    return {
+      label: 'Jeux + pages*',
+      hint: 'Dans tous les jeux, et sur les pages du casino (accueil, boutique, pass…) si le bouton palette « cosmétiques sur toutes les pages » est activé.',
+      cls: 'border-accent-primary/60 text-accent-primary',
+    };
+  }
+  if (piece.slot === 'sound') {
+    return { label: 'Jeux + pages', hint: 'Partout dans le casino, quel que soit le bouton palette.', cls: 'border-accent-success/60 text-accent-success' };
+  }
+  return { label: 'Tous les jeux', hint: 'Dans tous les jeux, jamais sur les pages du casino.', cls: 'border-sky-400/60 text-sky-300' };
+}
+
 export default function InventoryPage() {
   const { user } = useAuth();
   const { balance, isLoaded, setBalance } = useCasinoWallet();
@@ -302,7 +320,9 @@ function CosmeticGrid({
         </button>
         <span className="font-display font-black text-sm">{gameLabel(game)}</span>
         <span className="text-[11px] text-tx-muted">
-          {game === GLOBAL_SLUG ? 'S’applique à tous les jeux et tous les écrans' : 'Ce jeu uniquement'}
+          {game === GLOBAL_SLUG
+            ? 'Tous les jeux · tapis et contour aussi sur les pages si la palette est activée'
+            : 'Ce jeu uniquement'}
           {' · '}{ownedCount}/{all.length} débloqués
         </span>
 
@@ -381,6 +401,12 @@ function CosmeticGrid({
                 </span>
               </div>
               <span className="text-[9px] font-bold text-tx-muted">{piece.themeName}</span>
+              <span
+                title={reachOf(piece).hint}
+                className={cn('px-1.5 py-0.5 rounded-md border text-[8px] font-black uppercase tracking-widest', reachOf(piece).cls)}
+              >
+                {reachOf(piece).label}
+              </span>
 
               <CosmeticPreview cosmetic={piece} size={86} />
               <span className="font-display font-black text-[11px] leading-tight text-center">{piece.name}</span>

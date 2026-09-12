@@ -1,0 +1,40 @@
+{
+  "scopes": [
+    { "id": "site", "label": "Site", "group": "site" },
+
+    { "id": "casino", "label": "Casino", "group": "casino" },
+    { "id": "slots", "label": "Frenly Slots", "group": "casino" },
+    { "id": "blackjack", "label": "Frenly 21", "group": "casino" },
+    { "id": "wheel", "label": "Frenly Wheel", "group": "casino" },
+    { "id": "rocket", "label": "Frenly Rocket", "group": "casino" },
+    { "id": "mines", "label": "Frenly Mines", "group": "casino" },
+    { "id": "plinko", "label": "Frenly Plinko", "group": "casino" },
+    { "id": "hilo", "label": "Frenly HiLo", "group": "casino" },
+    { "id": "grattage", "label": "Frenly Grattage", "group": "casino" },
+    { "id": "poulet", "label": "Frenly Poulet", "group": "casino" },
+    { "id": "tower", "label": "Frenly Tower", "group": "casino" },
+    { "id": "keno", "label": "Frenly Keno", "group": "casino" },
+    { "id": "caisses", "label": "Frenly Caisses", "group": "casino" },
+    { "id": "coinflip", "label": "Frenly Coinflip", "group": "casino" },
+    { "id": "dino", "label": "Frenly Dino", "group": "casino" },
+    { "id": "chevaux", "label": "Frenly Chevaux", "group": "casino" },
+    { "id": "bonneteau", "label": "Frenly Bonneteau", "group": "casino" },
+    { "id": "stade", "label": "Frenly Stade", "group": "casino" },
+    { "id": "baccarat", "label": "Frenly Baccarat", "group": "casino" },
+    { "id": "rps", "label": "Pierre-Feuille-Ciseaux", "group": "casino" },
+    { "id": "craps", "label": "Frenly Craps", "group": "casino" },
+
+    { "id": "clicker", "label": "ItollecClicker", "group": "solo" },
+
+    { "id": "budgetguessr", "label": "BudgetGuessr", "group": "multi" },
+    { "id": "drawguessr", "label": "DrawGuessr", "group": "multi" },
+    { "id": "flagguessr", "label": "FlagGuessr", "group": "multi" },
+    { "id": "infiltre", "label": "Infiltré", "group": "multi" },
+    { "id": "jaugeguessr", "label": "JaugeGuessr", "group": "multi" },
+    { "id": "logoguessr", "label": "LogoGuessr", "group": "multi" },
+    { "id": "pokeguessr", "label": "PokeGuessr", "group": "multi" },
+    { "id": "rentguessr", "label": "RentGuessr", "group": "multi" },
+    { "id": "undercover", "label": "Undercover", "group": "multi" },
+    { "id": "wikiracing", "label": "WikiRacing", "group": "multi" }
+  ]
+}
