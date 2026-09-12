@@ -21,7 +21,8 @@ const RULES: RulesSpec = {
   howTo: [
     'Mise, puis le dino part en course tout seul et saute les obstacles qui arrivent.',
     `Chaque obstacle franchi augmente ton multiplicateur. Chaque saut a ${Math.round(CONFIG.survivalProb * 100)}% de réussir.`,
-    'Ton seul choix : appuyer sur ENCAISSER avant qu’il se prenne un obstacle.',
+    'Ton seul choix : appuyer sur ENCAISSER entre deux obstacles.',
+    'Quand un obstacle arrive tout près, ENCAISSER se bloque le temps de le passer : son résultat est tiré à ce moment-là, pas avant.',
     'Un obstacle raté et la course s’arrête : mise perdue.',
     `${CONFIG.totalSteps} obstacles au total — franchis-les tous et tu touches ×${multiplierAtStep(CONFIG, CONFIG.totalSteps)}.`,
   ],
@@ -45,6 +46,19 @@ const JUMP_V0 = 700;          // px/s
 // jump way too early and land before the obstacle arrived.
 const TIME_TO_PEAK = JUMP_V0 / GRAVITY;              // s
 const JUMP_LEAD_PX = SPEED * TIME_TO_PEAK;           // distance to start the jump
+
+/**
+ * Where an obstacle is committed to: the server draws its outcome only once it
+ * is this close, and cashing out is locked from then until it is cleared.
+ *
+ * Outcomes used to be drawn the instant an obstacle spawned, about three
+ * seconds out. The server then busted the round on an obstacle still far off
+ * screen, so a player who could see themselves alive and pressed "encaisser"
+ * got a loss — and on a safe draw was paid for a step not yet reached. It also
+ * sent the future to the browser early enough to read it and cash out just
+ * before every death. The margin past the jump lead covers the round trip.
+ */
+const COMMIT_PX = JUMP_LEAD_PX + SPEED * 0.35;
 const OBSTACLE_KINDS = [ArtCactus, ArtRock, ArtFire, ArtCactus, ArtRock, ArtVolcano];
 
 type Phase = 'idle' | 'running' | 'dead' | 'cashed';
@@ -53,7 +67,8 @@ interface Obstacle {
   id: number;
   index: number;                       // which step it corresponds to
   x: number;
-  outcome: 'safe' | 'dead' | null;     // decided by the server before it arrives
+  outcome: 'safe' | 'dead' | null;     // drawn by the server once committed
+  committed: boolean;                  // outcome requested; no cashing out until cleared
   jumped: boolean;
   passed: boolean;
   el: HTMLDivElement | null;
@@ -71,6 +86,8 @@ export default function DinoPage() {
   const [busy, setBusy] = useState(false);
   const [confetti, setConfetti] = useState(0);
   const [obstacleTick, setObstacleTick] = useState(0); // forces a re-render when the obstacle list changes
+  /** An obstacle is committed and not yet cleared: cashing out would be a guess. */
+  const [pending, setPending] = useState(false);
 
   /* ---- imperative game state (refs so the loop never re-renders) ---- */
   const worldRef = useRef<HTMLDivElement>(null);
@@ -89,6 +106,8 @@ export default function DinoPage() {
   const dinoVRef = useRef(0);
   const runCycleRef = useRef(0);
   const nextIdRef = useRef(1);
+  const pendingRef = useRef(false);
+  const setPendingBoth = (v: boolean) => { pendingRef.current = v; setPending(v); };
 
   const stopLoop = () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); rafRef.current = null; };
   useEffect(() => () => stopLoop(), []);
@@ -116,6 +135,7 @@ export default function DinoPage() {
 
   const endRun = (dead: boolean, progression?: any) => {
     stopLoop();
+    setPendingBoth(false);
     phaseRef.current = 'dead';
     setPhase('dead');
     if (dead) {
@@ -130,6 +150,14 @@ export default function DinoPage() {
     const dt = Math.min(0.05, (ts - lastTsRef.current) / 1000 || 0);
     lastTsRef.current = ts;
 
+    // An obstacle has reached the dino before the server has drawn it: hold
+    // the whole world still rather than invent an outcome the server has not
+    // decided. Only happens on a slow round trip.
+    const waiting = obstaclesRef.current.some(
+      (o) => o.committed && !o.passed && o.outcome === null && o.x + OBSTACLE_W / 2 <= DINO_X
+    );
+    if (waiting) { rafRef.current = requestAnimationFrame(loop); return; }
+
     distanceRef.current += SPEED * dt;
 
     /* --- ground parallax --- */
@@ -142,11 +170,10 @@ export default function DinoPage() {
         id: nextIdRef.current++,
         index: spawnedRef.current,
         x: worldW + 40,
-        outcome: null, jumped: false, passed: false, el: null,
+        outcome: null, committed: false, jumped: false, passed: false, el: null,
       };
       obstaclesRef.current.push(ob);
       spawnedRef.current++;
-      void resolveObstacle(ob);
       setObstacleTick((t) => t + 1);
     }
 
@@ -158,6 +185,16 @@ export default function DinoPage() {
       // Measure from the obstacle's centre, not its left edge, so the jump
       // and the collision line up with what you actually see.
       const obCenter = ob.x + OBSTACLE_W / 2;
+
+      // Commit: from here the obstacle must be faced, so its outcome is drawn
+      // now and not before. Obstacles are 420 px apart and the commit line is
+      // well inside that, so the previous one is always cleared first and the
+      // server sees the steps strictly in order.
+      if (!ob.committed && obCenter - DINO_X <= COMMIT_PX) {
+        ob.committed = true;
+        setPendingBoth(true);
+        void resolveObstacle(ob);
+      }
 
       // Take off exactly one "time to peak" before contact. If the server
       // hasn't answered yet (rare — we ask ~3s ahead), jump anyway: a missed
@@ -171,6 +208,11 @@ export default function DinoPage() {
 
       // Collision / clear resolution when the obstacle's centre meets the dino.
       if (!ob.passed && obCenter <= DINO_X) {
+        // Not decided yet: leave it unpassed so the hold above freezes the
+        // world next frame. Counting it as cleared here let a slow round trip
+        // carry the dino to the finish while the server had already lost the
+        // run — then cashing out at the end came back as a loss.
+        if (ob.outcome === null) continue;
         ob.passed = true;
         if (ob.outcome === 'dead') {
           endRun(true, (ob as any).progression);
@@ -178,6 +220,7 @@ export default function DinoPage() {
           return;
         }
         const newStep = ob.index + 1;
+        setPendingBoth(false);
         stepRef.current = newStep;
         setStep(newStep);
         setMultiplier((ob as any).serverMultiplier ?? multiplierAtStep(CONFIG, newStep));
@@ -240,6 +283,7 @@ export default function DinoPage() {
     obstaclesRef.current = [];
     spawnedRef.current = 0; distanceRef.current = 0;
     dinoYRef.current = 0; dinoVRef.current = 0; runCycleRef.current = 0;
+    setPendingBoth(false);
     stepRef.current = 0;
     setStep(0); setMultiplier(1); setLockedAmount(amount); setObstacleTick((t) => t + 1);
     phaseRef.current = 'running'; setPhase('running');
@@ -247,7 +291,7 @@ export default function DinoPage() {
   };
 
   const handleCashout = async () => {
-    if (busy || phaseRef.current !== 'running' || stepRef.current === 0) return;
+    if (busy || phaseRef.current !== 'running' || stepRef.current === 0 || pendingRef.current) return;
     setBusy(true); stopLoop();
     phaseRef.current = 'cashed';
     vibrate(HAPTIC.MEDIUM);
@@ -259,7 +303,14 @@ export default function DinoPage() {
       });
       const data = await res.json();
       setBusy(false);
-      if (!res.ok) { toast.error(data.error || 'Erreur'); setPhase('dead'); return; }
+      if (!res.ok) {
+        toast.error(data.error || 'Erreur');
+        // The round is over server-side either way; the wallet is re-read so
+        // the balance shown is the real one rather than a guess.
+        void refresh();
+        setPhase('dead');
+        return;
+      }
       applyServerCashout('dino', data.newBalance, data.payout, multiplier);
       setPhase('cashed'); sfx.cashout(); vibrate(HAPTIC.SUCCESS);
       if (multiplier >= 3) setConfetti((c) => c + 1);
@@ -304,6 +355,7 @@ export default function DinoPage() {
     sfx.click(); stopLoop();
     obstaclesRef.current = []; spawnedRef.current = 0; distanceRef.current = 0;
     dinoYRef.current = 0; dinoVRef.current = 0; stepRef.current = 0;
+    setPendingBoth(false);
     roundIdRef.current = null;
     phaseRef.current = 'idle'; setPhase('idle');
     setStep(0); setMultiplier(1); setObstacleTick((t) => t + 1);
@@ -444,14 +496,18 @@ export default function DinoPage() {
 
           <button
             onClick={handleCashout}
-            disabled={busy || step === 0}
+            disabled={busy || step === 0 || pending}
             className={cn(
               'h-24 w-full rounded-2xl font-display text-xl font-black tracking-wider border-4 border-brand-border shadow-brutal transition-all active:translate-y-1 active:shadow-none focus:outline-none',
-              step === 0 ? 'bg-brand-inner text-tx-muted cursor-not-allowed shadow-none' : 'bg-accent-success text-brand-bg hover:brightness-110'
+              step === 0 || pending
+                ? 'bg-brand-inner text-tx-muted cursor-not-allowed shadow-none'
+                : 'bg-accent-success text-brand-bg hover:brightness-110'
             )}
           >
             ENCAISSER
-            <div className="text-base font-black">{step === 0 ? 'attends le 1er obstacle' : `${fmt(potentialPayout)} ₶`}</div>
+            <div className="text-base font-black">
+              {step === 0 ? 'attends le 1er obstacle' : pending ? 'obstacle en approche…' : `${fmt(potentialPayout)} ₶`}
+            </div>
           </button>
 
           <p className="text-[11px] text-tx-muted">Le dino saute tout seul. Ton seul choix : quand t’arrêter.</p>

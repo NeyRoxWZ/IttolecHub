@@ -32,6 +32,24 @@ function formatCountdown(seconds: number): string {
   return d > 0 ? `${d}j ${h}h ${m}m` : `${h}h ${m}m ${seconds % 60}s`;
 }
 
+/**
+ * The exact moment the next pass starts, in the player's own timezone. A
+ * countdown alone left people guessing whether "18j 4h" meant tonight or
+ * tomorrow morning; the reset is midnight UTC, which is 01:00 or 02:00 in
+ * France depending on the season.
+ */
+function resetDateLabel(seconds: number): string {
+  if (seconds <= 0) return '';
+  const at = new Date(Date.now() + seconds * 1000);
+  // Round to the minute: the countdown ticks every second and the label
+  // should not flicker between :59 and :00.
+  at.setSeconds(0, 0);
+  if (at.getMinutes() % 5 !== 0) at.setMinutes(Math.round(at.getMinutes() / 5) * 5);
+  return at.toLocaleString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+  });
+}
+
 function rewardCosmetic(reward: PassReward): Cosmetic | undefined {
   return reward.kind === 'cosmetic' ? cosmeticById(reward.cosmeticId || '') : undefined;
 }
@@ -213,9 +231,19 @@ export default function FrenlyPassPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="h-11 flex items-center gap-2 px-3 rounded-xl border-2 border-brand-border bg-brand-inner" title="Reset du passe">
-              <Clock className="h-4 w-4 text-accent-primary" />
-              <span className="font-display font-black text-sm tabular-nums">{formatCountdown(resetIn)}</span>
+            <div
+              className="h-11 flex items-center gap-2 px-3 rounded-xl border-2 border-brand-border bg-brand-inner"
+              title={resetIn > 0 ? `Nouveau pass le ${resetDateLabel(resetIn)}` : 'Reset du passe'}
+            >
+              <Clock className="h-4 w-4 shrink-0 text-accent-primary" />
+              <div className="leading-tight">
+                <div className="font-display font-black text-sm tabular-nums">{formatCountdown(resetIn)}</div>
+                {resetIn > 0 && (
+                  <div className="text-[9px] font-bold text-tx-muted whitespace-nowrap">
+                    nouveau pass {resetDateLabel(resetIn)}
+                  </div>
+                )}
+              </div>
             </div>
             <CasinoControls />
 

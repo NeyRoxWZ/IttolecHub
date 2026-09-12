@@ -68,8 +68,13 @@ export default function CasinoControls({ className }: { className?: string }) {
           setSkinned(next);
           setScreensSkinned(next);
         }}
-        title={skinned ? 'Cosmétiques appliqués aux écrans' : 'Cosmétiques dans les jeux uniquement'}
-        aria-label="Cosmétiques sur les écrans"
+        // The two states were named but never explained, so nobody could tell
+        // what the button changed. It only concerns the general set: pieces
+        // tied to a game always show inside that game either way.
+        title={skinned
+          ? 'Cosmétiques sur toutes les pages (activé) — ton set général habille aussi l’accueil du casino, la boutique, le pass… Clique pour le limiter aux jeux.'
+          : 'Cosmétiques dans les jeux uniquement (désactivé) — les pages du casino gardent leur fond normal. Clique pour habiller aussi l’accueil, la boutique, le pass…'}
+        aria-label={skinned ? 'Cosmétiques sur toutes les pages : activé' : 'Cosmétiques sur toutes les pages : désactivé'}
         className={cn(
           'h-11 w-11 rounded-xl border-2 flex items-center justify-center transition-colors focus:outline-none',
           skinned
