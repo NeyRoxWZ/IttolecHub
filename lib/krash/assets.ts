@@ -127,6 +127,15 @@ export function assetsOf(market: MarketId): Asset[] {
 /** Prices change every this many seconds. */
 export const KRASH_TICK = 2;
 
+/**
+ * Krash has its own FrenlyCoins: same name as the casino's, separate wallet.
+ * A new wallet starts with KRASH_START_BALANCE; a player below
+ * KRASH_REFILL_BELOW with nothing left on the market can refill it once a day.
+ */
+export const KRASH_START_BALANCE = 1000;
+export const KRASH_REFILL_BELOW = 100;
+export const KRASH_REFILL_AMOUNT = 1000;
+
 /** Smallest stake, and the share of the balance one position may use. */
 export const KRASH_MIN_STAKE = 10;
 export const KRASH_MAX_STAKE_PCT = 0.5;

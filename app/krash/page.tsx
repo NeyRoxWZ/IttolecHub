@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
-import { useCasinoWallet } from '@/hooks/useCasinoWallet';
+import { useKrashWallet } from './_lib/useKrashWallet';
 import {
   ASSET_BY_ID, MARKETS, MARKET_ORDER, SECTORS, assetsOf, formatPrice, liquidationPrice, positionValue,
   type MarketId,
@@ -65,7 +65,7 @@ function AssetRow({ id, data, selected, onPick, holding }: {
 const INTRO_KEY = 'krash_intro_seen';
 
 export default function KrashMarketPage() {
-  const wallet = useCasinoWallet();
+  const wallet = useKrashWallet();
   const positions = useKrashPositions();
 
   const [market, setMarket] = useState<MarketId>('frx');

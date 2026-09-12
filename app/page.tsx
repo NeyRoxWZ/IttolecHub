@@ -727,7 +727,7 @@ export default function Home() {
                   <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                     <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2">Description</div>
                     <p className="text-sm text-tx-secondary font-bold leading-relaxed">
-                      La bourse en accéléré : actions, cryptos et news en direct. Parie à la hausse ou à la baisse avec tes FrenlyCoins (₶).
+                      La bourse en accéléré : actions, cryptos et news en direct. Parie à la hausse ou à la baisse avec un portefeuille de FrenlyCoins (₶) à part, séparé du casino.
                     </p>
                   </div>
                 </div>

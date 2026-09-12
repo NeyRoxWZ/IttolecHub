@@ -1,16 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { sfx } from '@/lib/casino/sfx';
 import { ASSET_BY_ID } from '@/lib/krash/assets';
+import { applyKrashWallet, setKrashBalance } from './useKrashWallet';
 
 export interface KrashPosition {
   id: string;
   asset: string;
-  market: 'frx' | 'crypto';
+  market: string;
   side: 'long' | 'short';
   leverage: number;
   stake: number;
@@ -37,9 +37,6 @@ const fmt = (n: number) => Math.abs(n).toLocaleString('fr-FR');
 /** The player's positions and the three things they can do with them. */
 export function useKrashPositions() {
   const { user } = useAuth();
-  const wallet = useCasinoWallet();
-  const walletRef = useRef(wallet);
-  walletRef.current = wallet;
 
   const [open, setOpen] = useState<KrashPosition[]>([]);
   const [recent, setRecent] = useState<KrashPosition[]>([]);
@@ -56,6 +53,7 @@ export function useKrashPositions() {
       setOpen(data.open);
       setRecent(data.recent);
       setStats(data.stats);
+      applyKrashWallet(data.wallet);
       setLoaded(true);
       for (const p of data.liquidatedNow as KrashPosition[]) {
         sfx.bust();
@@ -92,7 +90,7 @@ export function useKrashPositions() {
       const { ok, data } = await post({ action: 'open', ...input });
       if (!ok) { toast.error(data.error ?? 'Ordre refusé'); sfx.lose(); return false; }
       sfx.bet();
-      walletRef.current.setBalance(data.balance);
+      setKrashBalance(data.balance);
       const name = ASSET_BY_ID.get(input.asset)?.name ?? input.asset;
       toast.success(`${input.side === 'long' ? 'Achat' : 'Vente'} ${name} x${input.leverage}`, {
         description: `${fmt(input.stake)} ₶ placés · frais ${fmt(data.position.fee)} ₶`,
@@ -106,8 +104,11 @@ export function useKrashPositions() {
 
   const announce = (pnl: number, stake: number, label: string) => {
     if (pnl >= stake) {
-      sfx.bigWin();
+      sfx.jackpot();
       toast.success(`${label} : +${fmt(pnl)} ₶`, { description: 'Gros coup !', duration: 6000 });
+    } else if (pnl >= stake * 0.2) {
+      sfx.bigWin();
+      toast.success(`${label} : +${fmt(pnl)} ₶`, { description: 'Joli trade.' });
     } else if (pnl > 0) {
       sfx.cashout();
       toast.success(`${label} : +${fmt(pnl)} ₶`);
@@ -122,7 +123,7 @@ export function useKrashPositions() {
     try {
       const { ok, data } = await post({ action: 'close', position_id: position.id });
       if (!ok) { toast.error(data.error ?? 'Retrait impossible'); await load(); return; }
-      if (data.balance !== null) walletRef.current.setBalance(data.balance);
+      if (data.balance !== null) setKrashBalance(data.balance);
       if (data.position.status === 'liquidated') {
         sfx.bust();
         toast.error('Trop tard : position déjà liquidée.');
@@ -140,7 +141,7 @@ export function useKrashPositions() {
     try {
       const { ok, data } = await post({ action: 'close_all' });
       if (!ok) { toast.error(data.error ?? 'Retrait impossible'); return; }
-      if (data.balance !== null) walletRef.current.setBalance(data.balance);
+      if (data.balance !== null) setKrashBalance(data.balance);
       if (data.closed > 0) {
         const staked = open.reduce((s, p) => s + p.stake, 0);
         announce(data.pnl, staked, `${data.closed} position${data.closed > 1 ? 's' : ''} retirée${data.closed > 1 ? 's' : ''}`);

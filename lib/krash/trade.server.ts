@@ -1,18 +1,19 @@
 import { supabase } from '@/lib/supabase/server';
 import {
-  ASSET_BY_ID, KRASH_MAX_STAKE_PCT, KRASH_MIN_STAKE, LEVERAGES, LEVERAGE_UNLOCK,
-  liquidationPrice, positionValue, tradeFee, type Leverage,
+  ASSET_BY_ID, KRASH_MAX_STAKE_PCT, KRASH_MIN_STAKE, KRASH_REFILL_AMOUNT, KRASH_REFILL_BELOW,
+  LEVERAGES, LEVERAGE_UNLOCK, liquidationPrice, positionValue, tradeFee, type Leverage,
 } from './assets';
 import { firstCrossing, nowTick, priceAt } from './engine.server';
 
 /**
  * Opening, closing and liquidating Krash positions.
  *
- * Money leaves the casino wallet when a position opens (stake + fee) and comes
- * back when it closes. The wallet moves through a single SQL statement that
- * refuses to go negative, and a position changes status through a guarded
- * update, so a double click can neither spend the same coins twice nor pay a
- * position out twice.
+ * Krash plays with its own wallet (krash_wallets), never the casino's: the
+ * coins share a name, not a balance. Money leaves it when a position opens
+ * (stake + fee) and comes back when it closes. The wallet moves through a
+ * single SQL statement that refuses to go negative, and a position changes
+ * status through a guarded update, so a double click can neither spend the
+ * same coins twice nor pay a position out twice.
  */
 
 export interface PositionRow {
@@ -37,6 +38,7 @@ type Result<T> = ({ ok: true } & T) | { ok: false; status: number; error: string
 
 /** How far back an unattended position is scanned for a liquidation. */
 const MAX_SCAN_SECONDS = 14 * 86400;
+const REFILL_COOLDOWN_MS = 86400_000;
 
 const seconds = (iso: string) => Math.floor(new Date(iso).getTime() / 1000);
 const iso = (t: number) => new Date(t * 1000).toISOString();
@@ -47,10 +49,53 @@ async function walletApply(userId: string, delta: number): Promise<number | null
   return Number(data);
 }
 
-async function ledger(userId: string, type: 'krash_open' | 'krash_close', amount: number, balanceAfter: number, meta: object) {
-  await supabase.from('casino_transactions').insert({
-    user_id: userId, game_slug: 'krash', type, amount, balance_after: balanceAfter, meta,
+/** The Krash balance, creating the wallet with its starting coins if needed. */
+export async function krashBalance(userId: string): Promise<number | null> {
+  const { data, error } = await supabase.rpc('krash_wallet_get', { p_user: userId });
+  if (error || data === null || data === undefined) return null;
+  return Number(data);
+}
+
+export interface WalletState {
+  balance: number;
+  /** When a refill is possible right now. */
+  canRefill: boolean;
+  /** Why not, when the balance is low but no refill is available. */
+  refillBlocked: 'positions' | 'cooldown' | null;
+  nextRefillAt: string | null;
+}
+
+export async function walletState(userId: string): Promise<WalletState | null> {
+  const balance = await krashBalance(userId);
+  if (balance === null) return null;
+
+  const [{ data: wallet }, { count }] = await Promise.all([
+    supabase.from('krash_wallets').select('last_refill_at').eq('user_id', userId).maybeSingle(),
+    supabase.from('krash_positions').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'open'),
+  ]);
+
+  const last = wallet?.last_refill_at ? new Date(wallet.last_refill_at).getTime() : 0;
+  const cooling = last > 0 && Date.now() - last < REFILL_COOLDOWN_MS;
+  const low = balance < KRASH_REFILL_BELOW;
+  const hasOpen = (count ?? 0) > 0;
+
+  return {
+    balance,
+    canRefill: low && !hasOpen && !cooling,
+    refillBlocked: !low ? null : hasOpen ? 'positions' : cooling ? 'cooldown' : null,
+    nextRefillAt: cooling ? new Date(last + REFILL_COOLDOWN_MS).toISOString() : null,
+  };
+}
+
+export async function refillWallet(userId: string): Promise<Result<{ balance: number }>> {
+  const { data, error } = await supabase.rpc('krash_wallet_refill', {
+    p_user: userId, p_below: KRASH_REFILL_BELOW, p_amount: KRASH_REFILL_AMOUNT,
   });
+  if (error) return { ok: false, status: 500, error: 'Erreur interne' };
+  if (data === null || data === undefined) {
+    return { ok: false, status: 400, error: 'Renflouement indisponible pour le moment' };
+  }
+  return { ok: true, balance: Number(data) };
 }
 
 async function recordTrade(userId: string, pnl: number, volume: number, liquidated: boolean) {
@@ -78,18 +123,15 @@ export async function openPosition(
   }
 
   const leverage = input.leverage as Leverage;
-  const [{ data: wallet }, trades] = await Promise.all([
-    supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle(),
-    tradesDone(userId),
-  ]);
-  if (!wallet) return { ok: false, status: 404, error: 'Portefeuille introuvable' };
+  const [current, trades] = await Promise.all([krashBalance(userId), tradesDone(userId)]);
+  if (current === null) return { ok: false, status: 404, error: 'Portefeuille introuvable' };
 
   if (trades < LEVERAGE_UNLOCK[leverage]) {
     return { ok: false, status: 403, error: `Levier x${leverage} débloqué après ${LEVERAGE_UNLOCK[leverage]} trades` };
   }
 
   const fee = tradeFee(input.stake, leverage);
-  const maxStake = Math.floor(Number(wallet.balance) * KRASH_MAX_STAKE_PCT);
+  const maxStake = Math.floor(current * KRASH_MAX_STAKE_PCT);
   if (input.stake > maxStake) return { ok: false, status: 400, error: `Mise max : ${maxStake} ₶` };
 
   const t = nowTick();
@@ -116,10 +158,6 @@ export async function openPosition(
     console.error('Ouverture Krash échouée:', error);
     return { ok: false, status: 500, error: refunded === null ? 'Erreur interne' : 'Erreur interne, mise remboursée' };
   }
-
-  await ledger(userId, 'krash_open', -(input.stake + fee), balance, {
-    asset: asset.id, side: input.side, leverage, stake: input.stake, fee, price,
-  });
 
   return { ok: true, position: position as PositionRow, balance };
 }
@@ -174,7 +212,7 @@ export async function closePosition(
 
   const [pos] = await sweepLiquidations([row as PositionRow]);
   if (pos.status === 'liquidated') {
-    return { ok: true, position: pos, payout: 0, pnl: -(pos.stake + pos.fee), balance: null };
+    return { ok: true, position: pos, payout: 0, pnl: -(pos.stake + pos.fee), balance: await krashBalance(userId) };
   }
   if (pos.status !== 'open') return { ok: false, status: 409, error: 'Position déjà fermée' };
 
@@ -190,23 +228,13 @@ export async function closePosition(
   if (!closed) return { ok: false, status: 409, error: 'Position déjà fermée' };
 
   const pnl = payout - pos.stake - pos.fee;
-  const balance = payout > 0 ? await walletApply(userId, payout) : null;
-  let finalBalance = balance;
-  if (finalBalance === null) {
-    const { data: w } = await supabase.from('casino_wallets').select('balance').eq('user_id', userId).maybeSingle();
-    finalBalance = w ? Number(w.balance) : null;
-  }
-
-  await Promise.all([
-    payout > 0 && finalBalance !== null
-      ? ledger(userId, 'krash_close', payout, finalBalance, {
-          asset: pos.asset, side: pos.side, leverage: pos.leverage, stake: pos.stake, price, pnl,
-        })
-      : Promise.resolve(),
+  const [credited] = await Promise.all([
+    payout > 0 ? walletApply(userId, payout) : Promise.resolve(null),
     recordTrade(userId, pnl, pos.stake * pos.leverage, false),
   ]);
+  const balance = credited ?? await krashBalance(userId);
 
-  return { ok: true, position: closed as PositionRow, payout, pnl, balance: finalBalance };
+  return { ok: true, position: closed as PositionRow, payout, pnl, balance };
 }
 
 export async function closeAll(userId: string): Promise<Result<{ closed: number; payout: number; pnl: number; balance: number | null }>> {
@@ -243,5 +271,7 @@ export async function loadPositions(userId: string) {
     recent: [...liquidatedNow, ...((recent || []) as PositionRow[])].slice(0, 20),
     liquidatedNow,
     stats: stats ?? { trades: 0, wins: 0, liquidations: 0, realized_pnl: 0, volume: 0, best_trade: 0 },
+    // After the sweep, so a liquidation that just freed the player shows up.
+    wallet: await walletState(userId),
   };
 }
