@@ -4,6 +4,8 @@ import {
   LEVERAGES, LEVERAGE_UNLOCK, liquidationPrice, positionValue, tradeFee, type Leverage,
 } from './assets';
 import { firstCrossing, nowTick, priceAt } from './engine.server';
+import { KRASH_XP } from './progression';
+import { addXp } from './progression.server';
 
 /**
  * Opening, closing and liquidating Krash positions.
@@ -194,7 +196,11 @@ export async function sweepLiquidations(positions: PositionRow[]): Promise<Posit
     }).eq('id', pos.id).eq('status', 'open').select().maybeSingle();
 
     if (updated) {
-      await recordTrade(pos.user_id, -(pos.stake + pos.fee), pos.stake * pos.leverage, true);
+      await Promise.all([
+        recordTrade(pos.user_id, -(pos.stake + pos.fee), pos.stake * pos.leverage, true),
+        // A liquidated trade still moves the pass: losing is part of playing.
+        addXp(pos.user_id, KRASH_XP.trade),
+      ]);
       out.push(updated as PositionRow);
     } else {
       out.push({ ...pos, status: 'closed' });
@@ -231,6 +237,7 @@ export async function closePosition(
   const [credited] = await Promise.all([
     payout > 0 ? walletApply(userId, payout) : Promise.resolve(null),
     recordTrade(userId, pnl, pos.stake * pos.leverage, false),
+    addXp(userId, KRASH_XP.trade + (pnl > 0 ? KRASH_XP.win : 0)),
   ]);
   const balance = credited ?? await krashBalance(userId);
 

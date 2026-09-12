@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { MARKET_ORDER, assetsOf, type MarketId } from '@/lib/krash/assets';
-import { TICK, newsBetween, nowTick, priceAt, quantize } from '@/lib/krash/engine.server';
+import { TICK, activeEvent, newsBetween, nowTick, priceAt, quantize } from '@/lib/krash/engine.server';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +9,8 @@ const NEWS_WINDOW = 45 * 60;
 const NEWS_LIMIT = 30;
 
 /**
- * One market at one tick: prices and the headlines published by then.
+ * One market at one tick: prices, the headlines published by then, and the
+ * KRACH or BULL RUN in progress if there is one.
  *
  * The tick is in the URL and must already have happened, so the answer for a
  * given URL never changes. The CDN keeps it for everyone: a hundred players
@@ -34,7 +35,13 @@ export function GET(request: Request) {
   }));
 
   return NextResponse.json(
-    { at, market, assets, news: newsBetween(at - NEWS_WINDOW, at).slice(0, NEWS_LIMIT) },
+    {
+      at,
+      market,
+      assets,
+      news: newsBetween(at - NEWS_WINDOW, at).slice(0, NEWS_LIMIT),
+      event: activeEvent(at),
+    },
     { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=31536000, immutable' } },
   );
 }

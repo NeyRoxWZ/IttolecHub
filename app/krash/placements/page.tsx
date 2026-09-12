@@ -27,14 +27,20 @@ export default function PlacementsPage() {
   const [confirming, setConfirming] = useState(false);
 
   const has = (m: MarketId) => positions.open.some((p) => p.market === m);
+  // One poll per market that actually holds a position; the others stay idle.
   const frx = useKrashMarket('frx', has('frx'));
+  const global = useKrashMarket('global', has('global'));
   const crypto = useKrashMarket('crypto', has('crypto'));
+  const meme = useKrashMarket('meme', has('meme'));
+  const matieres = useKrashMarket('matieres', has('matieres'));
 
   const prices = useMemo(() => {
     const map = new Map<string, number>();
-    for (const snap of [frx.snapshot, crypto.snapshot]) for (const a of snap?.assets ?? []) map.set(a.id, a.price);
+    for (const snap of [frx.snapshot, global.snapshot, crypto.snapshot, meme.snapshot, matieres.snapshot]) {
+      for (const a of snap?.assets ?? []) map.set(a.id, a.price);
+    }
     return map;
-  }, [frx.snapshot, crypto.snapshot]);
+  }, [frx.snapshot, global.snapshot, crypto.snapshot, meme.snapshot, matieres.snapshot]);
 
   const priceOf = (p: KrashPosition) => prices.get(p.asset) ?? null;
 

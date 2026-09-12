@@ -22,13 +22,17 @@ export interface ChartLine { price: number; kind: 'entry' | 'liquidation'; label
  * curve can be matched to the news that caused it.
  */
 export default function PriceChart({
-  points, lines = [], news = [], height = 280,
+  points, lines = [], news = [], height = 280, colors,
 }: {
   points: [number, number][];
   lines?: ChartLine[];
   news?: { at: number; category: NewsCategory }[];
   height?: number;
+  /** Rising and falling colours, from the player's chart skin. */
+  colors?: { up: string; down: string };
 }) {
+  const upColor = colors?.up ?? UP;
+  const downColor = colors?.down ?? DOWN;
   const gradientId = useId();
 
   const view = useMemo(() => {
@@ -61,7 +65,7 @@ export default function PriceChart({
     );
   }
 
-  const color = view.rising ? UP : DOWN;
+  const color = view.rising ? upColor : downColor;
 
   return (
     <div style={{ height }} className="relative rounded-2xl border-2 border-brand-border bg-brand-inner overflow-hidden">

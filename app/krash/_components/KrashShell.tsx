@@ -3,16 +3,18 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, BarChart3, Briefcase, LifeBuoy, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, BarChart3, Briefcase, LifeBuoy, Sparkles, Trophy, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { isMuted, setMuted, sfx } from '@/lib/casino/sfx';
 import { KRASH_REFILL_AMOUNT, KRASH_REFILL_BELOW } from '@/lib/krash/assets';
 import { useKrashWallet } from '../_lib/useKrashWallet';
+import { claimableCount, useKrashProgression } from '../_lib/useKrashProgression';
 
 const NAV = [
   { href: '/krash', label: 'Marché', icon: BarChart3 },
   { href: '/krash/placements', label: 'Placements', icon: Briefcase },
+  { href: '/krash/progression', label: 'Progression', icon: Sparkles },
   { href: '/krash/classement', label: 'Classement', icon: Trophy },
 ];
 
@@ -58,7 +60,7 @@ function RefillBanner() {
             ? `Récupère ${KRASH_REFILL_AMOUNT.toLocaleString('fr-FR')} ₶ pour repartir. Une fois par jour.`
             : wallet.refillBlocked === 'positions'
               ? 'Retire d’abord tes positions ouvertes : le renflouement n’est possible que les mains vides.'
-              : `Prochain renflouement : ${next ?? 'bientôt'}.`}
+              : `Prochain renflouement : ${next ?? 'bientôt'}. En attendant : coffre du jour et missions dans Progression.`}
         </div>
       </div>
       {wallet.canRefill && (
@@ -80,6 +82,13 @@ export default function KrashShell({
   const pathname = usePathname();
   const { user, loading } = useAuth();
   const wallet = useKrashWallet();
+  const { progression } = useKrashProgression();
+  const toCollect = claimableCount(progression);
+
+  const badges: Record<string, number | undefined> = {
+    '/krash/placements': badge,
+    '/krash/progression': toCollect,
+  };
 
   return (
     <main className="min-h-screen bg-brand-bg text-tx-base px-3 sm:px-5 pt-3 md:pt-5 pb-12">
@@ -98,24 +107,28 @@ export default function KrashShell({
             {title && <div className="text-[11px] font-bold uppercase tracking-widest text-tx-muted mt-1">{title}</div>}
           </div>
 
-          <nav className="order-last w-full sm:order-none sm:w-auto sm:ml-4 grid grid-cols-3 sm:flex gap-1.5">
+          <nav className="order-last w-full md:order-none md:w-auto md:ml-4 grid grid-cols-4 md:flex gap-1.5">
             {NAV.map(({ href, label, icon: Icon }) => {
               const active = pathname === href;
+              const count = badges[href];
               return (
                 <Link
                   key={href}
                   href={href}
                   onClick={() => sfx.click()}
                   className={cn(
-                    'relative h-10 px-3 rounded-xl border-2 flex items-center justify-center gap-1.5 font-display font-black text-[11px] tracking-wider uppercase transition-colors',
+                    'relative h-10 px-2 md:px-3 rounded-xl border-2 flex items-center justify-center gap-1.5 font-display font-black text-[10px] md:text-[11px] tracking-wider uppercase transition-colors',
                     active ? 'border-rose-400 text-rose-300 bg-rose-400/10' : 'border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base'
                   )}
                 >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                  {href === '/krash/placements' && !!badge && (
-                    <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center border-2 border-brand-bg">
-                      {badge}
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">{label}</span>
+                  {!!count && (
+                    <span className={cn(
+                      'absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full text-white text-[10px] flex items-center justify-center border-2 border-brand-bg',
+                      href === '/krash/progression' ? 'bg-fuchsia-500 animate-pulse' : 'bg-rose-500'
+                    )}>
+                      {count}
                     </span>
                   )}
                 </Link>

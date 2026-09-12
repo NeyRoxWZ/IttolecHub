@@ -8,7 +8,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { useKrashWallet } from './_lib/useKrashWallet';
 import {
   ASSET_BY_ID, MARKETS, MARKET_ORDER, SECTORS, assetsOf, formatPrice, liquidationPrice, positionValue,
-  type MarketId,
+  type Asset, type MarketId,
 } from '@/lib/krash/assets';
 import KrashShell from './_components/KrashShell';
 import PriceChart, { type ChartLine } from './_components/PriceChart';
@@ -17,9 +17,20 @@ import TradePanel from './_components/TradePanel';
 import PositionCard from './_components/PositionCard';
 import { serverNow, useKrashMarket, type MarketAsset } from './_lib/useKrashMarket';
 import { useKrashPositions } from './_lib/useKrashPositions';
+import { useKrashProgression } from './_lib/useKrashProgression';
+import { CHART_SKINS } from '@/lib/krash/progression';
 
 type Range = '15m' | '1h' | '6h';
 const RANGE_SECONDS: Record<Range, number> = { '15m': 900, '1h': 3600, '6h': 21600 };
+
+/** "géante capitalisation" means nothing for a bag of wheat or a joke token. */
+function sizeLabel(asset: Asset): string {
+  if (asset.market === 'matieres') return 'matière première';
+  if (asset.market === 'meme') return 'jeton ultra volatil';
+  if (asset.market === 'crypto') return asset.cap >= 50 ? 'crypto majeure' : 'petite crypto';
+  const size = asset.cap >= 1000 ? 'titanesque' : asset.cap >= 100 ? 'géante' : asset.cap >= 30 ? 'grande' : 'moyenne';
+  return `${size} capitalisation`;
+}
 
 function change(a?: MarketAsset) {
   return a ? (a.price / a.hourAgo - 1) * 100 : 0;
@@ -67,9 +78,13 @@ const INTRO_KEY = 'krash_intro_seen';
 export default function KrashMarketPage() {
   const wallet = useKrashWallet();
   const positions = useKrashPositions();
+  const { progression } = useKrashProgression();
+  const chartColors = CHART_SKINS[progression?.cosmetics.chartSkin ?? "classic"] ?? CHART_SKINS.classic;
 
   const [market, setMarket] = useState<MarketId>('frx');
-  const [selected, setSelected] = useState<Record<MarketId, string>>({ frx: 'LVMX', crypto: 'BTC' });
+  const [selected, setSelected] = useState<Record<MarketId, string>>({
+    frx: 'LVMX', global: 'XVDA', crypto: 'BTC', meme: 'LENNY', matieres: 'GOLD',
+  });
   const [range, setRange] = useState<Range>('15m');
   const [intro, setIntro] = useState(false);
 
@@ -172,18 +187,38 @@ export default function KrashMarketPage() {
         </div>
       )}
 
+      {snapshot?.event && (
+        <div
+          className={cn(
+            'mb-4 rounded-[20px] border-4 px-4 py-3 shadow-brutal flex flex-wrap items-center gap-x-4 gap-y-1 animate-in fade-in slide-in-from-top-2',
+            snapshot.event.event === 'krach' ? 'border-rose-500 bg-rose-500/15' : 'border-accent-success bg-accent-success/10'
+          )}
+        >
+          <span className={cn(
+            'font-display text-3xl font-black tracking-widest animate-pulse',
+            snapshot.event.event === 'krach' ? 'text-rose-400' : 'text-accent-success'
+          )}>
+            {snapshot.event.event === 'krach' ? '▼ KRACH' : '▲ BULL RUN'}
+          </span>
+          <span className="font-bold text-sm flex-1 min-w-[200px]">{snapshot.event.text}</span>
+          <span className="text-[11px] text-tx-muted">
+            depuis {Math.max(1, Math.round((snapshot.at - snapshot.event.at) / 60))} min · les cotes reviennent peu à peu
+          </span>
+        </div>
+      )}
+
       {/* Three columns only when the middle one can still hold the chart and
           the ticket side by side; below that the news drops under them. */}
       <div className="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[250px_minmax(0,1fr)] xl:grid-cols-[250px_minmax(0,1fr)_340px]">
         {/* Assets */}
         <aside className="bg-brand-card border-4 border-brand-border rounded-[24px] shadow-brutal p-3 lg:max-h-[calc(100vh-120px)] flex flex-col min-h-0">
-          <div className="grid grid-cols-2 gap-1.5 mb-2">
+          <div className="flex flex-wrap gap-1.5 mb-2">
             {MARKET_ORDER.map((m) => (
               <button
                 key={m}
-                onClick={() => { sfx.click(); setMarket(m); }}
+                onClick={() => { sfx.select(); setMarket(m); }}
                 className={cn(
-                  'h-10 rounded-xl border-2 font-display font-black text-xs tracking-wider uppercase',
+                  'h-9 px-2.5 flex-1 min-w-[72px] rounded-xl border-2 font-display font-black text-[11px] tracking-wider uppercase',
                   market === m ? 'border-rose-400 text-rose-300 bg-rose-400/10' : 'border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base'
                 )}
               >
@@ -208,7 +243,7 @@ export default function KrashMarketPage() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-tx-muted">
                   <span className={cn('h-2 w-2 rounded-full', SECTORS[asset.sector].dot)} />
-                  {SECTORS[asset.sector].label} · {asset.cap >= 100 ? 'géante' : asset.cap >= 30 ? 'grande' : 'moyenne'} capitalisation
+                  {SECTORS[asset.sector].label} · {sizeLabel(asset)}
                 </div>
                 <div className="font-display text-3xl font-black leading-tight">{asset.name} <span className="text-tx-muted text-lg">{asset.id}</span></div>
               </div>
@@ -219,7 +254,7 @@ export default function KrashMarketPage() {
                 </div>
               </div>
             </div>
-            <PriceChart points={points} lines={lines} news={snapshot?.news.filter((n) => n.markets.includes(market)) ?? []} />
+            <PriceChart points={points} lines={lines} colors={chartColors} news={snapshot?.news.filter((n) => n.markets.includes(market)) ?? []} />
             <div className="mt-2 flex gap-1.5">
               {(['15m', '1h', '6h'] as Range[]).map((r) => (
                 <button

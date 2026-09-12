@@ -2,21 +2,22 @@
  * What can be traded in Krash.
  *
  * Companies carry parody names and no logos: you recognise the real firm by
- * the name and the sector, nothing is copied. Cryptocurrencies keep their real
- * names — they are not companies' brands.
+ * the name and the sector, nothing is copied. Cryptocurrencies and
+ * commodities keep their real names — they are not companies' brands.
  *
  * `cap` (in billions) sets the ranking and the price's anchor. Prices wander
  * around that anchor and are pulled back towards it, so a mid-size company can
  * have a great week without ever overtaking the giants. `vol` is how nervous
- * the asset is: the big French caps are calm, memecoins are not.
+ * the asset is: the big caps are calm, memecoins are not.
  */
 
-export type MarketId = 'frx' | 'crypto';
+export type MarketId = 'frx' | 'global' | 'crypto' | 'meme' | 'matieres';
 
 export type Sector =
   | 'luxe' | 'energie' | 'banque' | 'industrie' | 'tech' | 'sante'
   | 'conso' | 'telecom' | 'auto' | 'aero' | 'btp' | 'media' | 'immo'
-  | 'crypto_major' | 'crypto_alt' | 'crypto_meme';
+  | 'crypto_major' | 'crypto_alt' | 'crypto_meme'
+  | 'metaux' | 'agri';
 
 export interface Asset {
   id: string;
@@ -25,23 +26,26 @@ export interface Asset {
   sector: Sector;
   /** Market capitalisation, in billions of ₶. Orders the list. */
   cap: number;
-  /** Anchor price of one share or coin, in ₶. */
+  /** Anchor price of one share, coin or unit, in ₶. */
   price: number;
   /** Typical relative swing; drives every octave of the price noise. */
   vol: number;
 }
 
-export const MARKETS: Record<MarketId, { label: string; short: string; description: string }> = {
-  frx: { label: 'FRX 40', short: 'FRX 40', description: 'Les 40 plus grosses entreprises françaises.' },
-  crypto: { label: 'Crypto', short: 'Crypto', description: 'Les cryptomonnaies, bien plus nerveuses.' },
+export const MARKETS: Record<MarketId, { label: string; description: string }> = {
+  frx: { label: 'FRX 40', description: 'Les 40 plus grosses entreprises françaises.' },
+  global: { label: 'Global 50', description: 'Les 50 géantes mondiales.' },
+  crypto: { label: 'Crypto', description: 'Les grandes cryptomonnaies, bien plus nerveuses.' },
+  meme: { label: 'Meme', description: 'Des jetons absurdes qui font x3 ou −70 % en une heure.' },
+  matieres: { label: 'Matières', description: 'Or, pétrole, blé… Ils réagissent aux guerres et à la météo.' },
 };
 
-export const MARKET_ORDER: MarketId[] = ['frx', 'crypto'];
+export const MARKET_ORDER: MarketId[] = ['frx', 'global', 'crypto', 'meme', 'matieres'];
 
 export const SECTORS: Record<Sector, { label: string; dot: string; text: string }> = {
   luxe: { label: 'Luxe', dot: 'bg-fuchsia-400', text: 'text-fuchsia-300' },
   energie: { label: 'Énergie', dot: 'bg-yellow-400', text: 'text-yellow-300' },
-  banque: { label: 'Banque', dot: 'bg-emerald-400', text: 'text-emerald-300' },
+  banque: { label: 'Banque & finance', dot: 'bg-emerald-400', text: 'text-emerald-300' },
   industrie: { label: 'Industrie', dot: 'bg-slate-400', text: 'text-slate-300' },
   tech: { label: 'Tech', dot: 'bg-sky-400', text: 'text-sky-300' },
   sante: { label: 'Santé', dot: 'bg-teal-400', text: 'text-teal-300' },
@@ -55,6 +59,8 @@ export const SECTORS: Record<Sector, { label: string; dot: string; text: string 
   crypto_major: { label: 'Crypto majeure', dot: 'bg-orange-400', text: 'text-orange-300' },
   crypto_alt: { label: 'Altcoin', dot: 'bg-violet-400', text: 'text-violet-300' },
   crypto_meme: { label: 'Memecoin', dot: 'bg-rose-400', text: 'text-rose-300' },
+  metaux: { label: 'Métaux', dot: 'bg-zinc-300', text: 'text-zinc-200' },
+  agri: { label: 'Agriculture', dot: 'bg-green-500', text: 'text-green-400' },
 };
 
 export const ASSETS: Asset[] = [
@@ -100,22 +106,98 @@ export const ASSETS: Asset[] = [
   { id: 'ALST', name: 'Alstomme', market: 'frx', sector: 'industrie', cap: 7, price: 19, vol: 0.055 },
   { id: 'TLPF', name: 'Téléperformo', market: 'frx', sector: 'tech', cap: 6, price: 95, vol: 0.065 },
 
+  // Global 50
+  { id: 'POMM', name: 'Pomme', market: 'global', sector: 'tech', cap: 3200, price: 220, vol: 0.05 },
+  { id: 'MCSF', name: 'Macrosoft', market: 'global', sector: 'tech', cap: 3100, price: 420, vol: 0.045 },
+  { id: 'XVDA', name: 'Xvidia', market: 'global', sector: 'tech', cap: 3000, price: 120, vol: 0.09 },
+  { id: 'ALPB', name: 'Alphabeta', market: 'global', sector: 'tech', cap: 2100, price: 170, vol: 0.055 },
+  { id: 'AMZO', name: 'Amazoo', market: 'global', sector: 'conso', cap: 1900, price: 185, vol: 0.06 },
+  { id: 'ARMK', name: 'Saudi Aramko', market: 'global', sector: 'energie', cap: 1800, price: 7.5, vol: 0.035 },
+  { id: 'METO', name: 'Métaa', market: 'global', sector: 'tech', cap: 1400, price: 520, vol: 0.07 },
+  { id: 'BRKS', name: 'Berkshare', market: 'global', sector: 'banque', cap: 950, price: 460, vol: 0.03 },
+  { id: 'TSMX', name: 'TSMX', market: 'global', sector: 'tech', cap: 850, price: 170, vol: 0.07 },
+  { id: 'TSLO', name: 'Teslo', market: 'global', sector: 'auto', cap: 800, price: 240, vol: 0.12 },
+  { id: 'LOLY', name: 'Eli Lolly', market: 'global', sector: 'sante', cap: 800, price: 850, vol: 0.06 },
+  { id: 'BRCM', name: 'Broadcum', market: 'global', sector: 'tech', cap: 750, price: 160, vol: 0.08 },
+  { id: 'JPMG', name: 'JP Morgun', market: 'global', sector: 'banque', cap: 600, price: 210, vol: 0.04 },
+  { id: 'VISO', name: 'Visaa', market: 'global', sector: 'banque', cap: 550, price: 280, vol: 0.035 },
+  { id: 'WMRT', name: 'Walmarche', market: 'global', sector: 'conso', cap: 550, price: 70, vol: 0.03 },
+  { id: 'XOMB', name: 'ExxonMobul', market: 'global', sector: 'energie', cap: 480, price: 115, vol: 0.045 },
+  { id: 'MCRT', name: 'Mastercarte', market: 'global', sector: 'banque', cap: 450, price: 480, vol: 0.035 },
+  { id: 'NOVO', name: 'Novo Nordik', market: 'global', sector: 'sante', cap: 450, price: 100, vol: 0.07 },
+  { id: 'TNST', name: 'Tensent', market: 'global', sector: 'tech', cap: 450, price: 45, vol: 0.07 },
+  { id: 'ORCO', name: 'Oraclo', market: 'global', sector: 'tech', cap: 400, price: 140, vol: 0.06 },
+  { id: 'CSTK', name: 'Costko', market: 'global', sector: 'conso', cap: 380, price: 870, vol: 0.035 },
+  { id: 'JNJX', name: 'Johnson & Johnsen', market: 'global', sector: 'sante', cap: 380, price: 155, vol: 0.03 },
+  { id: 'SMSG', name: 'Samsong', market: 'global', sector: 'tech', cap: 350, price: 70, vol: 0.06 },
+  { id: 'ASLM', name: 'ASLM', market: 'global', sector: 'tech', cap: 300, price: 750, vol: 0.07 },
+  { id: 'CHVR', name: 'Chevrun', market: 'global', sector: 'energie', cap: 280, price: 150, vol: 0.045 },
+  { id: 'NFLU', name: 'Netflux', market: 'global', sector: 'media', cap: 280, price: 650, vol: 0.07 },
+  { id: 'KOKO', name: 'Coca-Colo', market: 'global', sector: 'conso', cap: 270, price: 63, vol: 0.025 },
+  { id: 'NSTL', name: 'Nestlo', market: 'global', sector: 'conso', cap: 260, price: 95, vol: 0.03 },
+  { id: 'SABX', name: 'SAB', market: 'global', sector: 'tech', cap: 250, price: 210, vol: 0.05 },
+  { id: 'SALF', name: 'Salesfarce', market: 'global', sector: 'tech', cap: 250, price: 260, vol: 0.06 },
+  { id: 'AMDX', name: 'AMDX', market: 'global', sector: 'tech', cap: 250, price: 150, vol: 0.1 },
+  { id: 'TOYO', name: 'Toyoto', market: 'global', sector: 'auto', cap: 250, price: 180, vol: 0.04 },
+  { id: 'ROCH', name: 'Roch', market: 'global', sector: 'sante', cap: 230, price: 270, vol: 0.035 },
+  { id: 'PEPK', name: 'Pepsiko', market: 'global', sector: 'conso', cap: 220, price: 160, vol: 0.03 },
+  { id: 'SHEL', name: 'Shelle', market: 'global', sector: 'energie', cap: 210, price: 33, vol: 0.045 },
+  { id: 'MCDO', name: "McDonalt's", market: 'global', sector: 'conso', cap: 210, price: 290, vol: 0.03 },
+  { id: 'ALBB', name: 'Alibobo', market: 'global', sector: 'conso', cap: 200, price: 85, vol: 0.09 },
+  { id: 'CATR', name: 'Caterpillor', market: 'global', sector: 'industrie', cap: 170, price: 350, vol: 0.05 },
+  { id: 'GSAX', name: 'Goldman Sax', market: 'global', sector: 'banque', cap: 160, price: 480, vol: 0.05 },
+  { id: 'PFZR', name: 'Pfizor', market: 'global', sector: 'sante', cap: 160, price: 28, vol: 0.045 },
+  { id: 'UBRR', name: 'Uberr', market: 'global', sector: 'tech', cap: 150, price: 70, vol: 0.08 },
+  { id: 'BLKR', name: 'Blackrocks', market: 'global', sector: 'banque', cap: 130, price: 880, vol: 0.045 },
+  { id: 'NIKY', name: 'Nikey', market: 'global', sector: 'conso', cap: 120, price: 80, vol: 0.06 },
+  { id: 'LKMT', name: 'Lockheed Marteen', market: 'global', sector: 'aero', cap: 120, price: 480, vol: 0.04 },
+  { id: 'SONO', name: 'Sonyo', market: 'global', sector: 'tech', cap: 110, price: 90, vol: 0.05 },
+  { id: 'BOEG', name: 'Boeinge', market: 'global', sector: 'aero', cap: 110, price: 180, vol: 0.08 },
+  { id: 'SHPI', name: 'Shopifi', market: 'global', sector: 'tech', cap: 100, price: 75, vol: 0.1 },
+  { id: 'INTO', name: 'Intol', market: 'global', sector: 'tech', cap: 100, price: 23, vol: 0.08 },
+  { id: 'SBUK', name: 'Starbuks', market: 'global', sector: 'conso', cap: 100, price: 90, vol: 0.05 },
+  { id: 'PLTO', name: 'Palantor', market: 'global', sector: 'tech', cap: 90, price: 38, vol: 0.12 },
+
   // Crypto
   { id: 'BTC', name: 'Bitcoin', market: 'crypto', sector: 'crypto_major', cap: 1200, price: 60000, vol: 0.09 },
   { id: 'ETH', name: 'Ethereum', market: 'crypto', sector: 'crypto_major', cap: 380, price: 3200, vol: 0.11 },
+  { id: 'BNB', name: 'BNB', market: 'crypto', sector: 'crypto_alt', cap: 85, price: 560, vol: 0.12 },
   { id: 'SOL', name: 'Solana', market: 'crypto', sector: 'crypto_alt', cap: 70, price: 150, vol: 0.15 },
   { id: 'XRP', name: 'XRP', market: 'crypto', sector: 'crypto_alt', cap: 55, price: 0.95, vol: 0.14 },
-  { id: 'BNB', name: 'BNB', market: 'crypto', sector: 'crypto_alt', cap: 85, price: 560, vol: 0.12 },
   { id: 'DOGE', name: 'Dogecoin', market: 'crypto', sector: 'crypto_meme', cap: 22, price: 0.15, vol: 0.2 },
   { id: 'ADA', name: 'Cardano', market: 'crypto', sector: 'crypto_alt', cap: 16, price: 0.45, vol: 0.16 },
+  { id: 'TON', name: 'Toncoin', market: 'crypto', sector: 'crypto_alt', cap: 13, price: 5.2, vol: 0.16 },
   { id: 'TRX', name: 'Tron', market: 'crypto', sector: 'crypto_alt', cap: 12, price: 0.14, vol: 0.12 },
   { id: 'AVAX', name: 'Avalanche', market: 'crypto', sector: 'crypto_alt', cap: 11, price: 28, vol: 0.17 },
-  { id: 'TON', name: 'Toncoin', market: 'crypto', sector: 'crypto_alt', cap: 13, price: 5.2, vol: 0.16 },
   { id: 'SHIB', name: 'Shiba Inu', market: 'crypto', sector: 'crypto_meme', cap: 10, price: 0.000018, vol: 0.24 },
   { id: 'LINK', name: 'Chainlink', market: 'crypto', sector: 'crypto_alt', cap: 9, price: 15, vol: 0.16 },
   { id: 'DOT', name: 'Polkadot', market: 'crypto', sector: 'crypto_alt', cap: 8, price: 5.5, vol: 0.16 },
   { id: 'LTC', name: 'Litecoin', market: 'crypto', sector: 'crypto_alt', cap: 6, price: 80, vol: 0.14 },
   { id: 'PEPE', name: 'Pepe', market: 'crypto', sector: 'crypto_meme', cap: 4, price: 0.000009, vol: 0.3 },
+
+  // Meme
+  { id: 'WIF', name: 'dogwifhat', market: 'meme', sector: 'crypto_meme', cap: 2.5, price: 2.4, vol: 0.38 },
+  { id: 'BONK', name: 'Bonk', market: 'meme', sector: 'crypto_meme', cap: 2, price: 0.000025, vol: 0.4 },
+  { id: 'FLOKI', name: 'Floki', market: 'meme', sector: 'crypto_meme', cap: 1.6, price: 0.00016, vol: 0.4 },
+  { id: 'FRENLY', name: 'FrenlyToken', market: 'meme', sector: 'crypto_meme', cap: 0.9, price: 0.42, vol: 0.45 },
+  { id: 'BAGUET', name: 'Baguette Coin', market: 'meme', sector: 'crypto_meme', cap: 0.6, price: 0.018, vol: 0.48 },
+  { id: 'CROISS', name: 'Croissant Inu', market: 'meme', sector: 'crypto_meme', cap: 0.45, price: 0.0031, vol: 0.5 },
+  { id: 'LENNY', name: 'LennyCoin', market: 'meme', sector: 'crypto_meme', cap: 0.3, price: 0.069, vol: 0.52 },
+  { id: 'PASTIS', name: 'Pastis Token', market: 'meme', sector: 'crypto_meme', cap: 0.25, price: 0.51, vol: 0.5 },
+  { id: 'ESCARG', name: 'Escargot', market: 'meme', sector: 'crypto_meme', cap: 0.15, price: 0.0009, vol: 0.55 },
+  { id: 'MOON', name: 'MoonMoon', market: 'meme', sector: 'crypto_meme', cap: 0.08, price: 0.00042, vol: 0.6 },
+
+  // Matières premières
+  { id: 'GOLD', name: 'Or', market: 'matieres', sector: 'metaux', cap: 100, price: 2400, vol: 0.03 },
+  { id: 'BRENT', name: 'Pétrole Brent', market: 'matieres', sector: 'energie', cap: 90, price: 82, vol: 0.06 },
+  { id: 'GAZ', name: 'Gaz naturel', market: 'matieres', sector: 'energie', cap: 70, price: 2.5, vol: 0.1 },
+  { id: 'SILVER', name: 'Argent', market: 'matieres', sector: 'metaux', cap: 60, price: 29, vol: 0.05 },
+  { id: 'COPPER', name: 'Cuivre', market: 'matieres', sector: 'metaux', cap: 50, price: 4.2, vol: 0.05 },
+  { id: 'URAN', name: 'Uranium', market: 'matieres', sector: 'energie', cap: 40, price: 85, vol: 0.07 },
+  { id: 'WHEAT', name: 'Blé', market: 'matieres', sector: 'agri', cap: 35, price: 5.8, vol: 0.06 },
+  { id: 'LITH', name: 'Lithium', market: 'matieres', sector: 'metaux', cap: 30, price: 13, vol: 0.09 },
+  { id: 'COCOA', name: 'Cacao', market: 'matieres', sector: 'agri', cap: 25, price: 8000, vol: 0.09 },
+  { id: 'COFFEE', name: 'Café', market: 'matieres', sector: 'agri', cap: 20, price: 2.3, vol: 0.07 },
 ];
 
 export const ASSET_BY_ID = new Map(ASSETS.map((a) => [a.id, a]));
@@ -123,6 +205,9 @@ export const ASSET_BY_ID = new Map(ASSETS.map((a) => [a.id, a]));
 export function assetsOf(market: MarketId): Asset[] {
   return ASSETS.filter((a) => a.market === market).sort((a, b) => b.cap - a.cap);
 }
+
+/** Markets whose assets are companies, where {E} headlines can pick from. */
+export const COMPANY_MARKETS: MarketId[] = ['frx', 'global'];
 
 /** Prices change every this many seconds. */
 export const KRASH_TICK = 2;
@@ -156,7 +241,7 @@ export function tradeFee(stake: number, leverage: number): number {
   return Math.max(1, Math.round(stake * leverage * KRASH_FEE_RATE));
 }
 
-/** A position's value at `price`: never below zero, never more than the math. */
+/** A position's value at `price`: never below zero. */
 export function positionValue(
   p: { side: 'long' | 'short'; leverage: number; stake: number; entry_price: number }, price: number
 ): number {

@@ -1,4 +1,7 @@
-import { ASSETS, ASSET_BY_ID, KRASH_TICK, MARKETS, SECTORS, type Asset, type MarketId, type Sector } from './assets';
+import {
+  ASSETS, ASSET_BY_ID, COMPANY_MARKETS, KRASH_TICK, MARKETS, MARKET_ORDER, SECTORS,
+  type Asset, type MarketId, type Sector,
+} from './assets';
 import {
   ARCS, COUNTRIES, TEMPLATES,
   type Arc, type ArcNode, type Certainty, type Country, type Headline, type NewsCategory, type Target,
@@ -40,8 +43,15 @@ const EPOCH = Date.UTC(2026, 8, 1) / 1000;
 /** Chance that a slot with no storyline in it carries a standalone headline. */
 const STANDALONE_RATE = 0.72;
 
+/** Big market-wide events: at most one per window, announced by a rumour. */
+const EVENT_WINDOW_SLOTS = Math.round((12 * 3600) / SLOT);
+const EVENT_RATE = 0.8;
+const EVENT_RUMOUR_LEAD = 5;
+
 const PRE_MOVE = 30;
-const PRE_SHARE = 0.55;
+const PRE_SHARE = 0.6;
+/** An event hits the prices first; the headline explains it this many seconds later. */
+const EVENT_HEADLINE_LAG = 40;
 const POST_TAU = 10;
 const FADE_START = 900;
 const FADE_TAU = 1500;
@@ -135,6 +145,8 @@ function pickCycling(counter: number, n: number, salt: number): number {
 /* Headlines                                                            */
 /* ------------------------------------------------------------------ */
 
+export type MarketEvent = 'krach' | 'bullrun';
+
 export interface NewsHint {
   label: string;
   /** Chance the target goes up, as published. */
@@ -153,17 +165,22 @@ export interface NewsEvent {
   markets: MarketId[];
   arc?: string;
   chapter?: number;
+  /** Set on the big market-wide moves, and on the rumour announcing one. */
+  event?: MarketEvent;
+  rumour?: boolean;
 }
 
 interface ResolvedNews extends NewsEvent {
   effects: Map<string, number>;
+  /** When the move starts, if not at publication. */
+  effectAt?: number;
 }
 
 const ASSET_INDEX = new Map(ASSETS.map((a, i) => [a.id, i + 1]));
-const FRX_ASSETS = ASSETS.filter((a) => a.market === 'frx');
+const COMPANIES = ASSETS.filter((a) => COMPANY_MARKETS.includes(a.market));
 
 function companyFor(key: number, sectors?: Sector[]): Asset {
-  const pool = sectors?.length ? FRX_ASSETS.filter((a) => sectors.includes(a.sector)) : FRX_ASSETS;
+  const pool = sectors?.length ? COMPANIES.filter((a) => sectors.includes(a.sector)) : COMPANIES;
   return pool[Math.floor(mix(key, 3, 53) * pool.length)];
 }
 
@@ -201,6 +218,77 @@ function arcPlan(a: number): { arc: Arc; chapters: ArcChapter[] } {
   arcCache.set(a, plan);
   return plan;
 }
+
+/* ------------------------------------------------------------------ */
+/* Market-wide events                                                   */
+/* ------------------------------------------------------------------ */
+
+interface EventPlan { slot: number; kind: MarketEvent; cryptoOnly: boolean }
+
+function eventPlan(window: number): EventPlan | null {
+  if (mix(window, 71, 3) >= EVENT_RATE) return null;
+  const margin = EVENT_RUMOUR_LEAD + 30;
+  return {
+    slot: window * EVENT_WINDOW_SLOTS + margin + Math.floor(mix(window, 73, 5) * (EVENT_WINDOW_SLOTS - 2 * margin)),
+    kind: mix(window, 79, 7) < 0.5 ? 'krach' : 'bullrun',
+    cryptoOnly: mix(window, 83, 9) < 0.4,
+  };
+}
+
+function eventHeadline(plan: EventPlan, rumour: boolean): Headline {
+  const up = plan.kind === 'bullrun' ? 1 : 0;
+  if (rumour) {
+    const text = plan.cryptoOnly
+      ? plan.kind === 'krach'
+        ? 'Rumeur : des baleines s’apprêteraient à vendre toutes leurs cryptos.'
+        : 'Rumeur : un géant de la finance s’apprêterait à acheter des cryptos en masse.'
+      : plan.kind === 'krach'
+        ? 'Rumeur : de grands fonds vendraient tout en secret.'
+        : 'Rumeur : une vague d’argent s’apprête à déferler sur les marchés.';
+    const lean = plan.kind === 'bullrun' ? 0.7 : 0.3;
+    return {
+      category: 'rumeur', certainty: 'ambigue', text,
+      targets: plan.cryptoOnly
+        ? [{ market: 'crypto', up: lean, strength: 0.03 }, { market: 'meme', up: lean, strength: 0.05 }]
+        : [{ market: 'frx', up: lean, strength: 0.012 }, { market: 'global', up: lean, strength: 0.015 }, { market: 'crypto', up: lean, strength: 0.03 }],
+    };
+  }
+
+  if (plan.cryptoOnly) {
+    return {
+      category: 'crypto', certainty: 'evidente',
+      text: plan.kind === 'krach'
+        ? 'KRACH CRYPTO : les cryptomonnaies s’effondrent en quelques minutes.'
+        : 'BULL RUN CRYPTO : les cryptomonnaies s’envolent.',
+      targets: [{ market: 'crypto', up, strength: 0.16 }, { market: 'meme', up, strength: 0.3 }],
+    };
+  }
+  return {
+    category: 'eco', certainty: 'evidente',
+    text: plan.kind === 'krach'
+      ? 'KRACH : vent de panique sur toutes les places mondiales.'
+      : 'BULL RUN : euphorie sur les marchés, tout s’envole.',
+    targets: [
+      { market: 'frx', up, strength: 0.06 },
+      { market: 'global', up, strength: 0.07 },
+      { market: 'crypto', up, strength: 0.14 },
+      { market: 'meme', up, strength: 0.25 },
+      // Gold is where the money hides when everything else burns.
+      { asset: 'GOLD', up: 1 - up, strength: 0.05 },
+    ],
+  };
+}
+
+function eventAtSlot(slot: number): { plan: EventPlan; rumour: boolean } | null {
+  const window = Math.floor(slot / EVENT_WINDOW_SLOTS);
+  const plan = eventPlan(window);
+  if (!plan) return null;
+  if (plan.slot === slot) return { plan, rumour: false };
+  if (plan.slot - EVENT_RUMOUR_LEAD === slot) return { plan, rumour: true };
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
 
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -278,37 +366,48 @@ const newsCache = new Map<number, ResolvedNews | null>();
 function newsAtSlot(slot: number): ResolvedNews | null {
   if (newsCache.has(slot)) return newsCache.get(slot)!;
 
-  const a = Math.floor(slot / ARC_SLOTS);
-  const plan = arcPlan(a);
-  const chapter = plan.chapters.find((c) => c.slot === slot);
   let news: ResolvedNews | null = null;
+  const event = eventAtSlot(slot);
 
-  if (chapter) {
-    news = resolveHeadline(slot, chapter.node, {
-      company: companyFor(a * 7919 + 1, plan.arc.companyFrom),
-      country: null,
-      number: null,
-      arc: plan.arc.id,
-      chapter: chapter.depth,
-    });
+  if (event) {
+    news = resolveHeadline(slot, eventHeadline(event.plan, event.rumour), { company: null, country: null, number: null });
+    news.event = event.plan.kind;
+    news.rumour = event.rumour;
+    // A crash is felt before it is reported: nobody can read the headline and
+    // still get out ahead of it. The rumour is the only warning.
+    if (!event.rumour) news.effectAt = news.at - EVENT_HEADLINE_LAG;
   } else {
-    // Keep a little air around a storyline's chapters, and leave some slots
-    // silent so the feed has a rhythm rather than a metronome.
-    const crowded = [a - 1, a, a + 1].some((i) => arcPlan(i).chapters.some((c) => Math.abs(c.slot - slot) <= 1));
-    if (!crowded && mix(slot, 3, 19) < STANDALONE_RATE) {
-      const tpl = TEMPLATES[pickCycling(slot, TEMPLATES.length, 23)];
-      const usesCompany = tpl.text.includes('{E}');
-      const country = tpl.countries?.length
-        ? COUNTRIES.find((c) => c.id === tpl.countries![Math.floor(mix(slot, 5, 29) * tpl.countries!.length)]) ?? null
-        : null;
-      const number = tpl.number
-        ? tpl.number[0] + Math.floor(mix(slot, 6, 43) * (tpl.number[1] - tpl.number[0] + 1))
-        : null;
-      news = resolveHeadline(slot, tpl, {
-        company: usesCompany ? companyFor(slot, tpl.companyFrom) : null,
-        country,
-        number,
+    const a = Math.floor(slot / ARC_SLOTS);
+    const plan = arcPlan(a);
+    const chapter = plan.chapters.find((c) => c.slot === slot);
+
+    if (chapter) {
+      news = resolveHeadline(slot, chapter.node, {
+        company: companyFor(a * 7919 + 1, plan.arc.companyFrom),
+        country: null,
+        number: null,
+        arc: plan.arc.id,
+        chapter: chapter.depth,
       });
+    } else {
+      // Keep a little air around a storyline's chapters, and leave some slots
+      // silent so the feed has a rhythm rather than a metronome.
+      const crowded = [a - 1, a, a + 1].some((i) => arcPlan(i).chapters.some((c) => Math.abs(c.slot - slot) <= 1));
+      if (!crowded && mix(slot, 3, 19) < STANDALONE_RATE) {
+        const tpl = TEMPLATES[pickCycling(slot, TEMPLATES.length, 23)];
+        const usesCompany = tpl.text.includes('{E}');
+        const country = tpl.countries?.length
+          ? COUNTRIES.find((c) => c.id === tpl.countries![Math.floor(mix(slot, 5, 29) * tpl.countries!.length)]) ?? null
+          : null;
+        const number = tpl.number
+          ? tpl.number[0] + Math.floor(mix(slot, 6, 43) * (tpl.number[1] - tpl.number[0] + 1))
+          : null;
+        news = resolveHeadline(slot, tpl, {
+          company: usesCompany ? companyFor(slot, tpl.companyFrom) : null,
+          country,
+          number,
+        });
+      }
     }
   }
 
@@ -321,17 +420,28 @@ function slotOf(t: number): number {
   return Math.floor((t - EPOCH) / SLOT);
 }
 
+function publish(n: ResolvedNews): NewsEvent {
+  const { effects: _hidden, effectAt: _start, ...pub } = n;
+  return pub;
+}
+
 /** Published headlines in (from, to], newest first. */
 export function newsBetween(from: number, to: number): NewsEvent[] {
   const out: NewsEvent[] = [];
   for (let s = slotOf(to); s >= slotOf(from) - 1; s--) {
     const n = newsAtSlot(s);
-    if (n && n.at > from && n.at <= to) {
-      const { effects: _hidden, ...pub } = n;
-      out.push(pub);
-    }
+    if (n && n.at > from && n.at <= to) out.push(publish(n));
   }
   return out;
+}
+
+/** The latest market-wide event published at or before `t`, if recent enough to matter. */
+export function activeEvent(t: number, within = 15 * 60): NewsEvent | null {
+  for (let s = slotOf(t); s >= slotOf(t - within) - 1; s--) {
+    const n = newsAtSlot(s);
+    if (n?.event && !n.rumour && n.at <= t && n.at > t - within) return publish(n);
+  }
+  return null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -345,7 +455,7 @@ function effectsFor(assetId: string, from: number, to: number): Effect[] {
   for (let s = slotOf(from - EFFECT_LIFETIME) - 1; s <= slotOf(to + PRE_MOVE) + 1; s++) {
     const n = newsAtSlot(s);
     const delta = n?.effects.get(assetId);
-    if (delta) out.push({ at: n!.at, delta });
+    if (delta) out.push({ at: n!.effectAt ?? n!.at, delta });
   }
   return out;
 }
@@ -363,14 +473,14 @@ function impactShare(dt: number): number {
 
 function priceWith(asset: Asset, t: number, effects: Effect[]): number {
   const index = ASSET_INDEX.get(asset.id)!;
-  const marketKey = 1000 + (asset.market === 'frx' ? 1 : 2);
+  const marketKey = 1001 + MARKET_ORDER.indexOf(asset.market);
   const tick = Math.floor(t / TICK);
   let log = Math.log(asset.price)
     + asset.vol * (0.55 * noise(marketKey, t) + 0.85 * noise(index, t))
     + asset.vol * 0.035 * (mix(index, tick, 99) * 2 - 1);
   for (const e of effects) {
     const dt = t - e.at;
-    if (dt > -PRE_MOVE && dt < EFFECT_LIFETIME) log += Math.log1p(e.delta) * impactShare(dt);
+    if (dt > -PRE_MOVE && dt < EFFECT_LIFETIME) log += Math.log1p(Math.max(-0.95, e.delta)) * impactShare(dt);
   }
   return Math.exp(log);
 }

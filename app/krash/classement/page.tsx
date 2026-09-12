@@ -5,6 +5,8 @@ import { Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { sfx } from '@/lib/casino/sfx';
+import { COSMETICS } from '@/lib/krash/progression';
 import KrashShell from '../_components/KrashShell';
 
 type Tab = 'realized_pnl' | 'best_trade' | 'volume';
@@ -18,6 +20,7 @@ const TABS: { id: Tab; label: string; hint: string }[] = [
 interface Row {
   user_id: string;
   pseudo: string;
+  title: string | null;
   value: number;
   trades: number;
   wins: number;
@@ -31,22 +34,32 @@ export default function KrashLeaderboard() {
   const [rows, setRows] = useState<Row[] | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     setRows(null);
-    supabase
-      .from('krash_stats')
-      .select(`user_id, trades, wins, ${tab}, users(pseudo)`)
-      .gt('trades', 0)
-      .order(tab, { ascending: false })
-      .limit(50)
-      .then(({ data }) => {
-        setRows((data || []).map((r: any) => ({
-          user_id: r.user_id,
-          pseudo: r.users?.pseudo ?? '???',
-          value: Number(r[tab]),
-          trades: r.trades,
-          wins: r.wins,
-        })));
-      });
+    (async () => {
+      const { data } = await supabase
+        .from('krash_stats')
+        .select(`user_id, trades, wins, ${tab}, users(pseudo)`)
+        .gt('trades', 0)
+        .order(tab, { ascending: false })
+        .limit(50);
+      const list = (data || []) as any[];
+      // Titles live with the progression, not the stats.
+      const { data: titles } = list.length
+        ? await supabase.from('krash_progress').select('user_id, title').in('user_id', list.map((r) => r.user_id))
+        : { data: [] as { user_id: string; title: string | null }[] };
+      const titleOf = new Map((titles || []).map((t) => [t.user_id, t.title]));
+      if (cancelled) return;
+      setRows(list.map((r) => ({
+        user_id: r.user_id,
+        pseudo: r.users?.pseudo ?? '???',
+        title: titleOf.get(r.user_id) ?? null,
+        value: Number(r[tab]),
+        trades: r.trades,
+        wins: r.wins,
+      })));
+    })();
+    return () => { cancelled = true; };
   }, [tab]);
 
   const current = TABS.find((t) => t.id === tab)!;
@@ -58,7 +71,7 @@ export default function KrashLeaderboard() {
           {TABS.map((t) => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => { sfx.select(); setTab(t.id); }}
               className={cn(
                 'h-11 rounded-xl border-2 font-display font-black text-[11px] tracking-wider uppercase transition-colors',
                 tab === t.id ? 'border-rose-400 text-rose-300 bg-brand-inner' : 'border-brand-border text-tx-muted hover:text-tx-base'
@@ -82,6 +95,7 @@ export default function KrashLeaderboard() {
             {rows.map((r, i) => {
               const me = r.user_id === user?.id;
               const signed = tab === 'realized_pnl';
+              const title = r.title ? COSMETICS[r.title]?.label : null;
               return (
                 <div
                   key={r.user_id}
@@ -95,6 +109,7 @@ export default function KrashLeaderboard() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-bold truncate">{r.pseudo}{me && <span className="text-rose-300"> · toi</span>}</div>
+                    {title && <div className="text-[10px] font-black uppercase tracking-widest text-fuchsia-300 truncate">{title}</div>}
                     <div className="text-[11px] text-tx-muted">
                       {r.trades} trade{r.trades > 1 ? 's' : ''} · {Math.round((r.wins / Math.max(1, r.trades)) * 100)} % gagnants
                     </div>

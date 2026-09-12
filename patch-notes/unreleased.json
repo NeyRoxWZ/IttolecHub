@@ -79,6 +79,54 @@
       "type": "nouveau",
       "title": "Mes placements et classement Krash",
       "details": "Toutes tes positions en un coup d'œil avec leur gain en direct, un bouton pour tout retirer, et un classement par profit, meilleur coup et volume."
+    },
+    {
+      "id": "2026-09-12-11",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Trois nouveaux marchés : Global 50, Meme et Matières",
+      "details": "Les 50 géantes mondiales (Xvidia, Pomme, Macrosoft…), des memecoins absurdes ultra volatils (LennyCoin, Baguette Coin…) et les matières premières (or, pétrole, blé, cacao…)."
+    },
+    {
+      "id": "2026-09-12-12",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "KRACH et BULL RUN",
+      "details": "Environ deux fois par jour, un krach ou une euphorie secoue tous les marchés d'un coup. Une rumeur l'annonce quelques minutes avant ; l'or, lui, monte quand tout s'effondre."
+    },
+    {
+      "id": "2026-09-12-13",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Sons dans Krash",
+      "details": "Arrivée des news, krach, position qui passe en gain ou en perte, alerte avant liquidation, gros gains. Un bouton coupe le son."
+    },
+    {
+      "id": "2026-09-12-14",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Coffre du jour et missions Krash",
+      "details": "Un coffre par jour dont la récompense grimpe avec la série, et trois missions quotidiennes (gagner des trades, trader sur plusieurs marchés, tenir une position…)."
+    },
+    {
+      "id": "2026-09-12-15",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Pass Krash",
+      "details": "30 paliers par mois, remplis en tradant (même quand tu perds), en finissant des missions et en ouvrant le coffre. FrenlyCoins à chaque palier, et un cosmétique tous les 5."
+    },
+    {
+      "id": "2026-09-12-16",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Cosmétiques Krash",
+      "details": "Des titres affichés au classement (Stagiaire de la corbeille, Trader fou, Loup de la Bourse) et des couleurs de courbe (néon, or, Matrix)."
     }
   ]
 }

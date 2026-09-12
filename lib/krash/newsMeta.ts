@@ -34,4 +34,7 @@ export interface KrashNews {
   markets: MarketId[];
   arc?: string;
   chapter?: number;
+  /** A market-wide KRACH or BULL RUN, or the rumour announcing one. */
+  event?: 'krach' | 'bullrun';
+  rumour?: boolean;
 }

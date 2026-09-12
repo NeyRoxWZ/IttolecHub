@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { sfx } from '@/lib/casino/sfx';
 import {
   ASSET_BY_ID, SECTORS, formatPrice, liquidationPrice, positionValue, tradeFee,
 } from '@/lib/krash/assets';
@@ -40,6 +42,25 @@ export default function PositionCard({
     const span = liq - position.entry_price;
     danger = Math.min(1, Math.max(0, (price - position.entry_price) / span));
   }
+
+  // A ping when the trade turns green, a low tone when it turns red, and a
+  // warning when it nears liquidation — throttled so it never becomes noise.
+  const hasLive = live !== null;
+  const wasWinning = useRef<boolean | null>(null);
+  const lastWarning = useRef(0);
+  useEffect(() => {
+    if (!hasLive) return;
+    if (wasWinning.current !== null && wasWinning.current !== winning) {
+      if (winning) sfx.coin(); else sfx.tick();
+    }
+    wasWinning.current = winning;
+  }, [winning, hasLive]);
+  useEffect(() => {
+    if (danger > 0.75 && Date.now() - lastWarning.current > 8000) {
+      lastWarning.current = Date.now();
+      sfx.step(0);
+    }
+  }, [danger]);
 
   return (
     <div className={cn(
