@@ -714,6 +714,35 @@ export default function Home() {
                   Jouer
                 </button>
               </div>
+
+              <div className="flex-1 md:min-w-[280px] md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+                <div className="flex items-center justify-between h-12">
+                  <h2 className="font-display text-2xl md:text-3xl leading-none">Krash</h2>
+                  <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
+                    <TrendingUp className="h-6 w-6 text-rose-400" />
+                  </div>
+                </div>
+
+                <div className="mt-6 flex-1 flex flex-col">
+                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2">Description</div>
+                    <p className="text-sm text-tx-secondary font-bold leading-relaxed">
+                      La bourse en accéléré : actions, cryptos et news en direct. Parie à la hausse ou à la baisse avec tes FrenlyCoins (₶).
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => router.push('/krash')}
+                  className={cn(
+                    'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
+                    'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                  )}
+                >
+                  Jouer
+                </button>
+              </div>
             </div>
           )}
         </div>

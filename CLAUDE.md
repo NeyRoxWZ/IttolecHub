@@ -22,6 +22,7 @@ La liste fait foi dans `patch-notes/scopes.json`. En résumé :
 - `casino` — le casino dans son ensemble (pass, boutique, missions, cagnotte, entre potes…)
 - un jeu du casino : `slots`, `blackjack`, `wheel`, `rocket`, `mines`, `plinko`, `hilo`, `grattage`, `poulet`, `tower`, `keno`, `caisses`, `coinflip`, `dino`, `chevaux`, `bonneteau`, `stade`, `baccarat`, `rps`, `craps`
 - `clicker` — ItollecClicker
+- `krash` — Krash, le jeu de bourse (marchés, news, placements, classement)
 - multijoueur : `budgetguessr`, `drawguessr`, `flagguessr`, `infiltre`, `jaugeguessr`, `logoguessr`, `pokeguessr`, `rentguessr`, `undercover`, `wikiracing`
 
 Un nouveau jeu doit être ajouté à `patch-notes/scopes.json` avant d'y attacher des notes.

@@ -9,11 +9,12 @@ import { RELEASES, formatReleaseDate, scopeOf, type PatchEntry } from '@/lib/pat
  * The games that greet players with their own notes. Plain names rather than
  * filter functions so a server layout can mount the modal.
  */
-export type PatchArea = 'casino' | 'clicker';
+export type PatchArea = 'casino' | 'clicker' | 'krash';
 
 const AREAS: Record<PatchArea, { label: string; zone: string; matches: (e: PatchEntry) => boolean }> = {
   casino: { label: 'du casino', zone: 'casino', matches: (e) => scopeOf(e.scope).group === 'casino' },
   clicker: { label: "d'ItollecClicker", zone: 'solo', matches: (e) => e.scope === 'clicker' },
+  krash: { label: 'de Krash', zone: 'solo', matches: (e) => e.scope === 'krash' },
 };
 
 /** How many change titles are listed before "et N autres". */

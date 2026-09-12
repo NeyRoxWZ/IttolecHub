@@ -42,9 +42,13 @@ if (command === 'add') {
   const pending = read(file('unreleased.json'));
   const date = today();
   // Ids only need to be unique; date-prefixed so the file reads in order.
-  const sameDay = pending.entries.filter((e) => e.id.startsWith(date)).length;
+  // Next number after the highest one used today, not a count: a deleted
+  // entry must not let a new one reuse a surviving entry's id.
+  const lastToday = pending.entries
+    .filter((e) => e.id.startsWith(`${date}-`))
+    .reduce((max, e) => Math.max(max, Number(e.id.slice(date.length + 1)) || 0), 0);
   const entry = {
-    id: `${date}-${String(sameDay + 1).padStart(2, '0')}`,
+    id: `${date}-${String(lastToday + 1).padStart(2, '0')}`,
     date,
     scope,
     type,

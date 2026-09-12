@@ -17,7 +17,7 @@
       "details": "Le casino et ItollecClicker affichent chacun leurs propres nouveautés à l'ouverture, une seule fois par version."
     },
     {
-      "id": "2026-09-12-05",
+      "id": "2026-09-12-03",
       "date": "2026-09-12",
       "scope": "site",
       "type": "nouveau",
@@ -25,7 +25,7 @@
       "details": "Ajouter le casino ou ItollecClicker à l'écran d'accueil depuis leur page installe une app qui s'ouvre directement sur ce jeu, avec sa propre icône."
     },
     {
-      "id": "2026-09-12-06",
+      "id": "2026-09-12-04",
       "date": "2026-09-12",
       "scope": "site",
       "type": "amelioration",
@@ -33,7 +33,7 @@
       "details": "Chaque version affiche ses zones repliées ; on ouvre celle qu'on veut, et le navigateur retient ce qu'on a ouvert."
     },
     {
-      "id": "2026-09-12-07",
+      "id": "2026-09-12-05",
       "date": "2026-09-12",
       "scope": "casino",
       "type": "nouveau",
@@ -41,12 +41,44 @@
       "details": "En ouvrant le casino depuis l'écran d'accueil, on te propose d'activer les notifications : coffre du jour, missions et défi du jour, récap du lundi, nouveau pass du mois et cadeaux reçus."
     },
     {
-      "id": "2026-09-12-08",
+      "id": "2026-09-12-06",
       "date": "2026-09-12",
       "scope": "site",
       "type": "amelioration",
       "title": "Nouveau logo",
       "details": "Le logo ItollecHub est refait et reprend sa place en haut à gauche."
+    },
+    {
+      "id": "2026-09-12-07",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Krash, la bourse en accéléré",
+      "details": "Nouveau jeu solo : 40 grandes entreprises françaises (noms parodiques) et 15 cryptomonnaies dont la cote bouge en direct, la même pour tout le monde. Parie à la hausse ou à la baisse avec tes FrenlyCoins."
+    },
+    {
+      "id": "2026-09-12-08",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "News qui font bouger les cotes",
+      "details": "Géopolitique, économie, énergie, tech, entreprises, crypto et rumeurs, avec des histoires qui ont une suite. Chaque news dit ses chances de hausse ou de baisse."
+    },
+    {
+      "id": "2026-09-12-09",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Levier jusqu'à x10",
+      "details": "Multiplie gains et pertes. x5 se débloque après 5 trades, x10 après 20. Une position se ferme toute seule si la cote va trop loin contre toi, même hors ligne."
+    },
+    {
+      "id": "2026-09-12-10",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Mes placements et classement Krash",
+      "details": "Toutes tes positions en un coup d'œil avec leur gain en direct, un bouton pour tout retirer, et un classement par profit, meilleur coup et volume."
     }
   ]
 }
