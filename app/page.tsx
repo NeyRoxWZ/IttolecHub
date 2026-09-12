@@ -676,7 +676,7 @@ export default function Home() {
 
                 <button
                   type="button"
-                  onClick={() => router.push('/itollec-clicker')}
+                  onClick={() => window.location.assign('/itollec-clicker')}
                   className={cn(
                     'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
                     'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
@@ -705,7 +705,7 @@ export default function Home() {
 
                 <button
                   type="button"
-                  onClick={() => router.push('/casino')}
+                  onClick={() => window.location.assign('/casino')}
                   className={cn(
                     'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
                     'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
@@ -734,7 +734,7 @@ export default function Home() {
 
                 <button
                   type="button"
-                  onClick={() => router.push('/krash')}
+                  onClick={() => window.location.assign('/krash')}
                   className={cn(
                     'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
                     'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'

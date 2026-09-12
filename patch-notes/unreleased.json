@@ -151,6 +151,30 @@
       "type": "amelioration",
       "title": "Notifications dans l'app Krash",
       "details": "Ouverte depuis l'écran d'accueil, l'app Krash propose d'activer les notifications ; le message du matin annonce aussi le coffre et les missions Krash."
+    },
+    {
+      "id": "2026-09-12-20",
+      "date": "2026-09-12",
+      "scope": "site",
+      "type": "correctif",
+      "title": "Les apps de jeu s'ouvrent sur leur jeu",
+      "details": "Sur iPhone, une app ajoutée à l'écran d'accueil depuis le casino, ItollecClicker ou Krash pouvait s'ouvrir sur l'accueil du site. Supprime l'ancienne icône et ajoute-la de nouveau depuis la page du jeu."
+    },
+    {
+      "id": "2026-09-12-21",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Krash reprend l'interface du casino",
+      "details": "Un rail avec coffre, renflouement, missions, placements, pass, inventaire et classement ; chaque entrée ouvre sa fenêtre ou sa page, comme au casino. Le marché tient dans l'écran sur grand écran."
+    },
+    {
+      "id": "2026-09-12-22",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Recherche d'actifs",
+      "details": "Cherche une entreprise, une crypto ou une matière première dans tous les marchés à la fois ; un clic t'y emmène."
     }
   ]
 }
