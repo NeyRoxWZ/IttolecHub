@@ -111,7 +111,7 @@ const STEPS: Step[] = [
         </p>
         <p>
           Dans le vrai casino, ce niveau est ton <b>palier de Frenly Pass</b> : chacun débloque une
-          récompense à réclamer, et tout se remet à zéro le lundi.
+          récompense à réclamer, et tout se remet à zéro le 1er du mois.
         </p>
       </>
     ),
@@ -198,7 +198,7 @@ const STEPS: Step[] = [
     body: (
       <>
         <p>
-          <b>{PASS_TIERS} paliers</b>, remis à zéro chaque lundi. Il avance <b>à l&apos;action</b>, pas au
+          <b>{PASS_TIERS} paliers</b>, remis à zéro le 1er de chaque mois. Il avance <b>à l&apos;action</b>, pas au
           montant : une mise de 5 ₶ le fait monter autant qu&apos;une mise de 5 000 ₶.
         </p>
         <p>

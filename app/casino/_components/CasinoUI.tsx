@@ -560,7 +560,7 @@ export function StreakMeter({ streak }: { streak: number }) {
 export function LevelBar({ level, into, needed }: { level: number; into: number; needed: number }) {
   const pct = needed > 0 ? Math.min(100, (into / needed) * 100) : 100;
   return (
-    <div className="flex items-center gap-2 min-w-[130px]" title="Palier du Frenly Pass — remis à zéro chaque lundi">
+    <div className="flex items-center gap-2 min-w-[130px]" title="Palier du Frenly Pass — remis à zéro le 1er du mois">
       <span className="text-[10px] font-black tracking-widest text-tx-muted shrink-0">NIV {level}</span>
       <div className="flex-1 h-2 rounded-full bg-brand-inner border border-brand-border overflow-hidden">
         <div className="h-full bg-accent-primary transition-[width] duration-500" style={{ width: `${pct}%` }} />

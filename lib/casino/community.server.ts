@@ -12,14 +12,16 @@ import {
  * quietly drop contributions.
  */
 
-const pseudoCache = new Map<string, string>();
+// A minute, not the life of the instance: a rename must reach new rows too.
+const PSEUDO_TTL_MS = 60_000;
+const pseudoCache = new Map<string, { pseudo: string; at: number }>();
 
 async function pseudoOf(userId: string): Promise<string | null> {
   const hit = pseudoCache.get(userId);
-  if (hit) return hit;
+  if (hit && Date.now() - hit.at < PSEUDO_TTL_MS) return hit.pseudo;
   const { data } = await supabase.from('users').select('pseudo').eq('id', userId).maybeSingle();
   if (!data?.pseudo) return null;
-  pseudoCache.set(userId, data.pseudo);
+  pseudoCache.set(userId, { pseudo: data.pseudo, at: Date.now() });
   return data.pseudo;
 }
 

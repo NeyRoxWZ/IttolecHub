@@ -3,7 +3,7 @@ import { ensurePass, passClaims, buyPassPremium, claimPassTier, claimAllPass } f
 import { supabase } from '@/lib/supabase/server';
 import {
   passTrack, PASS_TIERS, PASS_PREMIUM_PRICE, PASS_XP,
-  passXpForTier, tierFromPassXp, secondsUntilReset, weekKey, currentSeason, seasonsRemaining,
+  passXpForTier, tierFromPassXp, secondsUntilReset, passPeriodKey, currentSeason, seasonsRemaining,
 } from '@/lib/casino/pass';
 
 export async function GET(request: Request) {
@@ -34,7 +34,10 @@ export async function GET(request: Request) {
       + (state.premium ? state.tier - claimed.premium.filter((t) => t <= state.tier).length : 0);
 
     return NextResponse.json({
-      week: weekKey(),
+      // `week` kept as a field name for clients already reading it; it now
+      // carries the monthly period key.
+      week: passPeriodKey(),
+      period: passPeriodKey(),
       resetIn: secondsUntilReset(),
       season: currentSeason(),
       seasonsRemaining: seasonsRemaining(),

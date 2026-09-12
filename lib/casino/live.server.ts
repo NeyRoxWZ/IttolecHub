@@ -8,16 +8,21 @@ import { supabase } from '@/lib/supabase/server';
  * everything or need the service key. This writes only what a spectator sees.
  */
 
-/** Pseudo lookups are the expensive part; one per instance is enough. */
-const pseudoCache = new Map<string, string>();
+/**
+ * Pseudo lookups are the expensive part, so they are cached — but only for a
+ * minute. The cache used to live as long as the instance, so after a rename a
+ * warm server kept stamping the old name on every new line of the tape.
+ */
+const PSEUDO_TTL_MS = 60_000;
+const pseudoCache = new Map<string, { pseudo: string; at: number }>();
 
 async function pseudoOf(userId: string): Promise<string | null> {
   const hit = pseudoCache.get(userId);
-  if (hit) return hit;
+  if (hit && Date.now() - hit.at < PSEUDO_TTL_MS) return hit.pseudo;
 
   const { data } = await supabase.from('users').select('pseudo').eq('id', userId).maybeSingle();
   if (!data?.pseudo) return null;
-  pseudoCache.set(userId, data.pseudo);
+  pseudoCache.set(userId, { pseudo: data.pseudo, at: Date.now() });
   return data.pseudo;
 }
 

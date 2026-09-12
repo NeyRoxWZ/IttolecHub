@@ -1,10 +1,10 @@
 /**
- * Frenly Pass — a 100-tier track that resets every Monday.
+ * Frenly Pass — a 100-tier track that resets on the first of every month.
  *
  * Progress is driven by *actions*, never by stake size. A player betting
  * 5 ₶ climbs at exactly the same speed as one betting 5 000 ₶: the pass is
  * about coming back, not about how deep your pockets are. Calibrated so a
- * regular session on five days out of seven reaches tier 100.
+ * regular session on about twenty days of the month reaches tier 100.
  */
 
 import {
@@ -37,9 +37,13 @@ export const PASS_TIER_COST = 260;
  * auto-player bought a third of the pass in ten minutes; the remainder has to
  * come from the daily bonus, the wheel and the missions, which are time-gated
  * by construction.
+ *
+ * Sized for a month: 26 000 XP at 1 300 a day is twenty full days, so the
+ * track lasts the period instead of being finished by the first weekend. The
+ * bet share stays at 60 %, same as when the pass ran by the week.
  */
-export const PASS_DAILY_XP_CAP = 5_200;
-export const PASS_DAILY_BET_XP_CAP = 3_120;
+export const PASS_DAILY_XP_CAP = 1_300;
+export const PASS_DAILY_BET_XP_CAP = 780;
 
 /** Tiers reachable in one perfect day, and days needed for the full pass. */
 export const PASS_TIERS_PER_DAY = PASS_DAILY_XP_CAP / PASS_TIER_COST;
@@ -59,14 +63,22 @@ export function tierFromPassXp(xp: number): { tier: number; intoTier: number; ne
   return { tier, intoTier, needed: tier >= PASS_TIERS ? 0 : PASS_TIER_COST };
 }
 
-/** Price of the premium track, re-bought every week. */
+/**
+ * Price of the premium track, re-bought every month. Left as it was when the
+ * pass ran weekly: it still unlocks the same hundred rewards, so the price per
+ * reward has not moved.
+ */
 export const PASS_PREMIUM_PRICE = 25_000;
 
 /* ------------------------------------------------------------------ */
-/* Weekly window                                                       */
+/* Monthly window                                                      */
 /* ------------------------------------------------------------------ */
 
-/** ISO-ish key for the week a date falls in, weeks starting Monday 00:00 UTC. */
+/**
+ * Monday key of the week a date falls in. The pass no longer runs by the
+ * week; this survives only so rows written under the old weekly keys can be
+ * recognised and carried over onto the month.
+ */
 export function weekKey(date: Date = new Date()): string {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   // getUTCDay: 0 = Sunday, so shift so Monday is 0.
@@ -75,20 +87,31 @@ export function weekKey(date: Date = new Date()): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function weekStart(date: Date = new Date()): Date {
-  return new Date(`${weekKey(date)}T00:00:00.000Z`);
+/**
+ * Key of the pass period a date falls in: the first of its UTC month. A week
+ * was too short to get anywhere near tier 100 without grinding every evening.
+ * Stored in the `week_key` column, whose name predates the switch.
+ */
+export function passPeriodKey(date: Date = new Date()): string {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-01`;
 }
 
-export function weekEnd(date: Date = new Date()): Date {
-  return new Date(weekStart(date).getTime() + 7 * 24 * 60 * 60 * 1000);
+export function passPeriodEnd(date: Date = new Date()): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
 }
 
 /* ------------------------------------------------------------------ */
 /* Seasons                                                             */
 /* ------------------------------------------------------------------ */
 
-/** The Monday season 1 started on. Every week after it is the next season. */
-export const SEASON_ANCHOR_WEEK = '2026-08-24';
+/**
+ * The month season 1 counts from. Set so numbering carries straight on from
+ * the three weekly seasons already played: September 2026 is season 3, and
+ * each calendar month after it is the next. Anchoring on the real first month
+ * would have rewound September to season 2 and handed back a catalogue
+ * players had already collected.
+ */
+export const SEASON_ANCHOR_MONTH = '2026-07-01';
 
 /**
  * Which season is live. Clamped to the last one written: running past the
@@ -96,9 +119,10 @@ export const SEASON_ANCHOR_WEEK = '2026-08-24';
  * nothing, and the stock page is what warns that it's time to write more.
  */
 export function currentSeason(date: Date = new Date()): number {
-  const anchor = new Date(`${SEASON_ANCHOR_WEEK}T00:00:00.000Z`).getTime();
-  const weeks = Math.floor((weekStart(date).getTime() - anchor) / (7 * 24 * 60 * 60 * 1000));
-  return Math.min(PASS_SEASONS, Math.max(1, weeks + 1));
+  const anchor = new Date(`${SEASON_ANCHOR_MONTH}T00:00:00.000Z`);
+  const months = (date.getUTCFullYear() - anchor.getUTCFullYear()) * 12
+    + (date.getUTCMonth() - anchor.getUTCMonth());
+  return Math.min(PASS_SEASONS, Math.max(1, months + 1));
 }
 
 /** Seasons still holding unseen cosmetics. */
@@ -108,7 +132,7 @@ export function seasonsRemaining(date: Date = new Date()): number {
 
 /** Seconds until the pass resets, for the countdown in the UI. */
 export function secondsUntilReset(now: Date = new Date()): number {
-  return Math.max(0, Math.floor((weekEnd(now).getTime() - now.getTime()) / 1000));
+  return Math.max(0, Math.floor((passPeriodEnd(now).getTime() - now.getTime()) / 1000));
 }
 
 /* ------------------------------------------------------------------ */

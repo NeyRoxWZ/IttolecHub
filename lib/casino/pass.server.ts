@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase/server';
 import {
   PASS_TIERS, PASS_PREMIUM_PRICE, passTrack, PASS_DAILY_XP_CAP, PASS_DAILY_BET_XP_CAP,
-  tierFromPassXp, weekKey, currentSeason,
+  tierFromPassXp, passPeriodKey, currentSeason,
   type PassReward,
 } from './pass';
 import { dayKey } from './missions';
@@ -83,17 +83,17 @@ function rewardAt(tier: number, track: PassTrack, season = currentSeason()): Pas
 }
 
 /* ------------------------------------------------------------------ */
-/* Weekly row                                                          */
+/* Monthly row                                                         */
 /* ------------------------------------------------------------------ */
 
 /**
- * Anything still unclaimed when the week turns over is swept into the
+ * Anything still unclaimed when the month turns over is swept into the
  * account rather than lost. Claiming by hand is the good part; being punished
- * for not connecting on Sunday night is not.
+ * for not connecting on the last night of the month is not.
  */
-async function sweepPreviousWeeks(userId: string, currentWeek: string) {
+async function sweepPreviousPeriods(userId: string, currentPeriod: string) {
   const { data: stale } = await supabase.from('casino_pass')
-    .select('*').eq('user_id', userId).eq('swept', false).neq('week_key', currentWeek);
+    .select('*').eq('user_id', userId).eq('swept', false).neq('week_key', currentPeriod);
 
   for (const row of (stale || []) as PassRow[]) {
     const { data: claims } = await supabase.from('casino_pass_claims')
@@ -115,20 +115,47 @@ async function sweepPreviousWeeks(userId: string, currentWeek: string) {
   }
 }
 
+/**
+ * The pass used to run by the week. A row opened under a weekly key inside the
+ * current month is the same run, so it is renamed onto the month — without
+ * this, the switch would have treated every pass in progress as a finished
+ * period, swept it, and put everyone back to tier 0 halfway through.
+ *
+ * Claims move first: if two requests race, the loser finds no weekly row left,
+ * and its insert of a fresh month row hits the primary key and changes nothing.
+ */
+async function adoptWeeklyRow(userId: string, period: string): Promise<PassRow | null> {
+  const { data: legacy } = await supabase.from('casino_pass')
+    .select('week_key').eq('user_id', userId).eq('swept', false)
+    .gte('week_key', period).neq('week_key', period)
+    .order('week_key', { ascending: false }).limit(1).maybeSingle();
+  if (!legacy) return null;
+
+  await supabase.from('casino_pass_claims')
+    .update({ week_key: period }).eq('user_id', userId).eq('week_key', legacy.week_key);
+  const { data: moved } = await supabase.from('casino_pass')
+    .update({ week_key: period }).eq('user_id', userId).eq('week_key', legacy.week_key)
+    .select().maybeSingle();
+  return (moved as PassRow) ?? null;
+}
+
 export async function ensurePass(userId: string): Promise<PassRow | null> {
-  const week = weekKey();
-  const { data } = await supabase.from('casino_pass').select('*').eq('user_id', userId).eq('week_key', week).maybeSingle();
+  const period = passPeriodKey();
+  const { data } = await supabase.from('casino_pass').select('*').eq('user_id', userId).eq('week_key', period).maybeSingle();
   if (data) return data as PassRow;
 
-  await sweepPreviousWeeks(userId, week);
-  await supabase.from('casino_pass').insert({ user_id: userId, week_key: week });
-  const { data: created } = await supabase.from('casino_pass').select('*').eq('user_id', userId).eq('week_key', week).maybeSingle();
+  const adopted = await adoptWeeklyRow(userId, period);
+  if (adopted) return adopted;
+
+  await sweepPreviousPeriods(userId, period);
+  await supabase.from('casino_pass').insert({ user_id: userId, week_key: period });
+  const { data: created } = await supabase.from('casino_pass').select('*').eq('user_id', userId).eq('week_key', period).maybeSingle();
   return (created as PassRow) ?? null;
 }
 
 export async function passClaims(userId: string): Promise<{ free: number[]; premium: number[] }> {
   const { data } = await supabase.from('casino_pass_claims')
-    .select('track, tier').eq('user_id', userId).eq('week_key', weekKey());
+    .select('track, tier').eq('user_id', userId).eq('week_key', passPeriodKey());
   const out = { free: [] as number[], premium: [] as number[] };
   for (const row of data || []) {
     (row.track === 'premium' ? out.premium : out.free).push(row.tier);
@@ -266,13 +293,13 @@ export async function claimAllPass(userId: string) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Unlock the premium track for the current week. Buying late is not a
+ * Unlock the premium track for the current month. Buying late is not a
  * punishment: every premium tier already reached becomes claimable at once.
  */
 export async function buyPassPremium(userId: string) {
   const row = await ensurePass(userId);
   if (!row) return { ok: false as const, status: 404, error: 'Passe introuvable' };
-  if (row.premium) return { ok: false as const, status: 400, error: 'Voie premium déjà débloquée cette semaine.' };
+  if (row.premium) return { ok: false as const, status: 400, error: 'Voie premium déjà débloquée ce mois-ci.' };
 
   const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
   if (!wallet) return { ok: false as const, status: 404, error: 'Portefeuille introuvable' };

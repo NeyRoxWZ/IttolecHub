@@ -204,7 +204,7 @@ export default function FrenlyPassPage() {
             <div className="min-w-0">
               <h1 className="font-display text-xl sm:text-2xl font-black leading-none">Frenly Pass</h1>
               <span className="text-[11px] text-tx-muted">
-                100 paliers · remis à zéro chaque lundi ·{' '}
+                100 paliers · remis à zéro le 1er du mois ·{' '}
                 <Link href="/casino/inventaire" prefetch className="text-accent-primary font-bold underline underline-offset-2">
                   ta collection
                 </Link>
@@ -277,7 +277,7 @@ export default function FrenlyPassPage() {
               <span className="flex items-center gap-1.5"><Crown className="h-3 w-3 text-accent-primary" /> Premium</span>
               <span className="flex items-center gap-1.5"><Sparkles className="h-3 w-3 text-accent-success" /> Gratuit</span>
               <span className="normal-case font-bold text-tx-muted">
-                Chaque palier se réclame à la main. Ce qui reste est versé au reset du lundi.
+                Chaque palier se réclame à la main. Ce qui reste est versé au reset du 1er du mois.
               </span>
               <button
                 onClick={jumpToCurrent}
