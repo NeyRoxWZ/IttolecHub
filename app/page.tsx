@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import PatchNotesModal from '@/components/PatchNotesModal';
 import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, TrendingUp, LogOut, Menu, X, RotateCcw, Coins } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -202,7 +201,6 @@ export default function Home() {
 
   return (
     <main className="bg-transparent min-h-screen md:h-screen flex flex-col justify-between md:overflow-hidden relative">
-      {mode === 'solo' && <PatchNotesModal />}
       {easterEggActive && (
         <div 
           className="fixed inset-0 z-[9999] pointer-events-none"
@@ -260,24 +258,9 @@ export default function Home() {
             )}
           </div>
 
-          {/* The logo used to sit huge and centred under the navigation, pushing
-              the game list down on every screen. It is the brand mark, so it
-              lives where one looks for it: top left. */}
-          <div className="flex-1 hidden md:flex items-center">
-            {logoVisible && (
-              <Image
-                src="/logo-site.png"
-                alt="ItollecHub"
-                width={500}
-                height={500}
-                className="h-24 w-24 object-contain select-none drop-shadow-[5px_5px_0_rgba(0,0,0,0.85)]"
-                priority
-                onError={() => setLogoVisible(false)}
-              />
-            )}
-          </div>
+          <div className="flex-1 hidden md:block" />
 
-          <div className="hidden md:flex rounded-2xl border-2 border-brand-border bg-brand-inner p-2 gap-2">
+          <div className="hidden md:flex items-center rounded-2xl border-2 border-brand-border bg-brand-inner p-2 gap-2">
             <button
               type="button"
               onClick={() => handleSetMode('multiplayer')}
@@ -290,6 +273,20 @@ export default function Home() {
             >
               Multiplayer
             </button>
+            {/* The brand mark sits between the two modes, larger than the pill
+                and spilling past it so it reads as an emblem rather than a
+                third button. Negative margins keep the pill its own height. */}
+            {logoVisible && (
+              <Image
+                src="/logo-site.png"
+                alt="ItollecHub"
+                width={500}
+                height={500}
+                className="h-20 w-20 -my-5 mx-1 object-contain select-none drop-shadow-[5px_5px_0_rgba(0,0,0,0.85)]"
+                priority
+                onError={() => setLogoVisible(false)}
+              />
+            )}
             <button
               type="button"
               onClick={() => handleSetMode('solo')}

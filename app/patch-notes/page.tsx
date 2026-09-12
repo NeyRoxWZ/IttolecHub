@@ -1,51 +1,49 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  RELEASES, GROUP_META, TYPE_META, CHANGE_TYPES, scopeOf, formatReleaseDate,
+  RELEASES, GROUP_META, GROUP_ORDER, scopeOf, formatReleaseDate,
   type ScopeGroup,
 } from '@/lib/patch-notes';
 import PatchNotesView from '@/components/PatchNotesView';
 
-type GroupFilter = 'tous' | ScopeGroup;
+type Filter = 'tous' | ScopeGroup;
 
 /**
- * Every published version, newest first, filterable by area and by game.
+ * Every published version, newest first, with one filter: the area. A wall
+ * of thirty game chips on top of it made the page harder to read, not easier
+ * to search — the area sections already group the games.
  */
 export default function PatchNotesPage() {
-  const [group, setGroup] = useState<GroupFilter>('tous');
-  const [scope, setScope] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>('tous');
 
-  // Only offer filters for areas and games that actually have notes.
-  const presentScopes = useMemo(() => {
-    const ids = new Set(RELEASES.flatMap((r) => r.entries.map((e) => e.scope)));
-    return Array.from(ids).map(scopeOf);
+  // A game's popup links here already filtered on its area. Read from the URL
+  // after mount: useSearchParams would force a Suspense boundary on a page
+  // that is otherwise static.
+  useEffect(() => {
+    const zone = new URLSearchParams(window.location.search).get('zone');
+    if (zone && (GROUP_ORDER as string[]).includes(zone)) setFilter(zone as ScopeGroup);
   }, []);
+
   const presentGroups = useMemo(
-    () => (Object.keys(GROUP_META) as ScopeGroup[]).filter((g) => presentScopes.some((s) => s.group === g)),
-    [presentScopes]
+    () => GROUP_ORDER.filter((g) => RELEASES.some((r) => r.entries.some((e) => scopeOf(e.scope).group === g))),
+    []
   );
 
   const visible = RELEASES
     .map((release) => ({
       ...release,
-      entries: release.entries.filter((e) => {
-        if (scope) return e.scope === scope;
-        if (group !== 'tous') return scopeOf(e.scope).group === group;
-        return true;
-      }),
+      entries: filter === 'tous' ? release.entries : release.entries.filter((e) => scopeOf(e.scope).group === filter),
     }))
     .filter((release) => release.entries.length > 0);
 
-  const scopesInGroup = presentScopes.filter((s) => group === 'tous' || s.group === group);
-
   return (
     <main className="min-h-screen bg-transparent text-tx-base px-4 sm:px-6 pt-4 md:pt-6 pb-12">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="flex items-center gap-3 mb-5">
           <Link
             href="/"
             aria-label="Accueil"
@@ -65,80 +63,46 @@ export default function PatchNotesPage() {
           </div>
         ) : (
           <>
-            <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-4 shadow-brutal mb-6 space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {(['tous', ...presentGroups] as GroupFilter[]).map((g) => (
+            {presentGroups.length > 1 && (
+              <div className="flex flex-wrap gap-2 mb-5">
+                {(['tous', ...presentGroups] as Filter[]).map((g) => (
                   <button
                     key={g}
-                    onClick={() => { setGroup(g); setScope(null); }}
+                    onClick={() => setFilter(g)}
                     className={cn(
                       'h-9 px-3 rounded-lg border-2 font-display font-black text-[11px] tracking-wider uppercase transition-colors',
-                      group === g && !scope
-                        ? g === 'tous' ? 'border-tx-base bg-brand-inner text-tx-base' : GROUP_META[g].badge
-                        : 'border-brand-border bg-transparent text-tx-muted hover:text-tx-base'
+                      filter === g
+                        ? g === 'tous' ? 'border-tx-base text-tx-base bg-brand-inner' : cn('bg-brand-inner', GROUP_META[g].active)
+                        : 'border-brand-border text-tx-muted hover:text-tx-base'
                     )}
                   >
                     {g === 'tous' ? 'Tout' : GROUP_META[g].label}
                   </button>
                 ))}
               </div>
+            )}
 
-              {scopesInGroup.length > 1 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {scopesInGroup.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => setScope(scope === s.id ? null : s.id)}
-                      className={cn(
-                        'h-7 px-2 rounded-md border text-[11px] font-bold transition-colors',
-                        scope === s.id ? GROUP_META[s.group].badge : 'border-brand-border text-tx-secondary hover:text-tx-base'
-                      )}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {CHANGE_TYPES.map((t) => (
-                  <span key={t} className={cn('px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-widest', TYPE_META[t].chip)}>
-                    {TYPE_META[t].label}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {visible.length === 0 ? (
-              <p className="text-sm text-tx-secondary text-center">Aucun changement pour ce filtre.</p>
-            ) : (
-              <div className="space-y-6">
-                {visible.map((release, i) => (
+            <div className="space-y-6">
+              {visible.map((release) => {
+                const latest = release.version === RELEASES[0].version;
+                return (
                   <section
                     key={release.version}
                     id={`v${release.version}`}
-                    className="bg-brand-card border-4 border-brand-border rounded-[32px] p-5 sm:p-6 shadow-brutal"
+                    className="bg-brand-card border-4 border-brand-border rounded-[28px] p-5 sm:p-6 shadow-brutal scroll-mt-4"
                   >
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className={cn(
-                        'px-2 py-0.5 rounded-lg border-2 font-display font-black text-sm',
-                        i === 0 && release.version === RELEASES[0].version
-                          ? 'border-accent-primary bg-accent-primary/10 text-accent-primary'
-                          : 'border-brand-border bg-brand-inner text-tx-secondary'
-                      )}>
-                        v{release.version}
+                    <div className="flex items-baseline justify-between gap-3 mb-1">
+                      <span className={cn('font-display font-black text-sm', latest ? 'text-accent-primary' : 'text-tx-muted')}>
+                        v{release.version}{latest && ' · dernière'}
                       </span>
-                      {release.version === RELEASES[0].version && (
-                        <span className="text-[10px] font-black uppercase tracking-widest text-accent-primary">Dernière</span>
-                      )}
-                      <span className="text-[11px] text-tx-muted ml-auto">{formatReleaseDate(release.date)}</span>
+                      <span className="text-[11px] text-tx-muted">{formatReleaseDate(release.date)}</span>
                     </div>
-                    <h2 className="font-display text-xl font-black mb-4">{release.title}</h2>
+                    <h2 className="font-display text-2xl font-black leading-tight mb-5">{release.title}</h2>
                     <PatchNotesView entries={release.entries} />
                   </section>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
           </>
         )}
       </div>

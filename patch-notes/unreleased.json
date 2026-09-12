@@ -1,3 +1,27 @@
 {
-  "entries": []
+  "entries": [
+    {
+      "id": "2026-09-12-01",
+      "date": "2026-09-12",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Patch notes plus lisibles",
+      "details": "Une ligne par changement, classée par zone puis par jeu, sans le mur de badges et de filtres."
+    },
+    {
+      "id": "2026-09-12-02",
+      "date": "2026-09-12",
+      "scope": "casino",
+      "type": "amelioration",
+      "title": "Nouveautés propres à chaque jeu",
+      "details": "Le casino et ItollecClicker affichent chacun leurs propres nouveautés à l'ouverture, une seule fois par version."
+    },
+    {
+      "id": "2026-09-12-03",
+      "date": "2026-09-12",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Le logo prend place entre Multijoueur et Solo"
+    }
+  ]
 }

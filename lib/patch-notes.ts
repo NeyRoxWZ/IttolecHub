@@ -49,19 +49,21 @@ export const RELEASES = releasesFile.releases as PatchRelease[];
 export const LATEST_RELEASE: PatchRelease | null = RELEASES[0] ?? null;
 
 // Full class names spelled out: Tailwind only generates what it can read.
-export const TYPE_META: Record<ChangeType, { label: string; chip: string }> = {
-  nouveau: { label: 'Nouveau', chip: 'border-accent-success/60 bg-accent-success/15 text-accent-success' },
-  amelioration: { label: 'Amélioration', chip: 'border-sky-400/60 bg-sky-400/15 text-sky-300' },
-  equilibrage: { label: 'Équilibrage', chip: 'border-accent-primary/60 bg-accent-primary/15 text-accent-primary' },
-  correctif: { label: 'Correctif', chip: 'border-accent-secondary/60 bg-accent-secondary/15 text-accent-secondary' },
-  retrait: { label: 'Retiré', chip: 'border-brand-border bg-brand-inner text-tx-muted' },
+export const TYPE_META: Record<ChangeType, { label: string; dot: string }> = {
+  nouveau: { label: 'Nouveau', dot: 'bg-accent-success' },
+  amelioration: { label: 'Amélioration', dot: 'bg-sky-400' },
+  equilibrage: { label: 'Équilibrage', dot: 'bg-accent-primary' },
+  correctif: { label: 'Correctif', dot: 'bg-accent-secondary' },
+  retrait: { label: 'Retiré', dot: 'bg-tx-muted' },
 };
 
-export const GROUP_META: Record<ScopeGroup, { label: string; badge: string; bar: string }> = {
-  site: { label: 'Site', badge: 'border-tx-muted/50 bg-brand-inner text-tx-secondary', bar: 'bg-tx-muted' },
-  casino: { label: 'Casino', badge: 'border-accent-primary/60 bg-accent-primary/10 text-accent-primary', bar: 'bg-accent-primary' },
-  solo: { label: 'Solo', badge: 'border-accent-success/60 bg-accent-success/10 text-accent-success', bar: 'bg-accent-success' },
-  multi: { label: 'Multijoueur', badge: 'border-sky-400/60 bg-sky-400/10 text-sky-300', bar: 'bg-sky-400' },
+export const GROUP_ORDER: ScopeGroup[] = ['site', 'casino', 'solo', 'multi'];
+
+export const GROUP_META: Record<ScopeGroup, { label: string; bar: string; active: string }> = {
+  site: { label: 'Site', bar: 'bg-tx-muted', active: 'border-tx-base text-tx-base' },
+  casino: { label: 'Casino', bar: 'bg-accent-primary', active: 'border-accent-primary text-accent-primary' },
+  solo: { label: 'Solo', bar: 'bg-accent-success', active: 'border-accent-success text-accent-success' },
+  multi: { label: 'Multijoueur', bar: 'bg-sky-400', active: 'border-sky-400 text-sky-300' },
 };
 
 /**
@@ -89,4 +91,22 @@ export function formatReleaseDate(date: string): string {
   return new Date(`${date}T12:00:00Z`).toLocaleDateString('fr-FR', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
+}
+
+/**
+ * Entries in three levels — area, then game, then change — the shape both the
+ * page and the modal read. Areas with nothing in them are left out.
+ */
+export function groupByArea(entries: PatchEntry[]): {
+  group: ScopeGroup;
+  count: number;
+  scopes: { scope: ScopeDef; entries: PatchEntry[] }[];
+}[] {
+  const byScope = groupByScope(entries);
+  return GROUP_ORDER
+    .map((group) => {
+      const scopes = byScope.filter((s) => s.scope.group === group);
+      return { group, scopes, count: scopes.reduce((n, s) => n + s.entries.length, 0) };
+    })
+    .filter((area) => area.count > 0);
 }

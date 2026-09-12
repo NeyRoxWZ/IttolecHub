@@ -964,7 +964,7 @@ export default function ItollecClickerPage() {
 
   return (
     <main className="min-h-screen bg-transparent px-6 pt-4 md:pt-6 pb-8">
-      <PatchNotesModal />
+      <PatchNotesModal area="clicker" />
       <div className="w-full max-w-5xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex flex-wrap items-center gap-2">

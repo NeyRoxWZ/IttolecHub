@@ -13,7 +13,7 @@ export default function CasinoLayout({ children }: { children: ReactNode }) {
       {children}
       <SyndicateLock />
       <GiftWatcher />
-      <PatchNotesModal />
+      <PatchNotesModal area="casino" />
       <CelebrationLayer />
     </>
   );
