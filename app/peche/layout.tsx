@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: 'Frenly Pêche — IttolecHub',
   manifest: '/manifest-peche.json',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Pêche' },
-  icons: { apple: [{ url: '/api/pwa-icon/peche?size=180', sizes: '180x180', type: 'image/png' }] },
+  icons: { apple: [{ url: '/api/pwa-icon/peche?size=180&v=2', sizes: '180x180', type: 'image/png' }] },
 };
 
 export default function PecheLayout({ children }: { children: ReactNode }) {

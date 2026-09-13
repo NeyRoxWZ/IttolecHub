@@ -1,3 +1,12 @@
 {
-  "entries": []
+  "entries": [
+    {
+      "id": "2026-09-13-01",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Nouvelles icônes d’appli",
+      "details": "Les applis Casino et Pêche installées sur l’écran d’accueil ont de nouvelles icônes aux couleurs du site. L’appli de pêche s’appelle simplement « Pêche »."
+    }
+  ]
 }
