@@ -96,10 +96,10 @@ export default function ChestOpening({
         @keyframes coScreen { 0%,100% { transform: translate(0,0) } 25% { transform: translate(-6px,4px) } 50% { transform: translate(5px,-5px) } 75% { transform: translate(-4px,-2px) } }
         @keyframes coLockOff { 0% { transform: translate(0,0) rotate(0) scale(1); opacity: 1 } 100% { transform: translate(var(--lx), -160px) rotate(var(--lr)) scale(.6); opacity: 0 } }
         @keyframes coSpark { from { transform: translate(0,0) scale(1); opacity: 1 } to { transform: translate(var(--sx), var(--sy)) scale(.2); opacity: 0 } }
-        @keyframes coLid { 0% { transform: rotate(0) } 40% { transform: rotate(8deg) } 100% { transform: rotate(-112deg) } }
+        @keyframes coLid { 0% { transform: translate(0,0) rotate(0) } 30% { transform: translate(0,-12px) rotate(4deg) } 100% { transform: translate(-6px,-78px) rotate(-16deg) } }
         @keyframes coBeams { from { transform: translate(-50%,-50%) rotate(0) scale(.2); opacity: 0 } 30% { opacity: 1 } to { transform: translate(-50%,-50%) rotate(180deg) scale(1); opacity: 1 } }
         @keyframes coSpin { from { transform: translate(-50%,-50%) rotate(0) } to { transform: translate(-50%,-50%) rotate(360deg) } }
-        @keyframes coRise { 0% { transform: translateY(120px) scale(.2) rotateY(180deg); opacity: 0 } 60% { transform: translateY(-20px) scale(1.08) rotateY(0); opacity: 1 } 100% { transform: translateY(0) scale(1) rotateY(0); opacity: 1 } }
+        @keyframes coRise { 0% { transform: translateY(80px) scale(.3); opacity: 0 } 60% { transform: translateY(-12px) scale(1.06); opacity: 1 } 100% { transform: translateY(0) scale(1); opacity: 1 } }
         @keyframes coFlash { 0% { opacity: 0 } 15% { opacity: .95 } 100% { opacity: 0 } }
         @keyframes coRain { from { transform: translateY(-40px) rotate(0) } to { transform: translateY(110vh) rotate(720deg) } }
         @keyframes coBanner { 0% { transform: scale(3) rotate(-8deg); opacity: 0 } 70% { transform: scale(.9) rotate(2deg); opacity: 1 } 100% { transform: scale(1) rotate(-2deg); opacity: 1 } }
@@ -110,7 +110,7 @@ export default function ChestOpening({
         .co-screenshake { animation: coScreen .35s linear 3; }
         .co-lockoff { animation: coLockOff .7s cubic-bezier(.2,.6,.4,1) forwards; }
         .co-spark { animation: coSpark .6s ease-out forwards; }
-        .co-lid { transform-box: fill-box; transform-origin: 0% 100%; animation: coLid .9s cubic-bezier(.3,1.4,.5,1) forwards; }
+        .co-lid { transform-box: fill-box; transform-origin: 50% 100%; animation: coLid .7s cubic-bezier(.3,1.3,.5,1) forwards; }
         .co-beams { animation: coBeams 1.2s ease-out forwards, coSpin 9s linear 1.2s infinite; }
         .co-rise { animation: coRise .8s cubic-bezier(.2,.9,.3,1.2) both; }
         .co-flash { animation: coFlash .9s ease-out forwards; }
@@ -172,7 +172,7 @@ export default function ChestOpening({
 
           {phase !== 'locked' && (
             <>
-              <div className="co-beams pointer-events-none absolute left-1/2 top-1/2 w-[900px] h-[900px] rounded-full"
+              <div className="co-beams pointer-events-none absolute left-1/2 top-[45%] w-[min(640px,140vw)] h-[min(640px,140vw)] rounded-full"
                 style={{ background: `repeating-conic-gradient(${tier.color}AA 0 9deg, transparent 9deg 24deg)`, WebkitMaskImage: 'radial-gradient(circle, black 18%, transparent 62%)', maskImage: 'radial-gradient(circle, black 18%, transparent 62%)' }} />
               {current.rarity >= 3 && <div className="co-flash pointer-events-none absolute inset-0 bg-[#FFF6C8]" />}
             </>
@@ -244,7 +244,7 @@ export default function ChestOpening({
       {recap && (
         <div className="relative h-full flex flex-col p-4 max-w-5xl mx-auto">
           <div className="text-center font-display text-4xl text-stroke mt-2 shrink-0">Ton butin</div>
-          <div className="flex-1 min-h-0 overflow-y-auto my-4">
+          <div className="flex-1 min-h-0 overflow-y-auto my-4 p-3">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {[...chests].sort((a, b) => b.rarity - a.rarity).map((c, i) => {
                 const cos = COSMETIC_BY_ID.get(c.cosmeticId);
@@ -296,10 +296,10 @@ function EquipBtn({ id, slot, equipped, onEquip, big }: {
 function ChestArt({ removed, phase, glow }: { removed: number; phase: Phase; glow?: string }) {
   const opening = phase !== 'locked';
   return (
-    <svg width="300" height="250" viewBox="0 0 300 250" aria-hidden="true" className="max-w-[80vw] h-auto">
+    <svg width="300" height="250" viewBox="0 -90 300 340" aria-hidden="true" className="max-w-[80vw] h-auto overflow-visible" style={{ overflow: 'visible' }}>
       <ellipse cx="150" cy="236" rx="130" ry="12" fill="#000000" opacity="0.35" />
       {/* inner glow when open */}
-      {opening && <rect x="40" y="96" width="220" height="30" fill={glow || '#FFC61A'} opacity="0.9" />}
+      {opening && <ellipse cx="150" cy="112" rx="104" ry="18" fill={glow || '#FFC61A'} stroke="#05061A" strokeWidth="5" />}
       {/* body */}
       <rect x="30" y="110" width="240" height="118" rx="16" fill="#8E4418" stroke="#05061A" strokeWidth="8" />
       {[70, 150, 230].map((x) => <rect key={x} x={x - 7} y="110" width="14" height="118" fill="#6A3010" />)}

@@ -8,9 +8,9 @@ import {
   AUTO_MAX_CATCHES_PER_CALL, AUTO_MAX_GAP_MS, CHEST_DAYS, JACKPOT_RATE, MIN_REEL_MS, ORDER_BONUS, PROMO_DISCOUNT, QUALITY,
   autoEfficiency, autoInterval, bossFor, bossReward, catchMods, catchPoints, chestReward, dailyMarket, dayKey, gaugeFor,
   gearCost, itemPrice, levelFromXp, lvl, mareeThreshold, marketMultiplier, maxGearLevel, missionReward, missionsFor,
-  monthKey, newOrder, packPrice, passLevel, passReward, perlesFor, rollCatch, rollCosmetic, rollMaterials,
+  monthKey, newOrder, packPrice, passLevel, passPremiumPrice, passPremiumReward, passReward, perlesFor, PUBLIC_VALUE_MULT, rollCatch, rollCosmetic, rollMaterials,
   saleMultiplier, shoalAt, shopOffer, treeCost, weatherAt, weekKey, xpForCatch, zoneBase,
-  type Catch, type CatchMods, type Effects, type GearLevels, type Materials, type MissionSet, type Order, type Quality, type TreeLevels,
+  type Catch, type CatchMods, type Effects, type FishingMode, type GearLevels, type Materials, type MissionSet, type Order, type Quality, type TreeLevels,
 } from './engine';
 
 /**
@@ -24,9 +24,9 @@ import {
  */
 
 interface BagItem { n: number; v: number }
-interface PendingCast extends Catch { id: string; at: number }
+interface PendingCast extends Catch { id: string; at: number; mode?: FishingMode }
 type Stats = Partial<Record<'perfect' | 'legendary' | 'mythic' | 'chroma' | 'or' | 'chests' | 'orders' | 'missions' | 'weekCaught', number>>;
-interface PassState { month: string; xp: number; claimed: number[] }
+interface PassState { month: string; xp: number; claimed: number[]; premium?: boolean; claimedPremium?: number[] }
 
 interface Row {
   user_id: string;
@@ -63,6 +63,7 @@ interface Row {
   week_points: number;
   last_week: { week: string; points: number; caught: number } | null;
   recap_seen: string | null;
+  aquarium: { speciesId: string; variant: string }[];
 }
 
 interface DexRow { species_id: string; caught: number; best_weight: number; variants: string[] }
@@ -140,7 +141,7 @@ function fresh(row: Row): Partial<Row> {
     out.stats = { ...(row.stats || {}), weekCaught: 0 };
   }
   const pass = row.pass as PassState;
-  if (!pass || pass.month !== month) out.pass = { month, xp: 0, claimed: [] };
+  if (!pass || pass.month !== month) out.pass = { month, xp: 0, claimed: [], premium: false, claimedPremium: [] };
   return out;
 }
 
@@ -216,11 +217,13 @@ function present(raw: Row, dex: DexRow[]) {
     packs: row.packs || 0,
     cosmetics: row.cosmetics || [],
     equipped: row.equipped || {},
+    aquarium: row.aquarium || [],
     weekPoints: row.week_points || 0,
     recap: row.last_week && row.recap_seen !== row.last_week.week ? row.last_week : null,
     pass: {
       month: pass.month, xp: pass.xp || 0, ...level, claimed: pass.claimed || [],
-      tiers: Array.from({ length: PASS_TIERS }, (_, i) => ({ tier: i + 1, ...passReward(i + 1, boat) })),
+      premium: !!pass.premium, claimedPremium: pass.claimedPremium || [], premiumPrice: passPremiumPrice(boat),
+      tiers: Array.from({ length: PASS_TIERS }, (_, i) => ({ tier: i + 1, ...passReward(i + 1, boat), premiumReward: passPremiumReward(i + 1, boat) })),
     },
     achievements: ACHIEVEMENTS.map((a) => ({ ...a, progress: Math.min(a.target, metricValue(row, dexCount, a.metric)), claimed: (row.achievements || []).includes(a.id) })),
   };
@@ -357,11 +360,12 @@ function accPatch(row: Row, acc: Acc): Partial<Row> {
 }
 
 /** Folds one landed fish into the accumulator: bag, XP, materials, missions, dex, points, boss, feed. */
-function land(row: Row, c: Catch, value: number, acc: Acc, perfect: boolean) {
+function land(row: Row, c: Catch, value: number, acc: Acc, perfect: boolean, mode: FishingMode = 'solo') {
   const key = `${c.speciesId}|${c.variant}`;
   const item = acc.bag[key] || { n: 0, v: 0 };
   acc.bag[key] = { n: item.n + 1, v: item.v + value };
-  const mats = rollMaterials(row.zone, c.rarity, row.tree);
+  // The public port pays in coins only: materials are the solo side of the game.
+  const mats = mode === 'public' ? {} : rollMaterials(row.zone, c.rarity, row.tree);
   acc.materials = addMaterials(acc.materials, mats);
   acc.xp += xpForCatch(row.zone, c.rarity);
   acc.caught += 1;
@@ -388,24 +392,25 @@ function land(row: Row, c: Catch, value: number, acc: Acc, perfect: boolean) {
   return mats;
 }
 
-function modsFor(row: Row, now = Date.now()): CatchMods {
+function modsFor(row: Row, now = Date.now(), mode: FishingMode = 'solo'): CatchMods {
   const mods = catchMods(row.effects, now);
   const shoal = shoalAt(now);
-  return shoal.zone === row.zone ? { ...mods, value: mods.value * shoal.mult } : mods;
+  const value = mods.value * (shoal.zone === row.zone ? shoal.mult : 1) * (mode === 'public' ? PUBLIC_VALUE_MULT : 1);
+  return { ...mods, value };
 }
 
 /* ------------------------------------------------------------------ */
 /* Fishing                                                             */
 /* ------------------------------------------------------------------ */
 
-export function cast(userId: string) {
+export function cast(userId: string, mode: FishingMode = 'solo') {
   return mutate(userId, (row) => {
     const pending = row.pending_cast;
     if (pending && Date.now() - pending.at < 1000) return fail(429, 'Doucement !');
-    const c = rollCatch(row.zone, row.gear, row.tree, row.maree, modsFor(row));
+    const c = rollCatch(row.zone, row.gear, row.tree, row.maree, modsFor(row, Date.now(), mode));
     const id = randomUUID();
     return {
-      patch: { pending_cast: { ...c, id, at: Date.now() } },
+      patch: { pending_cast: { ...c, id, at: Date.now(), mode } },
       result: { id, rarity: c.rarity, ...gaugeFor(c.rarity, row.gear, row.effects, Date.now(), c.variant) },
     };
   });
@@ -425,7 +430,7 @@ export function reel(userId: string, castId: string, quality: Quality) {
 
     const value = pending.value * QUALITY[quality];
     const acc = startAcc(row);
-    const mats = land(row, pending, value, acc, quality === 'perfect');
+    const mats = land(row, pending, value, acc, quality === 'perfect', pending.mode || 'solo');
     return {
       patch: { pending_cast: null, ...accPatch(row, acc) },
       dex: acc.dex,
@@ -435,7 +440,7 @@ export function reel(userId: string, castId: string, quality: Quality) {
   });
 }
 
-export function autoFish(userId: string) {
+export function autoFish(userId: string, mode: FishingMode = 'solo') {
   return mutate<{ catches: Catch[]; nextAt?: number; jackpot?: number }>(userId, (row) => {
     const now = Date.now();
     const interval = autoInterval(row.gear, row.tree, row.effects, now);
@@ -449,13 +454,13 @@ export function autoFish(userId: string) {
     if (n <= 0) return { patch: {}, result: { catches: [], nextAt: last + interval * 1000 } };
 
     const eff = autoEfficiency(row.gear, row.tree);
-    const mods = modsFor(row, now);
+    const mods = modsFor(row, now, mode);
     const acc = startAcc(row);
     const catches: Catch[] = [];
     for (let i = 0; i < n; i++) {
       const c = rollCatch(row.zone, row.gear, row.tree, row.maree, mods);
       const value = c.value * eff;
-      land(row, c, value, acc, false);
+      land(row, c, value, acc, false, mode);
       catches.push({ ...c, value });
     }
     return {
@@ -716,13 +721,38 @@ export async function claimAchievement(userId: string, id: string) {
   });
 }
 
-export function claimPassTier(userId: string, tier: number) {
+export function buyPassPremium(userId: string) {
   return mutate(userId, (row) => {
     const pass = row.pass as PassState;
+    if (pass.premium) return fail(400, 'Voie premium déjà débloquée ce mois-ci.');
+    const cost = passPremiumPrice(boatOf(row));
+    if (row.balance < cost) return fail(400, 'Pas assez de ₶.');
+    return { patch: { balance: row.balance - cost, pass: { ...pass, premium: true } }, result: { cost } };
+  });
+}
+
+export function claimPassTier(userId: string, tier: number, track: 'free' | 'premium' = 'free') {
+  return mutate<{ coins: number; packs: number; perles: number; cosmeticId: string | null }>(userId, (row) => {
+    const pass = row.pass as PassState;
     if (!Number.isInteger(tier) || tier < 1 || tier > PASS_TIERS) return fail(400, 'Palier inconnu.');
-    if ((pass.claimed || []).includes(tier)) return fail(400, 'Déjà réclamé.');
     if (passLevel(pass.xp || 0).tier < tier) return fail(400, 'Palier pas encore atteint.');
-    const reward = passReward(tier, boatOf(row));
+    if (track === 'premium') {
+      if (!pass.premium) return fail(400, 'Débloque la voie premium d’abord.');
+      if ((pass.claimedPremium || []).includes(tier)) return fail(400, 'Déjà réclamé.');
+      const reward = passPremiumReward(tier, boatOf(row));
+      const owned = row.cosmetics || [];
+      const cosmetics = reward.cosmeticId && !owned.includes(reward.cosmeticId) ? [...owned, reward.cosmeticId] : owned;
+      return {
+        patch: {
+          pass: { ...pass, claimedPremium: [...(pass.claimedPremium || []), tier] },
+          balance: row.balance + reward.coins, run_earned: row.run_earned + reward.coins, lifetime_earned: row.lifetime_earned + reward.coins,
+          packs: (row.packs || 0) + reward.packs, perles: row.perles + reward.perles, cosmetics,
+        },
+        result: reward,
+      };
+    }
+    if ((pass.claimed || []).includes(tier)) return fail(400, 'Déjà réclamé.');
+    const reward = { ...passReward(tier, boatOf(row)), cosmeticId: null };
     return {
       patch: {
         pass: { ...pass, claimed: [...(pass.claimed || []), tier] },
@@ -805,17 +835,22 @@ export async function communityFor(userId: string) {
 /** A player's public card: progress, equipped look and their aquarium of best catches. */
 export async function playerCard(targetId: string) {
   const [{ data: row }, dex, names] = await Promise.all([
-    supabase.from('peche_players').select('maree, xp, total_caught, lifetime_earned, best_zone, zone, equipped, week_points, achievements').eq('user_id', targetId).maybeSingle(),
+    supabase.from('peche_players').select('maree, xp, total_caught, lifetime_earned, best_zone, zone, equipped, week_points, achievements, aquarium').eq('user_id', targetId).maybeSingle(),
     loadDex(targetId),
     pseudosOf([targetId]),
   ]);
   if (!row) return null;
-  const aquarium = dex
-    .map((d) => ({ d, sp: getSpecies(d.species_id) }))
-    .filter((x) => x.sp)
-    .sort((a, b) => b.sp!.rarity - a.sp!.rarity || b.d.best_weight - a.d.best_weight)
-    .slice(0, 8)
-    .map(({ d }) => ({ speciesId: d.species_id, bestWeight: d.best_weight, variants: d.variants }));
+  // The fish the player chose; before they choose, their eight best.
+  const chosen = (row.aquarium || []) as { speciesId: string; variant: string }[];
+  const byId = new Map(dex.map((d) => [d.species_id, d]));
+  const aquarium = chosen.length
+    ? chosen.filter((f) => byId.has(f.speciesId)).map((f) => ({ speciesId: f.speciesId, variant: f.variant, bestWeight: byId.get(f.speciesId)!.best_weight }))
+    : dex
+      .map((d) => ({ d, sp: getSpecies(d.species_id) }))
+      .filter((x) => x.sp)
+      .sort((a, b) => b.sp!.rarity - a.sp!.rarity || b.d.best_weight - a.d.best_weight)
+      .slice(0, 8)
+      .map(({ d }) => ({ speciesId: d.species_id, variant: d.variants.includes('or') ? 'or' : d.variants.includes('chroma') ? 'chroma' : '', bestWeight: d.best_weight }));
   return {
     pseudo: names.get(targetId) || '?',
     maree: row.maree, level: levelFromXp(Number(row.xp)).level, totalCaught: Number(row.total_caught),
@@ -823,4 +858,21 @@ export async function playerCard(targetId: string) {
     species: dex.length, speciesTotal: SPECIES.length, weekPoints: Number(row.week_points || 0),
     achievements: (row.achievements || []).length, equipped: row.equipped || {}, aquarium,
   };
+}
+
+/** Saves the fish shown in the player's aquarium: caught species only, variants they have. */
+export async function setAquarium(userId: string, fish: unknown) {
+  const dex = await loadDex(userId);
+  const byId = new Map(dex.map((d) => [d.species_id, d]));
+  const list = Array.isArray(fish) ? fish.slice(0, 8) : [];
+  const clean: { speciesId: string; variant: string }[] = [];
+  for (const f of list) {
+    const speciesId = String((f as { speciesId?: unknown })?.speciesId || '');
+    const variant = String((f as { variant?: unknown })?.variant || '');
+    const d = byId.get(speciesId);
+    if (!d) return fail(400, 'Tu n’as pas encore attrapé ce poisson.');
+    if (variant && !(d.variants || []).includes(variant)) return fail(400, 'Tu n’as pas encore cette variante.');
+    clean.push({ speciesId, variant: variant === 'or' || variant === 'chroma' ? variant : '' });
+  }
+  return mutate(userId, () => ({ patch: { aquarium: clean }, result: { count: clean.length } }));
 }

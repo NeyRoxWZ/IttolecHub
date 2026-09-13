@@ -8,12 +8,13 @@ import { COSMETIC_BY_ID, COSMETIC_SLOTS, RARITIES, getSpecies, mareeBadge, maree
 import { fmtBig, fmtKg } from '@/lib/peche/format';
 import FishIcon from './FishIcon';
 import CosmeticIcon from './CosmeticIcon';
+import AquariumView from './AquariumView';
 
 interface Card {
   pseudo: string; maree: number; level: number; totalCaught: number; earned: number; bestZone: number;
   species: number; speciesTotal: number; weekPoints: number; achievements: number;
   equipped: Partial<Record<CosmeticSlot, string>>;
-  aquarium: { speciesId: string; bestWeight: number; variants: string[] }[];
+  aquarium: { speciesId: string; bestWeight: number; variant: string }[];
 }
 
 /** A fisher's card: their Marée, their look and the aquarium of their best catches. */
@@ -67,7 +68,7 @@ export default function PlayerCardModal({ viewerId, targetId, onClose }: { viewe
               <div>
                 <div className="font-display text-xl mb-1.5">Équipement</div>
                 <div className="grid grid-cols-4 gap-2">
-                  {(Object.keys(COSMETIC_SLOTS) as CosmeticSlot[]).map((slot) => {
+                  {(Object.keys(COSMETIC_SLOTS) as CosmeticSlot[]).filter((slot) => !slot.startsWith('aqua')).map((slot) => {
                     const c = card.equipped[slot] ? COSMETIC_BY_ID.get(card.equipped[slot]!) : undefined;
                     return (
                       <div key={slot} className="rounded-xl border-2 border-brand-border bg-brand-inner p-1 flex flex-col items-center text-center">
@@ -84,20 +85,23 @@ export default function PlayerCardModal({ viewerId, targetId, onClose }: { viewe
                 {card.aquarium.length === 0 ? (
                   <p className="text-sm font-bold text-tx-secondary">Encore vide.</p>
                 ) : (
-                  <div className="rounded-2xl border-[3px] border-brand-border p-2 grid grid-cols-4 gap-2" style={{ background: 'linear-gradient(#2F9FE0, #0E3A70)' }}>
+                  <>
+                  <AquariumView fish={card.aquarium} equipped={card.equipped} className="mb-2" />
+                  <div className="grid grid-cols-4 gap-2">
                     {card.aquarium.map((f) => {
                       const sp = getSpecies(f.speciesId);
                       if (!sp) return null;
-                      const variant = f.variants.includes('or') ? 'or' : f.variants.includes('chroma') ? 'chroma' : '';
+                      const variant = f.variant;
                       return (
                         <div key={f.speciesId} className="flex flex-col items-center text-center" title={`${sp.name} · record ${fmtKg(f.bestWeight)}`}>
                           <FishIcon color={sp.color} rarity={sp.rarity} size={56} variant={variant} />
                           <span className="text-[10px] font-black leading-tight" style={{ color: RARITIES[sp.rarity].color }}>{sp.name}</span>
-                          <span className="text-[10px] font-bold text-white/80">{fmtKg(f.bestWeight)}</span>
+                          <span className="text-[10px] font-bold text-tx-secondary">{fmtKg(f.bestWeight)}</span>
                         </div>
                       );
                     })}
                   </div>
+                  </>
                 )}
               </div>
             </>

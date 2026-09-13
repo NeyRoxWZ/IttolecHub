@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Anchor, BookOpen, Coins, Fish, Map as MapIcon, Sparkles, Waves, Wrench, Zap, Lock, Check, X,
   HelpCircle, ShoppingBag, Target, Gift, CloudRain, Sun, CloudFog, CloudLightning, Moon, Package, Trophy, Users, Fish as FishShoal,
+  Crown, Skull, Radio, Palette, Medal, Ship, User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BRAWL } from '@/lib/ui/brawl';
@@ -24,14 +25,17 @@ import ReelGauge from './ReelGauge';
 import ChestOpening from './ChestOpening';
 import PecheGuide, { GUIDE_KEY } from './PecheGuide';
 import CosmeticIcon from './CosmeticIcon';
-import CommunityPanel from './CommunityPanel';
-import PassPanel from './PassPanel';
+import AquariumPanel from './AquariumPanel';
+import CommunityPanel, { type CommunitySection } from './CommunityPanel';
+import { PassPanel, AchievementsPanel } from './PassPanel';
+import FishingScene from './Scene';
 import PlayerCardModal from './PlayerCardModal';
 import WeekRecap from './WeekRecap';
-import { usePresence } from './usePresence';
+import { usePort } from './usePort';
 
 type Phase = 'idle' | 'waiting' | 'reeling' | 'landed' | 'lost';
-type Tab = 'peche' | 'quetes' | 'boutique' | 'pass' | 'commu' | 'materiel' | 'carte' | 'dex' | 'marees';
+type Tab = 'peche' | 'quetes' | 'boutique' | 'cosmetiques' | 'aquarium' | 'pass' | 'succes' | 'classement' | 'monstre' | 'jackpot' | 'direct' | 'port' | 'materiel' | 'carte' | 'dex' | 'marees';
+type Mode = 'solo' | 'public';
 type Api = (action: string, extra?: Record<string, unknown>) => Promise<any>;
 
 interface Landed {
@@ -43,13 +47,22 @@ const TABS: { id: Tab; label: string; icon: typeof Fish }[] = [
   { id: 'peche', label: 'Pêche', icon: Fish },
   { id: 'quetes', label: 'Quêtes', icon: Target },
   { id: 'boutique', label: 'Boutique', icon: ShoppingBag },
-  { id: 'pass', label: 'Pass', icon: Trophy },
-  { id: 'commu', label: 'Commu', icon: Users },
+  { id: 'cosmetiques', label: 'Look', icon: Palette },
+  { id: 'aquarium', label: 'Aquarium', icon: FishShoal },
+  { id: 'pass', label: 'Pass', icon: Crown },
+  { id: 'succes', label: 'Succès', icon: Trophy },
+  { id: 'classement', label: 'Classement', icon: Medal },
+  { id: 'monstre', label: 'Monstre', icon: Skull },
+  { id: 'jackpot', label: 'Jackpot', icon: Sparkles },
+  { id: 'direct', label: 'En direct', icon: Radio },
+  { id: 'port', label: 'Au port', icon: Users },
   { id: 'materiel', label: 'Matériel', icon: Wrench },
   { id: 'carte', label: 'Carte', icon: MapIcon },
   { id: 'dex', label: 'Poissodex', icon: BookOpen },
   { id: 'marees', label: 'Marées', icon: Waves },
 ];
+
+const MODE_KEY = 'itollec_peche_mode';
 
 const WEATHER_ICON: Record<WeatherId, typeof Sun> = { soleil: Sun, pluie: CloudRain, brume: CloudFog, orage: CloudLightning, lune: Moon };
 
@@ -78,6 +91,9 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
   const [guide, setGuide] = useState(false);
   const [opening, setOpening] = useState(false);
   const [cardId, setCardId] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>('solo');
+  useEffect(() => { try { if (localStorage.getItem(MODE_KEY) === 'public') setMode('public'); } catch {} }, []);
+  const switchMode = (m: Mode) => { sfx.select(); setMode(m); try { localStorage.setItem(MODE_KEY, m); } catch {} };
   const stateRef = useRef<PecheState | null>(null);
   stateRef.current = state;
 
@@ -118,7 +134,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
     if (busy || phase === 'waiting' || phase === 'reeling') return;
     setBusy(true); setLanded(null);
     sfx.bet(); vibrate(HAPTIC.SOFT);
-    const r = await api('cast');
+    const r = await api('cast', { mode });
     setBusy(false);
     if (!r) return;
     setCastInfo(r);
@@ -134,6 +150,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
     setCastInfo(null);
     if (!r || !r.caught) { setPhase('lost'); sfx.lose(); vibrate(HAPTIC.ERROR); return; }
     const c = r.caught;
+    sendRef.current({ speciesId: c.speciesId, rarity: c.rarity, variant: c.variant });
     if (r.jackpot) { sfx.jackpot(); toast.success(`JACKPOT DU POISSON DORÉ : +${fmtBig(r.jackpot)} ₶ !`, { duration: 8000 }); }
     setLanded({ ...c, isNew: !before.has(c.speciesId) });
     setPhase('landed');
@@ -153,12 +170,13 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
     const tick = async () => {
       if (stop || inFlight) return;
       inFlight = true;
-      const r = await api('auto', { silent: true });
+      const r = await api('auto', { silent: true, mode });
       inFlight = false;
       if (r?.nextAt) setAutoNextAt(r.nextAt);
       if (r?.jackpot) { sfx.jackpot(); toast.success(`JACKPOT DU POISSON DORÉ : +${fmtBig(r.jackpot)} ₶ !`, { duration: 8000 }); }
       if (r?.catches?.length) {
         sfx.coin();
+        r.catches.slice(0, 3).forEach((c: { speciesId: string; rarity: number; variant: string }) => sendRef.current(c));
         const items = r.catches.map((c: { speciesId: string; rarity: number; value: number; variant: string }) => ({ key: Date.now() + n++, ...c }));
         setAutoFeed((prev) => [...items, ...prev].slice(0, 8));
         // Shown on the scene too, whatever tab is open: the feed in the panel
@@ -172,10 +190,11 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
     // interval, lost the race by a few ms and only caught every other time.
     const id = setInterval(tick, 2000);
     return () => { stop = true; clearInterval(id); setAutoNextAt(null); };
-  }, [auto, hasAuto, autoInterval, api]);
+  }, [auto, hasAuto, autoInterval, api, mode]);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const port = usePresence(state ? { userId, pseudo, zone: state.zone, maree: state.maree } : null);
+  const { players: port, events: portEvents, send: sendPort } = usePort(state ? { userId, pseudo, zone: state.zone, maree: state.maree, mode } : null);
+  const sendRef = useRef(sendPort);
+  sendRef.current = sendPort;
 
   if (!state) return <div className="h-[520px] rounded-[22px] border-4 border-brand-border bg-brand-card animate-pulse" />;
 
@@ -185,8 +204,8 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
   const questsReady = (state.chest.claimedToday ? 0 : 1)
     + [...state.missions.daily, ...state.missions.weekly].filter((m) => !m.claimed && m.progress >= m.target).length
     + state.orders.filter((o) => o.have >= o.count).length;
-  const passReady = state.pass.tiers.filter((t) => t.tier <= state.pass.tier && !state.pass.claimed.includes(t.tier)).length
-    + state.achievements.filter((a) => !a.claimed && a.progress >= a.target).length;
+  const passClaimable = state.pass.tiers.filter((t) => t.tier <= state.pass.tier && (!state.pass.claimed.includes(t.tier) || (state.pass.premium && !state.pass.claimedPremium.includes(t.tier)))).length;
+  const achClaimable = state.achievements.filter((a) => !a.claimed && a.progress >= a.target).length;
   const shoalHere = state.shoal.zone === state.zone;
 
   return (
@@ -212,6 +231,20 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
           <div className="min-w-0">
             <h1 className="font-display text-3xl sm:text-4xl leading-none">Frenly Pêche</h1>
             <p className="text-sm font-bold text-tx-secondary mt-0.5">{zone.region} · {zone.name}</p>
+          </div>
+          <div className="flex gap-1 rounded-[22px] border-[3px] border-brand-border bg-brand-bg p-1.5" role="radiogroup" aria-label="Mode de pêche">
+            {([
+              { id: 'solo', label: 'Solo', hint: 'Matériaux', icon: User },
+              { id: 'public', label: 'Port public', hint: '₶ ×1,5', icon: Ship },
+            ] as const).map((m) => (
+              <button key={m.id} role="radio" aria-checked={mode === m.id} onClick={() => switchMode(m.id)}
+                title={m.id === 'solo' ? 'Solo : tes prises donnent des matériaux pour améliorer ton matériel.' : 'Port public : pas de matériaux, mais chaque prise vaut ×1,5 et tu pêches avec les autres joueurs.'}
+                className={cn('h-10 px-3 rounded-[13px] flex items-center gap-1.5 font-display leading-none transition-transform active:translate-y-[2px]',
+                  mode === m.id ? (m.id === 'public' ? 'bg-accent-info text-white shadow-[inset_0_-4px_0_#2F5BD0]' : 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00]') : 'text-tx-secondary hover:text-white')}>
+                <m.icon className="h-5 w-5" />
+                <span className="flex flex-col items-start"><span className="text-base">{m.label}</span><span className="text-[10px] opacity-80">{m.hint}</span></span>
+              </button>
+            ))}
           </div>
           <button onClick={() => setGuide(true)} aria-label="Guide" className={cn(BRAWL.dark, 'h-12 w-12 shrink-0')}>
             <HelpCircle className="h-6 w-6" />
@@ -250,7 +283,12 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
       {/* Fixed height: switching tabs must never resize the game. */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_440px] gap-4 lg:h-[700px]">
         <section className={cn(BRAWL.panel, 'relative overflow-hidden h-[480px] lg:h-full flex flex-col')}>
-          <Scene zoneId={state.zone} phase={phase} weather={state.weather.id} equipped={state.equipped} />
+          <FishingScene
+            zoneId={state.zone} phase={phase} weather={state.weather.id} equipped={state.equipped}
+            others={mode === 'public' ? port.filter((p) => p.mode === 'public' && p.zone === state.zone && p.userId !== userId) : []}
+            events={portEvents}
+            landedColor={landed ? getSpecies(landed.speciesId)?.color : undefined}
+          />
           {shoalHere && (
             <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex items-center gap-1.5 rounded-xl border-[3px] border-brand-border bg-accent-info text-white px-3 py-1 font-display shadow-[inset_0_-3px_0_#2F5BD0,0_3px_0_#05061A]" style={{ bottom: auto ? 140 : 96 }}>
               <FishShoal className="h-4 w-4" /> Banc de poissons ici : prises ×{state.shoal.mult}
@@ -312,25 +350,28 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
         </section>
 
         <section className={cn(BRAWL.panel, 'p-4 flex flex-col gap-3 h-[640px] lg:h-full min-h-0')}>
-          <div className="grid grid-cols-5 gap-1 rounded-[18px] border-[3px] border-brand-border bg-brand-bg p-1">
+          <div className="grid grid-cols-8 gap-1 rounded-[18px] border-[3px] border-brand-border bg-brand-bg p-1 shrink-0">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => { sfx.click(); setTab(t.id); }}
                 className={cn(
-                  'relative h-14 rounded-xl flex flex-col items-center justify-center gap-0.5 font-display text-xs sm:text-sm leading-none transition-transform active:translate-y-[2px]',
+                  'relative h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 font-display text-[10px] leading-none transition-transform active:translate-y-[2px]',
                   tab === t.id ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00]' : 'text-tx-secondary hover:text-white hover:bg-[#2B3170]'
                 )}
               >
-                <t.icon className="h-5 w-5" />
-                {t.label}
+                <t.icon className="h-[18px] w-[18px]" />
+                <span className="truncate max-w-full px-0.5">{t.label}</span>
                 {t.id === 'quetes' && questsReady > 0 && (
                   <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white text-[11px] flex items-center justify-center">{questsReady}</span>
                 )}
-                {t.id === 'pass' && passReady > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white text-[11px] flex items-center justify-center">{passReady}</span>
+                {t.id === 'pass' && passClaimable > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white text-[11px] flex items-center justify-center">{passClaimable}</span>
                 )}
-                {t.id === 'commu' && port.length > 1 && (
+                {t.id === 'succes' && achClaimable > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white text-[11px] flex items-center justify-center">{achClaimable}</span>
+                )}
+                {t.id === 'port' && port.length > 1 && (
                   <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-success border-2 border-brand-border text-brand-bg text-[11px] flex items-center justify-center">{port.length}</span>
                 )}
                 {t.id === 'boutique' && state.packs > 0 && (
@@ -344,8 +385,13 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
             {tab === 'peche' && <PechePanel state={state} api={api} autoFeed={autoFeed} />}
             {tab === 'quetes' && <QuestsPanel state={state} api={api} />}
             {tab === 'boutique' && <ShopPanel state={state} api={api} onOpen={() => setOpening(true)} />}
+            {tab === 'cosmetiques' && <CosmeticsPanel state={state} api={api} />}
+            {tab === 'aquarium' && <AquariumPanel state={state} api={api} />}
             {tab === 'pass' && <PassPanel state={state} api={api} />}
-            {tab === 'commu' && <CommunityPanel userId={userId} api={api} port={port} onOpenCard={setCardId} />}
+            {tab === 'succes' && <AchievementsPanel state={state} api={api} />}
+            {(['classement', 'monstre', 'jackpot', 'direct', 'port'] as Tab[]).includes(tab) && (
+              <CommunityPanel section={tab as CommunitySection} userId={userId} api={api} port={port} onOpenCard={setCardId} />
+            )}
             {tab === 'materiel' && <GearPanel state={state} api={api} />}
             {tab === 'carte' && <MapPanel state={state} api={api} />}
             {tab === 'dex' && <DexPanel state={state} />}
@@ -394,77 +440,6 @@ function ActiveEffects({ effects }: { effects: Record<string, number | undefined
           <Sparkles className="h-4 w-4" /> {labels[id] || id} · <span className="tabular-nums">{mmss(Number(t) - now)}</span>
         </span>
       ))}
-    </div>
-  );
-}
-
-function Scene({ zoneId, phase, weather, equipped }: { zoneId: number; phase: Phase; weather: WeatherId; equipped: Partial<Record<CosmeticSlot, string>> }) {
-  const z = zoneInfo(zoneId);
-  const out = phase === 'waiting' || phase === 'reeling';
-  const floatX = out ? 300 : 150;
-  const decor = equipped.decor ? COSMETIC_BY_ID.get(equipped.decor) : undefined;
-  const floatC = (equipped.flotteur ? COSMETIC_BY_ID.get(equipped.flotteur)?.colors : undefined) || ['#FF4F8B', '#FFFFFF'];
-  const rodC = (equipped.canne ? COSMETIC_BY_ID.get(equipped.canne)?.colors[0] : undefined) || '#05061A';
-  const dark = weather === 'orage' || weather === 'lune';
-  const sky = decor ? decor.colors[0] : dark ? '#1A1E3A' : z.sky;
-  const sun = weather === 'lune' ? '#F4F4FF' : decor ? decor.colors[1] : '#FFE27A';
-
-  return (
-    <div className="absolute inset-0">
-      <style>{`
-        @keyframes pecheBob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(4px) } }
-        @keyframes pecheBite { 0%,100% { transform: translateY(0) } 30% { transform: translateY(14px) } 60% { transform: translateY(4px) } }
-        @keyframes pecheWave { from { transform: translateX(0) } to { transform: translateX(-80px) } }
-        @keyframes pecheRain { from { transform: translateY(-40px) } to { transform: translateY(400px) } }
-        @keyframes pecheFlash { 0%, 92%, 100% { opacity: 0 } 94% { opacity: .5 } }
-        .peche-bob { animation: pecheBob 1.6s ease-in-out infinite; transform-box: fill-box; }
-        .peche-bite { animation: pecheBite 0.45s ease-in-out infinite; transform-box: fill-box; }
-        .peche-wave { animation: pecheWave 4s linear infinite; }
-        .peche-rain { animation: pecheRain .7s linear infinite; }
-        .peche-flash { animation: pecheFlash 6s linear infinite; }
-        @media (prefers-reduced-motion: reduce) { .peche-bob, .peche-bite, .peche-wave, .peche-rain, .peche-flash { animation: none; } }
-      `}</style>
-      <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" className="w-full h-full block">
-        <defs>
-          <linearGradient id="pecheWater" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={z.top} />
-            <stop offset="1" stopColor={z.bottom} />
-          </linearGradient>
-        </defs>
-        <rect width="480" height="360" fill={sky} />
-        {(weather === 'lune' || decor?.id === 'de-nuit') && [[60, 40], [120, 70], [220, 30], [300, 60], [340, 20], [180, 90]].map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r="2.5" fill="#FFFFFF" />
-        ))}
-        {decor?.id === 'de-aurore' && <path d="M0 60 Q 120 10 240 60 T 480 50 L 480 90 Q 360 50 240 100 T 0 100 Z" fill="#33D17A" opacity="0.5" />}
-        {weather !== 'orage' && <circle cx="400" cy="60" r="30" fill={sun} stroke="#05061A" strokeWidth="5" />}
-        <rect y="150" width="480" height="210" fill="url(#pecheWater)" />
-        <g className="peche-wave">
-          <path d="M0 150 Q 20 140 40 150 T 80 150 T 120 150 T 160 150 T 200 150 T 240 150 T 280 150 T 320 150 T 360 150 T 400 150 T 440 150 T 480 150 T 520 150 T 560 150" fill="none" stroke="#FFFFFF" strokeOpacity="0.5" strokeWidth="5" />
-        </g>
-        <rect x="-10" y="130" width="120" height="22" rx="4" fill="#C2632B" stroke="#05061A" strokeWidth="5" />
-        {[20, 70].map((x) => <rect key={x} x={x} y="148" width="14" height="70" fill="#8E4418" stroke="#05061A" strokeWidth="5" />)}
-        <line x1="60" y1="130" x2="130" y2="40" stroke="#05061A" strokeWidth="9" strokeLinecap="round" />
-        <line x1="60" y1="130" x2="130" y2="40" stroke={rodC} strokeWidth="5" strokeLinecap="round" />
-        <line x1="130" y1="40" x2={floatX} y2="150" stroke="#05061A" strokeWidth="2" style={{ transition: 'all 400ms ease-out' }} />
-        <g transform={`translate(${floatX} 150)`} style={{ transition: 'transform 400ms ease-out' }}>
-          <g className={phase === 'reeling' ? 'peche-bite' : 'peche-bob'}>
-            <circle r="11" fill={floatC[1]} stroke="#05061A" strokeWidth="5" />
-            <path d="M-11 0 A11 11 0 0 1 11 0 Z" fill={floatC[0]} stroke="#05061A" strokeWidth="5" strokeLinejoin="round" />
-          </g>
-        </g>
-        {(weather === 'pluie' || weather === 'orage') && (
-          <g className="peche-rain">
-            {Array.from({ length: 40 }, (_, i) => (
-              <line key={i} x1={(i * 53) % 480} y1={(i * 97) % 360 - 360} x2={(i * 53) % 480 - 6} y2={(i * 97) % 360 - 345} stroke="#DDEFFF" strokeOpacity="0.7" strokeWidth="2.5" />
-            ))}
-            {Array.from({ length: 40 }, (_, i) => (
-              <line key={`b${i}`} x1={(i * 53) % 480} y1={(i * 97) % 360} x2={(i * 53) % 480 - 6} y2={(i * 97) % 360 + 15} stroke="#DDEFFF" strokeOpacity="0.7" strokeWidth="2.5" />
-            ))}
-          </g>
-        )}
-        {weather === 'brume' && <rect width="480" height="360" fill="#FFFFFF" opacity="0.35" />}
-        {weather === 'orage' && <rect className="peche-flash" width="480" height="360" fill="#FFFFFF" />}
-      </svg>
     </div>
   );
 }
@@ -744,6 +719,15 @@ function ShopPanel({ state, api, onOpen }: { state: PecheState; api: Api; onOpen
         </div>
       </Box>
 
+
+    </div>
+  );
+}
+
+function CosmeticsPanel({ state, api }: { state: PecheState; api: Api }) {
+  const owned = new Set(state.cosmetics);
+  return (
+    <div className="space-y-3">
       <Box title={`Cosmétiques (${owned.size}/${COSMETICS.length})`}>
         {(Object.keys(COSMETIC_SLOTS) as CosmeticSlot[]).map((slot) => (
           <div key={slot} className="mb-3 last:mb-0">

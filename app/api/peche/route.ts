@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { isOwner } from '@/lib/owner';
 import {
-  autoFish, buyItem, buyPack, buyTree, cast, claimAchievement, claimBoss, claimChest, claimMission, claimPassTier,
-  communityFor, deliverOrder, equip, openPack, playerCard, prestige, reel, seeRecap, sell, stateFor, travel, upgrade,
+  autoFish, buyItem, buyPack, buyPassPremium, buyTree, cast, claimAchievement, claimBoss, claimChest, claimMission, claimPassTier,
+  communityFor, deliverOrder, setAquarium, equip, openPack, playerCard, prestige, reel, seeRecap, sell, stateFor, travel, upgrade,
 } from '@/lib/peche/server';
 import type { CosmeticSlot, GearId, TreeId } from '@/lib/peche/data';
 
@@ -46,9 +46,9 @@ export async function POST(request: Request) {
 
     let out;
     switch (body?.action) {
-      case 'cast': out = await cast(userId); break;
+      case 'cast': out = await cast(userId, body?.mode === 'public' ? 'public' : 'solo'); break;
       case 'reel': out = await reel(userId, String(body?.cast_id || ''), body?.quality === 'perfect' ? 'perfect' : body?.quality === 'good' ? 'good' : 'fail'); break;
-      case 'auto': out = await autoFish(userId); break;
+      case 'auto': out = await autoFish(userId, body?.mode === 'public' ? 'public' : 'solo'); break;
       case 'sell': out = await sell(userId, body?.key ? String(body.key) : undefined); break;
       case 'upgrade': out = await upgrade(userId, String(body?.gear) as GearId); break;
       case 'travel': out = await travel(userId, Number(body?.zone)); break;
@@ -62,9 +62,11 @@ export async function POST(request: Request) {
       case 'open_pack': out = await openPack(userId, Number(body?.count) || 1); break;
       case 'equip': out = await equip(userId, String(body?.slot) as CosmeticSlot, body?.cosmetic_id ? String(body.cosmetic_id) : null); break;
       case 'achievement': out = await claimAchievement(userId, String(body?.id || '')); break;
-      case 'pass': out = await claimPassTier(userId, Number(body?.tier)); break;
+      case 'pass': out = await claimPassTier(userId, Number(body?.tier), body?.track === 'premium' ? 'premium' : 'free'); break;
+      case 'pass_premium': out = await buyPassPremium(userId); break;
       case 'recap_seen': out = await seeRecap(userId); break;
       case 'boss': out = await claimBoss(userId); break;
+      case 'aquarium': out = await setAquarium(userId, body?.fish); break;
       default: return NextResponse.json({ error: 'Action inconnue' }, { status: 400 });
     }
 

@@ -289,13 +289,19 @@ export const MISSION_TEXT: Record<MissionType, (n: number) => string> = {
 /* Cosmetics                                                           */
 /* ------------------------------------------------------------------ */
 
-export type CosmeticSlot = 'flotteur' | 'canne' | 'decor' | 'effet';
+export type CosmeticSlot = 'flotteur' | 'canne' | 'ligne' | 'chapeau' | 'ponton' | 'decor' | 'effet' | 'aquafond' | 'aquasol' | 'aquadeco';
 
 export const COSMETIC_SLOTS: Record<CosmeticSlot, string> = {
   flotteur: 'Flotteur',
   canne: 'Canne',
+  ligne: 'Ligne',
+  chapeau: 'Chapeau',
+  ponton: 'Ponton',
   decor: 'Décor',
   effet: 'Effet de prise',
+  aquafond: 'Eau de l’aquarium',
+  aquasol: 'Fond de l’aquarium',
+  aquadeco: 'Décor de l’aquarium',
 };
 
 export interface Cosmetic {
@@ -305,6 +311,8 @@ export interface Cosmetic {
   rarity: 0 | 1 | 2 | 3;
   /** flotteur: [top, bottom]; canne: [rod]; decor: [sky tint, sun]; effet: [colors…] */
   colors: string[];
+  /** Only from the premium pass, never from chests. */
+  passOnly?: boolean;
 }
 
 export const COSMETICS: Cosmetic[] = [
@@ -341,7 +349,56 @@ export const COSMETICS: Cosmetic[] = [
   { id: 'ef-etoiles', slot: 'effet', name: 'Étoiles', rarity: 2, colors: ['#FFC61A', '#FFFFFF'] },
   { id: 'ef-flammes', slot: 'effet', name: 'Flammes', rarity: 2, colors: ['#FF4F1A', '#FFC61A'] },
   { id: 'ef-arcenciel', slot: 'effet', name: 'Pluie arc-en-ciel', rarity: 3, colors: ['#FF4F8B', '#FFC61A', '#33D17A', '#5B8CFF', '#B06BFF'] },
+
+  { id: 'li-nylon', slot: 'ligne', name: 'Nylon', rarity: 0, colors: ['#05061A'] },
+  { id: 'li-blanche', slot: 'ligne', name: 'Tresse blanche', rarity: 0, colors: ['#FFFFFF'] },
+  { id: 'li-rose', slot: 'ligne', name: 'Fluo rose', rarity: 1, colors: ['#FF4F8B'] },
+  { id: 'li-laser', slot: 'ligne', name: 'Laser', rarity: 2, colors: ['#25FFD0'] },
+  { id: 'li-or', slot: 'ligne', name: 'Fil d’or', rarity: 3, colors: ['#FFC61A'] },
+  { id: 'li-arcenciel', slot: 'ligne', name: 'Ligne arc-en-ciel', rarity: 3, colors: ['#FF4F8B', '#FFC61A', '#33D17A', '#5B8CFF'] },
+
+  { id: 'ch-bob', slot: 'chapeau', name: 'Bob vert', rarity: 0, colors: ['#33D17A'] },
+  { id: 'ch-casquette', slot: 'chapeau', name: 'Casquette', rarity: 0, colors: ['#5B8CFF'] },
+  { id: 'ch-paille', slot: 'chapeau', name: 'Chapeau de paille', rarity: 1, colors: ['#F0D27A'] },
+  { id: 'ch-bonnet', slot: 'chapeau', name: 'Bonnet marin', rarity: 1, colors: ['#FF4F8B'] },
+  { id: 'ch-tricorne', slot: 'chapeau', name: 'Tricorne', rarity: 2, colors: ['#2B3170'] },
+  { id: 'ch-couronne', slot: 'chapeau', name: 'Couronne', rarity: 3, colors: ['#FFC61A'] },
+
+  { id: 'po-bois', slot: 'ponton', name: 'Ponton en bois', rarity: 0, colors: ['#C2632B', '#8E4418'] },
+  { id: 'po-bambou', slot: 'ponton', name: 'Bambou', rarity: 1, colors: ['#B8C85A', '#6A7A1A'] },
+  { id: 'po-pierre', slot: 'ponton', name: 'Jetée de pierre', rarity: 1, colors: ['#9AA6C8', '#5A6A7A'] },
+  { id: 'po-glace', slot: 'ponton', name: 'Banquise', rarity: 2, colors: ['#CFF3FF', '#7FC8E8'] },
+  { id: 'po-corail', slot: 'ponton', name: 'Corail', rarity: 2, colors: ['#FF8A6A', '#C24A2A'] },
+  { id: 'po-or', slot: 'ponton', name: 'Quai doré', rarity: 3, colors: ['#FFC61A', '#D98E00'] },
+
+  { id: 'af-lagon', slot: 'aquafond', name: 'Eau de lagon', rarity: 0, colors: ['#3CC3D6', '#137A9E'] },
+  { id: 'af-nuit', slot: 'aquafond', name: 'Eau de nuit', rarity: 1, colors: ['#2A3A8A', '#05061A'] },
+  { id: 'af-corail', slot: 'aquafond', name: 'Eau corail', rarity: 1, colors: ['#FF9A7A', '#6A1A3A'] },
+  { id: 'af-abysse', slot: 'aquafond', name: 'Eau des abysses', rarity: 2, colors: ['#1A2A6A', '#020208'] },
+  { id: 'af-aurore', slot: 'aquafond', name: 'Eau d’aurore', rarity: 2, colors: ['#33D17A', '#1A3A5A'] },
+  { id: 'af-or', slot: 'aquafond', name: 'Eau dorée', rarity: 3, colors: ['#FFE27A', '#8E4418'] },
+
+  { id: 'as-sable', slot: 'aquasol', name: 'Sable fin', rarity: 0, colors: ['#F0D27A'] },
+  { id: 'as-galets', slot: 'aquasol', name: 'Galets', rarity: 0, colors: ['#9AA6C8'] },
+  { id: 'as-corail', slot: 'aquasol', name: 'Sable rose', rarity: 1, colors: ['#FF8A9A'] },
+  { id: 'as-cristal', slot: 'aquasol', name: 'Cristaux', rarity: 2, colors: ['#B8A8FF'] },
+  { id: 'as-or', slot: 'aquasol', name: 'Pièces d’or', rarity: 3, colors: ['#FFC61A'] },
+
+  { id: 'ad-plantes', slot: 'aquadeco', name: 'Algues', rarity: 0, colors: ['#33D17A'] },
+  { id: 'ad-rochers', slot: 'aquadeco', name: 'Rochers', rarity: 0, colors: ['#5A6A7A'] },
+  { id: 'ad-chateau', slot: 'aquadeco', name: 'Château', rarity: 1, colors: ['#C2C9F0'] },
+  { id: 'ad-epave', slot: 'aquadeco', name: 'Épave', rarity: 2, colors: ['#8E4418'] },
+  { id: 'ad-tresor', slot: 'aquadeco', name: 'Coffre au trésor', rarity: 3, colors: ['#FFC61A'] },
+
+  { id: 'fl-pass', slot: 'flotteur', name: 'Flotteur du Pass', rarity: 3, colors: ['#B06BFF', '#FFC61A'], passOnly: true },
+  { id: 'li-pass', slot: 'ligne', name: 'Ligne du Pass', rarity: 3, colors: ['#B06BFF', '#FFC61A'], passOnly: true },
+  { id: 'ch-pass', slot: 'chapeau', name: 'Chapeau du Pass', rarity: 3, colors: ['#B06BFF'], passOnly: true },
+  { id: 'po-pass', slot: 'ponton', name: 'Ponton du Pass', rarity: 3, colors: ['#6A3FC8', '#3A1A7A'], passOnly: true },
+  { id: 'de-pass', slot: 'decor', name: 'Ciel du Pass', rarity: 3, colors: ['#2A0A5A', '#FFC61A'], passOnly: true },
 ];
+
+/** The cosmetics the premium pass hands out at tiers 10, 20, 30, 40 and 50. */
+export const PASS_COSMETICS = ['fl-pass', 'li-pass', 'ch-pass', 'po-pass', 'de-pass'];
 
 export const COSMETIC_BY_ID = new Map(COSMETICS.map((c) => [c.id, c]));
 

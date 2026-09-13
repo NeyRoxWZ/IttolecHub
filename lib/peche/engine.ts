@@ -4,7 +4,7 @@
  */
 
 import {
-  BOSSES, COSMETICS, PACK_ODDS, PASS_TIERS, RARITIES, RARITY_POINTS, SHOP_ITEMS, VARIANTS, VARIANT_POINTS, WEATHER, ZONES, getSpecies, speciesOfZone,
+  BOSSES, COSMETICS, PACK_ODDS, PASS_COSMETICS, PASS_TIERS, RARITIES, RARITY_POINTS, SHOP_ITEMS, VARIANTS, VARIANT_POINTS, WEATHER, ZONES, getSpecies, speciesOfZone,
   type Cosmetic, type EffectId, type GearId, type MaterialId, type MissionType, type RarityIndex,
   type ShopItem, type Species, type TreeId, type Variant, type WeatherId,
 } from './data';
@@ -151,16 +151,21 @@ export function rollCatch(
 export function gaugeFor(rarity: number, gear: GearLevels, effects?: Effects, now = Date.now(), variant: Variant = '') {
   const reel = lvl(gear, 'moulinet');
   const oiled = isActive(effects, 'moulinet', now);
-  const tier = rarity + (variant === 'or' ? 2 : variant === 'chroma' ? 1 : 0);
+  const tier = Math.min(6, rarity + (variant === 'or' ? 2 : variant === 'chroma' ? 1 : 0));
   const ease = (1 + 0.04 * reel) * (oiled ? 1.35 : 1);
+  // A real step between tiers: a common is a formality, a mythic a fight.
+  const GREEN = [0.44, 0.3, 0.21, 0.14, 0.1, 0.085, 0.07];
+  const SPEED = [0.14, 0.34, 0.56, 0.8, 1.05, 1.25, 1.45];
+  const FILL = [0.3, 0.23, 0.18, 0.14, 0.11, 0.1, 0.09];
+  const DRAIN = [0.08, 0.17, 0.27, 0.38, 0.5, 0.58, 0.66];
   return {
     /** Share of the bar that counts as "in the zone". */
-    green: Math.max(0.12, Math.min(0.6, (0.44 - 0.055 * tier) * Math.min(1.6, ease))),
+    green: Math.max(0.06, Math.min(0.6, GREEN[tier] * Math.min(1.6, ease))),
     /** How hard the fish pulls the zone around. */
-    speed: Math.max(0.08, (0.14 + 0.11 * tier) / ease),
+    speed: Math.max(0.08, SPEED[tier] / ease),
     /** Meter gained per second in the zone, lost per second outside. */
-    fill: Math.max(0.12, 0.3 - 0.03 * tier),
-    drain: Math.max(0.05, (0.08 + 0.045 * tier) / ease),
+    fill: FILL[tier],
+    drain: Math.max(0.05, DRAIN[tier] / ease),
   };
 }
 
@@ -320,7 +325,7 @@ export function rollCosmetic(rng: () => number = Math.random): Cosmetic {
   let roll = rng() * total;
   let rarity = 0;
   for (let i = 0; i < PACK_ODDS.length; i++) { roll -= PACK_ODDS[i]; if (roll <= 0) { rarity = i; break; } }
-  const pool = COSMETICS.filter((c) => c.rarity === rarity);
+  const pool = COSMETICS.filter((c) => c.rarity === rarity && !c.passOnly);
   return pool[Math.floor(rng() * pool.length) % pool.length];
 }
 
@@ -410,10 +415,32 @@ export function passLevel(xp: number): { tier: number; into: number; needed: num
 export function passReward(tier: number, boat: number): { coins: number; packs: number; perles: number } {
   return {
     coins: Math.ceil(zoneBase(boat) * (40 + tier * 6)),
-    packs: tier === PASS_TIERS ? 3 : tier % 5 === 0 ? 1 : 0,
-    perles: tier % 10 === 0 ? 3 : 0,
+    packs: tier === PASS_TIERS ? 2 : tier % 10 === 0 ? 1 : 0,
+    perles: tier % 10 === 0 ? 2 : 0,
   };
 }
+
+/** The premium track: more of everything, and an exclusive cosmetic every ten tiers. */
+export function passPremiumReward(tier: number, boat: number): { coins: number; packs: number; perles: number; cosmeticId: string | null } {
+  return {
+    coins: Math.ceil(zoneBase(boat) * (100 + tier * 15)),
+    packs: tier === PASS_TIERS ? 5 : tier % 3 === 0 ? 1 : 0,
+    perles: tier % 5 === 0 ? 3 : 0,
+    cosmeticId: tier % 10 === 0 ? PASS_COSMETICS[tier / 10 - 1] ?? null : null,
+  };
+}
+
+/** Unlocking the premium track for the month, priced on progress with a floor. */
+export function passPremiumPrice(boat: number): number {
+  return Math.max(50_000, Math.ceil(zoneBase(boat) * 6000));
+}
+
+/**
+ * Where you fish. Solo is for progress: catches bring materials. The public
+ * port is for money: no materials, but every catch is worth half as much again.
+ */
+export type FishingMode = 'solo' | 'public';
+export const PUBLIC_VALUE_MULT = 1.5;
 
 export function bossFor(week = weekKey()): { name: string; maxHp: number } {
   return { name: BOSSES[hash(`boss:${week}`) % BOSSES.length], maxHp: 20_000 };
