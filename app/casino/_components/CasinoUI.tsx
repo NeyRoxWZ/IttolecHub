@@ -561,9 +561,11 @@ export function LevelBar({ level, into, needed }: { level: number; into: number;
   const pct = needed > 0 ? Math.min(100, (into / needed) * 100) : 100;
   return (
     <div className="flex items-center gap-2 min-w-[130px]" title="Palier du Frenly Pass — remis à zéro le 1er du mois">
-      <span className="text-[10px] font-black tracking-widest text-tx-muted shrink-0">NIV {level}</span>
-      <div className="flex-1 h-2 rounded-full bg-brand-inner border border-brand-border overflow-hidden">
-        <div className="h-full bg-accent-primary transition-[width] duration-500" style={{ width: `${pct}%` }} />
+      <span className="h-8 min-w-[32px] px-1 rounded-xl bg-accent-secondary border-2 border-brand-border text-white font-display text-base flex items-center justify-center shadow-[inset_0_-3px_0_#C92D63] shrink-0">
+        {level}
+      </span>
+      <div className="flex-1 h-3 rounded-full bg-brand-inner border-2 border-brand-border overflow-hidden">
+        <div className="h-full bg-accent-success transition-[width] duration-500" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );

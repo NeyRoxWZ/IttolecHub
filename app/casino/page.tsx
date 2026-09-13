@@ -36,6 +36,7 @@ import DailyWheelModal from './_components/DailyWheelModal';
 import Confetti from './_components/Confetti';
 import BalanceChip from './_components/BalanceChip';
 import { CASINO_GAMES } from '@/lib/casino/games';
+import { BRAWL, BRAWL_SWATCHES } from '@/lib/ui/brawl';
 
 
 /** Bumped when the tour changes enough to be worth showing again. */
@@ -81,11 +82,11 @@ function ClaimTile({
       onClick={onClick}
       disabled={busy || !ready}
       className={cn(
-        'relative h-16 sm:h-14 shrink-0 rounded-xl border-2 transition-all focus:outline-none',
+        'relative h-16 sm:h-14 shrink-0 rounded-xl border-[3px] border-brand-border transition-transform focus:outline-none',
         'flex flex-col sm:flex-row items-center sm:gap-2 justify-center sm:justify-start px-2 sm:px-3 text-center sm:text-left',
         ready
-          ? 'border-accent-success bg-accent-success text-brand-bg shadow-brutal hover:-translate-y-0.5'
-          : 'border-brand-border bg-brand-card cursor-default'
+          ? 'bg-accent-success text-brand-bg shadow-[inset_0_-5px_0_#1E9A55,0_4px_0_#05061A] active:translate-y-[3px]'
+          : 'bg-brand-inner shadow-[inset_0_3px_0_#0B0E2A] cursor-default'
       )}
     >
       <Icon className={cn('h-4 w-4 shrink-0 mb-0.5 sm:mb-0', !ready && 'text-tx-muted')} />
@@ -118,9 +119,9 @@ function NavTile({
     <button
       onClick={onClick}
       className={cn(
-        TILE, 'pr-7',
-        pending ? 'border-accent-secondary bg-brand-card' : 'border-brand-border bg-brand-card',
-        'hover:border-accent-primary hover:-translate-y-0.5'
+        TILE, 'pr-7 border-[3px] border-brand-border shadow-[0_4px_0_#05061A]',
+        pending ? 'bg-[#3A2150]' : 'bg-brand-card',
+        'hover:-translate-y-0.5'
       )}
     >
       <Icon className="h-4 w-4 shrink-0 text-accent-primary" />
@@ -325,8 +326,8 @@ export default function CasinoHub() {
     {
       label: 'Coffre 7 jours', icon: Gift,
       ready: !chest?.claimedToday,
-      readyHint: chest ? `case ${chest.next}/7` : '',
-      waitLabel: chest ? `${chest.day} j d'affilée` : formatWait(dailyResetIn),
+      readyHint: chest?.next ? `case ${chest.next}/7` : '7 jours de cadeaux',
+      waitLabel: chest?.day ? `${chest.day} j d'affilée` : formatWait(dailyResetIn),
       onClick: () => { sfx.click(); setShowChest(true); },
     },
     {
@@ -377,14 +378,15 @@ export default function CasinoHub() {
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => router.push('/?mode=solo')}
-              className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
+              aria-label="Retour à l’accueil"
+              className={cn(BRAWL.pink, 'h-12 w-12 shrink-0')}
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-6 w-6" strokeWidth={3} />
             </button>
             <div className="min-w-0 flex-1">
-              <h1 className="font-display text-xl sm:text-2xl font-black leading-none truncate">Casino</h1>
+              <h1 className="font-display text-3xl sm:text-4xl leading-none truncate">Casino</h1>
               {prestigeTitle && (
-                <span className="block text-[10px] font-black uppercase tracking-widest text-accent-primary truncate">
+                <span className="block text-[11px] font-black uppercase tracking-widest text-accent-primary truncate mt-1">
                   {prestigeTitle}
                 </span>
               )}
@@ -395,9 +397,10 @@ export default function CasinoHub() {
             <button
               onClick={() => { sfx.click(); setShowGuide(true); }}
               title="Comment ça marche ?"
-              className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-accent-primary hover:border-accent-primary transition-colors focus:outline-none flex items-center justify-center"
+              aria-label="Comment ça marche ?"
+              className={cn(BRAWL.dark, 'h-12 w-12 shrink-0')}
             >
-              <Info className="h-4 w-4" />
+              <Info className="h-5 w-5" />
             </button>
           </div>
 
@@ -405,17 +408,19 @@ export default function CasinoHub() {
             <button
               onClick={() => { sfx.click(); setShowJackpot(true); }}
               title="Comment gagner la cagnotte ?"
-              className="hidden sm:flex h-11 items-center gap-2 px-3 rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal hover:bg-brand-inner transition-colors focus:outline-none"
+              className="hidden sm:flex h-12 items-center gap-2 pl-1.5 pr-3 rounded-2xl border-[3px] border-brand-border bg-brand-bg hover:bg-[#1A1E4A] transition-colors focus:outline-none"
             >
-              <Gem className="h-4 w-4 shrink-0 text-accent-primary" />
+              <span className="h-8 w-8 shrink-0 rounded-xl bg-accent-info border-2 border-brand-border flex items-center justify-center shadow-[inset_0_-3px_0_#2F5BD0]">
+                <Gem className="h-4 w-4 text-white" strokeWidth={2.5} />
+              </span>
               <div className="leading-tight text-left">
-                <div className="font-display font-black text-[13px] text-accent-primary tabular-nums">
+                <div className="font-display text-base text-white tabular-nums">
                   {jackpot !== null ? `${jackpot.toLocaleString('en-US')} ₶` : '···'}
                 </div>
-                <div className="text-[9px] font-bold text-tx-muted">Cagnotte</div>
+                <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted">Cagnotte</div>
               </div>
               {/* Was a grey "?" wedged in the corner; nobody saw it. */}
-              <span className="ml-1 h-5 w-5 shrink-0 rounded-full bg-accent-primary text-brand-bg text-[11px] font-black flex items-center justify-center">
+              <span className="ml-1 h-6 w-6 shrink-0 rounded-full bg-accent-primary border-2 border-brand-border text-brand-bg font-display text-sm flex items-center justify-center">
                 ?
               </span>
             </button>
@@ -425,16 +430,16 @@ export default function CasinoHub() {
               <button
                 onClick={() => { sfx.click(); setShowPrestige(true); }}
                 title="Prestiger"
-                className="hidden sm:flex h-11 items-center gap-2 px-3 rounded-xl border-2 border-accent-primary bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all focus:outline-none"
+                className={cn(BRAWL.yellow, 'hidden sm:flex h-12 px-4 text-lg')}
               >
-                <Sparkles className="h-4 w-4 shrink-0" />
-                <span className="font-display font-black text-xs tracking-wider">PRESTIGER</span>
+                <Sparkles className="h-5 w-5 shrink-0" />
+                <span>Prestiger</span>
               </button>
             ) : (
               <button
                 onClick={() => { sfx.click(); setShowPrestige(true); }}
                 title={`Atteins ${PRESTIGE_THRESHOLD.toLocaleString('en-US')} ₶ pour prestiger`}
-                className="hidden sm:flex h-11 items-center gap-2 px-3 rounded-xl border-2 border-brand-border bg-brand-card hover:border-accent-primary transition-colors focus:outline-none"
+                className="hidden sm:flex h-12 items-center gap-2 px-3 rounded-2xl border-[3px] border-brand-border bg-brand-bg hover:bg-[#1A1E4A] transition-colors focus:outline-none"
               >
                 <Sparkles className="h-4 w-4 shrink-0 text-accent-primary" />
                 <div className="leading-tight text-left min-w-[74px]">
@@ -453,15 +458,17 @@ export default function CasinoHub() {
               </button>
             )}
 
-            <div className="h-11 hidden sm:flex items-center px-3 rounded-xl border-2 border-brand-border bg-brand-inner">
+            <div className="h-12 hidden sm:flex items-center pl-1.5 pr-3 rounded-2xl border-[3px] border-brand-border bg-brand-bg">
               <LevelBar level={stats.level} into={stats.xpIntoLevel} needed={stats.xpForNext} />
             </div>
 
             <CasinoControls className="hidden sm:flex" />
             {stats.currentStreak > 1 && (
-              <div className="h-11 flex items-center gap-1.5 px-3 rounded-xl border-2 border-accent-secondary bg-accent-secondary/10" title="Victoires d'affilée">
-                <Flame className="h-4 w-4 text-accent-secondary" />
-                <span className="font-display font-black text-sm text-accent-secondary">{stats.currentStreak}</span>
+              <div className="h-12 flex items-center gap-1.5 pl-1.5 pr-3 rounded-2xl border-[3px] border-brand-border bg-brand-bg" title="Victoires d'affilée">
+                <span className="h-8 w-8 rounded-xl bg-[#FF8A1F] border-2 border-brand-border flex items-center justify-center shadow-[inset_0_-3px_0_#CC6508]">
+                  <Flame className="h-4 w-4 text-white" strokeWidth={2.5} />
+                </span>
+                <span className="font-display text-lg text-white">{stats.currentStreak}</span>
               </div>
             )}
             <BalanceChip balance={balance} isLoaded={isLoaded} isLocal={isLocal} />
@@ -514,23 +521,32 @@ export default function CasinoHub() {
 
           {/* GAMES — 5×4 grid that fills the remaining height exactly, so the
               cards stay big instead of being squeezed into a corner. */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 lg:grid-rows-4 gap-3 flex-1 lg:min-h-0">
-            {CASINO_GAMES.map((game) => {
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 lg:grid-rows-4 gap-x-3 gap-y-4 flex-1 lg:min-h-0 pb-1.5">
+            {CASINO_GAMES.map((game, i) => {
               const Icon = game.icon;
+              const swatch = BRAWL_SWATCHES[i % BRAWL_SWATCHES.length];
               return (
                 <Link
                   key={game.slug}
                   href={`/casino/${game.slug}`}
                   prefetch
                   onClick={() => sfx.click()}
-                  className="group h-full min-h-[128px] rounded-2xl border-4 border-brand-border bg-brand-card p-3 flex flex-col items-center justify-center gap-2 shadow-brutal transition-all hover:border-accent-primary hover:-translate-y-1 active:translate-y-0 focus:outline-none"
+                  className="group relative h-full min-h-[150px] rounded-[20px] border-4 border-brand-border bg-brand-card overflow-hidden flex flex-col shadow-[0_6px_0_#05061A] transition-transform hover:-translate-y-1 active:translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-accent-primary"
                 >
-                  <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 group-hover:border-accent-primary group-hover:scale-105 transition-all">
-                    <Icon className="h-7 w-7 text-accent-primary" />
+                  {/* Coloured top with the game's icon: the card's cover. */}
+                  <div
+                    className="relative flex-1 min-h-[64px] flex items-center justify-center border-b-4 border-brand-border"
+                    style={{ background: swatch.fill, boxShadow: `inset 0 -6px 0 ${swatch.shade}` }}
+                  >
+                    <Icon className="h-9 w-9 text-white drop-shadow-[0_3px_0_#05061A] transition-transform group-hover:scale-110" strokeWidth={2.5} />
+                    <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-lg bg-brand-bg border-2 border-brand-border font-display text-[11px] text-white" title="Redistribution">
+                      {game.rtp}
+                    </span>
                   </div>
-                  <span className="font-display font-black text-sm leading-tight text-center">{game.name}</span>
-                  <span className="text-[11px] text-tx-secondary leading-tight text-center">{game.short}</span>
-                  <span className="text-[10px] font-bold text-tx-muted mt-auto">Redistribution {game.rtp}</span>
+                  <div className="px-2 py-2 text-center">
+                    <div className="font-display text-lg leading-none text-stroke-sm truncate">{game.name.replace(/^Frenly /, '')}</div>
+                    <div className="mt-1 text-[11px] font-bold text-tx-secondary leading-tight truncate">{game.short}</div>
+                  </div>
                 </Link>
               );
             })}

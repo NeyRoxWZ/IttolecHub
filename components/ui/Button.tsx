@@ -13,14 +13,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ children, className, variant = 'primary', size = 'md', ...props }, ref) => {
-    const baseClasses = 'inline-flex items-center justify-center font-display tracking-wide rounded-xl border-[3px] border-[#14142B] transition-transform duration-75 focus:outline-none focus-visible:ring-4 focus-visible:ring-white disabled:opacity-50 disabled:cursor-not-allowed active:translate-y-[3px]';
+    const baseClasses = 'inline-flex items-center justify-center font-display tracking-wide rounded-xl border-[3px] border-[#05061A] transition-transform duration-75 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFC61A] disabled:opacity-50 disabled:cursor-not-allowed active:translate-y-[3px]';
 
     const variants = {
-      primary: 'bg-[#FFC61A] text-[#14142B] shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#14142B] hover:bg-[#FFD24D] active:shadow-[inset_0_-2px_0_#D98E00,0_1px_0_#14142B]',
-      secondary: 'bg-white text-[#14142B] shadow-[inset_0_-5px_0_#C3CBE3,0_4px_0_#14142B] hover:bg-[#F3F6FF] active:shadow-[inset_0_-2px_0_#C3CBE3,0_1px_0_#14142B]',
-      outline: 'bg-transparent text-[#14142B] hover:bg-white/40 active:translate-y-0',
-      ghost: 'bg-transparent border-transparent text-[#14142B] hover:bg-white/40 active:translate-y-0',
-      purple: 'bg-[#FF4F8B] text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#14142B] hover:bg-[#FF6C9E] active:shadow-[inset_0_-2px_0_#C92D63,0_1px_0_#14142B]',
+      primary: 'bg-[#FFC61A] text-[#0E1030] shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] hover:bg-[#FFD24D] active:shadow-[inset_0_-2px_0_#D98E00,0_1px_0_#05061A]',
+      secondary: 'bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A] hover:bg-[#353C85] active:shadow-[inset_0_-2px_0_#1A1F52,0_1px_0_#05061A]',
+      outline: 'bg-transparent border-[#C2C9F0] text-white hover:bg-white/10 active:translate-y-0',
+      ghost: 'bg-transparent border-transparent text-[#C2C9F0] hover:text-white hover:bg-white/10 active:translate-y-0',
+      purple: 'bg-[#FF4F8B] text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A] hover:bg-[#FF6C9E] active:shadow-[inset_0_-2px_0_#C92D63,0_1px_0_#05061A]',
     };
 
     const sizes = {

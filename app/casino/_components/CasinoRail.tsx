@@ -2,22 +2,19 @@
 
 import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BRAWL, BRAWL_SWATCHES } from '@/lib/ui/brawl';
 import EventBanner from './EventBanner';
 import ActiveEffectsBar from './ActiveEffectsBar';
 import PushToggle from './PushToggle';
 import type { MenuEntry } from './CasinoMenu';
 
 /**
- * Everything that is not a game, stacked down the side.
+ * Everything that is not a game, stacked down the side in panels.
  *
  * These groups used to sit above the grid as full-width bands and ate roughly
- * a third of the page, which squeezed twenty games into what was left.
- *
- * The rail is two columns rather than a list for the same reason it exists at
- * all: as one column it outgrew the viewport and started scrolling, and a
- * scrolling sidebar hides exactly the things it is there to keep in sight.
- * Everything now fits at once, which is the whole point — so keep new entries
- * compact, or the scrollbar comes back.
+ * a third of the page, which squeezed twenty games into what was left. Keep
+ * new entries compact, or the rail starts scrolling and hides exactly what it
+ * is there to keep in sight.
  */
 
 export interface Claim {
@@ -32,16 +29,14 @@ export interface Claim {
 
 export function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div>
-      {/* Sits on the blue page, not on a panel: white to stay readable. */}
-      <div className="text-[10px] font-black uppercase tracking-widest text-white mb-1 px-0.5 [text-shadow:0_1px_0_#14142B]">
-        {title}
-      </div>
+    <div className={cn(BRAWL.panel, 'p-3')}>
+      <div className="font-display text-lg leading-none mb-2.5">{title}</div>
       {children}
     </div>
   );
 }
 
+/** Green and raised when there is something to take; sunk and grey while it recharges. */
 export function ClaimTile({ claim }: { claim: Claim }) {
   const { icon: Icon } = claim;
   return (
@@ -50,54 +45,49 @@ export function ClaimTile({ claim }: { claim: Claim }) {
       disabled={claim.busy || !claim.ready}
       title={claim.ready ? claim.readyHint : claim.waitLabel}
       className={cn(
-        'h-[52px] px-2 rounded-xl border-2 flex flex-col items-center justify-center gap-0.5 transition-all focus:outline-none',
+        'h-[60px] px-1.5 rounded-xl border-[3px] border-brand-border flex flex-col items-center justify-center gap-0.5 transition-transform focus:outline-none',
         claim.ready
-          ? 'border-accent-success bg-accent-success text-brand-bg shadow-brutal hover:-translate-y-0.5'
-          : 'border-brand-border bg-brand-card cursor-default'
+          ? 'bg-accent-success text-brand-bg shadow-[inset_0_-5px_0_#1E9A55,0_4px_0_#05061A] active:translate-y-[3px]'
+          : 'bg-brand-inner text-tx-muted shadow-[inset_0_3px_0_#0B0E2A] cursor-default'
       )}
     >
-      <Icon className={cn('h-3.5 w-3.5 shrink-0', !claim.ready && 'text-tx-muted')} />
-      <div className={cn(
-        'font-display font-black text-[10px] leading-none truncate w-full text-center',
-        claim.ready ? 'text-brand-bg' : 'text-tx-secondary'
-      )}>
-        {claim.label}
-      </div>
-      <div className={cn(
-        'text-[8px] font-bold leading-none truncate w-full text-center flex items-center justify-center gap-0.5',
-        claim.ready ? 'text-brand-bg/70' : 'text-tx-muted'
-      )}>
+      <Icon className="h-4 w-4 shrink-0" />
+      <div className="font-display text-[13px] leading-none truncate w-full text-center">{claim.label}</div>
+      <div className="text-[9px] font-black leading-none truncate w-full text-center flex items-center justify-center gap-0.5 opacity-80">
         {claim.busy
           ? '···'
           : claim.ready
             ? claim.readyHint
-            : (<><Clock className="h-2 w-2 shrink-0" />{claim.waitLabel}</>)}
+            : (<><Clock className="h-2.5 w-2.5 shrink-0" />{claim.waitLabel}</>)}
       </div>
     </button>
   );
 }
 
-export function NavTile({ entry }: { entry: MenuEntry }) {
+/** A coloured icon with its label under it, and a red count when something waits. */
+export function NavTile({ entry, index = 0 }: { entry: MenuEntry; index?: number }) {
   const { icon: Icon } = entry;
+  const swatch = BRAWL_SWATCHES[index % BRAWL_SWATCHES.length];
   return (
     <button
       onClick={entry.onSelect}
       title={entry.hint}
-      className={cn(
-        'relative h-[46px] px-2 rounded-xl border-2 bg-brand-card flex items-center gap-1.5 text-left transition-all focus:outline-none',
-        'hover:border-accent-primary hover:-translate-y-0.5',
-        entry.pending ? 'border-accent-secondary' : 'border-brand-border'
-      )}
+      className="group flex flex-col items-center gap-1 text-center focus:outline-none"
     >
-      <Icon className="h-3.5 w-3.5 shrink-0 text-accent-primary" />
-      <span className="font-display font-black text-[10px] leading-tight text-tx-base line-clamp-2">
+      <span
+        className={cn(BRAWL.iconTile, 'h-11 w-11 text-white transition-transform group-hover:-translate-y-0.5 group-active:translate-y-[2px]')}
+        style={{ background: swatch.fill, boxShadow: `inset 0 -4px 0 ${swatch.shade}, 0 3px 0 #05061A` }}
+      >
+        <Icon className="h-5 w-5" strokeWidth={2.5} />
+        {entry.pending ? (
+          <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white font-display text-[11px] flex items-center justify-center">
+            {entry.pending}
+          </span>
+        ) : null}
+      </span>
+      <span className="text-[10px] font-black leading-tight text-tx-secondary group-hover:text-white line-clamp-2">
         {entry.label}
       </span>
-      {entry.pending ? (
-        <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-accent-secondary text-white text-[9px] font-black flex items-center justify-center">
-          {entry.pending}
-        </span>
-      ) : null}
     </button>
   );
 }
@@ -110,21 +100,21 @@ export default function CasinoRail({
   className?: string;
 }) {
   return (
-    <aside className={cn('w-[236px] shrink-0 space-y-2.5', className)}>
+    <aside className={cn('w-[264px] shrink-0 space-y-3', className)}>
       <Group title="À récupérer">
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-2 gap-2">
           {claims.map((c) => <ClaimTile key={c.label} claim={c} />)}
         </div>
       </Group>
 
       <Group title="Aller à">
-        <div className="grid grid-cols-2 gap-1.5">
-          {destinations.map((d) => <NavTile key={d.label} entry={d} />)}
+        <div className="grid grid-cols-4 gap-x-1 gap-y-2.5">
+          {destinations.map((d, i) => <NavTile key={d.label} entry={d} index={i} />)}
         </div>
       </Group>
 
       <Group title="En ce moment">
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <EventBanner className="flex-col flex-nowrap items-stretch" />
           <ActiveEffectsBar />
           <PushToggle className="w-full justify-center" />

@@ -5,26 +5,26 @@
 @tailwind utilities;
 
 /* ------------------------------------------------------------------ */
-/* Direction "Brawl". The page is blue with soft diagonal stripes;     */
-/* panels are white with ink outlines (see tailwind.config.js).        */
+/* Direction "Brawl", dark. Deep navy page with soft diagonal stripes; */
+/* indigo panels with black outlines (see tailwind.config.js).         */
 /* ------------------------------------------------------------------ */
 
 html,
 body {
-  background-color: #4C82FF;
+  background-color: #161A45;
   background-image:
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0 24px, transparent 24px 48px),
-    linear-gradient(180deg, #5A8DFF 0%, #3A6FF0 100%);
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 24px, transparent 24px 48px),
+    linear-gradient(180deg, #1B2056 0%, #10133A 100%);
   background-attachment: fixed;
-  color: #14142B;
+  color: #FFFFFF;
   font-family: 'Nunito', system-ui, sans-serif;
   font-weight: 600;
   -webkit-font-smoothing: antialiased;
 }
 
-/* The body class still says bg-brand-bg (ink) for older screens: the page
+/* The body class says bg-brand-bg (the darkest tone): the striped page
    background above must win. */
-body.bg-brand-bg { background-color: #4C82FF; }
+body.bg-brand-bg { background-color: #161A45; }
 
 h1,
 h2,
@@ -42,52 +42,35 @@ h4 {
   letter-spacing: 0.01em;
 }
 
-/* Big titles: white letters with an ink outline, like the logo. */
+/* Big titles: white letters with a black outline, like the logo. */
 h1.font-display {
   color: #FFFFFF;
-  -webkit-text-stroke: 6px #14142B;
+  -webkit-text-stroke: 6px #05061A;
   paint-order: stroke fill;
-  text-shadow: 0 4px 0 #14142B;
+  text-shadow: 0 4px 0 #05061A;
 }
 
-/* Bright accents stay bright as fills and outlines, but as text on a white
-   panel they need a darker shade to be readable. */
-.text-accent-primary { color: #B97800; }
-.text-accent-success { color: #16994F; }
-.text-accent-secondary { color: #E0306F; }
-.text-accent-info { color: #2457E0; }
-
-/* The pale Tailwind shades were picked for text on a dark panel. On the
-   white panels they vanish: same hue, a shade dark enough to read. */
-.text-rose-300, .text-rose-400, .text-pink-300 { color: #D6245A; }
-.text-red-300, .text-red-400 { color: #D62828; }
-.text-sky-300, .text-cyan-300 { color: #1C74C9; }
-.text-fuchsia-300, .text-fuchsia-400 { color: #B024B8; }
-.text-orange-300 { color: #D9480F; }
-.text-yellow-300, .text-amber-400 { color: #A87600; }
-.text-violet-300, .text-indigo-300 { color: #6D3FD6; }
-.text-emerald-300, .text-green-400, .text-teal-300, .text-lime-300 { color: #16994F; }
-.text-gray-400, .text-zinc-200, .text-zinc-300, .text-slate-300 { color: #5B6078; }
-
-/* "Invert on hover" used to mean white fill with dark text. Now that the
-   base text colour is ink, the same classes gave ink on ink: keep the fill,
-   force the text white. */
-.bg-tx-base.text-brand-bg,
-.hover\:bg-tx-base.hover\:text-brand-bg:hover { color: #FFFFFF; }
-
-/* Faint accent tints were see-through washes over a dark panel. Over the
-   blue page they vanish, so they become solid pastels that work anywhere. */
-.bg-accent-primary\/5, .bg-accent-primary\/10, .bg-accent-primary\/15, .bg-accent-primary\/20 { background-color: #FFF0C2; }
-.bg-accent-success\/5, .bg-accent-success\/10, .bg-accent-success\/15, .bg-accent-success\/20 { background-color: #DDF7E8; }
-.bg-accent-secondary\/5, .bg-accent-secondary\/10, .bg-accent-secondary\/15, .bg-accent-secondary\/20 { background-color: #FFE1EC; }
+/* The same outlined lettering for any other title: game names, badges. */
+.text-stroke {
+  color: #FFFFFF;
+  -webkit-text-stroke: 5px #05061A;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 #05061A;
+}
+.text-stroke-sm {
+  color: #FFFFFF;
+  -webkit-text-stroke: 3px #05061A;
+  paint-order: stroke fill;
+  text-shadow: 0 2px 0 #05061A;
+}
 
 /* Filled buttons get the pressed-in bottom edge. */
-.bg-accent-primary.shadow-brutal { box-shadow: inset 0 -5px 0 #D98E00, 0 5px 0 #14142B; }
-.bg-accent-success.shadow-brutal { box-shadow: inset 0 -5px 0 #1E9A55, 0 5px 0 #14142B; }
-.bg-accent-secondary.shadow-brutal { box-shadow: inset 0 -5px 0 #C92D63, 0 5px 0 #14142B; }
+.bg-accent-primary.shadow-brutal { box-shadow: inset 0 -5px 0 #D98E00, 0 5px 0 #05061A; }
+.bg-accent-success.shadow-brutal { box-shadow: inset 0 -5px 0 #1E9A55, 0 5px 0 #05061A; }
+.bg-accent-secondary.shadow-brutal { box-shadow: inset 0 -5px 0 #C92D63, 0 5px 0 #05061A; }
 .bg-accent-primary.shadow-brutal:active,
 .bg-accent-success.shadow-brutal:active,
-.bg-accent-secondary.shadow-brutal:active { transform: translateY(3px); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.2), 0 2px 0 #14142B; }
+.bg-accent-secondary.shadow-brutal:active { transform: translateY(3px); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25), 0 2px 0 #05061A; }
 
 ::-webkit-scrollbar {
   width: 8px;
@@ -95,12 +78,12 @@ h1.font-display {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(20, 20, 43, 0.12);
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #14142B;
+  background: #FFC61A;
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
@@ -110,11 +93,11 @@ h1.font-display {
    list's scrollbar does not read as a line between panels. */
 [data-krash] * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(20, 20, 43, 0.35) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
 }
 [data-krash] ::-webkit-scrollbar { width: 4px; height: 4px; }
 [data-krash] ::-webkit-scrollbar-track { background: transparent; border: 0; }
-[data-krash] ::-webkit-scrollbar-thumb { background: rgba(20, 20, 43, 0.35); border: 0; }
+[data-krash] ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.25); border: 0; }
 
 /* WIKIRACING STYLES */
 .wiki-content {
@@ -128,7 +111,7 @@ h1.font-display {
   font-weight: 800;
   margin-top: 1.5em;
   margin-bottom: 0.5em;
-  border-bottom: 2px solid #D5DEF7;
+  border-bottom: 2px solid #2A3070;
   padding-bottom: 0.2em;
 }
 
@@ -191,7 +174,7 @@ body {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   /* Rubber-band scrolling reveals white behind the page on iOS. */
-  background-color: #4C82FF;
+  background-color: #161A45;
   overscroll-behavior-y: none;
 }
 

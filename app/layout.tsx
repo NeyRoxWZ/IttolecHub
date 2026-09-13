@@ -33,7 +33,7 @@ export const viewport = {
   // Lets the page draw under the notch and the home indicator; the safe-area
   // insets in globals.css keep the content clear of them.
   viewportFit: 'cover' as const,
-  themeColor: '#4C82FF',
+  themeColor: '#161A45',
 }
 
 export default function RootLayout({

@@ -4,37 +4,48 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Gamepad2, Play, Users, ChevronRight, ChevronLeft, Crown, TrendingUp, LogOut, Menu, X, RotateCcw, Coins } from 'lucide-react';
+import { Gamepad2, Play, Users, LogOut, Menu, X, RotateCcw, Sparkles, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import { vibrate, HAPTIC } from '@/lib/haptic';
-
-export const viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-}
+import GameCover, { type CoverGame } from '@/components/GameCover';
+import releases from '@/patch-notes/releases.json';
 
 const STEPS = [
-  {
-    title: 'Crée ta salle',
-    description: 'Génère un code court et laisse tes amis rejoindre en un clic.',
-    icon: Users
-  },
-  {
-    title: 'Choisis un jeu',
-    description: 'L’hôte sélectionne un mini-jeu et règle les manches + le temps.',
-    icon: Gamepad2
-  },
-  {
-    title: 'Jouez ensemble',
-    description: 'Tout le monde joue en temps réel. Le podium tombe à la fin.',
-    icon: Play
-  }
+  { title: 'Crée ta salle', description: 'Un code court, tes amis rejoignent en un clic.', icon: Users },
+  { title: 'Choisis un jeu', description: 'L’hôte règle le mini-jeu, les manches et le temps.', icon: Gamepad2 },
+  { title: 'Jouez ensemble', description: 'Tout le monde en temps réel, podium à la fin.', icon: Play },
 ];
+
+const MULTI_GAMES = ['PokéGuessr', 'RentGuessr', 'FlagGuessr', 'LogoGuessr', 'BudgetGuessr', 'JaugeGuessr', 'DrawGuessr', 'Undercover', 'Infiltré', 'WikiRacing'];
+
+const SOLO_GAMES: { id: CoverGame; name: string; tag: string; tagClass: string; description: string; href: string }[] = [
+  {
+    id: 'clicker', name: 'ItollecClicker', tag: 'Idle', tagClass: 'bg-accent-success text-brand-bg',
+    description: 'Clique pour gagner des ₶, achète des bâtiments et empile les bonus pour produire toujours plus.',
+    href: '/itollec-clicker',
+  },
+  {
+    id: 'casino', name: 'Casino', tag: '20 jeux', tagClass: 'bg-accent-primary text-brand-bg',
+    description: 'Mise tes FrenlyCoins sur 20 mini-jeux, avec pass, coffre, missions et cagnotte. Monnaie fictive.',
+    href: '/casino',
+  },
+  {
+    id: 'krash', name: 'Krash', tag: 'Nouveau', tagClass: 'bg-accent-secondary text-white',
+    description: 'La bourse en accéléré : parie à la hausse ou à la baisse avec un portefeuille séparé du casino.',
+    href: '/krash',
+  },
+];
+
+const latestRelease = (releases as { releases: { version: string; title?: string }[] }).releases[0];
+
+/** The shared chunky button: bright fill, black outline, pressed-in bottom edge. */
+const BTN = 'inline-flex items-center justify-center gap-2 rounded-xl border-[3px] border-brand-border font-display tracking-wide transition-transform active:translate-y-[3px] disabled:opacity-50 disabled:cursor-not-allowed';
+const BTN_YELLOW = `${BTN} bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A]`;
+const BTN_DARK = `${BTN} bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A]`;
+const BTN_PINK = `${BTN} bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A]`;
 
 export default function Home() {
   const router = useRouter();
@@ -42,12 +53,9 @@ export default function Home() {
   const [mode, setMode] = useState<'multiplayer' | 'solo'>('multiplayer');
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [currentStep, setCurrentStep] = useState(0);
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
   const [logoVisible, setLogoVisible] = useState(true);
-  const [demoGameIndex, setDemoGameIndex] = useState(1);
   const [easterEggActive, setEasterEggActive] = useState(false);
-  const [keyBuffer, setKeyBuffer] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [resumeRoom, setResumeRoom] = useState<{ code: string; name: string } | null>(null);
   const { user, logout } = useAuth();
@@ -93,14 +101,10 @@ export default function Home() {
       sessionStorage.setItem('itollec_home_mode', urlMode);
       return;
     }
-
     const savedMode = sessionStorage.getItem('itollec_home_mode');
-    if (savedMode === 'solo' || savedMode === 'multiplayer') {
-      setMode(savedMode);
-    }
+    if (savedMode === 'solo' || savedMode === 'multiplayer') setMode(savedMode);
   }, [searchParams]);
 
-  // Load state on mount
   useEffect(() => {
     if (user) {
       setName(user.pseudo);
@@ -110,43 +114,17 @@ export default function Home() {
     }
   }, [user]);
 
-  // Easter Egg Listener
+  // Easter egg: type "arsac" anywhere outside a field.
   useEffect(() => {
+    let buffer = '';
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-      
-      setKeyBuffer((prev) => {
-        const newBuffer = (prev + e.key).slice(-5).toLowerCase();
-        if (newBuffer === 'arsac') {
-          setEasterEggActive(true);
-        }
-        return newBuffer;
-      });
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      buffer = (buffer + e.key).slice(-5).toLowerCase();
+      if (buffer === 'arsac') setEasterEggActive(true);
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  // Auto-slide effect (resets when currentStep changes via arrows)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCurrentStep((prev) => (prev + 1) % STEPS.length);
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, [currentStep]);
-
-  // Demo 2: Games cycling effect
-  useEffect(() => {
-    if (currentStep !== 1) return;
-    const timer = setInterval(() => {
-      setDemoGameIndex((prev) => (prev + 1) % 3);
-    }, 1200);
-    return () => clearInterval(timer);
-  }, [currentStep]);
 
   const handleAction = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -154,7 +132,6 @@ export default function Home() {
       toast.error('Choisis un pseudo !');
       return;
     }
-
     sessionStorage.setItem('playerName', name);
     vibrate(HAPTIC.MEDIUM);
 
@@ -170,11 +147,7 @@ export default function Home() {
     }
   };
 
-  const canSubmit =
-    name.trim().length > 0 && (activeTab === 'create' || code.trim().length > 0);
-
-  const goPrev = () => setCurrentStep((prev) => (prev - 1 + STEPS.length) % STEPS.length);
-  const goNext = () => setCurrentStep((prev) => (prev + 1) % STEPS.length);
+  const canSubmit = name.trim().length > 0 && (activeTab === 'create' || code.trim().length > 0);
 
   const handleSetMode = (nextMode: 'multiplayer' | 'solo') => {
     vibrate(HAPTIC.SOFT);
@@ -183,31 +156,40 @@ export default function Home() {
     router.replace(`/?mode=${nextMode}`);
   };
 
-  const goConnexion = () => {
-    const next = `/?mode=${mode}`;
-    try {
-      sessionStorage.setItem('itollec_next_path', next);
-    } catch {}
-    router.push(`/connexion?next=${encodeURIComponent(next)}`);
+  const rememberNext = () => {
+    try { sessionStorage.setItem('itollec_next_path', `/?mode=${mode}`); } catch {}
   };
+  const goConnexion = () => { rememberNext(); router.push(`/connexion?next=${encodeURIComponent(`/?mode=${mode}`)}`); };
+  const goCreerCompte = () => { rememberNext(); router.push('/creer-compte'); };
 
-  const goCreerCompte = () => {
-    const next = `/?mode=${mode}`;
-    try {
-      sessionStorage.setItem('itollec_next_path', next);
-    } catch {}
-    router.push('/creer-compte');
-  };
+  const modeSwitch = (
+    <nav className="flex gap-1 p-1.5 rounded-2xl bg-brand-bg border-[3px] border-brand-border" aria-label="Mode de jeu">
+      {(['multiplayer', 'solo'] as const).map((m) => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => handleSetMode(m)}
+          aria-pressed={mode === m}
+          className={cn(
+            'h-10 px-5 rounded-xl font-display text-lg transition-colors',
+            mode === m
+              ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00]'
+              : 'text-tx-secondary hover:text-white'
+          )}
+        >
+          {m === 'multiplayer' ? 'Multijoueur' : 'Solo'}
+        </button>
+      ))}
+    </nav>
+  );
 
   return (
     // Locked to one screen only when the window is big enough to hold it all;
     // a narrow or short window (split screen) scrolls normally.
-    <main className="bg-transparent min-h-screen [@media(min-width:1024px)_and_(min-height:820px)]:h-screen flex flex-col justify-between [@media(min-width:1024px)_and_(min-height:820px)]:overflow-hidden relative">
+    <main className="bg-transparent min-h-screen flex flex-col relative">
       {easterEggActive && (
-        <div 
-          className="fixed inset-0 z-[9999] pointer-events-none"
-        >
-          <div 
+        <div className="fixed inset-0 z-[9999] pointer-events-none">
+          <div
             className="absolute bottom-4 left-4 animate-in slide-in-from-bottom-full duration-500 fade-in pointer-events-auto cursor-pointer"
             onClick={() => setEasterEggActive(false)}
           >
@@ -216,546 +198,270 @@ export default function Home() {
         </div>
       )}
 
-      <style jsx global>{`
-        @keyframes ih-rise {
-          0% { transform: scaleY(0); opacity: 0; }
-          100% { transform: scaleY(1); opacity: 1; }
-        }
-        .ih-anim-rise {
-          transform-origin: bottom;
-          transform: scaleY(0);
-          animation: ih-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes ih-type {
-          0% { opacity: 0; transform: translateY(4px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-        .ih-anim-type {
-          opacity: 0;
-          animation: ih-type 150ms ease-out forwards;
-        }
-      `}</style>
+      {/* TOP BAR */}
+      <header className="px-4 sm:px-6 pt-4">
+        <div className="max-w-6xl mx-auto flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className={cn(BTN_DARK, 'md:hidden h-12 w-12 shrink-0')}
+            aria-label="Menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
 
-      <header className="pt-3 md:pt-5 text-center px-6">
-        <div className="w-full max-w-5xl mx-auto flex items-center justify-between gap-4 mb-3">
-          <div className="md:hidden flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(true)}
-              className="h-11 w-11 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
-              aria-label="Menu"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            {logoVisible && (
-              <Image
-                src="/logo-site.png"
-                alt="ItollecHub"
-                width={1219}
-                height={635}
-                className="h-12 w-auto object-contain select-none"
-                priority
-                onError={() => setLogoVisible(false)}
-              />
-            )}
-          </div>
+          {logoVisible && (
+            <Image
+              src="/logo-site.png"
+              alt="ItollecHub"
+              width={1219}
+              height={635}
+              className="h-12 md:h-16 w-auto object-contain select-none"
+              priority
+              onError={() => setLogoVisible(false)}
+            />
+          )}
 
-          {/* The logo carries its own glow, so no drop shadow on top of it. */}
-          <div className="flex-1 hidden md:flex justify-start">
-            {logoVisible && (
-              <Image
-                src="/logo-site.png"
-                alt="ItollecHub"
-                width={1219}
-                height={635}
-                className="h-16 w-auto object-contain select-none"
-                priority
-                onError={() => setLogoVisible(false)}
-              />
-            )}
-          </div>
+          <div className="hidden md:flex flex-1 justify-center">{modeSwitch}</div>
 
-          <div className="hidden md:flex items-center rounded-2xl border-2 border-brand-border bg-brand-inner p-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleSetMode('multiplayer')}
-              className={cn(
-                'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
-                mode === 'multiplayer'
-                  ? 'bg-brand-card text-tx-base border-brand-border'
-                  : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
-              )}
-            >
-              Multiplayer
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSetMode('solo')}
-              className={cn(
-                'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
-                mode === 'solo'
-                  ? 'bg-brand-card text-tx-base border-brand-border'
-                  : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
-              )}
-            >
-              Solo
-            </button>
-          </div>
-
-          <div className="flex-1 hidden md:flex justify-end">
+          <div className="hidden md:flex items-center gap-2 ml-auto">
             {user ? (
-              <div className="flex items-center gap-2">
+              <>
                 <button
                   type="button"
                   onClick={() => router.push('/profil')}
-                  className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                  className="h-12 flex items-center gap-2 pl-1.5 pr-4 rounded-2xl bg-brand-card border-[3px] border-brand-border shadow-brutal font-black hover:bg-[#252B66] transition-colors"
                 >
+                  <span className="h-8 w-8 rounded-xl bg-accent-secondary text-white font-display text-lg flex items-center justify-center shadow-[inset_0_-3px_0_#C92D63]">
+                    {user.pseudo[0]?.toUpperCase()}
+                  </span>
                   {user.pseudo}
                 </button>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="h-11 w-11 rounded-lg border-2 border-red-500/40 bg-brand-inner text-red-400 hover:text-red-300 hover:border-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center"
-                  title="Se déconnecter"
-                >
+                <button type="button" onClick={logout} className={cn(BTN_PINK, 'h-12 w-12')} title="Se déconnecter" aria-label="Se déconnecter">
                   <LogOut className="h-5 w-5" />
                 </button>
-              </div>
+              </>
             ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={goConnexion}
-                  className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
-                >
-                  Connexion
-                </button>
-                <button
-                  type="button"
-                  onClick={goCreerCompte}
-                  className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
-                >
-                  Créer un compte
-                </button>
-              </div>
+              <>
+                <button type="button" onClick={goConnexion} className={cn(BTN_DARK, 'h-12 px-4 text-lg')}>Connexion</button>
+                <button type="button" onClick={goCreerCompte} className={cn(BTN_YELLOW, 'h-12 px-4 text-lg')}>Créer un compte</button>
+              </>
             )}
           </div>
         </div>
 
+        <div className="md:hidden mt-4 flex justify-center">{modeSwitch}</div>
       </header>
 
+      {/* MOBILE MENU */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[9999] md:hidden">
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(false)}
-            className="absolute inset-0 bg-black/60"
-            aria-label="Fermer"
-          />
-          <div className="absolute top-3 left-3 right-3 bg-brand-card border-4 border-brand-border rounded-[32px] p-5 shadow-brutal max-h-[calc(100vh-24px)] overflow-y-auto">
+          <button type="button" onClick={() => setMobileMenuOpen(false)} className="absolute inset-0 bg-black/70" aria-label="Fermer" />
+          <div className="absolute top-3 left-3 right-3 bg-brand-card border-4 border-brand-border rounded-[28px] p-5 shadow-brutal max-h-[calc(100vh-24px)] overflow-y-auto space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="font-display text-2xl font-black tracking-wider uppercase text-tx-base">Menu</div>
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(false)}
-                className="h-11 w-11 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
-                aria-label="Fermer"
-              >
+              <div className="font-display text-3xl text-stroke">Menu</div>
+              <button type="button" onClick={() => setMobileMenuOpen(false)} className={cn(BTN_DARK, 'h-11 w-11')} aria-label="Fermer">
                 <X className="h-5 w-5" />
               </button>
             </div>
-
-            <div className="mt-5 rounded-2xl border-2 border-brand-border bg-brand-inner p-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleSetMode('multiplayer')}
-                className={cn(
-                  'flex-1 px-3 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
-                  mode === 'multiplayer'
-                    ? 'bg-brand-card text-tx-base border-brand-border'
-                    : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
-                )}
-              >
-                Multiplayer
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSetMode('solo')}
-                className={cn(
-                  'flex-1 px-3 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
-                  mode === 'solo'
-                    ? 'bg-brand-card text-tx-base border-brand-border'
-                    : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
-                )}
-              >
-                Solo
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-3">
-              {user ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      router.push('/profil');
-                    }}
-                    className="w-full h-12 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
-                  >
-                    Profil
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      logout();
-                    }}
-                    className="w-full h-12 rounded-lg border-2 border-red-500/40 bg-brand-inner text-red-400 hover:text-red-300 hover:border-red-400 hover:bg-red-500/10 transition-colors font-display font-black tracking-wider uppercase flex items-center justify-center gap-2"
-                  >
-                    <LogOut className="h-5 w-5" />
-                    Déconnexion
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      goConnexion();
-                    }}
-                    className="w-full h-12 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
-                  >
-                    Connexion
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      goCreerCompte();
-                    }}
-                    className="w-full h-12 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
-                  >
-                    Créer un compte
-                  </button>
-                </>
-              )}
-            </div>
+            {user ? (
+              <>
+                <button type="button" onClick={() => { setMobileMenuOpen(false); router.push('/profil'); }} className={cn(BTN_DARK, 'w-full h-12 text-lg')}>
+                  Profil · {user.pseudo}
+                </button>
+                <button type="button" onClick={() => { setMobileMenuOpen(false); logout(); }} className={cn(BTN_PINK, 'w-full h-12 text-lg')}>
+                  <LogOut className="h-5 w-5" /> Déconnexion
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={() => { setMobileMenuOpen(false); goConnexion(); }} className={cn(BTN_DARK, 'w-full h-12 text-lg')}>Connexion</button>
+                <button type="button" onClick={() => { setMobileMenuOpen(false); goCreerCompte(); }} className={cn(BTN_YELLOW, 'w-full h-12 text-lg')}>Créer un compte</button>
+              </>
+            )}
+            <Link href="/patch-notes" className={cn(BTN_DARK, 'w-full h-12 text-lg')}>Patch notes</Link>
           </div>
         </div>
       )}
 
-      <section className="flex-1 flex items-start md:items-center pb-8 md:pb-10 pt-1">
-        <div className="w-full max-w-5xl mx-auto px-6">
+      <section className="flex-1 px-4 sm:px-6 py-6 md:py-8">
+        <div className="max-w-6xl mx-auto">
           {resumeRoom && mode === 'multiplayer' && (
             <button
               type="button"
               onClick={resumeLastGame}
-              className="mb-6 w-full flex items-center justify-center gap-3 h-14 rounded-2xl border-4 border-brand-border bg-brand-card text-tx-base font-display font-black tracking-wider shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors animate-in fade-in slide-in-from-top-2"
+              className={cn(BTN_YELLOW, 'mb-6 w-full h-14 text-xl animate-in fade-in slide-in-from-top-2')}
             >
               <RotateCcw className="h-5 w-5" />
               Reprendre la partie {resumeRoom.code}
             </button>
           )}
-          {mode === 'multiplayer' ? (
-            <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center">
-              <div className="flex-1 md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
-                <div className="flex items-center justify-between h-12">
-                  <h2 className="font-display text-2xl md:text-3xl leading-none">
-                    {activeTab === 'create' ? 'Créer une room' : 'Rejoindre une room'}
-                  </h2>
-                  <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
-                    <Users className="h-6 w-6 text-tx-secondary" />
-                  </div>
-                </div>
 
-                <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-2">
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => { vibrate(HAPTIC.SOFT); setActiveTab('create'); }}
-                      className={cn(
-                        'flex-1 h-11 rounded-lg font-display font-bold transition-colors border-2',
-                        activeTab === 'create'
-                          ? 'bg-brand-card text-tx-base border-brand-border'
-                          : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
-                      )}
-                    >
-                      Créer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { vibrate(HAPTIC.SOFT); setActiveTab('join'); }}
-                      className={cn(
-                        'flex-1 h-11 rounded-lg font-display font-bold transition-colors border-2',
-                        activeTab === 'join'
-                          ? 'bg-brand-card text-tx-base border-brand-border'
-                          : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
-                      )}
-                    >
-                      Rejoindre
-                    </button>
-                  </div>
-                </div>
-
-                <form onSubmit={handleAction} className="mt-6 flex-1 flex flex-col relative">
-                  <div className="space-y-2 relative z-10">
-                    <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
-                      Ton pseudo
-                    </label>
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="PseudoCool"
-                      disabled={!!user}
-                      className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors disabled:opacity-50"
-                    />
-                  </div>
-
-                  <div
-                    className={cn(
-                      'space-y-2 w-full',
-                      activeTab === 'join' ? 'block mt-4' : 'hidden',
-                      'md:block md:mt-0 md:absolute md:top-[84px] md:left-0 md:w-full md:transition-all md:duration-300',
-                      activeTab === 'join'
-                        ? 'md:opacity-100 md:translate-y-0'
-                        : 'md:opacity-0 md:-translate-y-4 md:pointer-events-none'
-                    )}
-                  >
-                    <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
-                      Code de salle
-                    </label>
-                    <input
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.toUpperCase())}
-                      placeholder="ABC123"
-                      className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 font-mono tracking-widest text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors"
-                      maxLength={6}
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={!canSubmit}
-                    className={cn(
-                      'mt-6 md:mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
-                      'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base',
-                      !canSubmit && 'opacity-50 cursor-not-allowed hover:bg-brand-inner hover:text-tx-base hover:border-brand-border'
-                    )}
-                  >
-                    {activeTab === 'create' ? 'Démarrer' : 'Rejoindre'}
-                  </button>
-                </form>
+          {mode === 'solo' ? (
+            <>
+              <div className="mb-6">
+                <h1 className="font-display text-5xl md:text-6xl leading-none">Jeux solo</h1>
+                <p className="mt-2 font-black text-tx-secondary">Joue à ton rythme. Ta progression est sauvegardée sur ton compte.</p>
               </div>
 
-              <div className="flex-1 md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
-                <div className="flex items-center h-12">
-                  <h2 className="font-display text-2xl md:text-3xl leading-none">Comment jouer</h2>
-                </div>
-
-                <div className="mt-6">
-                  <h3 className="font-display font-bold text-xl">{STEPS[currentStep].title}</h3>
-                  <p className="text-sm text-tx-secondary mt-1">{STEPS[currentStep].description}</p>
-                </div>
-
-                <div className="flex-1 flex items-center justify-center min-h-[160px] w-full mt-4">
-                  {currentStep === 0 && (
-                    <div className="font-mono text-6xl md:text-7xl tracking-[0.15em] font-black text-tx-base flex">
-                      {['A', 'B', 'C', '1', '2', '3'].map((char, i) => (
-                        <span key={i} className="ih-anim-type" style={{ animationDelay: `${i * 100}ms` }}>
-                          {char}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {currentStep === 1 && (
-                    <div className="flex flex-col gap-3 w-full max-w-[220px]">
-                      {['PokéGuessr', 'RentGuessr', 'Undercover'].map((game, i) => (
-                        <div
-                          key={game}
-                          className={cn(
-                            'px-4 py-3 rounded-lg border-2 font-bold text-center transition-all duration-300',
-                            i === demoGameIndex
-                              ? 'border-accent-primary bg-brand-inner text-accent-primary scale-105 shadow-brutal'
-                              : 'border-brand-border bg-brand-inner text-tx-muted'
-                          )}
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {SOLO_GAMES.map((g) => (
+                    <article
+                      key={g.id}
+                      className="relative flex flex-col bg-brand-card border-4 border-brand-border rounded-[24px] overflow-hidden shadow-[0_8px_0_#05061A]"
+                    >
+                      <span className={cn('absolute top-3 left-[-4px] z-10 px-3 py-1 font-display text-base border-[3px] border-brand-border rounded-r-xl', g.tagClass)}>
+                        {g.tag}
+                      </span>
+                      <GameCover game={g.id} className="block w-full aspect-[4/3] border-b-4 border-brand-border" />
+                      <div className="flex-1 flex flex-col gap-3 p-4">
+                        <h2 className="font-display text-3xl leading-none text-stroke">{g.name}</h2>
+                        <p className="text-sm font-bold text-tx-secondary leading-relaxed">{g.description}</p>
+                        <button
+                          type="button"
+                          onClick={() => window.location.assign(g.href)}
+                          className={cn(BTN_YELLOW, 'mt-auto w-full h-14 text-2xl')}
                         >
-                          {game}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {currentStep === 2 && (
-                    <div className="flex items-end justify-center gap-6 h-full pb-2">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-10 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center font-bold text-tx-base">
-                          N
-                        </div>
-                        <div
-                          className="w-12 bg-brand-inner border-2 border-brand-border border-b-0 rounded-t-lg ih-anim-rise"
-                          style={{ height: '64px', animationDelay: '0ms' }}
-                        />
-                        <span className="font-bold text-sm text-tx-secondary">2000</span>
+                          Jouer
+                        </button>
                       </div>
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-10 rounded-lg border-2 border-accent-primary bg-brand-inner flex items-center justify-center font-bold text-accent-primary">
-                          M
-                        </div>
-                        <div
-                          className="w-12 bg-accent-primary border-2 border-brand-border border-b-0 rounded-t-lg ih-anim-rise"
-                          style={{ height: '112px', animationDelay: '200ms' }}
-                        />
-                        <span className="font-bold text-sm text-tx-base">2500</span>
-                      </div>
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-10 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center font-bold text-tx-base">
-                          L
-                        </div>
-                        <div
-                          className="w-12 bg-brand-inner border-2 border-brand-border border-b-0 rounded-t-lg ih-anim-rise"
-                          style={{ height: '96px', animationDelay: '400ms' }}
-                        />
-                        <span className="font-bold text-sm text-tx-secondary">2300</span>
-                      </div>
-                    </div>
-                  )}
+                    </article>
+                  ))}
                 </div>
 
-                <div className="mt-auto pt-4 flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={goPrev}
-                    className="h-10 w-10 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
+                <aside className="grid gap-5">
+                  <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-4 shadow-brutal">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-accent-primary" />
+                      <div className="font-display text-2xl">Nouveautés</div>
+                    </div>
+                    <p className="mt-2 text-sm font-bold text-tx-secondary">
+                      {latestRelease ? `Version ${latestRelease.version}${latestRelease.title ? ` · ${latestRelease.title}` : ''}` : 'Toutes les mises à jour du site.'}
+                    </p>
+                    <Link href="/patch-notes" className={cn(BTN_DARK, 'mt-3 w-full h-11 text-lg')}>
+                      Voir les patch notes <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                  <div className="bg-accent-secondary border-4 border-brand-border rounded-[22px] p-4 shadow-[inset_0_-6px_0_#C92D63,0_5px_0_#05061A]">
+                    <div className="font-display text-2xl text-stroke-sm">Entre potes ?</div>
+                    <p className="mt-1 text-sm font-black text-white">10 mini-jeux multijoueurs, une salle, un code.</p>
+                    <button type="button" onClick={() => handleSetMode('multiplayer')} className={cn(BTN_YELLOW, 'mt-3 w-full h-11 text-lg')}>
+                      Multijoueur
+                    </button>
+                  </div>
+                </aside>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-6">
+                <h1 className="font-display text-5xl md:text-6xl leading-none">Multijoueur</h1>
+                <p className="mt-2 font-black text-tx-secondary">Crée une salle, envoie le code, jouez tous ensemble.</p>
+              </div>
 
-                  <div className="flex items-center gap-3">
-                    {STEPS.map((_, i) => (
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-5 md:p-6 shadow-[0_8px_0_#05061A]">
+                  <div className="flex gap-1 p-1.5 rounded-2xl bg-brand-bg border-[3px] border-brand-border">
+                    {(['create', 'join'] as const).map((t) => (
                       <button
-                        key={i}
+                        key={t}
                         type="button"
-                        onClick={() => setCurrentStep(i)}
+                        onClick={() => { vibrate(HAPTIC.SOFT); setActiveTab(t); }}
+                        aria-pressed={activeTab === t}
                         className={cn(
-                          'h-2.5 rounded-full transition-all border-2 border-brand-border',
-                          i === currentStep ? 'w-10 bg-tx-base border-tx-base' : 'w-2.5 bg-brand-inner hover:bg-brand-border'
+                          'flex-1 h-11 rounded-xl font-display text-lg transition-colors',
+                          activeTab === t ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00]' : 'text-tx-secondary hover:text-white'
                         )}
-                      />
+                      >
+                        {t === 'create' ? 'Créer une salle' : 'Rejoindre'}
+                      </button>
                     ))}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={goNext}
-                    className="h-10 w-10 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
+                  <form onSubmit={handleAction} className="mt-5 space-y-4">
+                    <label className="block space-y-2">
+                      <span className="text-xs font-black tracking-widest uppercase text-tx-secondary">Ton pseudo</span>
+                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="PseudoCool"
+                        disabled={!!user}
+                        className="w-full h-14 rounded-xl bg-brand-inner border-[3px] border-brand-border px-4 text-lg font-black text-white placeholder:text-tx-muted focus:outline-none focus:ring-4 focus:ring-accent-primary disabled:opacity-60"
+                      />
+                    </label>
+
+                    {activeTab === 'join' && (
+                      <label className="block space-y-2 animate-in fade-in slide-in-from-top-1">
+                        <span className="text-xs font-black tracking-widest uppercase text-tx-secondary">Code de salle</span>
+                        <input
+                          value={code}
+                          onChange={(e) => setCode(e.target.value.toUpperCase())}
+                          placeholder="ABC123"
+                          maxLength={6}
+                          className="w-full h-14 rounded-xl bg-brand-inner border-[3px] border-brand-border px-4 font-display text-2xl tracking-[0.3em] text-white placeholder:text-tx-muted focus:outline-none focus:ring-4 focus:ring-accent-primary"
+                        />
+                      </label>
+                    )}
+
+                    <button type="submit" disabled={!canSubmit} className={cn(BTN_YELLOW, 'w-full h-16 text-2xl')}>
+                      {activeTab === 'create' ? 'Démarrer' : 'Rejoindre'}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="grid gap-5">
+                  <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-5 shadow-brutal">
+                    <div className="font-display text-2xl">Comment jouer</div>
+                    <ol className="mt-4 grid gap-3">
+                      {STEPS.map((step, i) => {
+                        const Icon = step.icon;
+                        return (
+                          <li key={step.title} className="flex items-center gap-3 rounded-2xl bg-brand-inner border-[3px] border-brand-border p-3">
+                            <span className="h-12 w-12 shrink-0 rounded-xl bg-accent-info border-[3px] border-brand-border flex items-center justify-center shadow-[inset_0_-4px_0_#2F5BD0]">
+                              <Icon className="h-6 w-6 text-white" />
+                            </span>
+                            <div className="min-w-0">
+                              <div className="font-display text-lg leading-tight">
+                                <span className="text-accent-primary">{i + 1}.</span> {step.title}
+                              </div>
+                              <div className="text-sm font-bold text-tx-secondary">{step.description}</div>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </div>
+
+                  <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-5 shadow-brutal">
+                    <div className="font-display text-2xl">10 jeux au choix</div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {MULTI_GAMES.map((game, i) => (
+                        <span
+                          key={game}
+                          className={cn(
+                            'px-3 py-1.5 rounded-xl border-[3px] border-brand-border font-display text-base',
+                            ['bg-accent-primary text-brand-bg', 'bg-accent-secondary text-white', 'bg-accent-success text-brand-bg', 'bg-accent-info text-white'][i % 4]
+                          )}
+                        >
+                          {game}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center flex-wrap">
-              <div className="flex-1 md:min-w-[280px] md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
-                <div className="flex items-center justify-between h-12">
-                  <h2 className="font-display text-2xl md:text-3xl leading-none">ItollecClicker</h2>
-                  <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
-                    <Crown className="h-6 w-6 text-accent-secondary" />
-                  </div>
-                </div>
-
-                <div className="mt-6 flex-1 flex flex-col">
-                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
-                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2">Description</div>
-                    <p className="text-sm text-tx-secondary font-bold leading-relaxed">
-                      Un clicker façon Cookie Clicker : clique pour gagner des ₶, achète des bâtiments, et empile des bonus pour produire toujours plus.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => window.location.assign('/itollec-clicker')}
-                  className={cn(
-                    'mt-auto w-full h-14 rounded-xl font-display text-xl tracking-wider transition-transform border-[3px] relative z-10',
-                    'bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:-translate-y-0.5'
-                  )}
-                >
-                  Jouer
-                </button>
-              </div>
-
-              <div className="flex-1 md:min-w-[280px] md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
-                <div className="flex items-center justify-between h-12">
-                  <h2 className="font-display text-2xl md:text-3xl leading-none">Casino</h2>
-                  <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
-                    <Coins className="h-6 w-6 text-accent-primary" />
-                  </div>
-                </div>
-
-                <div className="mt-6 flex-1 flex flex-col">
-                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
-                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2">Description</div>
-                    <p className="text-sm text-tx-secondary font-bold leading-relaxed">
-                      Mise tes FrenlyCoins (₶) sur des mini-jeux façon casino. Monnaie fictive, sans valeur réelle.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => window.location.assign('/casino')}
-                  className={cn(
-                    'mt-auto w-full h-14 rounded-xl font-display text-xl tracking-wider transition-transform border-[3px] relative z-10',
-                    'bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:-translate-y-0.5'
-                  )}
-                >
-                  Jouer
-                </button>
-              </div>
-
-              <div className="flex-1 md:min-w-[280px] md:h-[520px] bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
-                <div className="flex items-center justify-between h-12">
-                  <h2 className="font-display text-2xl md:text-3xl leading-none">Krash</h2>
-                  <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
-                    <TrendingUp className="h-6 w-6 text-rose-400" />
-                  </div>
-                </div>
-
-                <div className="mt-6 flex-1 flex flex-col">
-                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
-                    <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2">Description</div>
-                    <p className="text-sm text-tx-secondary font-bold leading-relaxed">
-                      La bourse en accéléré : actions, cryptos et news en direct. Parie à la hausse ou à la baisse avec un portefeuille de FrenlyCoins (₶) à part, séparé du casino.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => window.location.assign('/krash')}
-                  className={cn(
-                    'mt-auto w-full h-14 rounded-xl font-display text-xl tracking-wider transition-transform border-[3px] relative z-10',
-                    'bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:-translate-y-0.5'
-                  )}
-                >
-                  Jouer
-                </button>
-              </div>
-            </div>
+            </>
           )}
         </div>
       </section>
 
-      <footer className="pb-2 md:pb-3 px-6">
-        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-black tracking-widest uppercase text-white [text-shadow:0_1px_0_#14142B]">
-          <Link href="/mentions-legales" className="hover:underline">Mentions légales</Link>
-          <Link href="/conditions" className="hover:underline">Conditions</Link>
-          <Link href="/confidentialite" className="hover:underline">Confidentialité</Link>
-          <Link href="/patch-notes" className="hover:underline">Patch Notes</Link>
+      <footer className="pb-4 px-6">
+        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-black tracking-widest uppercase text-tx-secondary">
+          <Link href="/mentions-legales" className="hover:text-white">Mentions légales</Link>
+          <Link href="/conditions" className="hover:text-white">Conditions</Link>
+          <Link href="/confidentialite" className="hover:text-white">Confidentialité</Link>
+          <Link href="/patch-notes" className="hover:text-white">Patch notes</Link>
         </div>
       </footer>
     </main>

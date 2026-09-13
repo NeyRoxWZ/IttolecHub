@@ -12,34 +12,33 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
-      // Direction "Brawl": white panels with thick ink outlines on a blue
-      // page, chunky outlined titles, buttons with a pressed-in bottom edge.
-      // The token names are the old ones so every screen switches at once:
-      //  brand.bg     ink, the dark tone (text on bright fills, dark wells)
-      //  brand.card   white panel
-      //  brand.inner  pale blue well inside a panel
-      //  brand.border ink outline
+      // Direction "Brawl", dark: indigo panels with thick black outlines on a
+      // deep navy page, chunky outlined titles, bright buttons with a
+      // pressed-in bottom edge. Token names are the old ones so every screen
+      // switches at once:
+      //  brand.bg     darkest tone (text on bright fills, deep wells)
+      //  brand.card   panel
+      //  brand.inner  well inside a panel
+      //  brand.border black outline
       colors: {
         brand: {
-          bg: '#14142B',
-          grid: '#3D74F5',
-          card: '#FFFFFF',
-          border: '#14142B',
-          inner: '#EAF0FF',
-          page: '#4C82FF',
+          bg: '#0E1030',
+          grid: '#1F2560',
+          card: '#1E2358',
+          border: '#05061A',
+          inner: '#151942',
+          page: '#161A45',
         },
         accent: {
           primary: '#FFC61A',
           secondary: '#FF4F8B',
           success: '#33D17A',
-          info: '#2F6BFF',
+          info: '#5B8CFF',
         },
-        // Secondary and muted text also sit straight on the blue page (section
-        // labels, subtitles): dark enough to stay readable there too.
         tx: {
-          base: '#14142B',
-          secondary: '#3A3A5A',
-          muted: 'rgba(20,20,43,0.7)',
+          base: '#FFFFFF',
+          secondary: '#C2C9F0',
+          muted: 'rgba(194,201,240,0.68)',
         },
       },
       borderRadius: {
@@ -54,10 +53,10 @@ module.exports = {
         body: ['Nunito', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        brutal: '0 5px 0 #14142B',
+        brutal: '0 5px 0 #05061A',
         'brutal-cyan': '0 5px 0 #1E9A55',
-        'brutal-dark': '0 5px 0 #14142B',
-        card: '0 6px 0 #14142B',
+        'brutal-dark': '0 5px 0 #05061A',
+        card: '0 6px 0 #05061A',
       },
       keyframes: {
         'float-up': {

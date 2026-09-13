@@ -34,16 +34,18 @@ export default function BalanceChip({
         disabled={!user}
         title={user ? 'Voir ta courbe' : undefined}
         className={cn(
-          'h-11 flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-3 sm:px-4 rounded-xl shadow-brutal',
-          user && 'hover:border-accent-primary transition-colors focus:outline-none',
+          'h-12 flex items-center gap-2 bg-brand-bg border-[3px] border-brand-border pl-1.5 pr-3 sm:pr-4 rounded-2xl',
+          user && 'hover:bg-[#1A1E4A] transition-colors focus:outline-none',
           className
         )}
       >
-        <Coins className="h-4 w-4 text-accent-primary" />
+        <span className="h-8 w-8 rounded-full bg-accent-primary border-2 border-brand-border flex items-center justify-center shadow-[inset_0_-3px_0_#D98E00]">
+          <Coins className="h-4 w-4 text-brand-bg" strokeWidth={2.5} />
+        </span>
         {isLoaded
-          ? <CountUp value={balance} className="font-display font-black text-base" />
-          : <span className="font-display font-black">···</span>}
-        <span className="text-tx-secondary font-bold text-sm">₶</span>
+          ? <CountUp value={balance} className="font-display text-lg text-white" />
+          : <span className="font-display text-lg">···</span>}
+        <span className="text-tx-secondary font-black text-sm">₶</span>
         {isLocal && (
           <span
             className="text-[8px] font-black uppercase bg-brand-card border border-brand-border px-1 py-0.5 rounded text-tx-muted"

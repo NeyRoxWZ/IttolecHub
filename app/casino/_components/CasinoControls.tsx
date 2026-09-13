@@ -38,10 +38,10 @@ export default function CasinoControls({ className }: { className?: string }) {
         title={muted ? 'Réactiver le son' : 'Couper le son'}
         aria-label={muted ? 'Réactiver le son' : 'Couper le son'}
         className={cn(
-          'h-11 w-11 rounded-xl border-2 flex items-center justify-center transition-colors focus:outline-none',
+          'h-12 w-12 rounded-xl border-[3px] border-brand-border flex items-center justify-center transition-transform active:translate-y-[3px] focus:outline-none',
           muted
-            ? 'border-accent-secondary bg-accent-secondary/10 text-accent-secondary'
-            : 'border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base'
+            ? 'bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A]'
+            : 'bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A]'
         )}
       >
         {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
@@ -52,10 +52,10 @@ export default function CasinoControls({ className }: { className?: string }) {
         title="Mode turbo : animations accélérées partout"
         aria-label="Mode turbo"
         className={cn(
-          'h-11 w-11 rounded-xl border-2 flex items-center justify-center transition-colors focus:outline-none',
+          'h-12 w-12 rounded-xl border-[3px] border-brand-border flex items-center justify-center transition-transform active:translate-y-[3px] focus:outline-none',
           turbo
-            ? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
-            : 'border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base'
+            ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00,0_3px_0_#05061A]'
+            : 'bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A]'
         )}
       >
         <Zap className="h-4 w-4" />
@@ -76,10 +76,10 @@ export default function CasinoControls({ className }: { className?: string }) {
           : 'Cosmétiques dans les jeux uniquement (désactivé) — les pages du casino gardent leur fond normal. Clique pour que le Tapis et le Contour de ton set général habillent aussi l’accueil, la boutique, le pass…'}
         aria-label={skinned ? 'Cosmétiques sur toutes les pages : activé' : 'Cosmétiques sur toutes les pages : désactivé'}
         className={cn(
-          'h-11 w-11 rounded-xl border-2 flex items-center justify-center transition-colors focus:outline-none',
+          'h-12 w-12 rounded-xl border-[3px] border-brand-border flex items-center justify-center transition-transform active:translate-y-[3px] focus:outline-none',
           skinned
-            ? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
-            : 'border-brand-border bg-brand-inner text-tx-muted'
+            ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00,0_3px_0_#05061A]'
+            : 'bg-[#2B3170] text-tx-muted shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A]'
         )}
       >
         <Palette className="h-4 w-4" />
