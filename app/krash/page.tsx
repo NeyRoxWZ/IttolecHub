@@ -126,6 +126,26 @@ export default function KrashMarketPage() {
 
   const movers = useKrashMovers(simple);
 
+  // On a wide screen the page fits the window without scrolling: the chart
+  // takes what the ticket leaves.
+  const [chartHeight, setChartHeight] = useState(250);
+  const middleRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = middleRef.current;
+    if (!el) return;
+    const fit = () => {
+      if (window.innerWidth < 1536) { setChartHeight(250); return; }
+      // Whatever the column overflows (or leaves free) comes off the chart.
+      const spare = el.clientHeight - el.scrollHeight;
+      setChartHeight((h) => Math.max(140, Math.min(320, h + spare)));
+    };
+    // Content comes and goes (first-trade hint, positions): check every second.
+    fit();
+    const id = setInterval(fit, 1000);
+    window.addEventListener('resize', fit);
+    return () => { clearInterval(id); window.removeEventListener('resize', fit); };
+  }, []);
+
   const { snapshot, live } = useKrashMarket(market);
   const assetId = selected[market];
   const asset = ASSET_BY_ID.get(assetId)!;
@@ -238,9 +258,7 @@ export default function KrashMarketPage() {
         </div>
       )}
 
-      {snapshot?.upcoming?.scheduled && (
-        <UpcomingBanner upcoming={snapshot.upcoming} selected={assetId === snapshot.upcoming.scheduled.asset} onPick={pick} />
-      )}
+      {snapshot?.cycle && <UpcomingBanner cycle={snapshot.cycle} selected={assetId} onPick={pick} />}
 
       {snapshot?.event && (
         <div
@@ -343,7 +361,7 @@ export default function KrashMarketPage() {
         </aside>
 
         {/* Chart and ticket */}
-        <div className="space-y-4 min-w-0 2xl:space-y-0 2xl:flex 2xl:flex-col 2xl:gap-4 2xl:min-h-0 2xl:overflow-y-auto">
+        <div ref={middleRef} className="space-y-4 min-w-0 2xl:space-y-0 2xl:flex 2xl:flex-col 2xl:gap-4 2xl:min-h-0 2xl:overflow-y-auto">
           <section className="bg-brand-card border-4 border-brand-border rounded-[24px] shadow-brutal p-4">
             <div className="flex flex-wrap items-end gap-x-4 gap-y-2 mb-3">
               <div className="min-w-0">
@@ -360,7 +378,7 @@ export default function KrashMarketPage() {
                 </div>
               </div>
             </div>
-            <PriceChart points={points} lines={lines} colors={chartColors} height={250} arrow={arrow} news={snapshot?.news.filter((n) => n.markets.includes(market)) ?? []} />
+            <PriceChart points={points} lines={lines} colors={chartColors} height={chartHeight} arrow={arrow} news={snapshot?.news.filter((n) => n.markets.includes(market)) ?? []} />
             <div className="mt-2 flex gap-1.5">
               {(['15m', '1h', '6h'] as Range[]).map((r) => (
                 <button
@@ -384,7 +402,7 @@ export default function KrashMarketPage() {
             </div>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2 2xl:flex-1 2xl:min-h-0">
+          <div className="grid gap-4 md:grid-cols-2 2xl:shrink-0">
             <TradePanel
               asset={asset}
               price={price}
@@ -429,7 +447,7 @@ export default function KrashMarketPage() {
           news={snapshot?.news ?? []}
           market={market}
           now={now}
-          className="max-h-[70vh] lg:col-span-2 xl:col-start-2 2xl:col-start-auto 2xl:col-span-1 2xl:max-h-none"
+          className="lg:max-h-[70vh] lg:col-span-2 xl:col-start-2 2xl:col-start-auto 2xl:col-span-1 2xl:max-h-none"
         />
       </div>
       </div>

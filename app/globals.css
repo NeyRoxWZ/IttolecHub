@@ -46,6 +46,16 @@ h4 {
   background: #FFE55C;
 }
 
+/* Krash packs several scrolling lists side by side: thin neutral bars there,
+   so a list's scrollbar does not read as a yellow line between panels. */
+[data-krash] * {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a48 transparent;
+}
+[data-krash] ::-webkit-scrollbar { width: 4px; height: 4px; }
+[data-krash] ::-webkit-scrollbar-track { background: transparent; border: 0; }
+[data-krash] ::-webkit-scrollbar-thumb { background: #3a3a48; border: 0; }
+
 /* WIKIRACING STYLES */
 .wiki-content {
   font-family: 'Inter', sans-serif;

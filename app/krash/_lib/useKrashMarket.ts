@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { KRASH_TICK, type MarketId } from '@/lib/krash/assets';
-import type { KrashNews } from '@/lib/krash/newsMeta';
+import type { KrashNews, ResultCycle } from '@/lib/krash/newsMeta';
 
 export interface MarketAsset {
   id: string;
@@ -20,6 +20,8 @@ export interface MarketSnapshot {
   event: KrashNews | null;
   /** The announced result waiting to be revealed, if any. */
   upcoming?: KrashNews | null;
+  /** Where the announced-results loop stands. */
+  cycle?: ResultCycle;
 }
 
 /** Live points kept per asset for the chart: fifteen minutes at one per tick. */

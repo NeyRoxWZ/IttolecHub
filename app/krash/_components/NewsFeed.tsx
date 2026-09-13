@@ -47,6 +47,8 @@ function playArrival(n: KrashNews) {
 }
 
 const FLASH_STAKES = [25, 50, 100, 250];
+/** Headlines shown on a phone before "Voir plus". */
+const MOBILE_COUNT = 6;
 const FLASH_STAKE_KEY = 'krash_flash_stake';
 
 /**
@@ -149,6 +151,7 @@ export default function NewsFeed({
   news, market, now, className,
 }: { news: KrashNews[]; market: MarketId; now: number; className?: string }) {
   const [legend, setLegend] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const seen = useRef<Set<string> | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const flash = useKrashFlash();
@@ -231,9 +234,11 @@ export default function NewsFeed({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 min-h-0">
+      {/* Its own scroll only beside the chart; on a phone it is part of the
+          page, cut after a few headlines, so a swipe never gets stuck in it. */}
+      <div className="flex-1 lg:overflow-y-auto px-4 pb-4 space-y-2 min-h-0">
         {news.length === 0 && <p className="text-tx-muted text-sm text-center py-8">Le fil se charge…</p>}
-        {news.map((n) => {
+        {news.map((n, index) => {
           const meta = CATEGORIES[n.category];
           const relevant = n.markets.includes(market);
           const big = n.event && !n.rumour;
@@ -252,7 +257,8 @@ export default function NewsFeed({
                     ? 'border-rose-500 bg-rose-500/15'
                     : 'border-accent-success bg-accent-success/10'
                   : 'border-brand-border bg-brand-inner',
-                fresh.has(n.id) && 'ring-2 ring-inset ring-rose-400 animate-in fade-in duration-500'
+                fresh.has(n.id) && 'ring-2 ring-inset ring-rose-400 animate-in fade-in duration-500',
+                index >= MOBILE_COUNT && !expanded && 'hidden lg:block'
               )}
             >
               <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-black uppercase tracking-widest">
@@ -281,6 +287,14 @@ export default function NewsFeed({
             </article>
           );
         })}
+        {!expanded && news.length > MOBILE_COUNT && (
+          <button
+            onClick={() => { sfx.click(); setExpanded(true); }}
+            className="lg:hidden w-full h-10 rounded-xl border-2 border-brand-border text-[11px] font-black uppercase tracking-widest text-tx-muted"
+          >
+            Voir plus de news
+          </button>
+        )}
       </div>
     </section>
   );

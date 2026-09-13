@@ -24,6 +24,12 @@ export const CERTAINTY: Record<Certainty, { label: string; hint: string }> = {
   pile: { label: '50/50', hint: 'Personne ne sait. Mouvement plus violent.' },
 };
 
+/** The announced-results loop, as the market page's banner shows it. */
+export type ResultCycle =
+  | { phase: 'waiting'; announceAt: number }
+  | { phase: 'announced'; news: KrashNews }
+  | { phase: 'revealed'; news: KrashNews; move: number };
+
 export interface KrashNews {
   id: string;
   at: number;

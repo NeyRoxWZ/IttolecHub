@@ -536,6 +536,43 @@ export function activeEvent(t: number, within = 15 * 60): NewsEvent | null {
 /* ------------------------------------------------------------------ */
 
 /** The announced result still to be revealed at `t`, once its announcement is out. */
+/** How long a revealed result stays on the banner. */
+const RESULT_SHOWN_FOR = 150;
+
+export type ResultCycle =
+  | { phase: 'waiting'; announceAt: number }
+  | { phase: 'announced'; news: NewsEvent }
+  | { phase: 'revealed'; news: NewsEvent; move: number };
+
+/**
+ * Where the announced-results loop stands at t, so the banner never just
+ * vanishes: counting down to the next announcement, counting down to the
+ * reveal, or showing what the last reveal did to the price.
+ */
+export function resultCycle(t: number): ResultCycle {
+  const round = Math.floor(slotOf(t) / SCHEDULE_EVERY);
+  const announceAt = (r: number) => EPOCH + (r * SCHEDULE_EVERY + SCHEDULE_ANNOUNCE_OFFSET) * SLOT + 5;
+  const resolveAt = (r: number) => EPOCH + (r * SCHEDULE_EVERY + SCHEDULE_RESOLVE_OFFSET) * SLOT + 5;
+  const revealed = (r: number): ResultCycle | null => {
+    const n = newsAtSlot(r * SCHEDULE_EVERY + SCHEDULE_RESOLVE_OFFSET);
+    if (!n?.scheduled) return null;
+    const at = n.scheduled.resolveAt;
+    const move = priceAt(n.scheduled.asset, Math.min(t, at + TICK * 2)) / priceAt(n.scheduled.asset, at - TICK * 2) - 1;
+    return { phase: 'revealed', news: publish(n), move };
+  };
+
+  if (t >= resolveAt(round)) {
+    if (t - resolveAt(round) < RESULT_SHOWN_FOR) return revealed(round) ?? { phase: 'waiting', announceAt: announceAt(round + 1) };
+    return { phase: 'waiting', announceAt: announceAt(round + 1) };
+  }
+  if (t >= announceAt(round)) {
+    const n = upcomingScheduled(t);
+    if (n) return { phase: 'announced', news: n };
+  }
+  if (t - resolveAt(round - 1) < RESULT_SHOWN_FOR) return revealed(round - 1) ?? { phase: 'waiting', announceAt: announceAt(round) };
+  return { phase: 'waiting', announceAt: announceAt(round) };
+}
+
 export function upcomingScheduled(t: number): NewsEvent | null {
   const round = Math.floor(slotOf(t) / SCHEDULE_EVERY);
   for (const r of [round, round - 1]) {

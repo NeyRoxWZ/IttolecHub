@@ -375,6 +375,30 @@
       "type": "amelioration",
       "title": "Le levier expliqué dans le guide",
       "details": "Une page du guide montre avec un exemple ce que change le levier et quand une position est liquidée."
+    },
+    {
+      "id": "2026-09-13-27",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Le bandeau des résultats ne disparaît plus",
+      "details": "Il affiche en permanence le temps avant la prochaine annonce, puis le compte à rebours du résultat, puis la hausse ou la baisse obtenue pendant 2 min 30."
+    },
+    {
+      "id": "2026-09-13-28",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "correctif",
+      "title": "Plus de défilement parasite",
+      "details": "Sur ordinateur, le marché tient dans l'écran sans barre de défilement au milieu ; sur téléphone, les news ne forment plus une zone qui bloque le défilement de la page."
+    },
+    {
+      "id": "2026-09-13-29",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Barres de défilement discrètes",
+      "details": "Les listes de Krash ont des barres fines et grises au lieu de traits jaunes entre les panneaux."
     }
   ]
 }

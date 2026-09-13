@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
 import {
   DURATIONS, KRASH_FEE_RATE, KRASH_MAX_STAKE_PCT, KRASH_MIN_STAKE, LEVERAGES, LEVERAGE_UNLOCK,
-  durationLabel, formatPrice, liquidationPrice, type Asset, type Leverage,
+  durationLabel, type Asset, type Leverage,
 } from '@/lib/krash/assets';
 
 const TICKET_KEY = 'krash_ticket_v2';
@@ -54,7 +54,6 @@ export default function TradePanel({
   const capped = (l: Leverage) => l > maxLeverage;
   const effectiveLeverage = (capped(leverage) ? LEVERAGES.filter((l) => l <= maxLeverage).pop() : leverage) as Leverage;
   const valid = stake >= KRASH_MIN_STAKE && stake <= maxStake && !locked(effectiveLeverage) && price !== null;
-  const liqLong = price ? liquidationPrice({ side: 'long', leverage: effectiveLeverage, entry_price: price }) : null;
 
   const submit = async (side: 'long' | 'short') => {
     if (!valid) return;
@@ -132,7 +131,7 @@ export default function TradePanel({
           );
         })}
       </div>
-      <p className="mt-1.5 text-[11px] leading-snug text-tx-muted">
+      <p className="mt-1.5 text-[11px] leading-snug text-tx-muted 2xl:[@media(max-height:950px)]:hidden">
         {effectiveLeverage === 1
           ? 'Sans levier : ta mise suit exactement la cote.'
           : <>x{effectiveLeverage} : 1 % de mouvement = <b className="text-tx-base">{effectiveLeverage} %</b> sur ta mise. Perdue si la cote va {(100 / effectiveLeverage).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} % contre toi.</>}
@@ -142,7 +141,7 @@ export default function TradePanel({
         <button
           disabled={!valid || busy}
           onClick={() => submit('long')}
-          className="h-[76px] rounded-2xl bg-accent-success text-brand-bg border-2 border-brand-border shadow-brutal font-display font-black tracking-wider flex flex-col items-center justify-center disabled:opacity-40 active:translate-y-0.5 transition-transform"
+          className="h-[76px] [@media(max-height:950px)]:h-[62px] rounded-2xl bg-accent-success text-brand-bg border-2 border-brand-border shadow-brutal font-display font-black tracking-wider flex flex-col items-center justify-center disabled:opacity-40 active:translate-y-0.5 transition-transform"
         >
           <span className="flex items-center gap-1 text-xl"><ArrowUp className="h-6 w-6" /> ÇA MONTE</span>
           <span className="text-[10px] tracking-normal font-bold opacity-80">{duration ? `résultat dans ${durationLabel(duration)}` : 'position libre'}</span>
@@ -150,24 +149,18 @@ export default function TradePanel({
         <button
           disabled={!valid || busy}
           onClick={() => submit('short')}
-          className="h-[76px] rounded-2xl bg-rose-500 text-white border-2 border-brand-border shadow-brutal font-display font-black tracking-wider flex flex-col items-center justify-center disabled:opacity-40 active:translate-y-0.5 transition-transform"
+          className="h-[76px] [@media(max-height:950px)]:h-[62px] rounded-2xl bg-rose-500 text-white border-2 border-brand-border shadow-brutal font-display font-black tracking-wider flex flex-col items-center justify-center disabled:opacity-40 active:translate-y-0.5 transition-transform"
         >
           <span className="flex items-center gap-1 text-xl"><ArrowDown className="h-6 w-6" /> ÇA BAISSE</span>
           <span className="text-[10px] tracking-normal font-bold opacity-90">{duration ? `résultat dans ${durationLabel(duration)}` : 'position libre'}</span>
         </button>
       </div>
 
-      <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
+      <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] 2xl:[@media(max-height:950px)]:hidden">
         <span className="text-tx-muted">Si {asset.name} bouge de 10 %</span>
         <span className="text-right font-bold tabular-nums">± {Math.round(stake * effectiveLeverage * 0.1).toLocaleString('fr-FR')} ₶</span>
         <span className="text-tx-muted">Frais</span>
         <span className="text-right font-bold">sur le gain : la moitié au plus, max {(KRASH_FEE_RATE * effectiveLeverage * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} % de la mise</span>
-        {effectiveLeverage > 1 && liqLong && (
-          <>
-            <span className="text-tx-muted">Liquidation (monte)</span>
-            <span className="text-right font-bold tabular-nums text-rose-400">{formatPrice(liqLong)}</span>
-          </>
-        )}
       </div>
       {stake > maxStake && <p className="mt-2 text-[11px] text-rose-400">Au-dessus du maximum ({maxStake.toLocaleString('fr-FR')} ₶).</p>}
     </section>
