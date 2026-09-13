@@ -16,6 +16,7 @@ import {
 import CasinoWheel, { type CasinoWheelHandle, type WheelSegment } from '../_components/CasinoWheel';
 import Confetti from '../_components/Confetti';
 import { tempo } from '@/lib/casino/turbo';
+import { brawlChoice } from '@/lib/ui/brawl';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -33,7 +34,9 @@ const RULES: RulesSpec = {
   rtp: '~97,3%',
 };
 
-const COLOR_HEX = { red: '#E01E45', black: '#0F0F16', green: '#0F9D58' } as const;
+const COLOR_HEX = { red: '#FF3B5C', black: '#1A1D4A', green: '#1FB866' } as const;
+/** The darker bottom edge of each pocket colour, for raised tiles. */
+const COLOR_SHADE = { red: '#C8243F', black: '#0E1030', green: '#158A4B' } as const;
 
 export default function FrenlyWheelPage() {
   const { balance, isLoaded, isLocal, maxBet, stats, spinWheelBet, history } = useCasinoWallet();
@@ -102,13 +105,13 @@ export default function FrenlyWheelPage() {
         settleTurns={2}
         hub={
           <div
-            className="w-[104px] h-[104px] rounded-full border-4 border-brand-border flex items-center justify-center font-display font-black text-4xl transition-colors duration-300"
+            className="w-[112px] h-[112px] rounded-full border-[5px] border-brand-border flex items-center justify-center font-display text-5xl text-stroke transition-colors duration-300"
             style={{
-              background: landedColor && !spinning ? COLOR_HEX[landedColor] : '#1E1E28',
-              color: '#fff',
+              background: landedColor && !spinning ? COLOR_HEX[landedColor] : '#0E1030',
+              boxShadow: `inset 0 -7px 0 ${landedColor && !spinning ? COLOR_SHADE[landedColor] : '#05061A'}`,
             }}
           >
-            {lastResult && !spinning ? lastResult.landedNumber : '—'}
+            {lastResult && !spinning ? lastResult.landedNumber : '?'}
           </div>
         }
       />
@@ -122,7 +125,7 @@ export default function FrenlyWheelPage() {
   const panel = (
     <>
       <div>
-        <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Type de pari</div>
+        <div className="font-display text-lg leading-none mb-2">Type de pari</div>
         <div className="grid grid-cols-3 gap-2">
           {([
             { t: 'color' as const, label: 'Couleur', mult: '×2' },
@@ -137,36 +140,33 @@ export default function FrenlyWheelPage() {
                 setBetValue(t === 'color' ? 'red' : t === 'dozen' ? 1 : 0);
               }}
               disabled={spinning}
-              className={cn(
-                'h-14 rounded-xl border-2 flex flex-col items-center justify-center transition-all focus:outline-none disabled:opacity-50',
-                betType === t ? 'bg-brand-inner border-accent-primary' : 'bg-transparent border-brand-border hover:border-tx-base/50'
-              )}
+              className={cn(brawlChoice(betType === t), 'h-14 flex flex-col items-center justify-center')}
             >
-              <span className="text-xs font-bold">{label}</span>
-              <span className="text-[10px] font-black text-accent-primary">{mult}</span>
+              <span className="text-base leading-none">{label}</span>
+              <span className="text-sm leading-none mt-1 opacity-80">{mult}</span>
             </button>
           ))}
         </div>
       </div>
 
       <div>
-        <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Ton pari</div>
+        <div className="font-display text-lg leading-none mb-2">Ton pari</div>
 
         {betType === 'color' && (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {(['red', 'black'] as const).map((c) => (
               <button
                 key={c}
                 onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setBetValue(c); }}
                 disabled={spinning}
                 className={cn(
-                  'h-16 rounded-xl font-display font-black border-4 transition-all focus:outline-none disabled:opacity-50',
-                  betValue === c ? 'border-accent-primary scale-[1.02]' : 'border-brand-border'
+                  'h-16 rounded-2xl border-[3px] border-brand-border flex flex-col items-center justify-center transition-transform active:translate-y-[3px] focus:outline-none disabled:opacity-50',
+                  betValue === c && 'ring-4 ring-accent-primary scale-[1.03]'
                 )}
-                style={{ backgroundColor: COLOR_HEX[c], color: '#fff' }}
+                style={{ backgroundColor: COLOR_HEX[c], boxShadow: `inset 0 -5px 0 ${COLOR_SHADE[c]}, 0 4px 0 #05061A` }}
               >
-                {c === 'red' ? 'ROUGE' : 'NOIR'}
-                <div className="text-[9px] font-bold opacity-70">18 cases</div>
+                <span className="font-display text-2xl leading-none text-stroke-sm">{c === 'red' ? 'Rouge' : 'Noir'}</span>
+                <span className="text-[11px] font-black text-white/80 mt-0.5">18 cases</span>
               </button>
             ))}
           </div>
@@ -179,34 +179,34 @@ export default function FrenlyWheelPage() {
                 key={d}
                 onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setBetValue(d); }}
                 disabled={spinning}
-                className={cn(
-                  'h-16 rounded-xl border-2 flex flex-col items-center justify-center font-bold text-sm transition-all focus:outline-none disabled:opacity-50',
-                  betValue === d ? 'bg-brand-inner border-accent-primary' : 'bg-transparent border-brand-border text-tx-secondary'
-                )}
+                className={cn(brawlChoice(betValue === d), 'h-16 flex flex-col items-center justify-center')}
               >
-                {d === 1 ? '1-12' : d === 2 ? '13-24' : '25-36'}
-                <span className="text-[9px] opacity-60">12 cases</span>
+                <span className="text-lg leading-none">{d === 1 ? '1-12' : d === 2 ? '13-24' : '25-36'}</span>
+                <span className="text-[11px] leading-none mt-1 opacity-75">12 cases</span>
               </button>
             ))}
           </div>
         )}
 
         {betType === 'number' && (
-          <div className="grid grid-cols-7 gap-1 p-1">
-            {Array.from({ length: 37 }, (_, n) => n).map((n) => (
-              <button
-                key={n}
-                onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setBetValue(n); }}
-                disabled={spinning}
-                className={cn(
-                  'h-10 rounded-md font-bold text-sm border-2 flex items-center justify-center transition-all focus:outline-none disabled:opacity-50',
-                  betValue === n ? 'border-accent-primary scale-110 z-10' : 'border-black/40'
-                )}
-                style={{ backgroundColor: COLOR_HEX[getPocketColor(n)], color: '#fff' }}
-              >
-                {n}
-              </button>
-            ))}
+          <div className="grid grid-cols-7 gap-1.5 p-1">
+            {Array.from({ length: 37 }, (_, n) => n).map((n) => {
+              const pocket = getPocketColor(n);
+              return (
+                <button
+                  key={n}
+                  onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setBetValue(n); }}
+                  disabled={spinning}
+                  className={cn(
+                    'h-10 rounded-lg font-display text-base text-white border-2 border-brand-border flex items-center justify-center transition-transform active:translate-y-[2px] focus:outline-none disabled:opacity-50',
+                    betValue === n && 'ring-4 ring-accent-primary scale-110 z-10'
+                  )}
+                  style={{ backgroundColor: COLOR_HEX[pocket], boxShadow: `inset 0 -3px 0 ${COLOR_SHADE[pocket]}` }}
+                >
+                  {n}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

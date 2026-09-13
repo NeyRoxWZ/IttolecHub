@@ -21,6 +21,19 @@ export const BRAWL = {
   iconTile: 'relative inline-flex items-center justify-center rounded-2xl border-[3px] border-brand-border',
 };
 
+/**
+ * A choice among several (bet type, colour, number of mines…): raised yellow
+ * when picked, a darker tile otherwise.
+ */
+export function brawlChoice(selected: boolean): string {
+  return [
+    'rounded-xl border-[3px] border-brand-border font-display transition-transform active:translate-y-[3px] disabled:opacity-50 disabled:active:translate-y-0 focus:outline-none focus-visible:ring-4 focus-visible:ring-white',
+    selected
+      ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00,0_4px_0_#05061A]'
+      : 'bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_4px_0_#05061A] hover:bg-[#333A80]',
+  ].join(' ');
+}
+
 /** Cover colours cycled through lists of games, with the matching shade for the bottom edge. */
 export const BRAWL_SWATCHES = [
   { fill: '#FF4F8B', shade: '#C92D63' },

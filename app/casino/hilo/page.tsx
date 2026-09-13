@@ -119,19 +119,21 @@ export default function HiloPage() {
 
       <div className="flex items-center gap-8">
         {result && (
-          <div className="flex flex-col items-center gap-1.5 opacity-60">
+          <div className="flex flex-col items-center gap-2 opacity-70">
             <PlayingCard rank={result.currentCard} index={1} size="md" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">Précédente</span>
+            <span className="px-2 py-0.5 rounded-lg border-2 border-brand-border bg-[#0E1030] font-display text-sm text-white">Précédente</span>
           </div>
         )}
-        <div className="flex flex-col items-center gap-1.5">
+        <div className="flex flex-col items-center gap-2">
           {card !== null ? <PlayingCard rank={card} index={0} size="lg" highlight={!!result?.won} /> : <PlayingCard hidden size="lg" />}
-          <span className="text-[9px] font-black uppercase tracking-widest text-tx-secondary">Carte en jeu</span>
+          <span className="px-3 py-0.5 rounded-lg border-2 border-brand-border bg-accent-primary font-display text-base text-brand-bg">Carte en jeu</span>
         </div>
       </div>
 
-      <div className="flex gap-1.5 text-xs font-bold text-tx-muted">
-        <span>A=1</span><span>·</span><span>V=11</span><span>·</span><span>D=12</span><span>·</span><span>R=13</span>
+      <div className="flex gap-1.5">
+        {['A = 1', 'V = 11', 'D = 12', 'R = 13'].map((l) => (
+          <span key={l} className="px-2 py-0.5 rounded-lg border-2 border-brand-border bg-[#2B3170] font-display text-sm text-white">{l}</span>
+        ))}
       </div>
 
       <ResultBanner state={!result ? 'idle' : result.push ? 'push' : result.won ? 'win' : 'lose'}>
@@ -161,25 +163,25 @@ export default function HiloPage() {
           onClick={() => handleGuess('higher')}
           disabled={playing || !isLoaded || amount < CASINO_MIN_BET || higherPayout === null}
           className={cn(
-            'h-24 rounded-2xl border-4 border-brand-border bg-brand-inner flex flex-col items-center justify-center gap-1 font-bold transition-all shadow-brutal focus:outline-none',
-            (playing || higherPayout === null) ? 'opacity-40 cursor-not-allowed' : 'hover:border-accent-success hover:-translate-y-1 active:translate-y-0'
+            'h-24 rounded-2xl border-4 border-brand-border flex flex-col items-center justify-center gap-0.5 transition-transform active:translate-y-[4px] focus:outline-none bg-accent-success text-brand-bg shadow-[inset_0_-6px_0_#1E9A55,0_5px_0_#05061A]',
+            (playing || higherPayout === null) && 'opacity-40 cursor-not-allowed active:translate-y-0'
           )}
         >
-          <ChevronUp className="w-6 h-6 text-accent-success" />
-          <span className="text-sm">Plus haut</span>
-          <span className="text-xs font-black text-accent-success">{higherPayout ? `×${higherPayout}` : 'impossible'}</span>
+          <ChevronUp className="w-7 h-7" strokeWidth={3} />
+          <span className="font-display text-xl leading-none">Plus haut</span>
+          <span className="font-display text-sm leading-none opacity-80">{higherPayout ? `×${higherPayout}` : 'impossible'}</span>
         </button>
         <button
           onClick={() => handleGuess('lower')}
           disabled={playing || !isLoaded || amount < CASINO_MIN_BET || lowerPayout === null}
           className={cn(
-            'h-24 rounded-2xl border-4 border-brand-border bg-brand-inner flex flex-col items-center justify-center gap-1 font-bold transition-all shadow-brutal focus:outline-none',
-            (playing || lowerPayout === null) ? 'opacity-40 cursor-not-allowed' : 'hover:border-accent-secondary hover:-translate-y-1 active:translate-y-0'
+            'h-24 rounded-2xl border-4 border-brand-border flex flex-col items-center justify-center gap-0.5 transition-transform active:translate-y-[4px] focus:outline-none bg-accent-secondary text-white shadow-[inset_0_-6px_0_#C92D63,0_5px_0_#05061A]',
+            (playing || lowerPayout === null) && 'opacity-40 cursor-not-allowed active:translate-y-0'
           )}
         >
-          <ChevronDown className="w-6 h-6 text-accent-secondary" />
-          <span className="text-sm">Plus bas</span>
-          <span className="text-xs font-black text-accent-secondary">{lowerPayout ? `×${lowerPayout}` : 'impossible'}</span>
+          <ChevronDown className="w-7 h-7" strokeWidth={3} />
+          <span className="font-display text-xl leading-none">Plus bas</span>
+          <span className="font-display text-sm leading-none opacity-80">{lowerPayout ? `×${lowerPayout}` : 'impossible'}</span>
         </button>
       </div>
 

@@ -190,18 +190,26 @@ export default function TowerPage() {
     <div className="w-full flex flex-col items-center gap-3">
       {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
 
-      <div className="flex items-baseline gap-3">
-        <span className={cn('font-display text-4xl font-black tabular-nums', phase === 'dead' ? 'text-accent-secondary' : 'text-accent-primary')}>
+      <div className="flex items-center gap-3">
+        <span className={cn(
+          'font-display text-5xl leading-none tabular-nums [-webkit-text-stroke:5px_#05061A] [paint-order:stroke_fill] [text-shadow:0_4px_0_#05061A]',
+          phase === 'dead' ? 'text-accent-secondary' : 'text-accent-primary'
+        )}>
           ×{multiplier.toFixed(2)}
         </span>
         {active && step > 0 && (
-          <span className="text-sm font-bold text-tx-secondary">= <CountUp value={potentialPayout} className="text-accent-success" /> ₶</span>
+          <span className="px-3 py-1 rounded-xl border-[3px] border-brand-border bg-accent-success text-brand-bg font-display text-lg">
+            <CountUp value={potentialPayout} /> ₶
+          </span>
         )}
       </div>
 
       <div
-        className="w-full max-w-[460px] rounded-2xl border-4 border-brand-border p-3 flex flex-col-reverse gap-1.5"
-        style={{ background: 'linear-gradient(180deg, #241C33 0%, #16111F 100%)' }}
+        className="w-full max-w-[460px] rounded-[24px] border-4 border-brand-border p-3 flex flex-col-reverse gap-2"
+        style={{
+          background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 16px, transparent 16px 32px), #0E1030',
+          boxShadow: 'inset 0 -8px 0 #070920, 0 6px 0 #05061A',
+        }}
       >
         {Array.from({ length: CONFIG.totalSteps }, (_, floor) => {
           const floorNumber = floor + 1;
@@ -210,8 +218,11 @@ export default function TowerPage() {
           const cleared = step > floor;
 
           return (
-            <div key={floor} className={cn('flex items-center gap-2 rounded-lg p-1 transition-colors', isCurrent && 'bg-accent-primary/10 ring-2 ring-accent-primary')}>
-              <span className={cn('w-12 shrink-0 text-xs font-black text-right', cleared ? 'text-accent-success' : isCurrent ? 'text-accent-primary' : 'text-tx-muted')}>
+            <div key={floor} className={cn('flex items-center gap-2 rounded-xl p-1 transition-colors', isCurrent && 'bg-[#2B3170] ring-4 ring-accent-primary')}>
+              <span className={cn(
+                'w-14 shrink-0 px-1 py-0.5 rounded-lg border-2 border-brand-border font-display text-sm text-center',
+                cleared ? 'bg-accent-success text-brand-bg' : isCurrent ? 'bg-accent-primary text-brand-bg' : 'bg-[#1A1D4A] text-tx-muted'
+              )}>
                 ×{multiplierAtStep(CONFIG, floorNumber)}
               </span>
               <div className="flex-1 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${DOORS}, minmax(0,1fr))` }}>
@@ -224,12 +235,12 @@ export default function TowerPage() {
                       onClick={() => handlePickDoor(d)}
                       disabled={!isCurrent || busy}
                       className={cn(
-                        'h-11 rounded-lg border-2 flex items-center justify-center transition-all focus:outline-none',
-                        isTrap ? 'border-accent-secondary bg-accent-secondary/30'
-                          : isPicked ? 'border-accent-success bg-accent-success/25'
-                          : rev ? 'border-white/10 bg-white/[0.04] opacity-45'
-                          : isCurrent ? 'border-white/25 bg-white/[0.08] hover:border-accent-primary hover:bg-white/15 cursor-pointer'
-                          : 'border-white/8 bg-white/[0.03]'
+                        'h-11 rounded-xl border-[3px] border-brand-border flex items-center justify-center transition-transform focus:outline-none',
+                        isTrap ? 'bg-accent-secondary shadow-[inset_0_-4px_0_#C92D63]'
+                          : isPicked ? 'bg-accent-success shadow-[inset_0_-4px_0_#1E9A55]'
+                          : rev ? 'bg-[#1A1D4A] opacity-45'
+                          : isCurrent ? 'bg-accent-info shadow-[inset_0_-4px_0_#2F5BD0,0_3px_0_#05061A] hover:-translate-y-0.5 active:translate-y-[2px] cursor-pointer'
+                          : 'bg-[#1A1D4A]'
                       )}
                     >
                       {isTrap ? <ArtSkull size={22} /> : isPicked ? <ArtCheck size={22} /> : isCurrent ? <ArtDoor size={22} /> : null}
@@ -280,17 +291,17 @@ export default function TowerPage() {
               of an auto run before it finishes. */}
           <AutoBadge control={autoCtl} className="w-full justify-center" />
 
-          <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 flex items-center justify-between">
+          <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 flex items-center justify-between">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Étage</div>
-              <div className="font-display text-xl font-black">{step}/{CONFIG.totalSteps}</div>
+              <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Étage</div>
+              <div className="font-display text-2xl leading-none mt-0.5">{step}/{CONFIG.totalSteps}</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise</div>
-              <div className="font-display text-xl font-black">{fmt(lockedAmount)} ₶</div>
+              <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Mise</div>
+              <div className="font-display text-2xl leading-none mt-0.5">{fmt(lockedAmount)} ₶</div>
             </div>
           </div>
-          <p className="text-xs text-tx-secondary">Choisis une porte à l’étage surligné. {DOORS - 1} sur {DOORS} sont sûres.</p>
+          <p className="text-sm font-bold text-tx-secondary">Choisis une porte à l’étage surligné. {DOORS - 1} sur {DOORS} sont sûres.</p>
           <PlayButton onClick={handleCashout} disabled={busy || step === 0} variant="success">
             {step === 0 ? 'MONTE D’ABORD D’UN ÉTAGE' : `ENCAISSER ${fmt(potentialPayout)} ₶`}
           </PlayButton>

@@ -369,25 +369,30 @@ export default function DinoPage() {
     <div className="w-full flex flex-col items-center gap-3">
       {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
 
-      <div className="flex items-baseline gap-3">
-        <span className={cn('font-display text-4xl font-black tabular-nums', phase === 'dead' ? 'text-accent-secondary' : 'text-accent-primary')}>
+      <div className="flex items-center gap-3">
+        <span className={cn(
+          'font-display text-5xl leading-none tabular-nums [-webkit-text-stroke:5px_#05061A] [paint-order:stroke_fill] [text-shadow:0_4px_0_#05061A]',
+          phase === 'dead' ? 'text-accent-secondary' : 'text-accent-primary'
+        )}>
           ×{multiplier.toFixed(2)}
         </span>
         {running && step > 0 && (
-          <span className="text-sm font-bold text-tx-secondary">= <CountUp value={potentialPayout} className="text-accent-success" /> ₶</span>
+          <span className="px-3 py-1 rounded-xl border-[3px] border-brand-border bg-accent-success text-brand-bg font-display text-lg">
+            <CountUp value={potentialPayout} /> ₶
+          </span>
         )}
       </div>
 
       {/* The running world */}
       <div
         ref={worldRef}
-        className="relative w-full rounded-2xl border-4 border-brand-border overflow-hidden select-none"
-        style={{ height: WORLD_H, background: 'linear-gradient(180deg, #21344B 0%, #3E5C72 60%, #6D8496 100%)' }}
+        className="relative w-full rounded-[24px] border-4 border-brand-border overflow-hidden select-none shadow-[0_6px_0_#05061A]"
+        style={{ height: WORLD_H, background: 'linear-gradient(180deg, #5B8CFF 0%, #9DBBFF 100%)' }}
       >
         {/* distant hills */}
-        <div className="absolute inset-x-0" style={{ bottom: GROUND_H - 6, height: 46, opacity: 0.35 }}>
+        <div className="absolute inset-x-0" style={{ bottom: GROUND_H - 6, height: 46 }}>
           <svg viewBox="0 0 400 46" preserveAspectRatio="none" className="w-full h-full">
-            <path d="M0 46 L40 18 L80 40 L130 12 L190 42 L240 20 L300 44 L350 22 L400 46Z" fill="#16202E" />
+            <path d="M0 46 L40 18 L80 40 L130 12 L190 42 L240 20 L300 44 L350 22 L400 46Z" fill="#3B6BFF" stroke="#05061A" strokeWidth="3" strokeLinejoin="round" />
           </svg>
         </div>
 
@@ -397,8 +402,8 @@ export default function DinoPage() {
           className="absolute inset-x-0 bottom-0"
           style={{
             height: GROUND_H,
-            background: 'repeating-linear-gradient(90deg, #C8A165 0 46px, #BE9758 46px 92px)',
-            borderTop: '3px solid #8E6C3A',
+            background: 'repeating-linear-gradient(90deg, #FFB547 0 46px, #F2A33A 46px 92px)',
+            borderTop: '4px solid #05061A',
           }}
         />
 
@@ -421,7 +426,7 @@ export default function DinoPage() {
             >
               <div className="relative">
                 <Art size={38} />
-                <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[11px] font-display font-black text-white/90 whitespace-nowrap">
+                <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 rounded-md border-2 border-brand-border bg-[#0E1030] text-xs font-display text-white whitespace-nowrap">
                   ×{multiplierAtStep(CONFIG, ob.index + 1)}
                 </span>
               </div>
@@ -435,12 +440,12 @@ export default function DinoPage() {
         )}
 
         {phase === 'idle' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/45">
-            <span className="font-display font-black text-white/85 text-sm">Mise pour lancer la course</span>
+          <div className="absolute inset-0 flex items-center justify-center bg-[#0E1030]/55">
+            <span className="font-display text-3xl text-stroke">Mise pour lancer la course</span>
           </div>
         )}
 
-        <div className="absolute top-2 right-3 text-[10px] font-black uppercase tracking-widest text-white/60">
+        <div className="absolute top-2 right-3 px-2 py-0.5 rounded-lg border-2 border-brand-border bg-[#0E1030] font-display text-sm text-white">
           {step}/{CONFIG.totalSteps} obstacles
         </div>
       </div>
@@ -483,14 +488,14 @@ export default function DinoPage() {
               of an auto run before it finishes. */}
           <AutoBadge control={autoCtl} className="w-full justify-center" />
 
-          <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 flex items-center justify-between">
+          <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 flex items-center justify-between">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Franchis</div>
-              <div className="font-display text-xl font-black">{step}/{CONFIG.totalSteps}</div>
+              <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Franchis</div>
+              <div className="font-display text-2xl leading-none mt-0.5">{step}/{CONFIG.totalSteps}</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise</div>
-              <div className="font-display text-xl font-black">{fmt(lockedAmount)} ₶</div>
+              <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Mise</div>
+              <div className="font-display text-2xl leading-none mt-0.5">{fmt(lockedAmount)} ₶</div>
             </div>
           </div>
 
@@ -498,10 +503,10 @@ export default function DinoPage() {
             onClick={handleCashout}
             disabled={busy || step === 0 || pending}
             className={cn(
-              'h-24 w-full rounded-2xl font-display text-xl font-black tracking-wider border-4 border-brand-border shadow-brutal transition-all active:translate-y-1 active:shadow-none focus:outline-none',
+              'h-24 w-full rounded-2xl font-display text-3xl leading-none border-4 border-brand-border transition-transform focus:outline-none',
               step === 0 || pending
-                ? 'bg-brand-inner text-tx-muted cursor-not-allowed shadow-none'
-                : 'bg-accent-success text-brand-bg hover:brightness-110'
+                ? 'bg-brand-inner text-tx-muted cursor-not-allowed shadow-[inset_0_4px_0_#0B0E2A]'
+                : 'bg-accent-success text-brand-bg shadow-[inset_0_-7px_0_#1E9A55,0_6px_0_#05061A] active:translate-y-[5px]'
             )}
           >
             ENCAISSER

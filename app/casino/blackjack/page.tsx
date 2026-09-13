@@ -293,17 +293,20 @@ export default function BlackjackPage() {
 
       {/* Felt table */}
       <div
-        className="w-full rounded-3xl border-4 border-brand-border p-6 flex flex-col gap-7"
-        style={{ background: 'radial-gradient(ellipse at 50% 30%, #1B5E3F 0%, #0E3524 70%, #0A2419 100%)' }}
+        className="w-full rounded-[28px] border-4 border-brand-border p-6 flex flex-col gap-7"
+        style={{
+          background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.07) 0 18px, transparent 18px 36px), #169A55',
+          boxShadow: 'inset 0 -8px 0 #0F7A42, 0 6px 0 #05061A',
+        }}
       >
         {/* Dealer */}
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2.5">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Croupier</span>
+            <span className="px-3 py-0.5 rounded-lg border-2 border-brand-border bg-[#0E1030] font-display text-base text-white">Croupier</span>
             {dealerVisible.length > 0 && (
               <span className={cn(
-                'px-2.5 py-1 rounded-md font-display font-black text-lg border-2',
-                dealerHand.total > 21 ? 'bg-accent-secondary text-white border-accent-secondary' : 'bg-black/40 text-white border-white/25'
+                'px-3 py-0.5 rounded-xl font-display text-xl border-[3px] border-brand-border',
+                dealerHand.total > 21 ? 'bg-accent-secondary text-white' : 'bg-white text-brand-bg'
               )}>
                 {dealerHand.total}{dealerHidden && ' + ?'}
               </span>
@@ -317,29 +320,29 @@ export default function BlackjackPage() {
           </div>
         </div>
 
-        <div className="h-px bg-white/15" />
+        <div className="h-1.5 rounded-full bg-white/25" />
 
         {/* Player */}
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2.5">
           <div className="flex gap-2.5 min-h-[110px] items-center flex-wrap justify-center">
             {playerCards.map((c, i) => (
               <PlayingCard key={`p${i}`} rank={c} index={i} highlight={phase === 'finished' && (outcome === 'win' || outcome === 'blackjack')} />
             ))}
-            {playerCards.length === 0 && <span className="text-white/35 text-sm font-bold">Mise puis distribue</span>}
+            {playerCards.length === 0 && <span className="font-display text-2xl text-stroke-sm">Mise puis distribue</span>}
           </div>
           <div className="flex items-center gap-2">
             {playerCards.length > 0 && (
               <span className={cn(
-                'px-3 py-1 rounded-md font-display font-black text-2xl border-2',
-                playerHand.total > 21 ? 'bg-accent-secondary text-white border-accent-secondary'
-                  : playerHand.total === 21 ? 'bg-accent-success text-brand-bg border-accent-success'
-                  : 'bg-black/40 text-white border-white/25'
+                'px-3 py-0.5 rounded-xl font-display text-3xl border-[3px] border-brand-border',
+                playerHand.total > 21 ? 'bg-accent-secondary text-white'
+                  : playerHand.total === 21 ? 'bg-accent-success text-brand-bg'
+                  : 'bg-white text-brand-bg'
               )}>
                 {playerHand.total}
-                {playerHand.soft && playerHand.total <= 21 && <span className="text-[10px] font-bold opacity-70 ml-1">souple</span>}
+                {playerHand.soft && playerHand.total <= 21 && <span className="font-body text-[11px] font-black opacity-70 ml-1">souple</span>}
               </span>
             )}
-            <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Toi</span>
+            <span className="px-3 py-0.5 rounded-lg border-2 border-brand-border bg-[#0E1030] font-display text-base text-white">Toi</span>
           </div>
         </div>
       </div>
@@ -377,24 +380,24 @@ export default function BlackjackPage() {
               of an auto run before it finishes. */}
           <AutoBadge control={autoCtl} className="w-full justify-center" />
 
-          <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 text-center">
-            <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise en jeu</div>
-            <div className="font-display text-2xl font-black text-accent-primary">{fmt(lockedAmount)} ₶</div>
+          <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 text-center">
+            <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Mise en jeu</div>
+            <div className="font-display text-3xl leading-none mt-1 text-accent-primary">{fmt(lockedAmount)} ₶</div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <PlayButton onClick={handleHit} disabled={busy || phase !== 'playing'} className="h-14 text-base">TIRER</PlayButton>
-            <PlayButton onClick={handleStand} disabled={busy || phase !== 'playing'} variant="success" className="h-14 text-base">RESTER</PlayButton>
+            <PlayButton onClick={handleHit} disabled={busy || phase !== 'playing'} className="h-16 text-2xl">Tirer</PlayButton>
+            <PlayButton onClick={handleStand} disabled={busy || phase !== 'playing'} variant="success" className="h-16 text-2xl">Rester</PlayButton>
           </div>
 
           <button
             onClick={handleDouble}
             disabled={busy || !canDouble}
             className={cn(
-              'h-12 rounded-xl border-2 font-display font-black text-sm transition-all focus:outline-none',
+              'h-14 rounded-2xl border-4 border-brand-border font-display text-xl transition-transform focus:outline-none',
               canDouble && !busy
-                ? 'border-accent-primary bg-brand-inner text-accent-primary hover:bg-accent-primary hover:text-brand-bg'
-                : 'border-brand-border bg-brand-inner text-tx-muted cursor-not-allowed'
+                ? 'bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_5px_0_#05061A] active:translate-y-[4px]'
+                : 'bg-brand-inner text-tx-muted cursor-not-allowed shadow-[inset_0_4px_0_#0B0E2A]'
             )}
           >
             DOUBLER (+{fmt(lockedAmount)} ₶)

@@ -210,16 +210,21 @@ export default function GrattagePage() {
 
       {/* Ticket */}
       <div
-        className="relative w-full max-w-[360px] rounded-2xl border-4 border-brand-border p-4 select-none"
-        style={{ background: 'linear-gradient(150deg, #7B2D5E 0%, #4A1B3D 55%, #2E1128 100%)' }}
+        className="relative w-full max-w-[360px] rounded-[24px] border-4 border-brand-border p-4 select-none"
+        style={{
+          background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.08) 0 14px, transparent 14px 28px), #8B3DFF',
+          boxShadow: 'inset 0 -8px 0 #6526C9, 0 6px 0 #05061A',
+        }}
       >
         <div className="flex items-center justify-between mb-3">
-          <span className="font-display text-xs font-black uppercase tracking-widest text-white/80">Frenly Ticket</span>
-          <span className="text-[10px] font-bold text-white/60">{phase === 'idle' ? '—' : `${fmt(amount)} ₶`}</span>
+          <span className="font-display text-2xl leading-none text-stroke-sm">Frenly Ticket</span>
+          <span className="px-2 py-0.5 rounded-lg border-2 border-brand-border bg-accent-primary text-brand-bg font-display text-sm">
+            {phase === 'idle' ? '?' : `${fmt(amount)} ₶`}
+          </span>
         </div>
 
         {/* Scratch zone */}
-        <div className="relative rounded-xl overflow-hidden border-2 border-black/40" style={{ height: 116 }}>
+        <div className="relative rounded-2xl overflow-hidden border-[3px] border-brand-border" style={{ height: 116 }}>
           <div className="absolute inset-0 flex items-center justify-around bg-white">
             {[0, 1, 2].map((i) => {
               if (phase === 'idle' || !faces) {
@@ -242,18 +247,21 @@ export default function GrattagePage() {
           )}
 
           {phase === 'idle' && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/55">
-              <span className="font-display font-black text-white/85 text-sm">Achète un ticket</span>
+            <div className="absolute inset-0 flex items-center justify-center bg-[#0E1030]/80">
+              <span className="font-display text-2xl text-stroke-sm">Achète un ticket</span>
             </div>
           )}
         </div>
 
-        <div className="mt-3 flex items-center justify-between">
-          <span className="text-[10px] font-bold text-white/55">
-            {phase === 'scratching' ? `Gratté à ${Math.round(progress * 100)}%` : phase === 'revealed' ? 'Ticket révélé' : '3 symboles identiques = gagné'}
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <span className="text-xs font-black text-white">
+            {phase === 'scratching' ? `Gratté à ${Math.round(progress * 100)} %` : phase === 'revealed' ? 'Ticket révélé' : '3 symboles identiques = gagné'}
           </span>
           {phase === 'scratching' && (
-            <button onClick={() => result && finishReveal(result)} className="text-[10px] font-black uppercase tracking-wider text-white/70 hover:text-white underline focus:outline-none">
+            <button
+              onClick={() => result && finishReveal(result)}
+              className="px-2.5 py-1 rounded-lg border-2 border-brand-border bg-white text-brand-bg font-display text-sm active:translate-y-[2px] focus:outline-none"
+            >
               Tout révéler
             </button>
           )}
@@ -274,9 +282,9 @@ export default function GrattagePage() {
         <>
         {/* Le bouton de jeu a disparu : seule sortie d'une série auto. */}
         <AutoBadge control={autoCtl} className="w-full justify-center mb-2" />
-        <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
-          <div className="font-display font-black text-sm text-accent-primary">Gratte ton ticket</div>
-          <p className="text-xs text-tx-secondary mt-1">Passe le doigt (ou la souris) sur la zone argentée.</p>
+        <div className="rounded-2xl border-[3px] border-brand-border bg-accent-primary text-brand-bg p-4 text-center shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A]">
+          <div className="font-display text-2xl leading-none">Gratte ton ticket</div>
+          <p className="text-sm font-black mt-1">Passe le doigt (ou la souris) sur la zone argentée.</p>
         </div>
         </>
       ) : (
@@ -294,9 +302,9 @@ export default function GrattagePage() {
         </PlayRow>
       )}
 
-      <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">
-        <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">Table des gains</div>
-        <div className="space-y-1.5 text-xs">
+      <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3">
+        <div className="font-display text-base leading-none mb-2">Table des gains</div>
+        <div className="space-y-1.5 text-sm">
           {([['diamond', '×35'], ['crown', '×15'], ['bag', '×3'], ['clover', '×1']] as [FaceKey, string][]).map(([sym, mult]) => {
             const Art = FACE_ART[sym];
             return (

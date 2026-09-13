@@ -63,6 +63,7 @@ export default function KrashCosmeticPreview({
     );
   }
 
-  // The casino preview reads the same params for these slots.
-  return <CosmeticPreview cosmetic={{ ...cosmetic, gameSlug: 'global' } as unknown as Cosmetic} size={size} className={className} />;
+  // The casino preview reads the same params for these slots. Krash keeps the
+  // earlier dark look while the casino moves to its new style.
+  return <CosmeticPreview cosmetic={{ ...cosmetic, gameSlug: 'global' } as unknown as Cosmetic} size={size} className={className} variant="legacy" />;
 }

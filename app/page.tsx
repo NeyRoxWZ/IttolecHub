@@ -4,22 +4,16 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Gamepad2, Play, Users, LogOut, Menu, X, RotateCcw, Sparkles, ArrowRight } from 'lucide-react';
+import { LogOut, Menu, X, RotateCcw, Sparkles, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import GameCover, { type CoverGame } from '@/components/GameCover';
+import HowToPlayDemo from '@/components/HowToPlayDemo';
 import releases from '@/patch-notes/releases.json';
 
-const STEPS = [
-  { title: 'Crée ta salle', description: 'Un code court, tes amis rejoignent en un clic.', icon: Users },
-  { title: 'Choisis un jeu', description: 'L’hôte règle le mini-jeu, les manches et le temps.', icon: Gamepad2 },
-  { title: 'Jouez ensemble', description: 'Tout le monde en temps réel, podium à la fin.', icon: Play },
-];
-
-const MULTI_GAMES = ['PokéGuessr', 'RentGuessr', 'FlagGuessr', 'LogoGuessr', 'BudgetGuessr', 'JaugeGuessr', 'DrawGuessr', 'Undercover', 'Infiltré', 'WikiRacing'];
 
 const SOLO_GAMES: { id: CoverGame; name: string; tag: string; tagClass: string; description: string; href: string }[] = [
   {
@@ -32,11 +26,7 @@ const SOLO_GAMES: { id: CoverGame; name: string; tag: string; tagClass: string; 
     description: 'Mise tes FrenlyCoins sur 20 mini-jeux, avec pass, coffre, missions et cagnotte. Monnaie fictive.',
     href: '/casino',
   },
-  {
-    id: 'krash', name: 'Krash', tag: 'Nouveau', tagClass: 'bg-accent-secondary text-white',
-    description: 'La bourse en accéléré : parie à la hausse ou à la baisse avec un portefeuille séparé du casino.',
-    href: '/krash',
-  },
+  // Krash is not listed while it is being reworked: still reachable at /krash.
 ];
 
 const latestRelease = (releases as { releases: { version: string; title?: string }[] }).releases[0];
@@ -304,8 +294,9 @@ export default function Home() {
                 <p className="mt-2 font-black text-tx-secondary">Joue à ton rythme. Ta progression est sauvegardée sur ton compte.</p>
               </div>
 
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
-                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {/* Stretch, so the side column ends exactly where the game cards end. */}
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-stretch">
+                <div className="grid gap-5 sm:grid-cols-2">
                   {SOLO_GAMES.map((g) => (
                     <article
                       key={g.id}
@@ -330,7 +321,7 @@ export default function Home() {
                   ))}
                 </div>
 
-                <aside className="grid gap-5">
+                <aside className="flex flex-col gap-5">
                   <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-4 shadow-brutal">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-accent-primary" />
@@ -343,10 +334,10 @@ export default function Home() {
                       Voir les patch notes <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
-                  <div className="bg-accent-secondary border-4 border-brand-border rounded-[22px] p-4 shadow-[inset_0_-6px_0_#C92D63,0_5px_0_#05061A]">
+                  <div className="flex-1 flex flex-col bg-accent-secondary border-4 border-brand-border rounded-[22px] p-4 shadow-[inset_0_-6px_0_#C92D63,0_8px_0_#05061A]">
                     <div className="font-display text-2xl text-stroke-sm">Entre potes ?</div>
                     <p className="mt-1 text-sm font-black text-white">10 mini-jeux multijoueurs, une salle, un code.</p>
-                    <button type="button" onClick={() => handleSetMode('multiplayer')} className={cn(BTN_YELLOW, 'mt-3 w-full h-11 text-lg')}>
+                    <button type="button" onClick={() => handleSetMode('multiplayer')} className={cn(BTN_YELLOW, 'mt-auto w-full h-14 text-xl')}>
                       Multijoueur
                     </button>
                   </div>
@@ -360,8 +351,10 @@ export default function Home() {
                 <p className="mt-2 font-black text-tx-secondary">Crée une salle, envoie le code, jouez tous ensemble.</p>
               </div>
 
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-5 md:p-6 shadow-[0_8px_0_#05061A]">
+              {/* Two cards side by side, same height, tops and bottoms aligned. */}
+              <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+                <div className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[24px] p-5 md:p-6 shadow-[0_8px_0_#05061A]">
+                  <div className="font-display text-2xl mb-4">{activeTab === 'create' ? 'Créer une salle' : 'Rejoindre une salle'}</div>
                   <div className="flex gap-1 p-1.5 rounded-2xl bg-brand-bg border-[3px] border-brand-border">
                     {(['create', 'join'] as const).map((t) => (
                       <button
@@ -379,7 +372,7 @@ export default function Home() {
                     ))}
                   </div>
 
-                  <form onSubmit={handleAction} className="mt-5 space-y-4">
+                  <form onSubmit={handleAction} className="mt-5 flex-1 flex flex-col gap-4">
                     <label className="block space-y-2">
                       <span className="text-xs font-black tracking-widest uppercase text-tx-secondary">Ton pseudo</span>
                       <input
@@ -404,51 +397,15 @@ export default function Home() {
                       </label>
                     )}
 
-                    <button type="submit" disabled={!canSubmit} className={cn(BTN_YELLOW, 'w-full h-16 text-2xl')}>
+                    <button type="submit" disabled={!canSubmit} className={cn(BTN_YELLOW, 'mt-auto w-full h-16 text-2xl')}>
                       {activeTab === 'create' ? 'Démarrer' : 'Rejoindre'}
                     </button>
                   </form>
                 </div>
 
-                <div className="grid gap-5">
-                  <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-5 shadow-brutal">
-                    <div className="font-display text-2xl">Comment jouer</div>
-                    <ol className="mt-4 grid gap-3">
-                      {STEPS.map((step, i) => {
-                        const Icon = step.icon;
-                        return (
-                          <li key={step.title} className="flex items-center gap-3 rounded-2xl bg-brand-inner border-[3px] border-brand-border p-3">
-                            <span className="h-12 w-12 shrink-0 rounded-xl bg-accent-info border-[3px] border-brand-border flex items-center justify-center shadow-[inset_0_-4px_0_#2F5BD0]">
-                              <Icon className="h-6 w-6 text-white" />
-                            </span>
-                            <div className="min-w-0">
-                              <div className="font-display text-lg leading-tight">
-                                <span className="text-accent-primary">{i + 1}.</span> {step.title}
-                              </div>
-                              <div className="text-sm font-bold text-tx-secondary">{step.description}</div>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ol>
-                  </div>
-
-                  <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-5 shadow-brutal">
-                    <div className="font-display text-2xl">10 jeux au choix</div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {MULTI_GAMES.map((game, i) => (
-                        <span
-                          key={game}
-                          className={cn(
-                            'px-3 py-1.5 rounded-xl border-[3px] border-brand-border font-display text-base',
-                            ['bg-accent-primary text-brand-bg', 'bg-accent-secondary text-white', 'bg-accent-success text-brand-bg', 'bg-accent-info text-white'][i % 4]
-                          )}
-                        >
-                          {game}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                <div className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[24px] p-5 md:p-6 shadow-[0_8px_0_#05061A]">
+                  <div className="font-display text-2xl mb-4">Comment jouer</div>
+                  <HowToPlayDemo className="flex-1" />
                 </div>
               </div>
             </>

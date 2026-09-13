@@ -87,15 +87,18 @@ export default function PlinkoPage() {
   };
 
   const gameHistory = history.filter((h) => h.game_slug === 'plinko').slice(0, 10);
-  const bucketColor = (m: number) => (m >= 11 ? '#FFD000' : m >= 2 ? '#00FF94' : m >= 1 ? '#4FC3F7' : '#FF2A55');
+  const bucketColor = (m: number) => (m >= 11 ? '#FFC61A' : m >= 2 ? '#33D17A' : m >= 1 ? '#5B8CFF' : '#FF4F8B');
 
   const stage = (
     <div className="w-full flex flex-col items-center gap-4">
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
 
       <div
-        className="relative rounded-2xl border-4 border-brand-border p-3"
-        style={{ background: 'linear-gradient(180deg, #141B33 0%, #0C1122 100%)' }}
+        className="relative rounded-[24px] border-4 border-brand-border p-3"
+        style={{
+          background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 16px, transparent 16px 32px), #0E1030',
+          boxShadow: 'inset 0 -8px 0 #070920, 0 6px 0 #05061A',
+        }}
       >
         <div className="relative" style={{ width: BOARD_W, height: BOARD_H }}>
           {/* Pegs */}
@@ -108,8 +111,8 @@ export default function PlinkoPage() {
               return (
                 <div
                   key={`${row}-${p}`}
-                  className={cn('absolute rounded-full transition-colors duration-150', active ? 'bg-accent-primary' : 'bg-white/35')}
-                  style={{ width: 8, height: 8, left: x - 4, top: y - 4 }}
+                  className={cn('absolute rounded-full border-2 border-brand-border transition-colors duration-150', active ? 'bg-accent-primary' : 'bg-white')}
+                  style={{ width: 11, height: 11, left: x - 5.5, top: y - 5.5 }}
                 />
               );
             });
@@ -118,32 +121,32 @@ export default function PlinkoPage() {
           {/* Ball */}
           {ball && (
             <div
-              className="absolute rounded-full bg-accent-primary z-10"
+              className="absolute rounded-full bg-accent-primary border-[3px] border-brand-border z-10"
               style={{
-                width: 20, height: 20,
-                left: BOARD_W / 2 + ball.offset * SPACING - 10,
-                top: ball.row * ROW_H + 2,
+                width: 22, height: 22,
+                left: BOARD_W / 2 + ball.offset * SPACING - 11,
+                top: ball.row * ROW_H + 1,
                 transition: `left ${tempo(STEP_MS)}ms cubic-bezier(0.4,0,0.6,1), top ${tempo(STEP_MS)}ms cubic-bezier(0.3,0,0.7,1)`,
-                boxShadow: '0 0 10px rgba(255,208,0,0.8)',
+                boxShadow: 'inset -3px -4px 0 #D98E00, 0 3px 0 #05061A',
               }}
             />
           )}
         </div>
 
         {/* Buckets */}
-        <div className="flex gap-0.5 mt-1">
+        <div className="flex gap-1 mt-1">
           {PLINKO_MULTIPLIERS.map((m, i) => (
             <div
               key={i}
               className={cn(
-                'flex-1 h-12 rounded-md border-2 flex items-center justify-center text-xs font-black transition-all duration-300',
-                landedBucket === i ? 'scale-110 z-10' : ''
+                'flex-1 h-12 rounded-lg border-[3px] border-brand-border flex items-center justify-center font-display text-sm transition-transform duration-300',
+                landedBucket === i ? 'scale-110 -translate-y-1 z-10 ring-4 ring-white' : landedBucket !== null ? 'opacity-60' : ''
               )}
               style={{
                 width: SPACING,
-                borderColor: landedBucket === i ? bucketColor(m) : 'rgba(255,255,255,0.15)',
-                background: landedBucket === i ? bucketColor(m) : 'rgba(255,255,255,0.05)',
-                color: landedBucket === i ? '#13131A' : bucketColor(m),
+                background: bucketColor(m),
+                color: m >= 1 && m < 2 ? '#FFFFFF' : m < 1 ? '#FFFFFF' : '#0E1030',
+                boxShadow: 'inset 0 -4px 0 rgba(0,0,0,0.22)',
               }}
             >
               ×{m}
@@ -165,9 +168,9 @@ export default function PlinkoPage() {
         {dropping ? 'ÇA TOMBE...' : `LÂCHER LA BILLE · ${fmt(amount)} ₶`}
       </PlayRow>
 
-      <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">
-        <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">Cases du bas</div>
-        <p className="text-xs text-tx-secondary leading-relaxed">
+      <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3">
+        <div className="font-display text-base leading-none mb-2">Cases du bas</div>
+        <p className="text-sm font-bold text-tx-secondary leading-relaxed">
           Les bords paient <span className="font-black text-accent-primary">×11</span> mais sont rares :
           la bille finit le plus souvent au centre, où les cases rendent moins que la mise.
         </p>

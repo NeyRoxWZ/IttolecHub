@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { brawlChoice } from '@/lib/ui/brawl';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { sfx } from '@/lib/casino/sfx';
 import { useAuth } from '@/hooks/useAuth';
@@ -201,20 +202,26 @@ export default function MinesPage() {
         @keyframes mineShake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
       `}</style>
 
-      <div className="flex items-baseline gap-3">
-        <span className={cn('font-display text-4xl font-black tabular-nums', phase === 'busted' ? 'text-accent-secondary' : 'text-accent-primary')}>
+      <div className="flex items-center gap-3">
+        <span className={cn(
+          'font-display text-5xl leading-none tabular-nums [-webkit-text-stroke:5px_#05061A] [paint-order:stroke_fill] [text-shadow:0_4px_0_#05061A]',
+          phase === 'busted' ? 'text-accent-secondary' : 'text-accent-primary'
+        )}>
           ×{multiplier.toFixed(2)}
         </span>
         {active && revealed.length > 0 && (
-          <span className="text-sm font-bold text-tx-secondary">
-            = <CountUp value={potentialPayout} className="text-accent-success" /> ₶
+          <span className="px-3 py-1 rounded-xl border-[3px] border-brand-border bg-accent-success text-brand-bg font-display text-lg">
+            <CountUp value={potentialPayout} /> ₶
           </span>
         )}
       </div>
 
       <div
-        className={cn('grid grid-cols-5 gap-2.5 p-4 rounded-2xl border-4 border-brand-border', phase === 'busted' && 'animate-[mineShake_400ms_ease-out]')}
-        style={{ background: 'linear-gradient(160deg, #16203A 0%, #0D1425 100%)' }}
+        className={cn('grid grid-cols-5 gap-2.5 p-4 rounded-[24px] border-4 border-brand-border', phase === 'busted' && 'animate-[mineShake_400ms_ease-out]')}
+        style={{
+          background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 16px, transparent 16px 32px), #0E1030',
+          boxShadow: 'inset 0 -8px 0 #070920, 0 6px 0 #05061A',
+        }}
       >
         {Array.from({ length: MINES_TOTAL_CELLS }, (_, i) => {
           const isRevealed = revealed.includes(i);
@@ -227,12 +234,12 @@ export default function MinesPage() {
               onClick={() => handleReveal(i)}
               disabled={!active || isRevealed || busy}
               className={cn(
-                'w-[62px] h-[62px] sm:w-[74px] sm:h-[74px] rounded-xl border-2 flex items-center justify-center transition-all duration-200 focus:outline-none',
-                isHit ? 'border-accent-secondary bg-accent-secondary/35'
-                  : isMine ? 'border-accent-secondary/50 bg-accent-secondary/12'
-                  : isRevealed ? 'border-accent-success bg-accent-success/18'
-                  : active ? 'border-white/15 bg-white/[0.06] hover:bg-white/[0.14] hover:border-accent-primary hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
-                  : 'border-white/10 bg-white/[0.03]'
+                'w-[62px] h-[62px] sm:w-[74px] sm:h-[74px] rounded-2xl border-[3px] border-brand-border flex items-center justify-center transition-transform duration-150 focus:outline-none',
+                isHit ? 'bg-accent-secondary shadow-[inset_0_-5px_0_#C92D63]'
+                  : isMine ? 'bg-[#5A2346]'
+                  : isRevealed ? 'bg-accent-success shadow-[inset_0_-5px_0_#1E9A55]'
+                  : active ? 'bg-accent-info shadow-[inset_0_-5px_0_#2F5BD0,0_4px_0_#05061A] hover:-translate-y-0.5 active:translate-y-[3px] cursor-pointer'
+                  : 'bg-[#1A1D4A] shadow-[inset_0_-5px_0_#12143A]'
               )}
             >
               {isHit ? <span style={{ animation: 'minePop 300ms ease-out' }}><ArtImpact size={38} /></span>
@@ -245,8 +252,8 @@ export default function MinesPage() {
       </div>
 
       {active && (
-        <p className="text-xs text-tx-secondary font-bold">
-          {revealed.length}/{maxSafe} cases sûres · prochaine ×{nextMultiplier}
+        <p className="px-3 py-1 rounded-xl border-2 border-brand-border bg-[#0E1030] font-display text-base text-white">
+          {revealed.length}/{maxSafe} cases sûres · prochaine <span className="text-accent-primary">×{nextMultiplier}</span>
         </p>
       )}
 
@@ -264,18 +271,15 @@ export default function MinesPage() {
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-black tracking-widest uppercase text-tx-muted">Mines</span>
-              <span className="text-xs font-bold text-accent-primary">1<sup>re</sup> case ×{previewMultiplier}</span>
+              <span className="font-display text-lg leading-none">Mines</span>
+              <span className="font-display text-sm text-accent-primary">1<sup>re</sup> case ×{previewMultiplier}</span>
             </div>
-            <div className="grid grid-cols-5 gap-1.5 mb-2">
+            <div className="grid grid-cols-5 gap-2 mb-3">
               {[1, 3, 5, 10, 24].map((n) => (
                 <button
                   key={n}
                   onClick={() => { sfx.select(); setMineCount(n); }}
-                  className={cn(
-                    'h-10 rounded-lg border-2 text-xs font-black transition-colors focus:outline-none',
-                    mineCount === n ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-brand-inner border-brand-border text-tx-secondary hover:border-tx-base'
-                  )}
+                  className={cn(brawlChoice(mineCount === n), 'h-11 text-lg')}
                 >
                   {n}
                 </button>
@@ -286,7 +290,7 @@ export default function MinesPage() {
               onChange={(e) => setMineCount(Number(e.target.value))}
               className="w-full accent-accent-primary"
             />
-            <p className="text-[11px] text-tx-muted mt-1">{mineCount} mine{mineCount > 1 ? 's' : ''} · {MINES_TOTAL_CELLS - mineCount} cases sûres</p>
+            <p className="text-xs font-black text-tx-secondary mt-1">{mineCount} mine{mineCount > 1 ? 's' : ''} · {MINES_TOTAL_CELLS - mineCount} cases sûres</p>
           </div>
 
           <PlayRow
@@ -316,14 +320,14 @@ export default function MinesPage() {
               of an auto run before it finishes. */}
           <AutoBadge control={autoCtl} className="w-full justify-center" />
 
-          <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 flex items-center justify-between">
+          <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 flex items-center justify-between">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise</div>
-              <div className="font-display text-xl font-black">{fmt(lockedAmount)} ₶</div>
+              <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Mise</div>
+              <div className="font-display text-2xl leading-none mt-0.5">{fmt(lockedAmount)} ₶</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mines</div>
-              <div className="font-display text-xl font-black text-accent-secondary">{lockedMineCount}</div>
+              <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Mines</div>
+              <div className="font-display text-2xl leading-none mt-0.5 text-accent-secondary">{lockedMineCount}</div>
             </div>
           </div>
 

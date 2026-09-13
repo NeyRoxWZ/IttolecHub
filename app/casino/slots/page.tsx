@@ -46,10 +46,10 @@ function Reel({ state, highlight }: { state: ReelState; highlight: boolean }) {
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-xl border-4 bg-brand-bg transition-colors duration-300',
-        highlight ? 'border-accent-primary' : 'border-brand-border'
+        'relative overflow-hidden rounded-2xl border-4 border-brand-border bg-white transition-shadow duration-300',
+        highlight && 'ring-4 ring-accent-primary'
       )}
-      style={{ width: CELL, height: CELL }}
+      style={{ width: CELL, height: CELL, boxShadow: 'inset 0 10px 0 rgba(5,6,26,0.12), inset 0 -10px 0 rgba(5,6,26,0.12)' }}
     >
       <div
         className="absolute left-0 right-0 flex flex-col items-center"
@@ -68,7 +68,7 @@ function Reel({ state, highlight }: { state: ReelState; highlight: boolean }) {
           );
         })}
       </div>
-      {highlight && <div className="absolute inset-0 rounded-lg bg-accent-primary/20 animate-pulse pointer-events-none" />}
+      {highlight && <div className="absolute inset-0 bg-accent-primary/25 animate-pulse pointer-events-none" />}
     </div>
   );
 }
@@ -188,16 +188,26 @@ export default function SlotsPage() {
     <div className="w-full flex flex-col items-center gap-5">
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
 
+      {/* The cabinet: a raised pink frame with a row of bulbs on top. */}
       <div
-        className="rounded-3xl border-4 border-brand-border p-6"
-        style={{ background: 'linear-gradient(180deg, #2A1B3D 0%, #1A1028 100%)' }}
+        className="relative rounded-[32px] border-4 border-brand-border p-6 pt-9"
+        style={{ background: '#FF4F8B', boxShadow: 'inset 0 -10px 0 #C92D63, inset 0 8px 0 #FF86B0, 0 8px 0 #05061A' }}
       >
-        <div className="flex gap-4">
+        <div className="absolute top-2.5 left-0 right-0 flex justify-center gap-3" aria-hidden="true">
+          {Array.from({ length: 9 }, (_, i) => (
+            <span
+              key={i}
+              className={cn('h-3.5 w-3.5 rounded-full border-2 border-brand-border', isWinLine ? 'animate-pulse' : '')}
+              style={{ background: i % 2 ? '#FFFFFF' : '#FFC61A' }}
+            />
+          ))}
+        </div>
+        <div className="flex gap-4 p-3 rounded-2xl border-4 border-brand-border bg-[#0E1030]">
           {reels.map((r, i) => (
             <Reel key={i} state={r} highlight={isWinLine} />
           ))}
         </div>
-        <div className="mt-4 h-1 rounded-full bg-accent-primary/25">
+        <div className="mt-4 h-3 rounded-full bg-[#0E1030] border-2 border-brand-border overflow-hidden">
           <div className={cn('h-full rounded-full bg-accent-primary transition-all duration-500', isWinLine ? 'w-full' : 'w-0')} />
         </div>
       </div>
@@ -218,9 +228,9 @@ export default function SlotsPage() {
         {spinning ? 'ÇA TOURNE...' : `LANCER · ${fmt(amount)} ₶`}
       </PlayRow>
 
-      <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">
-        <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">Table des gains</div>
-        <div className="space-y-1.5 text-xs">
+      <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3">
+        <div className="font-display text-base leading-none mb-2">Table des gains</div>
+        <div className="space-y-1.5 text-sm">
           {([['diamond', '×42'], ['star', '×10'], ['bell', '×4'], ['cherry', '×1']] as [SlotSymbol, string][]).map(([sym, mult]) => {
             const Art = SYMBOL_ART[sym];
             return (

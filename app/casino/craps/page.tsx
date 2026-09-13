@@ -39,13 +39,13 @@ const PIPS: Record<number, [number, number][]> = {
 function Die({ value, rolling }: { value: number; rolling: boolean }) {
   return (
     <div
-      className={cn('w-24 h-24 rounded-2xl border-4 border-brand-border bg-white grid p-3', rolling && 'animate-bounce')}
-      style={{ gridTemplateColumns: 'repeat(3,1fr)', gridTemplateRows: 'repeat(3,1fr)', boxShadow: '0 3px 8px rgba(0,0,0,0.4)' }}
+      className={cn('w-24 h-24 rounded-[22px] border-[5px] border-brand-border bg-white grid gap-1 p-3', rolling && 'animate-bounce')}
+      style={{ gridTemplateColumns: 'repeat(3,1fr)', gridTemplateRows: 'repeat(3,1fr)', boxShadow: 'inset 0 -7px 0 #D5DCF5, 0 6px 0 #05061A' }}
     >
       {Array.from({ length: 9 }, (_, i) => {
         const row = Math.floor(i / 3), col = i % 3;
         const on = (PIPS[value] || []).some(([r, c]) => r === row && c === col);
-        return <div key={i} className={cn('rounded-full', on ? 'bg-[#13131A]' : 'bg-transparent')} />;
+        return <div key={i} className={cn('rounded-full', on ? 'bg-[#FF3B5C] border-2 border-brand-border' : 'bg-transparent')} />;
       })}
     </div>
   );
@@ -110,19 +110,22 @@ export default function CrapsPage() {
       {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
 
       <div
-        className="w-full rounded-2xl border-4 border-brand-border p-6 flex flex-col items-center gap-4"
-        style={{ background: 'radial-gradient(ellipse at 50% 25%, #1B5E3F 0%, #0E3524 70%, #0A2419 100%)' }}
+        className="w-full rounded-[24px] border-4 border-brand-border p-6 flex flex-col items-center gap-4"
+        style={{
+          background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.07) 0 18px, transparent 18px 36px), #169A55',
+          boxShadow: 'inset 0 -8px 0 #0F7A42, 0 6px 0 #05061A',
+        }}
       >
-        <div className="flex gap-4">
+        <div className="flex gap-5">
           <Die value={dice.d1} rolling={rolling} />
           <Die value={dice.d2} rolling={rolling} />
         </div>
 
-        <div className="font-display text-5xl font-black text-white">{dice.sum > 0 ? dice.sum : '—'}</div>
+        <div className="font-display text-6xl leading-none text-stroke">{dice.sum > 0 ? dice.sum : '?'}</div>
 
         {point !== null && (
-          <div className="px-3 py-1 rounded-lg border-2 border-accent-primary bg-accent-primary/15 text-accent-primary font-display font-black text-sm">
-            POINT : {point} — refais-le avant un 7
+          <div className="px-4 py-1.5 rounded-xl border-[3px] border-brand-border bg-accent-primary text-brand-bg font-display text-base shadow-[inset_0_-4px_0_#D98E00,0_4px_0_#05061A]">
+            Point : {point} · refais-le avant un 7
           </div>
         )}
 
@@ -130,10 +133,10 @@ export default function CrapsPage() {
           <div className="flex flex-wrap gap-1.5 justify-center">
             {rollLog.map((s, i) => (
               <span key={i} className={cn(
-                'w-9 h-9 rounded-md border-2 flex items-center justify-center text-sm font-black',
-                point !== null && s === point ? 'border-accent-success text-accent-success'
-                  : s === 7 && i > 0 ? 'border-accent-secondary text-accent-secondary'
-                  : 'border-white/25 text-white/70'
+                'w-10 h-10 rounded-xl border-[3px] border-brand-border flex items-center justify-center font-display text-lg',
+                point !== null && s === point ? 'bg-accent-primary text-brand-bg'
+                  : s === 7 && i > 0 ? 'bg-accent-secondary text-white'
+                  : 'bg-[#0E1030] text-white'
               )}>{s}</span>
             ))}
           </div>
@@ -153,11 +156,11 @@ export default function CrapsPage() {
         {rolling ? 'ÇA ROULE...' : `LANCER LES DÉS · ${fmt(amount)} ₶`}
       </PlayRow>
 
-      <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 space-y-1.5 text-xs">
-        <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-1">Premier lancer</div>
-        <div className="flex justify-between"><span className="text-tx-secondary">7 ou 11</span><span className="font-black text-accent-success">Gagné</span></div>
-        <div className="flex justify-between"><span className="text-tx-secondary">2, 3 ou 12</span><span className="font-black text-accent-secondary">Perdu</span></div>
-        <div className="flex justify-between"><span className="text-tx-secondary">Autre total</span><span className="font-black text-accent-primary">Devient le point</span></div>
+      <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 space-y-2 text-sm">
+        <div className="font-display text-base leading-none mb-1">Premier lancer</div>
+        <div className="flex justify-between items-center"><span className="font-bold text-tx-secondary">7 ou 11</span><span className="px-2 py-0.5 rounded-lg border-2 border-brand-border bg-accent-success text-brand-bg font-display">Gagné</span></div>
+        <div className="flex justify-between items-center"><span className="font-bold text-tx-secondary">2, 3 ou 12</span><span className="px-2 py-0.5 rounded-lg border-2 border-brand-border bg-accent-secondary text-white font-display">Perdu</span></div>
+        <div className="flex justify-between items-center"><span className="font-bold text-tx-secondary">Autre total</span><span className="px-2 py-0.5 rounded-lg border-2 border-brand-border bg-accent-primary text-brand-bg font-display">Devient le point</span></div>
       </div>
 
       <HistoryStrip history={gameHistory} />

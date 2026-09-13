@@ -13,6 +13,7 @@ import {
 import Confetti from '../_components/Confetti';
 import { ArtShield, ArtHandshake } from '../_components/CasinoArt';
 import { tempo } from '@/lib/casino/turbo';
+import { brawlChoice } from '@/lib/ui/brawl';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -102,16 +103,25 @@ export default function StadePage() {
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
 
       <div
-        className="w-full rounded-2xl border-4 border-brand-border p-6"
-        style={{ background: 'radial-gradient(ellipse at 50% 30%, #1B5E3F 0%, #0E3524 70%, #0A2419 100%)' }}
+        className="relative w-full rounded-[24px] border-4 border-brand-border p-6 overflow-hidden"
+        style={{
+          background: 'repeating-linear-gradient(90deg, #169A55 0 46px, #1BAE60 46px 92px)',
+          boxShadow: 'inset 0 -8px 0 #0F7A42, 0 6px 0 #05061A',
+        }}
       >
-        <div className="flex items-center justify-around">
+        {/* Centre line and circle of the pitch. */}
+        <span className="absolute left-1/2 top-0 bottom-0 w-1.5 -translate-x-1/2 bg-white/60" aria-hidden="true" />
+        <span className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-[6px] border-white/60" aria-hidden="true" />
+        <div className="relative flex items-center justify-around">
           {(['home', 'away'] as const).map((side) => {
             const value = cards[side];
             const isWinnerSide = result && result.outcome === side;
             return (
               <div key={side} className="flex flex-col items-center gap-2">
-                <span className={cn('text-xs font-black uppercase tracking-widest flex items-center gap-2', isWinnerSide ? 'text-accent-primary' : 'text-white/60')}>
+                <span className={cn(
+                  'px-3 py-1 rounded-xl border-[3px] border-brand-border font-display text-base flex items-center gap-2',
+                  isWinnerSide ? 'bg-accent-primary text-brand-bg' : 'bg-[#0E1030] text-white'
+                )}>
                   <ArtShield size={18} away={side === 'away'} />
                   {side === 'home' ? 'Domicile' : 'Extérieur'}
                 </span>
@@ -124,7 +134,7 @@ export default function StadePage() {
         </div>
 
         {result?.outcome === 'draw' && (
-          <div className="text-center mt-4 font-display font-black text-accent-primary tracking-widest">MATCH NUL</div>
+          <div className="relative text-center mt-4 font-display text-4xl text-stroke">Match nul !</div>
         )}
       </div>
 
@@ -137,17 +147,14 @@ export default function StadePage() {
   const panel = (
     <>
       <div>
-        <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Ton pari</div>
-        <div className="space-y-2">
+        <div className="font-display text-lg leading-none mb-2">Ton pari</div>
+        <div className="space-y-2.5">
           {BETS.map((b) => (
             <button
               key={b.value}
               onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setBet(b.value); }}
               disabled={playing}
-              className={cn(
-                'w-full h-14 rounded-xl border-2 flex items-center justify-between px-4 font-bold transition-all focus:outline-none disabled:opacity-50',
-                bet === b.value ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-brand-inner border-brand-border text-tx-secondary hover:border-tx-base/60'
-              )}
+              className={cn(brawlChoice(bet === b.value), 'w-full h-14 flex items-center justify-between px-4 text-lg')}
             >
               <span className="flex items-center gap-2"><BetIcon value={b.value} />{b.label}</span>
               <span>×{STADE_PAYOUTS[b.value]}</span>

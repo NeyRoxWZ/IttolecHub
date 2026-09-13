@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { brawlChoice } from '@/lib/ui/brawl';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
@@ -107,17 +108,20 @@ export default function ChevauxPage() {
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
 
       <div
-        className="w-full rounded-2xl border-4 border-brand-border p-3 space-y-1.5"
-        style={{ background: 'linear-gradient(180deg, #2F6B3A 0%, #23512C 100%)' }}
+        className="w-full rounded-[24px] border-4 border-brand-border p-3 space-y-2"
+        style={{ background: '#169A55', boxShadow: 'inset 0 -8px 0 #0F7A42, 0 6px 0 #05061A' }}
       >
         {HORSES.map((h, i) => {
           const isPick = selected === h.id;
           const isWinner = result?.winnerId === h.id;
           return (
-            <div key={h.id} className={cn('relative rounded-lg overflow-hidden border-2', isWinner ? 'border-accent-primary' : isPick ? 'border-white/50' : 'border-white/10')}
-              style={{ background: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 22px, transparent 22px 44px)' }}>
-              <div className="flex items-center h-14 px-3 gap-3">
-                <span className={cn('text-xs font-black w-[110px] shrink-0 truncate', isPick ? 'text-white' : 'text-white/60')}>{h.name}</span>
+            <div key={h.id} className={cn('relative rounded-xl overflow-hidden border-[3px] border-brand-border', isWinner && 'ring-4 ring-accent-primary', isPick && !isWinner && 'ring-4 ring-white/70')}
+              style={{ background: 'repeating-linear-gradient(90deg, #D9A066 0 26px, #CB915A 26px 52px)' }}>
+              <div className="flex items-center h-14 px-2.5 gap-3">
+                <span className={cn(
+                  'px-2 py-0.5 rounded-lg border-2 border-brand-border font-display text-sm w-[118px] shrink-0 truncate',
+                  isPick ? 'bg-accent-primary text-brand-bg' : 'bg-[#0E1030] text-white'
+                )}>{h.name}</span>
                 <div className="relative flex-1 h-full">
                   <span
                     className="absolute top-1/2 -translate-y-1/2"
@@ -126,7 +130,10 @@ export default function ChevauxPage() {
                     <ArtHorse size={34} />
                   </span>
                 </div>
-                <span className={cn('text-xs font-black shrink-0', isWinner ? 'text-accent-primary' : 'text-white/50')}>×{h.payout}</span>
+                <span className={cn(
+                  'px-1.5 py-0.5 rounded-lg border-2 border-brand-border font-display text-sm shrink-0',
+                  isWinner ? 'bg-accent-primary text-brand-bg' : 'bg-white text-brand-bg'
+                )}>×{h.payout}</span>
                 <span className="shrink-0"><ArtFinishFlag size={22} /></span>
               </div>
             </div>
@@ -143,17 +150,14 @@ export default function ChevauxPage() {
   const panel = (
     <>
       <div>
-        <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Ton cheval</div>
-        <div className="space-y-1.5">
+        <div className="font-display text-lg leading-none mb-2">Ton cheval</div>
+        <div className="space-y-2">
           {HORSES.map((h) => (
             <button
               key={h.id}
               onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setSelected(h.id); }}
               disabled={phase === 'racing'}
-              className={cn(
-                'w-full h-11 rounded-xl border-2 flex items-center justify-between px-3 text-sm font-bold transition-all focus:outline-none disabled:opacity-50',
-                selected === h.id ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-brand-inner border-brand-border text-tx-secondary hover:border-tx-base/60'
-              )}
+              className={cn(brawlChoice(selected === h.id), 'w-full h-11 flex items-center justify-between px-3 text-base')}
             >
               <span className="truncate">{h.name}</span>
               <span className="shrink-0 ml-2">×{h.payout}</span>

@@ -110,15 +110,19 @@ export default function CaissesPage() {
               onClick={() => handlePick(i)}
               disabled={phase !== 'choosing'}
               className={cn(
-                'relative w-[104px] h-[104px] rounded-2xl border-4 flex items-center justify-center transition-all focus:outline-none overflow-hidden',
-                hasJackpot ? 'border-accent-success bg-accent-success/25'
-                  : isChosen && revealed ? 'border-accent-secondary bg-accent-secondary/20'
-                  : revealed ? 'border-brand-border opacity-45'
-                  : phase === 'choosing' ? 'border-brand-border hover:border-accent-primary hover:-translate-y-1 cursor-pointer'
-                  : 'border-brand-border'
+                'relative w-[108px] h-[108px] rounded-[22px] border-4 border-brand-border flex items-center justify-center transition-transform focus:outline-none overflow-hidden',
+                hasJackpot ? 'ring-4 ring-white scale-110'
+                  : isChosen && revealed ? 'ring-4 ring-accent-secondary'
+                  : revealed ? 'opacity-45'
+                  : phase === 'choosing' ? 'hover:-translate-y-1.5 cursor-pointer'
+                  : ''
               )}
               style={{
-                background: hasJackpot ? undefined : 'linear-gradient(160deg, #6B4A2A 0%, #4A3018 100%)',
+                background: hasJackpot ? '#33D17A' : isChosen && revealed ? '#FF4F8B' : 'repeating-linear-gradient(90deg, #B8672E 0 18px, #A95D29 18px 36px)',
+                boxShadow: hasJackpot
+                  ? 'inset 0 -7px 0 #1E9A55, 0 5px 0 #05061A'
+                  : isChosen && revealed ? 'inset 0 -7px 0 #C92D63, 0 5px 0 #05061A'
+                  : 'inset 0 -7px 0 #8A4A1C, 0 5px 0 #05061A',
                 animation: isOpening ? 'crateShake 180ms ease-in-out 3' : undefined,
               }}
             >
@@ -128,14 +132,14 @@ export default function CaissesPage() {
                   : <ArtCrateEmpty size={58} />)
                 : <ArtCrate size={64} />}
               {!revealed && phase === 'choosing' && (
-                <span className="absolute bottom-1 right-1.5 text-[10px] font-black text-white/60">{i + 1}</span>
+                <span className="absolute bottom-1.5 right-1.5 h-6 min-w-[24px] px-1 rounded-lg border-2 border-brand-border bg-[#0E1030] font-display text-sm text-white flex items-center justify-center">{i + 1}</span>
               )}
             </button>
           );
         })}
       </div>
 
-      <p className="text-xs font-bold text-tx-secondary">
+      <p className="font-display text-2xl text-stroke">
         {phase === 'idle' ? 'Règle ta mise puis lance' : phase === 'choosing' ? 'Choisis une caisse' : phase === 'opening' ? 'Ouverture...' : result?.won ? 'Jackpot !' : 'Caisse vide'}
       </p>
 
@@ -153,9 +157,9 @@ export default function CaissesPage() {
         <>
         {/* Le bouton de jeu a disparu : seule sortie d'une série auto. */}
         <AutoBadge control={autoCtl} className="w-full justify-center mb-2" />
-        <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
-          <div className="font-display font-black text-sm text-accent-primary">Choisis ta caisse</div>
-          <p className="text-xs text-tx-secondary mt-1">Une seule des {CAISSES_COUNT} contient le lot.</p>
+        <div className="rounded-2xl border-[3px] border-brand-border bg-accent-primary text-brand-bg p-4 text-center shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A]">
+          <div className="font-display text-2xl leading-none">Choisis ta caisse</div>
+          <p className="text-sm font-black mt-1">Une seule des {CAISSES_COUNT} contient le lot.</p>
         </div>
         </>
       ) : (

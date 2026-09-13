@@ -222,22 +222,25 @@ export default function PouletPage() {
       `}</style>
 
       {/* Multiplier readout */}
-      <div className="flex items-baseline gap-3">
-        <span className={cn('font-display text-4xl font-black tabular-nums', phase === 'dead' ? 'text-accent-secondary' : 'text-accent-primary')}>
+      <div className="flex items-center gap-3">
+        <span className={cn(
+          'font-display text-5xl leading-none tabular-nums [-webkit-text-stroke:5px_#05061A] [paint-order:stroke_fill] [text-shadow:0_4px_0_#05061A]',
+          phase === 'dead' ? 'text-accent-secondary' : 'text-accent-primary'
+        )}>
           ×{multiplier.toFixed(2)}
         </span>
         {active && step > 0 && (
-          <span className="text-sm font-bold text-tx-secondary">
-            = <CountUp value={potentialPayout} className="text-accent-success" /> ₶
+          <span className="px-3 py-1 rounded-xl border-[3px] border-brand-border bg-accent-success text-brand-bg font-display text-lg">
+            <CountUp value={potentialPayout} /> ₶
           </span>
         )}
       </div>
 
       {/* The road — every lane fits on screen, nothing scrolls */}
-      <div className="w-full rounded-2xl border-4 border-brand-border overflow-hidden">
+      <div className="w-full rounded-[24px] border-4 border-brand-border overflow-hidden shadow-[0_6px_0_#05061A]">
         <div className="flex" style={{ height: 300 }}>
           {/* Start kerb */}
-          <div className="w-12 shrink-0 flex flex-col items-center justify-end pb-4" style={{ background: '#4A5057' }}>
+          <div className="w-12 shrink-0 flex flex-col items-center justify-end pb-4 border-r-4 border-brand-border" style={{ background: 'repeating-linear-gradient(180deg, #FFFFFF 0 20px, #FF3B5C 20px 40px)' }}>
             {step === 0 && phase !== 'dead' && (
               <span style={{ animation: phase === 'hopping' ? 'pouletHop 260ms ease-out' : undefined }}>
                 <ArtChicken size={40} />
@@ -256,14 +259,14 @@ export default function PouletPage() {
             return (
               <div
                 key={i}
-                className="relative flex-1 min-w-0 flex flex-col items-center justify-end overflow-hidden border-r border-dashed border-white/20"
-                style={{ background: crossed ? '#2E3A32' : '#33383D' }}
+                className="relative flex-1 min-w-0 flex flex-col items-center justify-end overflow-hidden border-r-2 border-dashed border-white/25"
+                style={{ background: crossed ? '#1F7A48' : isCurrent ? '#3A3F66' : '#2B2F52' }}
               >
                 <div className={cn(
-                  'absolute top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[11px] font-display font-black border z-20 whitespace-nowrap',
-                  crossed ? 'bg-accent-success text-brand-bg border-accent-success'
-                    : isCurrent ? 'bg-accent-primary text-brand-bg border-accent-primary animate-pulse'
-                    : 'bg-black/50 text-white/70 border-white/20'
+                  'absolute top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-lg text-sm font-display border-2 border-brand-border z-20 whitespace-nowrap',
+                  crossed ? 'bg-accent-success text-brand-bg'
+                    : isCurrent ? 'bg-accent-primary text-brand-bg animate-pulse'
+                    : 'bg-[#0E1030] text-white'
                 )}>
                   ×{multiplierAtStep(CONFIG, laneNumber)}
                 </div>
@@ -291,7 +294,7 @@ export default function PouletPage() {
           })}
 
           {/* Finish */}
-          <div className="w-12 shrink-0 flex items-center justify-center" style={{ background: 'repeating-conic-gradient(#fff 0% 25%, #222 0% 50%) 50%/12px 12px' }}>
+          <div className="w-12 shrink-0 flex items-center justify-center border-l-4 border-brand-border" style={{ background: 'repeating-conic-gradient(#fff 0% 25%, #05061A 0% 50%) 50%/14px 14px' }}>
             <ArtFinishFlag size={30} />
           </div>
         </div>
@@ -335,14 +338,14 @@ export default function PouletPage() {
               of an auto run before it finishes. */}
           <AutoBadge control={autoCtl} className="w-full justify-center" />
 
-          <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 flex items-center justify-between">
+          <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 flex items-center justify-between">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Voie</div>
-              <div className="font-display text-xl font-black">{step}/{CONFIG.totalSteps}</div>
+              <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Voie</div>
+              <div className="font-display text-2xl leading-none mt-0.5">{step}/{CONFIG.totalSteps}</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise</div>
-              <div className="font-display text-xl font-black">{fmt(lockedAmount)} ₶</div>
+              <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Mise</div>
+              <div className="font-display text-2xl leading-none mt-0.5">{fmt(lockedAmount)} ₶</div>
             </div>
           </div>
 

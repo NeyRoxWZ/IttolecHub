@@ -764,7 +764,9 @@ export function GameShell({
                 ? tableBackground(table)
                 : 'repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 20px, transparent 20px 40px), #1E2358',
               borderColor: border?.color,
-              boxShadow: border?.glow ? `0 0 22px ${border.color}66, 0 6px 0 #05061A` : '0 6px 0 #05061A',
+              // A coloured border sits inside a black outline, with the hard
+              // shadow under it: no glow in this style.
+              boxShadow: border ? '0 0 0 4px #05061A, 0 10px 0 #05061A' : '0 6px 0 #05061A',
             }}
           >
             {particles && <ParticleField color={particles.color || '#FFD000'} style={particles.particleStyle || 'drift'} />}

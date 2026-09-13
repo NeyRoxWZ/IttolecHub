@@ -299,23 +299,28 @@ export default function RocketPage() {
       `}</style>
 
       <div
-        className="relative w-full rounded-2xl border-4 border-brand-border overflow-hidden"
-        style={{ background: 'linear-gradient(180deg, #0B1026 0%, #131A38 55%, #1D1030 100%)' }}
+        className="relative w-full rounded-[24px] border-4 border-brand-border overflow-hidden"
+        style={{
+          background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.035) 0 18px, transparent 18px 36px), linear-gradient(180deg, #1B2056 0%, #0E1030 100%)',
+          boxShadow: 'inset 0 -8px 0 #070920, 0 6px 0 #05061A',
+        }}
       >
         {/* Multiplier readout */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 gap-2">
           <span
             className={cn(
-              'font-display font-black tabular-nums leading-none transition-colors',
+              'font-display tabular-nums leading-none transition-colors [-webkit-text-stroke:7px_#05061A] [paint-order:stroke_fill] [text-shadow:0_6px_0_#05061A]',
               phase === 'crashed' ? 'text-accent-secondary' : phase === 'cashed' ? 'text-accent-success' : 'text-white'
             )}
-            style={{ fontSize: 52, textShadow: '0 4px 18px rgba(0,0,0,0.6)' }}
+            style={{ fontSize: 64 }}
           >
             ×{multiplier.toFixed(2)}
           </span>
-          {phase === 'crashed' && <span className="font-display font-black text-accent-secondary tracking-widest mt-1">EXPLOSÉ</span>}
+          {phase === 'crashed' && (
+            <span className="px-3 py-1 rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white font-display text-xl">Explosé !</span>
+          )}
           {flying && lockedAmount > 0 && (
-            <span className="text-sm font-bold text-white/70 mt-1">
+            <span className="px-3 py-1 rounded-xl border-[3px] border-brand-border bg-accent-success text-brand-bg font-display text-base">
               <CountUp value={potentialPayout} /> ₶ si tu encaisses
             </span>
           )}
@@ -324,23 +329,25 @@ export default function RocketPage() {
         <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="w-full block" style={{ height: VIEW_H }} preserveAspectRatio="none">
           <defs>
             <linearGradient id="rocketFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#FFD000" stopOpacity="0.45" />
-              <stop offset="100%" stopColor="#FFD000" stopOpacity="0" />
+              <stop offset="0%" stopColor="#FFC61A" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#FFC61A" stopOpacity="0" />
             </linearGradient>
           </defs>
 
           {[0.25, 0.5, 0.75].map((f) => (
-            <line key={f} x1="0" y1={VIEW_H * f} x2={VIEW_W} y2={VIEW_H * f} stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
+            <line key={f} x1="0" y1={VIEW_H * f} x2={VIEW_W} y2={VIEW_H * f} stroke="rgba(255,255,255,0.10)" strokeWidth="2" strokeDasharray="10 10" />
           ))}
 
           {points.length > 1 && (
             <>
               <path d={areaPath} fill="url(#rocketFill)" />
+              {/* Black outline under the curve, like every other shape here. */}
+              <path d={linePath} fill="none" stroke="#05061A" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
               <path
                 d={linePath}
                 fill="none"
-                stroke={phase === 'crashed' ? '#FF2A55' : phase === 'cashed' ? '#00FF94' : '#FFD000'}
-                strokeWidth="3"
+                stroke={phase === 'crashed' ? '#FF4F8B' : phase === 'cashed' ? '#33D17A' : '#FFC61A'}
+                strokeWidth="5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
@@ -423,17 +430,17 @@ export default function RocketPage() {
               of an auto run before it finishes. */}
           <AutoBadge control={autoCtl} className="w-full justify-center" />
 
-          <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 text-center">
-            <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Mise en vol</div>
-            <div className="font-display text-2xl font-black text-accent-primary">{fmt(lockedAmount)} ₶</div>
+          <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 text-center">
+            <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Mise en vol</div>
+            <div className="font-display text-3xl leading-none mt-1 text-accent-primary">{fmt(lockedAmount)} ₶</div>
           </div>
           <button
             onClick={handleCashout}
             disabled={busy}
-            className="h-24 w-full rounded-2xl font-display text-2xl font-black tracking-wider border-4 border-brand-border bg-accent-success text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none disabled:opacity-50"
+            className="h-24 w-full rounded-2xl font-display text-3xl leading-none border-4 border-brand-border bg-accent-success text-brand-bg shadow-[inset_0_-7px_0_#1E9A55,0_6px_0_#05061A] transition-transform active:translate-y-[5px] focus:outline-none disabled:opacity-50"
           >
-            ENCAISSER
-            <div className="text-base font-black">{fmt(potentialPayout)} ₶</div>
+            Encaisser
+            <div className="text-lg mt-1">{fmt(potentialPayout)} ₶</div>
           </button>
         </>
       )}

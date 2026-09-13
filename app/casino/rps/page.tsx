@@ -13,6 +13,7 @@ import {
 import Confetti from '../_components/Confetti';
 import { ArtRps } from '../_components/CasinoArt';
 import { tempo } from '@/lib/casino/turbo';
+import { brawlChoice } from '@/lib/ui/brawl';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -100,22 +101,35 @@ export default function RpsPage() {
       `}</style>
 
       <div className="flex items-center justify-center gap-6 sm:gap-10">
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-36 h-36 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center"
-            style={{ animation: playing ? 'rpsShake 280ms ease-in-out infinite' : undefined }}>
-            <ArtRps move={result ? result.playerMove : 'pierre'} size={70} />
+        <div className="flex flex-col items-center gap-3">
+          <div className={cn(
+            'w-36 h-36 rounded-[28px] border-4 border-brand-border flex items-center justify-center',
+            result?.outcome === 'win' && 'ring-4 ring-accent-primary'
+          )}
+            style={{
+              background: '#3B6BFF', boxShadow: 'inset 0 -8px 0 #2A4FC4, 0 6px 0 #05061A',
+              animation: playing ? 'rpsShake 280ms ease-in-out infinite' : undefined,
+            }}>
+            <ArtRps move={result ? result.playerMove : 'pierre'} size={74} />
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-tx-secondary">Toi</span>
+          <span className="px-3 py-0.5 rounded-lg border-2 border-brand-border bg-[#0E1030] font-display text-base text-white">Toi</span>
         </div>
 
-        <span className="font-display text-3xl font-black text-tx-muted">VS</span>
+        <span className="font-display text-5xl text-accent-primary [-webkit-text-stroke:5px_#05061A] [paint-order:stroke_fill] [text-shadow:0_4px_0_#05061A]">VS</span>
 
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-36 h-36 rounded-2xl border-4 border-brand-border bg-brand-inner flex items-center justify-center"
-            style={{ animation: playing ? 'rpsShakeMirror 280ms ease-in-out infinite' : undefined, transform: playing ? undefined : 'scaleX(-1)' }}>
-            <ArtRps move={result ? result.house : 'pierre'} size={70} />
+        <div className="flex flex-col items-center gap-3">
+          <div className={cn(
+            'w-36 h-36 rounded-[28px] border-4 border-brand-border flex items-center justify-center',
+            result?.outcome === 'lose' && 'ring-4 ring-accent-primary'
+          )}
+            style={{
+              background: '#FF4F8B', boxShadow: 'inset 0 -8px 0 #C92D63, 0 6px 0 #05061A',
+              animation: playing ? 'rpsShakeMirror 280ms ease-in-out infinite' : undefined,
+              transform: playing ? undefined : 'scaleX(-1)',
+            }}>
+            <ArtRps move={result ? result.house : 'pierre'} size={74} />
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-tx-secondary">Maison</span>
+          <span className="px-3 py-0.5 rounded-lg border-2 border-brand-border bg-[#0E1030] font-display text-base text-white">Maison</span>
         </div>
       </div>
 
@@ -130,19 +144,16 @@ export default function RpsPage() {
       <BetControls amount={amount} setAmount={setAmount} maxBet={maxBet} disabled={playing} />
 
       <div>
-        <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Ton coup (×{RPS_PAYOUT} si tu gagnes)</div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="font-display text-lg leading-none mb-2">Ton coup <span className="text-accent-primary">×{RPS_PAYOUT}</span></div>
+        <div className="grid grid-cols-3 gap-2.5">
           {MOVES.map(({ value, label }) => (
             <button
               key={value}
               onClick={() => handlePlay(value)}
               disabled={playing || !isLoaded || amount < CASINO_MIN_BET}
-              className={cn(
-                'h-28 rounded-2xl border-4 border-brand-border bg-brand-inner flex flex-col items-center justify-center gap-1.5 font-bold text-sm transition-all focus:outline-none shadow-brutal',
-                playing ? 'opacity-50 cursor-not-allowed' : 'hover:border-accent-primary hover:-translate-y-1 active:translate-y-0'
-              )}
+              className={cn(brawlChoice(false), 'h-28 flex flex-col items-center justify-center gap-1.5 text-lg')}
             >
-              <ArtRps move={value} size={44} />
+              <ArtRps move={value} size={46} />
               {label}
             </button>
           ))}

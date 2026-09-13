@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { BRAWL } from '@/lib/ui/brawl';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { sfx } from '@/lib/casino/sfx';
 import { useCasinoWallet, type GenericBetResult } from '@/hooks/useCasinoWallet';
@@ -126,16 +127,21 @@ export default function KenoPage() {
 
       {/* Instruction bar — the thing that was missing */}
       <div className={cn(
-        'w-full rounded-xl border-2 px-4 py-2.5 flex items-center justify-between gap-3',
-        phase === 'picking' && !picksComplete ? 'border-accent-primary bg-accent-primary/10' : 'border-brand-border bg-brand-inner'
+        'w-full rounded-2xl border-[3px] border-brand-border px-4 py-2.5 flex items-center justify-between gap-3',
+        phase === 'picking' && !picksComplete
+          ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00,0_4px_0_#05061A]'
+          : 'bg-[#0E1030] text-white shadow-[0_4px_0_#05061A]'
       )}>
-        <span className="text-sm font-bold">
+        <span className="font-display text-lg leading-tight">
           {phase === 'picking'
-            ? picksComplete ? 'Grille complète — lance le tirage !' : `Coche ${KENO_PICK_COUNT} numéros`
-            : phase === 'drawing' ? `Tirage en cours... ${drawn.length}/${KENO_DRAW_COUNT}`
+            ? picksComplete ? 'Grille complète, lance le tirage !' : `Coche ${KENO_PICK_COUNT} numéros`
+            : phase === 'drawing' ? `Tirage en cours… ${drawn.length}/${KENO_DRAW_COUNT}`
             : `${result?.matches ?? 0} correspondances`}
         </span>
-        <span className={cn('font-display font-black text-lg', picksComplete ? 'text-accent-success' : 'text-accent-primary')}>
+        <span className={cn(
+          'px-2.5 py-0.5 rounded-lg border-2 border-brand-border font-display text-lg',
+          picksComplete || phase !== 'picking' ? 'bg-accent-success text-brand-bg' : 'bg-white text-brand-bg'
+        )}>
           {phase === 'picking' ? `${picks.length}/${KENO_PICK_COUNT}` : `${liveMatches} bons`}
         </span>
       </div>
@@ -153,11 +159,11 @@ export default function KenoPage() {
               onClick={() => togglePick(n)}
               disabled={phase !== 'picking'}
               className={cn(
-                'aspect-square rounded-lg border-2 text-base font-black flex items-center justify-center transition-all duration-200 focus:outline-none',
-                isMatch ? 'bg-accent-success border-accent-success text-brand-bg scale-110 z-10'
-                  : isDrawn ? 'bg-accent-secondary/25 border-accent-secondary text-tx-base'
-                  : picked ? 'bg-accent-primary border-accent-primary text-brand-bg'
-                  : 'bg-brand-inner border-brand-border text-tx-secondary hover:border-tx-base/60'
+                'aspect-square rounded-xl border-[3px] border-brand-border font-display text-lg flex items-center justify-center transition-transform duration-200 active:translate-y-[2px] focus:outline-none',
+                isMatch ? 'bg-accent-success text-brand-bg shadow-[inset_0_-4px_0_#1E9A55,0_3px_0_#05061A] scale-110 z-10'
+                  : isDrawn ? 'bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A]'
+                  : picked ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00,0_3px_0_#05061A]'
+                  : 'bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] hover:bg-[#333A80]'
               )}
             >
               {n}
@@ -166,10 +172,10 @@ export default function KenoPage() {
         })}
       </div>
 
-      <div className="flex items-center gap-4 text-[10px] font-bold text-tx-muted">
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-accent-primary inline-block" /> Ton choix</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-accent-secondary/60 inline-block" /> Tiré</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-accent-success inline-block" /> Correspondance</span>
+      <div className="flex items-center gap-4 text-xs font-black text-tx-secondary">
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-md border-2 border-brand-border bg-accent-primary inline-block" /> Ton choix</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-md border-2 border-brand-border bg-accent-secondary inline-block" /> Tiré</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-md border-2 border-brand-border bg-accent-success inline-block" /> Correspondance</span>
       </div>
 
       <ResultBanner
@@ -188,10 +194,10 @@ export default function KenoPage() {
       {phase === 'picking' ? (
         <>
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={quickPick} className="h-11 rounded-xl border-2 border-brand-border bg-brand-inner text-sm font-bold hover:border-accent-primary focus:outline-none">
+            <button onClick={quickPick} className={cn(BRAWL.blue, 'h-12 text-lg')}>
               Auto ({KENO_PICK_COUNT})
             </button>
-            <button onClick={clearPicks} disabled={picks.length === 0} className="h-11 rounded-xl border-2 border-brand-border bg-brand-inner text-sm font-bold hover:border-tx-base disabled:opacity-40 focus:outline-none">
+            <button onClick={clearPicks} disabled={picks.length === 0} className={cn(BRAWL.dark, 'h-12 text-lg')}>
               Effacer
             </button>
           </div>
@@ -216,17 +222,23 @@ export default function KenoPage() {
         </PlayButton>
       )}
 
-      <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">
-        <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">Gains selon correspondances</div>
-        <div className="space-y-1 text-xs">
-          {Object.entries(KENO_PAYTABLE).map(([k, v]) => (
-            <div key={k} className={cn('flex justify-between items-center rounded px-1.5 py-0.5', result && result.matches === Number(k) && 'bg-accent-success/20')}>
-              <span className="text-tx-secondary">{k} bons</span>
-              <span className="font-display font-black text-accent-primary">{v === 1 ? 'remboursé' : `×${v}`}</span>
-            </div>
-          ))}
-          <div className="flex justify-between items-center text-tx-muted px-1.5 pt-1 border-t border-brand-border">
-            <span>0 à 4 bons</span><span className="font-bold">rien</span>
+      <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3">
+        <div className="font-display text-base leading-none mb-2">Gains selon correspondances</div>
+        <div className="space-y-1 text-sm">
+          {Object.entries(KENO_PAYTABLE).map(([k, v]) => {
+            const hit = result && result.matches === Number(k);
+            return (
+              <div key={k} className={cn(
+                'flex justify-between items-center rounded-lg px-2 py-1 border-2',
+                hit ? 'bg-accent-success text-brand-bg border-brand-border' : 'border-transparent'
+              )}>
+                <span className={cn('font-bold', !hit && 'text-tx-secondary')}>{k} bons</span>
+                <span className={cn('font-display', !hit && 'text-accent-primary')}>{v === 1 ? 'remboursé' : `×${v}`}</span>
+              </div>
+            );
+          })}
+          <div className="flex justify-between items-center text-tx-muted px-2 pt-1.5 border-t-2 border-brand-border font-bold">
+            <span>0 à 4 bons</span><span>rien</span>
           </div>
         </div>
       </div>

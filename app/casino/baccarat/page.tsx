@@ -12,6 +12,7 @@ import {
 } from '../_components/CasinoUI';
 import Confetti from '../_components/Confetti';
 import { tempo } from '@/lib/casino/turbo';
+import { brawlChoice } from '@/lib/ui/brawl';
 
 const RULES: RulesSpec = {
   howTo: [
@@ -99,16 +100,22 @@ export default function BaccaratPage() {
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
 
       <div
-        className="w-full rounded-2xl border-4 border-brand-border p-6"
-        style={{ background: 'radial-gradient(ellipse at 50% 30%, #1B5E3F 0%, #0E3524 70%, #0A2419 100%)' }}
+        className="w-full rounded-[24px] border-4 border-brand-border p-6"
+        style={{
+          background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.07) 0 18px, transparent 18px 36px), #169A55',
+          boxShadow: 'inset 0 -8px 0 #0F7A42, 0 6px 0 #05061A',
+        }}
       >
         <div className="flex items-center justify-around">
           {(['player', 'banker'] as const).map((side) => {
             const score = scores[side];
             const isWinner = result && result.outcome === side;
             return (
-              <div key={side} className="flex flex-col items-center gap-2">
-                <span className={cn('text-xs font-black uppercase tracking-widest', isWinner ? 'text-accent-primary' : 'text-white/60')}>
+              <div key={side} className="flex flex-col items-center gap-2.5">
+                <span className={cn(
+                  'px-3 py-1 rounded-xl border-[3px] border-brand-border font-display text-base',
+                  isWinner ? 'bg-accent-primary text-brand-bg' : 'bg-[#0E1030] text-white'
+                )}>
                   {side === 'player' ? 'Joueur' : 'Banque'}
                 </span>
                 <div className="flex gap-1">
@@ -116,10 +123,12 @@ export default function BaccaratPage() {
                   <PlayingCard rank={score !== undefined ? Math.max(1, 10 - score) : undefined} hidden={score === undefined} index={side === 'player' ? 1 : 3} />
                 </div>
                 <span className={cn(
-                  'px-4 py-1 rounded-md font-display font-black text-2xl border-2',
-                  isWinner ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-black/40 text-white border-white/25'
+                  'min-w-[64px] text-center px-4 py-1 rounded-xl font-display text-3xl border-[3px] border-brand-border',
+                  isWinner
+                    ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00,0_4px_0_#05061A]'
+                    : 'bg-[#0E1030] text-white shadow-[0_4px_0_#05061A]'
                 )}>
-                  {score !== undefined ? score : '—'}
+                  {score !== undefined ? score : '?'}
                 </span>
               </div>
             );
@@ -127,7 +136,7 @@ export default function BaccaratPage() {
         </div>
 
         {result?.outcome === 'tie' && (
-          <div className="text-center mt-4 font-display font-black text-accent-primary tracking-widest">ÉGALITÉ</div>
+          <div className="text-center mt-4 font-display text-4xl text-stroke">Égalité !</div>
         )}
       </div>
 
@@ -142,19 +151,16 @@ export default function BaccaratPage() {
   const panel = (
     <>
       <div>
-        <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Ton pari</div>
-        <div className="space-y-2">
+        <div className="font-display text-lg leading-none mb-2">Ton pari</div>
+        <div className="space-y-2.5">
           {BETS.map((b) => (
             <button
               key={b.value}
               onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setBet(b.value); }}
               disabled={playing}
-              className={cn(
-                'w-full h-14 rounded-xl border-2 flex items-center justify-between px-4 font-bold transition-all focus:outline-none disabled:opacity-50',
-                bet === b.value ? 'bg-accent-primary text-brand-bg border-accent-primary' : 'bg-brand-inner border-brand-border text-tx-secondary hover:border-tx-base/60'
-              )}
+              className={cn(brawlChoice(bet === b.value), 'w-full h-14 flex items-center justify-between px-4 text-lg')}
             >
-              <span>{b.label}<span className={cn('ml-2 text-[10px] font-bold', bet === b.value ? 'text-brand-bg/70' : 'text-tx-muted')}>{b.hint}</span></span>
+              <span>{b.label}<span className="ml-2 font-body text-[11px] font-black opacity-70">{b.hint}</span></span>
               <span>×{BACCARAT_PAYOUTS[b.value]}</span>
             </button>
           ))}

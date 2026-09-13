@@ -130,8 +130,13 @@ export default function BonneteauPage() {
           without an explicit one they overflowed above it and the status line
           ended up printed across them. */}
       <div
-        className="relative rounded-2xl border-4 border-brand-border px-4"
-        style={{ width: SLOT_W * BONNETEAU_CUPS + 32, height: 252, background: '#241610' }}
+        className="relative rounded-[24px] border-4 border-brand-border px-4"
+        style={{
+          width: SLOT_W * BONNETEAU_CUPS + 32,
+          height: 252,
+          background: 'repeating-linear-gradient(90deg, #B8672E 0 30px, #A95D29 30px 60px)',
+          boxShadow: 'inset 0 -10px 0 #8A4A1C, 0 6px 0 #05061A',
+        }}
       >
         {Array.from({ length: BONNETEAU_CUPS }, (_, cupId) => {
           const slot = positions[cupId];
@@ -159,10 +164,10 @@ export default function BonneteauPage() {
               )}>
                 <div
                   className={cn(
-                    'w-full rounded-t-[46px] border-4 flex items-end justify-center pb-3 font-display font-black text-3xl transition-colors',
-                    isChosen && !hasBall ? 'border-accent-secondary' : hasBall ? 'border-accent-success' : 'border-brand-border'
+                    'w-full rounded-t-[46px] rounded-b-xl border-4 border-brand-border flex items-end justify-center pb-3 font-display text-4xl text-stroke transition-shadow',
+                    isChosen && !hasBall ? 'ring-4 ring-accent-secondary' : hasBall ? 'ring-4 ring-accent-success' : ''
                   )}
-                  style={{ height: 148, background: '#C2511F', color: '#12121A' }}
+                  style={{ height: 148, background: '#3B6BFF', boxShadow: 'inset 0 -10px 0 #2A4FC4, inset 10px 0 0 #6E92FF, 0 5px 0 #05061A' }}
                 >
                   {slot + 1}
                 </div>
@@ -176,13 +181,8 @@ export default function BonneteauPage() {
 
         <div
           className={cn(
-            'absolute top-3 left-4 right-4 text-center font-display font-black uppercase tracking-widest',
-            'text-lg sm:text-xl leading-none',
-            phase === 'shuffling' ? 'text-accent-primary animate-pulse'
-              : phase === 'choosing' ? 'text-white'
-              : result?.won ? 'text-accent-success'
-              : result ? 'text-accent-secondary'
-              : 'text-white/70'
+            'absolute top-3 left-4 right-4 text-center font-display text-2xl sm:text-3xl leading-none text-stroke',
+            phase === 'shuffling' && 'animate-pulse'
           )}
         >
           {phase === 'idle' ? 'Mise pour commencer'
@@ -206,9 +206,9 @@ export default function BonneteauPage() {
         <>
         {/* Le bouton de jeu a disparu : seule sortie d'une série auto. */}
         <AutoBadge control={autoCtl} className="w-full justify-center mb-2" />
-        <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-4 text-center">
-          <div className="font-display font-black text-sm text-accent-primary">À toi de jouer</div>
-          <p className="text-xs text-tx-secondary mt-1">Clique le gobelet qui cache la bille.</p>
+        <div className="rounded-2xl border-[3px] border-brand-border bg-accent-primary text-brand-bg p-4 text-center shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A]">
+          <div className="font-display text-2xl leading-none">À toi de jouer</div>
+          <p className="text-sm font-black mt-1">Clique le gobelet qui cache la bille.</p>
         </div>
         </>
       ) : (

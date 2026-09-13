@@ -110,27 +110,29 @@ export default function CoinflipPage() {
         <div ref={coinRef} className="relative w-56 h-56" style={{ transformStyle: 'preserve-3d', transform: 'rotateX(-12deg) rotateY(0deg)' }}>
           {/* Pile */}
           <div
-            className="absolute inset-0 rounded-full border-8 flex flex-col items-center justify-center font-display font-black"
+            className="absolute inset-0 rounded-full border-8 flex flex-col items-center justify-center"
             style={{
               backfaceVisibility: 'hidden',
-              background: '#FFD000',
-              borderColor: '#12121A', color: '#12121A',
+              background: '#FFC61A',
+              borderColor: '#05061A',
+              boxShadow: 'inset 0 -12px 0 #D98E00, inset 0 10px 0 #FFE07A',
             }}
           >
             <ArtFrenlyCoin variant="gold" size={92} />
-            <span className="text-base tracking-[0.3em] mt-1">PILE</span>
+            <span className="font-display text-2xl tracking-widest mt-1 text-stroke-sm">PILE</span>
           </div>
           {/* Face */}
           <div
-            className="absolute inset-0 rounded-full border-8 flex flex-col items-center justify-center font-display font-black"
+            className="absolute inset-0 rounded-full border-8 flex flex-col items-center justify-center"
             style={{
               backfaceVisibility: 'hidden', transform: 'rotateY(180deg)',
-              background: '#1E1E28',
-              borderColor: '#12121A', color: '#FFD000',
+              background: '#3B6BFF',
+              borderColor: '#05061A',
+              boxShadow: 'inset 0 -12px 0 #2A4FC4, inset 0 10px 0 #6E92FF',
             }}
           >
             <ArtFrenlyCoin variant="dark" size={92} />
-            <span className="text-base tracking-[0.3em] mt-1">FACE</span>
+            <span className="font-display text-2xl tracking-widest mt-1 text-stroke-sm">FACE</span>
           </div>
         </div>
       </div>
@@ -144,25 +146,25 @@ export default function CoinflipPage() {
   const panel = (
     <>
       <div>
-        <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-2">Ton choix</div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="font-display text-lg leading-none mb-2">Ton choix</div>
+        <div className="grid grid-cols-2 gap-3">
           {(['pile', 'face'] as const).map((c) => (
             <button
               key={c}
               onClick={() => { sfx.select(); vibrate(HAPTIC.SOFT); setChoice(c); }}
               disabled={flipping}
               className={cn(
-                'h-20 rounded-xl border-4 font-display font-black flex flex-col items-center justify-center gap-1 transition-all focus:outline-none disabled:opacity-50',
-                choice === c ? 'border-accent-primary scale-[1.03]' : 'border-brand-border'
+                'h-24 rounded-2xl border-[3px] border-brand-border flex flex-col items-center justify-center gap-1 transition-transform active:translate-y-[3px] focus:outline-none disabled:opacity-50',
+                choice === c ? 'ring-4 ring-white scale-[1.03]' : 'opacity-80 hover:opacity-100'
               )}
               style={
                 c === 'pile'
-                  ? { background: '#FFD000', color: '#12121A' }
-                  : { background: '#1E1E28', color: '#FFD000' }
+                  ? { background: '#FFC61A', boxShadow: 'inset 0 -6px 0 #D98E00, 0 5px 0 #05061A' }
+                  : { background: '#3B6BFF', boxShadow: 'inset 0 -6px 0 #2A4FC4, 0 5px 0 #05061A' }
               }
             >
-              <ArtFrenlyCoin variant={c === 'pile' ? 'gold' : 'dark'} size={30} />
-              {c === 'pile' ? 'PILE' : 'FACE'}
+              <ArtFrenlyCoin variant={c === 'pile' ? 'gold' : 'dark'} size={34} />
+              <span className="font-display text-xl leading-none text-stroke-sm">{c === 'pile' ? 'Pile' : 'Face'}</span>
             </button>
           ))}
         </div>

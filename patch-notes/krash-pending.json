@@ -1,0 +1,308 @@
+{
+  "entries": [
+    {
+      "id": "2026-09-12-07",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Krash, la bourse en accéléré",
+      "details": "Nouveau jeu solo : 40 grandes entreprises françaises (noms parodiques) et 15 cryptomonnaies dont la cote bouge en direct, la même pour tout le monde. Parie à la hausse ou à la baisse avec ton propre portefeuille de FrenlyCoins, séparé de celui du casino : 1 000 ₶ au départ, et un renflouement par jour si tu es à sec."
+    },
+    {
+      "id": "2026-09-12-08",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "News qui font bouger les cotes",
+      "details": "Géopolitique, économie, énergie, tech, entreprises, crypto et rumeurs, avec des histoires qui ont une suite. Chaque news dit ses chances de hausse ou de baisse."
+    },
+    {
+      "id": "2026-09-12-09",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Levier jusqu'à x50",
+      "details": "Multiplie gains et pertes. x2 d'office, x5 après 3 trades, x10 après 10, jusqu'à x50 selon le marché. Une position se ferme toute seule si la cote va trop loin contre toi, même hors ligne."
+    },
+    {
+      "id": "2026-09-12-10",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Mes placements et classement Krash",
+      "details": "Toutes tes positions en un coup d'œil avec leur gain en direct, un bouton pour tout retirer, et un classement par profit, meilleur coup et volume."
+    },
+    {
+      "id": "2026-09-12-11",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Trois nouveaux marchés : Global 50, Meme et Matières",
+      "details": "Les 50 géantes mondiales (Xvidia, Pomme, Macrosoft…), des memecoins absurdes ultra volatils (LennyCoin, Baguette Coin…) et les matières premières (or, pétrole, blé, cacao…)."
+    },
+    {
+      "id": "2026-09-12-12",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "KRACH et BULL RUN",
+      "details": "Environ deux fois par jour, un krach ou une euphorie secoue tous les marchés d'un coup. Une rumeur l'annonce quelques minutes avant ; l'or, lui, monte quand tout s'effondre."
+    },
+    {
+      "id": "2026-09-12-13",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Sons dans Krash",
+      "details": "Arrivée des news, krach, position qui passe en gain ou en perte, alerte avant liquidation, gros gains. Un bouton coupe le son."
+    },
+    {
+      "id": "2026-09-12-14",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Coffre du jour et missions Krash",
+      "details": "Un coffre par jour dont la récompense grimpe avec la série, et trois missions quotidiennes (gagner des trades, trader sur plusieurs marchés, tenir une position…)."
+    },
+    {
+      "id": "2026-09-12-15",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Pass Krash",
+      "details": "30 paliers par mois, remplis en tradant (même quand tu perds), en finissant des missions et en ouvrant le coffre. FrenlyCoins à chaque palier, et un cosmétique tous les 5."
+    },
+    {
+      "id": "2026-09-12-16",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Cosmétiques Krash",
+      "details": "Des titres affichés au classement (Stagiaire de la corbeille, Trader fou, Loup de la Bourse) et des couleurs de courbe (néon, or, Matrix)."
+    },
+    {
+      "id": "2026-09-12-17",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Pari flash sur les news",
+      "details": "Pendant 25 secondes après chaque news, parie si sa cible sera plus haute ou plus basse une minute plus tard. Le côté évident rapporte peu, le pari risqué jusqu'à x5."
+    },
+    {
+      "id": "2026-09-12-19",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Notifications dans l'app Krash",
+      "details": "Ouverte depuis l'écran d'accueil, l'app Krash propose d'activer les notifications ; le message du matin annonce aussi le coffre et les missions Krash."
+    },
+    {
+      "id": "2026-09-12-21",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Krash reprend l'interface du casino",
+      "details": "Un rail avec coffre, renflouement, missions, placements, pass, inventaire et classement ; chaque entrée ouvre sa fenêtre ou sa page, comme au casino. Le marché tient dans l'écran sur grand écran."
+    },
+    {
+      "id": "2026-09-12-22",
+      "date": "2026-09-12",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Recherche d'actifs",
+      "details": "Cherche une entreprise, une crypto ou une matière première dans tous les marchés à la fois ; un clic t'y emmène."
+    },
+    {
+      "id": "2026-09-13-01",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Boutique et caisses Krash",
+      "details": "Cinq objets par jour pensés pour le trading (zéro frais, remboursement de perte, parachute contre la liquidation, bonus de profit, XP double…) et quatre caisses de cosmétiques."
+    },
+    {
+      "id": "2026-09-13-02",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Inventaire et cosmétiques Krash",
+      "details": "Plus de 200 cosmétiques : couleurs de courbe, fonds, contours, titres, effets de gain, packs sonores et emblèmes. Tout s'équipe dans l'inventaire, avec recherche et filtres."
+    },
+    {
+      "id": "2026-09-13-03",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Pass Krash premium",
+      "details": "Le pass passe à 100 paliers par mois comme au casino, avec une voie gratuite et une voie premium à 4 000 ₶ qui double les récompenses."
+    },
+    {
+      "id": "2026-09-13-04",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Guide et fiche joueur",
+      "details": "Un guide en quatre pages à la première visite, puis ton premier trade guidé. La courbe de ton solde Krash s'ouvre en cliquant sur ton solde ou sur un joueur du classement."
+    },
+    {
+      "id": "2026-09-13-05",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "correctif",
+      "title": "La grille du site revient derrière Krash",
+      "details": "Les pages Krash avaient un fond uni qui cachait le quadrillage présent partout ailleurs sur le site."
+    },
+    {
+      "id": "2026-09-13-06",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "correctif",
+      "title": "Pari flash accepté jusqu'à la dernière seconde",
+      "details": "Le chrono se basait sur la dernière mise à jour du marché, en retard de quelques secondes : un pari posé avant la fin pouvait être refusé. Il suit maintenant l'horloge du serveur, avec une marge pour le trajet du clic."
+    },
+    {
+      "id": "2026-09-13-07",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "correctif",
+      "title": "L'effet des nouvelles news n'est plus coupé",
+      "details": "Le contour qui signale une news fraîche était rogné par le bord de la liste."
+    },
+    {
+      "id": "2026-09-13-10",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Trades à durée",
+      "details": "Choisis 30 s, 1 min ou 5 min : la position se ferme toute seule et le résultat se révèle en pourcentage. Le mode libre reste disponible."
+    },
+    {
+      "id": "2026-09-13-11",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Résultats annoncés",
+      "details": "Toutes les 12 minutes 30, un résultat est annoncé à l'avance (« Dans 2 min 30 : résultats de Xvidia ») puis révélé d'un coup."
+    },
+    {
+      "id": "2026-09-13-12",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "equilibrage",
+      "title": "Frais seulement sur le gain",
+      "details": "Un trade perdant ne paie aucun frais, et un trade gagnant garde toujours au moins la moitié de son gain. Le levier est plafonné sur l'actif d'un résultat annoncé."
+    },
+    {
+      "id": "2026-09-13-13",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Série de gains",
+      "details": "Chaque trade gagnant d'affilée augmente le bonus sur le suivant, comme la série de victoires du casino."
+    },
+    {
+      "id": "2026-09-13-14",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Vue simple : ce qui bouge",
+      "details": "Par défaut, la liste montre les 8 actifs qui bougent le plus, tous marchés confondus, avec deux gros boutons ÇA MONTE et ÇA BAISSE. Les onglets de marchés restent à un clic."
+    },
+    {
+      "id": "2026-09-13-15",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Compte à rebours des résultats",
+      "details": "Un bandeau affiche le prochain résultat annoncé et le temps restant, avec un bouton pour parier dessus."
+    },
+    {
+      "id": "2026-09-13-16",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Flèche sur la courbe et flash du résultat",
+      "details": "Une grosse flèche apparaît sur la courbe quand une news touche l'actif affiché, et l'écran flashe en vert ou en rouge quand un trade se termine."
+    },
+    {
+      "id": "2026-09-13-17",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Les news 50/50 réservées au pari flash",
+      "details": "Une news sans direction claire n'apparaît que le temps de son pari flash, pour garder le fil lisible."
+    },
+    {
+      "id": "2026-09-13-18",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Tout récupérer dans le pass",
+      "details": "Un récapitulatif montre tout ce qui vient d'être récupéré, avec un bouton Équiper sur chaque cosmétique."
+    },
+    {
+      "id": "2026-09-13-19",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Tenue aléatoire",
+      "details": "Un bouton dans l'inventaire équipe une pièce au hasard par emplacement, parmi celles que tu possèdes."
+    },
+    {
+      "id": "2026-09-13-20",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "correctif",
+      "title": "Cosmétique de caisse bien débloqué",
+      "details": "Une pièce gagnée dans une caisse s'affichait encore verrouillée dans le récapitulatif et l'inventaire."
+    },
+    {
+      "id": "2026-09-13-21",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Boutique plus sobre",
+      "details": "Les cartes d'objets perdent leur bordure colorée."
+    },
+    {
+      "id": "2026-09-13-25",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "correctif",
+      "title": "Chronos Krash à l'heure",
+      "details": "L'horloge du jeu était décalée de plusieurs heures : un trade d'une minute affichait un compte à rebours énorme et le pari flash répondait « trop tard » avant la fin du chrono."
+    },
+    {
+      "id": "2026-09-13-26",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Le levier expliqué dans le guide",
+      "details": "Une page du guide montre avec un exemple ce que change le levier et quand une position est liquidée."
+    },
+    {
+      "id": "2026-09-13-27",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Le bandeau des résultats ne disparaît plus",
+      "details": "Il affiche en permanence le temps avant la prochaine annonce, puis le compte à rebours du résultat, puis la hausse ou la baisse obtenue pendant 2 min 30."
+    },
+    {
+      "id": "2026-09-13-28",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "correctif",
+      "title": "Plus de défilement parasite",
+      "details": "Sur ordinateur, le marché tient dans l'écran sans barre de défilement au milieu ; sur téléphone, les news ne forment plus une zone qui bloque le défilement de la page."
+    },
+    {
+      "id": "2026-09-13-29",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Barres de défilement discrètes",
+      "details": "Les listes de Krash ont des barres fines et grises au lieu de traits jaunes entre les panneaux."
+    }
+  ]
+}

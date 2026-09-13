@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { setGlobalCosmetics } from '@/lib/casino/activeCosmetics';
-import { tableBackground } from '@/app/casino/_components/CosmeticPreview';
+import { legacyTableBackground as tableBackground } from '@/app/casino/_components/CosmeticPreview';
 import Confetti from '@/app/casino/_components/Confetti';
 import type { CosmeticParams } from '@/lib/casino/cosmetics';
 import { useKrashLoadout } from '../_lib/useKrashLoadout';
