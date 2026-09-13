@@ -361,7 +361,10 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[250] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-lg max-h-[92dvh] flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200">
+      {/* Fixed height: steps are longer or shorter, and a card that resized
+          with them moved the "Suivant" button under the player's thumb. The
+          text scrolls inside instead. */}
+      <div className="w-full max-w-lg h-[min(640px,92dvh)] flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200">
         <div className="flex items-start justify-between gap-4 p-6 pb-4">
           <div className="flex items-center gap-3 min-w-0">
             <span className="h-14 w-14 shrink-0 rounded-2xl border-[3px] border-brand-border bg-accent-primary flex items-center justify-center shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A]">
@@ -371,7 +374,7 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
               <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">
                 Étape {step + 1} / {STEPS.length}
               </div>
-              <h2 className="font-display text-2xl leading-tight mt-0.5">{current.title}</h2>
+              <h2 className="font-display text-2xl leading-tight mt-0.5 truncate">{current.title}</h2>
             </div>
           </div>
           <button
@@ -384,7 +387,7 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="px-6 overflow-y-auto flex-1">
+        <div className="px-6 overflow-y-auto flex-1 min-h-0">
           <div className="text-sm font-bold text-tx-secondary leading-relaxed space-y-3 [&_b]:text-accent-primary [&_ul]:space-y-1">
             {current.body}
           </div>
@@ -400,7 +403,7 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        <div className="p-6 pt-4">
+        <div className="p-6 pt-4 shrink-0">
           <div className="flex gap-1 mb-4">
             {STEPS.map((_, i) => (
               <button
@@ -429,8 +432,8 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
               className={`flex-1 h-14 text-2xl flex items-center justify-center gap-2 rounded-2xl border-[3px] border-brand-border bg-accent-primary text-brand-bg font-display shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none disabled:opacity-50`}
             >
               {blocked
-                ? `LANCE ${owed} FOIS`
-                : last ? 'JOUER' : 'SUIVANT'}
+                ? `Lance ${owed} fois`
+                : last ? 'Jouer' : 'Suivant'}
               {!blocked && !last && <ChevronRight className="h-6 w-6" strokeWidth={3} />}
             </button>
           </div>

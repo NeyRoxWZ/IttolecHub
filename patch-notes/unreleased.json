@@ -142,6 +142,14 @@
       "type": "amelioration",
       "title": "Pages en pleine largeur",
       "details": "Classement, En direct, Entre potes et pages légales utilisent toute la largeur, en deux colonnes sur ordinateur."
+    },
+    {
+      "id": "2026-09-13-19",
+      "date": "2026-09-13",
+      "scope": "casino",
+      "type": "correctif",
+      "title": "Le bouton Suivant des guides ne bouge plus",
+      "details": "Les fenêtres de guide gardent la même taille à chaque étape : le texte défile à l'intérieur et les boutons restent à la même place."
     }
   ]
 }

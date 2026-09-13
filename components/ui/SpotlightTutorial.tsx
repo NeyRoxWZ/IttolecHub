@@ -29,7 +29,6 @@ interface Props {
 export default function SpotlightTutorial(props: Props) {
   const { open, stepIndex, steps, targetEl, onStepChange, onClose, storageKey: storageKeyProp } = props;
   const [spot, setSpot] = useState<SpotlightRect | null>(null);
-  const [cardTop, setCardTop] = useState(24);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   const step = steps[stepIndex] ?? null;
@@ -64,31 +63,16 @@ export default function SpotlightTutorial(props: Props) {
     };
   }, [open, stepIndex, steps, targetEl]);
 
-  useEffect(() => {
-    if (!open || !spot) return;
-    const vh = window.innerHeight;
-    const cardHeight = cardRef.current?.getBoundingClientRect().height ?? 280;
-    const padding = 16;
-    const gap = 16;
-
-    const belowTop = spot.top + spot.height + gap;
-    const aboveTop = spot.top - cardHeight - gap;
-
-    let top = belowTop;
-    if (belowTop + cardHeight > vh - padding) {
-      top = aboveTop >= padding ? aboveTop : Math.max(padding, vh - cardHeight - padding);
-    }
-
-    top = Math.max(padding, Math.min(vh - cardHeight - padding, top));
-    setCardTop(top);
-  }, [open, spot, stepIndex]);
-
+  // The card stays pinned to the bottom of the screen. It used to follow the
+  // highlighted element, above or below it, so "Suivant" jumped to a new spot
+  // at every step. The target is scrolled into the upper part instead, clear
+  // of the card.
   useEffect(() => {
     if (!open) return;
     const el = targetEl;
     if (!el) return;
     try {
-      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.scrollIntoView({ block: 'start', behavior: 'smooth' });
     } catch {}
   }, [open, stepIndex, targetEl]);
 
@@ -129,8 +113,7 @@ export default function SpotlightTutorial(props: Props) {
 
       <div
         ref={cardRef}
-        className="absolute left-1/2 -translate-x-1/2 w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-[0_8px_0_#05061A]"
-        style={{ top: cardTop }}
+        className="absolute left-1/2 -translate-x-1/2 bottom-4 w-[calc(100%-2rem)] max-w-md bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-[0_8px_0_#05061A]"
         role="dialog"
         aria-modal="true"
         aria-label="Tutoriel"
@@ -138,8 +121,10 @@ export default function SpotlightTutorial(props: Props) {
         <div className="w-fit px-2.5 py-1 rounded-lg border-2 border-brand-border bg-accent-primary text-brand-bg font-display text-sm">
           Tutoriel {stepIndex + 1} / {steps.length}
         </div>
-        <div className="mt-3 font-display text-3xl leading-tight text-stroke">{step.title}</div>
-        <div className="mt-3 text-sm text-tx-secondary font-bold leading-relaxed">{step.body}</div>
+        {/* Fixed-height title and text: a card that grew or shrank with each
+            step moved the buttons around. */}
+        <div className="mt-3 font-display text-3xl leading-tight text-stroke line-clamp-2 min-h-[2.5em]">{step.title}</div>
+        <div className="mt-3 text-sm text-tx-secondary font-bold leading-relaxed h-[110px] overflow-y-auto pr-1">{step.body}</div>
 
         <div className="mt-6 flex items-center justify-between gap-3">
           <button
@@ -173,7 +158,7 @@ export default function SpotlightTutorial(props: Props) {
               }
               onStepChange(Math.min(maxIndex, stepIndex + 1));
             }}
-            className="h-12 px-5 rounded-xl border-[3px] border-brand-border font-display text-lg transition-transform bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[4px]"
+            className="h-12 w-32 rounded-xl border-[3px] border-brand-border font-display text-lg transition-transform bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[4px]"
           >
             {isLast ? 'Terminer' : 'Suivant'}
           </button>

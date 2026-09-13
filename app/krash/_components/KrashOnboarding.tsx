@@ -92,7 +92,7 @@ export default function KrashOnboarding({ onClose }: { onClose: () => void }) {
             </div>
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Guide Krash · {step + 1}/{STEPS.length}</div>
-              <h2 className="font-display text-xl font-black leading-tight">{current.title}</h2>
+              <h2 className="font-display text-xl font-black leading-tight line-clamp-2 min-h-[2.5em]">{current.title}</h2>
             </div>
           </div>
           <button onClick={onClose} aria-label="Fermer" className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base">
@@ -100,7 +100,8 @@ export default function KrashOnboarding({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="space-y-2 text-[14px] leading-relaxed text-tx-secondary min-h-[170px]">{current.body}</div>
+        {/* Fixed height, scrolling inside: the buttons below stay put from step to step. */}
+        <div className="space-y-2 text-[14px] leading-relaxed text-tx-secondary h-[min(300px,45dvh)] overflow-y-auto pr-1">{current.body}</div>
 
         <div className="flex justify-center gap-1.5 my-5">
           {STEPS.map((_, i) => (
