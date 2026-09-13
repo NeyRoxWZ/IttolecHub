@@ -13,6 +13,7 @@ import QRCodeStyling from 'qr-code-styling';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/Dialog';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import { BRAWL, BRAWL_SWATCHES } from '@/lib/ui/brawl';
 
 interface Player {
   id: string;
@@ -984,15 +985,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   if (showPseudoModal) {
       return (
           <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4">
-              <div className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal animate-in fade-in zoom-in duration-300">
+              <div className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in fade-in zoom-in duration-300">
                   <div className="flex justify-center mb-6">
-                      <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl">
+                      <div className="bg-brand-inner border-[3px] border-brand-border p-4 rounded-xl">
                           <Users className="w-12 h-12 text-tx-base" />
                       </div>
                   </div>
                   <h1 className="font-display text-2xl font-bold text-center text-tx-base mb-2">Rejoindre la partie</h1>
                   <p className="text-center text-tx-secondary mb-8 text-sm">
-                      Entrez un pseudo pour rejoindre la salle <span className="font-mono font-bold text-tx-base bg-brand-inner border-2 border-brand-border px-2 py-0.5 rounded-md ml-1">{params.code}</span>
+                      Entrez un pseudo pour rejoindre la salle <span className="font-mono font-bold text-tx-base bg-brand-inner border-[3px] border-brand-border px-2 py-0.5 rounded-md ml-1">{params.code}</span>
                   </p>
                   
                   <form onSubmit={handlePseudoSubmit} className="space-y-4">
@@ -1002,17 +1003,14 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                               value={pseudoInput}
                               onChange={(e) => setPseudoInput(e.target.value)}
                               placeholder="Ex: PikaPika"
-                              className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors"
+                              className="w-full h-12 rounded-lg bg-brand-inner border-[3px] border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-accent-primary transition-colors"
                               autoFocus
                           />
                       </div>
                       <button 
                           type="submit" 
                           disabled={!pseudoInput.trim()}
-                          className={cn(
-                              "w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 mt-2",
-                              pseudoInput.trim() ? "bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base" : "opacity-50 cursor-not-allowed bg-brand-inner text-tx-base border-brand-border"
-                          )}
+                          className={cn(BRAWL.yellow, "w-full h-14 text-xl mt-2")}
                       >
                           Rejoindre
                       </button>
@@ -1028,7 +1026,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         <div className="w-24 h-24 rounded-2xl bg-brand-inner border-4 border-accent-secondary shadow-brutal flex items-center justify-center animate-bounce">
             <X className="w-12 h-12 text-accent-secondary" />
         </div>
-        <h1 className="font-display text-4xl font-black text-tx-base">Vous avez été exclu</h1>
+        <h1 className="font-display text-4xl text-tx-base">Vous avez été exclu</h1>
         <p className="text-tx-secondary text-lg max-w-md">
           L&apos;hôte vous a exclu de ce salon. Vous allez être redirigé vers l&apos;accueil.
         </p>
@@ -1040,13 +1038,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     return (
       <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4 text-center space-y-6">
         <LogOut className="w-24 h-24 text-tx-base animate-bounce" />
-        <h1 className="font-display text-4xl font-black text-tx-base">Cette salle n&apos;existe plus</h1>
+        <h1 className="font-display text-4xl text-tx-base">Cette salle n&apos;existe plus</h1>
         <p className="text-tx-secondary text-lg max-w-md">
           L&apos;hôte a quitté ou la salle a été supprimée.
         </p>
         <button 
           onClick={() => router.push('/')} 
-          className="h-14 px-8 rounded-lg font-display font-black tracking-wider border-2 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+          className={cn(BRAWL.yellow, "h-14 px-8 text-xl")}
         >
           Retour à l&apos;accueil
         </button>
@@ -1080,7 +1078,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                               navigator.clipboard.writeText(`https://itollechub.vercel.app/room/${params.code}?source=link`);
                               toast.success('Lien copié !');
                           }}
-                          className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                          className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border-[3px] border-brand-border bg-brand-inner text-tx-base hover:bg-[#333A80] transition-colors"
                       >
                           <Copy className="w-5 h-5" />
                       </button>
@@ -1103,26 +1101,26 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       <div className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6 font-sans flex flex-col animate-in fade-in duration-300">
         <div className="relative z-10 w-full max-w-6xl mx-auto flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-8">
-            <div className="h-12 w-40 rounded-xl bg-brand-inner border-2 border-brand-border animate-pulse" />
-            <div className="h-12 w-32 rounded-xl bg-brand-inner border-2 border-brand-border animate-pulse" />
+            <div className="h-12 w-40 rounded-xl bg-brand-inner border-[3px] border-brand-border animate-pulse" />
+            <div className="h-12 w-32 rounded-xl bg-brand-inner border-[3px] border-brand-border animate-pulse" />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 flex-1 min-h-0">
             <div className="lg:col-span-8 flex flex-col gap-6 min-h-0">
-              <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
+              <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal flex flex-col">
                 <div className="h-8 w-48 rounded-lg bg-brand-inner animate-pulse mb-6" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="h-16 rounded-xl bg-brand-inner border-2 border-brand-border animate-pulse" />
+                    <div key={i} className="h-16 rounded-xl bg-brand-inner border-[3px] border-brand-border animate-pulse" />
                   ))}
                 </div>
               </div>
             </div>
             <div className="lg:col-span-4 h-full flex flex-col">
-              <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 h-[400px] lg:h-full flex flex-col shadow-brutal">
+              <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-6 h-[400px] lg:h-full flex flex-col shadow-brutal">
                 <div className="h-8 w-32 rounded-lg bg-brand-inner animate-pulse mb-6" />
                 <div className="space-y-3">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="h-16 rounded-xl bg-brand-inner border-2 border-brand-border animate-pulse" />
+                    <div key={i} className="h-16 rounded-xl bg-brand-inner border-[3px] border-brand-border animate-pulse" />
                   ))}
                 </div>
               </div>
@@ -1140,13 +1138,14 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         {/* Header */}
         <header className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-                <button 
-                    onClick={leaveRoom} 
-                    className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors"
+                <button
+                    onClick={leaveRoom}
+                    aria-label="Quitter le salon"
+                    className={cn(BRAWL.pink, "h-12 w-12")}
                 >
                     <LogOut className="h-5 w-5" />
                 </button>
-                <h1 className="font-display text-2xl font-black leading-none mt-1">
+                <h1 className="font-display text-3xl sm:text-4xl leading-none">
                     Salon de jeu
                 </h1>
             </div>
@@ -1155,20 +1154,18 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 {!isPrivateMode && (
                     <button 
                         onClick={() => setShowJoinOverlay(true)}
-                        className="hidden sm:flex items-center gap-2 h-12 px-4 rounded-xl border-2 border-brand-border bg-brand-inner text-tx-base hover:border-tx-base shadow-brutal transition-all"
+                        className={cn(BRAWL.blue, "hidden sm:inline-flex h-12 px-4 text-lg")}
                     >
                         <Share2 className="w-5 h-5" />
-                        <span className="font-bold">Partage</span>
+                        <span>Partage</span>
                     </button>
                 )}
 
                 <button 
                     onClick={togglePrivateMode}
                     className={cn(
-                        "flex items-center gap-2 h-12 px-4 rounded-xl border-2 transition-all font-bold",
-                        isPrivateMode 
-                        ? "border-tx-base bg-tx-base text-brand-bg shadow-brutal" 
-                        : "border-brand-border bg-brand-inner text-tx-base hover:border-tx-base shadow-brutal"
+                        isPrivateMode ? BRAWL.yellow : BRAWL.dark,
+                        "h-12 px-4 text-lg"
                     )}
                     title={isPrivateMode ? "Désactiver le mode privé" : "Activer le mode privé (masque les codes)"}
                     disabled={!isHost}
@@ -1178,7 +1175,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 </button>
 
                 <div 
-                    className="h-12 flex items-center gap-3 bg-brand-inner border-2 border-brand-border px-4 rounded-xl cursor-pointer hover:border-tx-base shadow-brutal transition-all group"
+                    className="h-12 flex items-center gap-3 bg-brand-bg border-[3px] border-brand-border px-3 rounded-2xl cursor-pointer shadow-[0_4px_0_#05061A] active:translate-y-[3px] transition-transform group"
                     onClick={() => {
                         navigator.clipboard.writeText(params.code);
                         toast.success('Code copié !');
@@ -1186,10 +1183,10 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     title={isPrivateMode ? "Code masqué (cliquez pour copier)" : "Copier le code"}
                 >
                     <span className="hidden sm:inline text-xs text-tx-secondary uppercase tracking-widest font-bold">Code</span>
-                    <span className="font-mono text-lg font-black tracking-widest text-tx-base transition-colors">
+                    <span className="font-display text-2xl text-accent-primary transition-colors">
                         {isPrivateMode ? '••••••' : params.code}
                     </span>
-                    {copied ? <CheckCircle className="h-5 w-5 text-tx-base" /> : <Copy className="h-5 w-5 text-tx-base group-hover:scale-110 transition-transform" />}
+                    {copied ? <CheckCircle className="h-5 w-5 text-accent-success" /> : <Copy className="h-5 w-5 text-tx-base group-hover:scale-110 transition-transform" />}
                 </div>
             </div>
         </header>
@@ -1200,19 +1197,20 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           <div className="lg:col-span-8 flex flex-col gap-6 min-h-0">
             
             {/* Game Selection Card */}
-            <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 rounded-lg border-2 border-brand-border bg-brand-inner">
-                        <Gamepad2 className="h-6 w-6 text-tx-base" />
+            <div className={cn(BRAWL.panel, "p-5 sm:p-6 flex flex-col")}>
+                <div className="flex items-center gap-3 mb-5">
+                    <div className={cn(BRAWL.iconTile, "h-11 w-11 bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63]")}>
+                        <Gamepad2 className="h-6 w-6" />
                     </div>
-                    <h2 className="font-display text-2xl font-bold">Choix du jeu</h2>
+                    <h2 className="font-display text-3xl">Choix du jeu</h2>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto custom-scrollbar pr-2 max-h-[300px] lg:max-h-none">
-                    {gamesList.map((game) => {
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto custom-scrollbar p-1 pb-2 max-h-[320px] lg:max-h-none">
+                    {gamesList.map((game, gi) => {
                         const isSelected = selectedGameId === game.id;
                         const Icon = game.icon;
                         const isComingSoon = (game as any).comingSoon;
+                        const sw = BRAWL_SWATCHES[gi % BRAWL_SWATCHES.length];
 
                         return (
                             <div
@@ -1227,30 +1225,35 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                     setSelectedGameId(game.id);
                                 }}
                                 className={cn(
-                                    "rounded-xl border-2 transition-all p-3 flex items-center gap-3",
-                                    isHost ? "cursor-pointer" : "cursor-default",
+                                    "rounded-2xl border-[3px] border-brand-border transition-transform p-2.5 flex items-center gap-3",
+                                    isHost ? "cursor-pointer active:translate-y-[3px]" : "cursor-default",
                                     isComingSoon && isHost && "opacity-50 cursor-not-allowed",
                                     isSelected
-                                        ? "border-tx-base bg-brand-inner shadow-brutal"
-                                        : cn("border-brand-border bg-brand-card", isHost && "hover:border-tx-base/50")
+                                        ? "bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A]"
+                                        : cn("bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A]", isHost && "hover:bg-[#333A80]")
                                 )}
                             >
-                                <Icon className={cn("h-8 w-8 shrink-0", isSelected ? "text-tx-base" : "text-tx-secondary")} />
+                                <div
+                                    className="h-12 w-12 shrink-0 rounded-xl border-[3px] border-brand-border flex items-center justify-center text-white"
+                                    style={{ background: sw.fill, boxShadow: `inset 0 -4px 0 ${sw.shade}` }}
+                                >
+                                    <Icon className="h-6 w-6" />
+                                </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-2">
-                                        <h3 className="font-bold text-tx-base truncate">{game.name}</h3>
+                                        <h3 className="font-display text-xl leading-tight truncate">{game.name}</h3>
                                         {isComingSoon && (
-                                            <span className="shrink-0 text-[9px] font-black uppercase tracking-wider bg-brand-inner border border-brand-border px-1.5 py-0.5 rounded">
+                                            <span className="shrink-0 text-[11px] font-black bg-brand-bg text-white border-[3px] border-brand-border px-1.5 py-0.5 rounded-lg">
                                                 Bientôt
                                             </span>
                                         )}
                                         {isSelected && !isHost && (
-                                            <span className="shrink-0 text-[9px] font-black uppercase tracking-wider bg-tx-base text-brand-bg px-1.5 py-0.5 rounded">
+                                            <span className="shrink-0 text-[11px] font-black bg-brand-bg text-accent-primary border-[3px] border-brand-border px-1.5 py-0.5 rounded-lg">
                                                 Choisi
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-xs text-tx-secondary truncate mt-0.5">{game.description}</p>
+                                    <p className={cn("text-sm font-bold truncate", isSelected ? "text-brand-bg/80" : "text-tx-secondary")}>{game.description}</p>
                                 </div>
                             </div>
                         );
@@ -1266,16 +1269,16 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
             {/* Settings Card */}
             {selectedGame && (
-                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col flex-1 min-h-0 animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex items-center justify-between mb-6">
+                <div className={cn(BRAWL.panel, "p-5 sm:p-6 flex flex-col flex-1 min-h-0 animate-in slide-in-from-bottom-4 duration-500")}>
+                    <div className="flex items-center justify-between mb-5">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg border-2 border-brand-border bg-brand-inner">
-                                <Settings className="h-6 w-6 text-tx-base" />
+                            <div className={cn(BRAWL.iconTile, "h-11 w-11 bg-accent-info text-white shadow-[inset_0_-4px_0_#2F5BD0]")}>
+                                <Settings className="h-6 w-6" />
                             </div>
-                            <h2 className="font-display text-xl font-bold">Paramètres</h2>
+                            <h2 className="font-display text-3xl">Paramètres</h2>
                         </div>
                         {!isHost && (
-                            <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-brand-inner border-2 border-brand-border text-tx-secondary">
+                            <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-brand-inner border-[3px] border-brand-border text-tx-secondary">
                                 Paramètres synchronisés
                             </span>
                         )}
@@ -1296,7 +1299,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                     type="number"
                                                     value={String(gameSettings[setting.id] ?? setting.default)}
                                                     onChange={(e) => handleSettingChange(setting.id, e.target.value === '' ? setting.default : Number(e.target.value))}
-                                                    className="w-full h-12 bg-brand-inner border-2 border-brand-border text-tx-base rounded-lg px-4 focus:outline-none focus:border-tx-base transition-colors"
+                                                    className="w-full h-12 bg-brand-inner border-[3px] border-brand-border text-tx-base rounded-lg px-4 focus:outline-none focus:border-accent-primary transition-colors"
                                                 />
                                             )}
                                             {setting.type === 'text' && (
@@ -1304,7 +1307,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                     type="text"
                                                     value={String(gameSettings[setting.id] ?? setting.default)}
                                                     onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-                                                    className="w-full h-12 bg-brand-inner border-2 border-brand-border text-tx-base rounded-lg px-4 focus:outline-none focus:border-tx-base transition-colors"
+                                                    className="w-full h-12 bg-brand-inner border-[3px] border-brand-border text-tx-base rounded-lg px-4 focus:outline-none focus:border-accent-primary transition-colors"
                                                 />
                                             )}
                                             {setting.type === 'select' && setting.options && (
@@ -1312,7 +1315,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                     value={String(gameSettings[setting.id] ?? setting.default)}
                                                     onValueChange={(v) => handleSettingChange(setting.id, v)}
                                                 >
-                                                    <SelectTrigger className="w-full h-12 bg-brand-inner border-2 border-brand-border text-tx-base rounded-lg px-4 focus:ring-0 focus:border-tx-base font-bold">
+                                                    <SelectTrigger className="w-full h-12 bg-brand-inner border-[3px] border-brand-border text-tx-base rounded-lg px-4 focus:ring-0 focus:border-accent-primary font-bold">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent className="bg-brand-card border-4 border-brand-border rounded-xl shadow-brutal text-tx-base font-bold">
@@ -1333,7 +1336,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                 </Select>
                                             )}
                                             {setting.type === 'multiselect' && setting.options && (
-                                                <div className="flex flex-wrap gap-2 bg-brand-inner p-2 rounded-lg border-2 border-brand-border min-h-[48px]">
+                                                <div className="flex flex-wrap gap-2 bg-brand-inner p-2 rounded-lg border-[3px] border-brand-border min-h-[48px]">
                                                     {setting.options.map((opt) => {
                                                         const currentVal = gameSettings[setting.id];
                                                         const current = Array.isArray(currentVal) ? currentVal : (setting.default as any[]);
@@ -1356,10 +1359,10 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                                                     handleSettingChange(setting.id, newVal);
                                                                 }}
                                                                 className={cn(
-                                                                    "px-3 py-1.5 text-xs font-bold rounded-md border-2 transition-all",
+                                                                    "px-3 py-1.5 text-xs font-bold rounded-md border-[3px] transition-all",
                                                                     opt.disabled ? "opacity-40 cursor-not-allowed border-brand-border bg-brand-card text-tx-muted" :
                                                                     isSelected 
-                                                                        ? "border-tx-base bg-tx-base text-brand-bg" 
+                                                                        ? "border-accent-primary bg-accent-primary text-brand-bg" 
                                                                         : "border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base hover:border-tx-base/50"
                                                                 )}
                                                             >
@@ -1371,7 +1374,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="h-12 flex items-center px-4 bg-brand-inner border-2 border-brand-border rounded-lg text-tx-base font-bold truncate">
+                                        <div className="h-12 flex items-center px-4 bg-brand-inner border-[3px] border-brand-border rounded-lg text-tx-base font-bold truncate">
                                             {setting.type === 'select' && setting.options 
                                                 ? setting.options.find(o => o.value === String(gameSettings[setting.id] ?? setting.default))?.label 
                                                 : setting.type === 'multiselect'
@@ -1386,13 +1389,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     </div>
 
                     {isHost && (
-                        <div className="mt-6 pt-6 border-t-2 border-brand-border shrink-0">
+                        <div className="mt-6 pt-5 border-t-[3px] border-brand-border shrink-0">
                             <button
                                 onClick={startGame}
-                                className="w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base flex items-center justify-center gap-3"
+                                className={cn(BRAWL.green, "w-full h-16 text-2xl rounded-2xl gap-3")}
                             >
-                                <Play className="w-5 h-5 fill-current" />
-                                LANCER LA PARTIE
+                                <Play className="w-6 h-6 fill-current" />
+                                Lancer la partie
                             </button>
                         </div>
                     )}
@@ -1402,59 +1405,57 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
           {/* RIGHT: Players List */}
           <div className="lg:col-span-4 h-full flex flex-col">
-            <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 h-[400px] lg:h-full flex flex-col shadow-brutal">
-                <div className="flex items-center justify-between mb-6 shrink-0">
+            <div className={cn(BRAWL.panel, "p-5 sm:p-6 h-[400px] lg:h-full flex flex-col")}>
+                <div className="flex items-center justify-between mb-5 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base">
+                        <div className={cn(BRAWL.iconTile, "h-11 w-11 bg-accent-success text-brand-bg shadow-[inset_0_-4px_0_#1E9A55]")}>
                             <Users className="h-6 w-6" />
                         </div>
-                        <h2 className="font-display text-2xl font-bold">Joueurs</h2>
+                        <h2 className="font-display text-3xl">Joueurs</h2>
                     </div>
-                    <span className="bg-brand-inner border-2 border-brand-border px-3 py-1 rounded-lg text-sm font-black">
+                    <span className="h-9 min-w-9 inline-flex items-center justify-center bg-accent-primary text-brand-bg border-[3px] border-brand-border px-2 rounded-xl font-display text-xl tabular-nums">
                         {players.length}
                     </span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
-                    {players.map((player) => (
-                        <div 
-                            key={player.id} 
-                            className="group flex items-center justify-between p-3 rounded-xl border-2 border-brand-border bg-brand-inner hover:border-tx-base transition-all"
+                <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2.5">
+                    {players.map((player, pi) => {
+                        const sw = BRAWL_SWATCHES[pi % BRAWL_SWATCHES.length];
+                        return (
+                        <div
+                            key={player.id}
+                            className="group flex items-center justify-between p-2 rounded-2xl border-[3px] border-brand-border bg-brand-inner"
                         >
                             <div className="flex items-center gap-3 overflow-hidden">
-                                <div className={cn(
-                                    "h-10 w-10 rounded-md border-2 flex items-center justify-center text-sm font-display font-black shrink-0",
-                                    player.isHost 
-                                    ? "border-tx-base bg-brand-card text-tx-base shadow-brutal" 
-                                    : "border-brand-border bg-brand-card text-tx-secondary group-hover:text-tx-base"
-                                )}>
+                                <div
+                                    className="h-11 w-11 rounded-xl border-[3px] border-brand-border flex items-center justify-center text-xl font-display text-white shrink-0"
+                                    style={{ background: sw.fill, boxShadow: `inset 0 -4px 0 ${sw.shade}` }}
+                                >
                                     {player.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex flex-col truncate">
-                                    <span className={cn(
-                                        "font-bold truncate",
-                                        player.isHost ? "text-tx-base" : "text-tx-secondary group-hover:text-tx-base"
-                                    )}>
+                                    <span className="font-display text-lg leading-tight text-white truncate">
                                         {player.name}
                                     </span>
                                     {player.isHost && (
-                                        <span className="text-[10px] uppercase tracking-widest font-black text-tx-base opacity-70">
+                                        <span className="self-start mt-0.5 text-[11px] font-black bg-accent-primary text-brand-bg border-[3px] border-brand-border px-1.5 rounded-md">
                                             Hôte
                                         </span>
                                     )}
                                 </div>
                             </div>
                             {isHost && !player.isHost && (
-                                <button 
+                                <button
                                     onClick={() => kickPlayer(player.id, player.name)}
-                                    className="opacity-0 group-hover:opacity-100 p-2 rounded-lg border-2 border-transparent hover:border-accent-secondary hover:bg-accent-secondary/10 text-tx-secondary hover:text-accent-secondary transition-all"
+                                    className="sm:opacity-0 sm:group-hover:opacity-100 h-9 w-9 flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-3px_0_#C92D63] active:translate-y-[2px] transition-all"
                                     title="Exclure ce joueur"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
                             )}
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
           </div>

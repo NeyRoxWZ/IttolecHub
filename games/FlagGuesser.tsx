@@ -374,14 +374,14 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
         {/* PHASE: SETUP */}
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
-               <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+               <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
                    <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform rotate-3">
                        <Globe className="w-16 h-16 text-[#06B6D4]" />
                        <Flag className="w-8 h-8 text-accent-secondary absolute -bottom-2 -right-2" />
                    </div>
                    
                    <div className="text-center space-y-2 mb-8">
-                       <h2 className="font-display text-4xl font-black text-tx-base uppercase tracking-wider">Prêt à voyager ?</h2>
+                       <h2 className="font-display text-4xl text-tx-base">Prêt à voyager ?</h2>
                        <p className="text-tx-secondary font-bold">
                            Région : <span className="text-[#06B6D4] font-black uppercase tracking-widest">{region}</span> • 
                            Mode : <span className="text-accent-primary font-black uppercase tracking-widest">{mode === 'mcq' ? 'QCM' : 'Texte'}</span>
@@ -391,14 +391,14 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                    {isHost ? (
                        <button 
                            onClick={startNewGame}
-                           className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal flex items-center justify-center gap-3"
+                           className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg active:translate-y-[3px] shadow-brutal flex items-center justify-center gap-3"
                        >
-                           <Play className="w-6 h-6" /> LANCER LA PARTIE
+                           <Play className="w-6 h-6" /> Lancer la partie
                        </button>
                    ) : (
                        <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
                            <Loader2 className="w-6 h-6 animate-spin text-accent-primary" />
-                           <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                           <span className="font-display text-tx-base">En attente de l'hôte...</span>
                        </div>
                    )}
                </div>
@@ -410,7 +410,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
             <div key={`${game.current_round}-${currentPhase}`} className="flex flex-col items-center w-full max-w-2xl gap-6 pt-4 p-4 animate-in fade-in duration-300">
                 
                 {/* FLAG IMAGE */}
-                <div className="relative w-full aspect-[16/9] md:aspect-[2/1] bg-brand-inner rounded-[32px] overflow-hidden shadow-brutal border-4 border-brand-border p-4">
+                <div className="relative w-full aspect-[16/9] md:aspect-[2/1] bg-brand-inner rounded-[28px] overflow-hidden shadow-brutal border-4 border-brand-border p-4">
                     <Image 
                         src={currentFlag.flagUrl} 
                         alt="Flag" 
@@ -422,8 +422,8 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                     {/* OVERLAY RESULT */}
                     {currentPhase === 'round_results' && (
                         <div className="absolute inset-0 bg-brand-bg/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in z-10 border-4 border-brand-border rounded-[28px] m-1">
-                            <h3 className="font-display text-4xl font-black text-tx-base mb-2 text-center uppercase tracking-wider">{currentFlag.name}</h3>
-                            <p className="text-tx-secondary font-bold text-lg font-mono uppercase tracking-widest bg-brand-inner px-4 py-1 rounded-lg border-2 border-brand-border">{currentFlag.code}</p>
+                            <h3 className="font-display text-4xl text-tx-base mb-2 text-center">{currentFlag.name}</h3>
+                            <p className="text-tx-secondary font-bold text-lg font-mono uppercase tracking-widest bg-brand-inner px-4 py-1 rounded-lg border-[3px] border-brand-border">{currentFlag.code}</p>
                         </div>
                     )}
                 </div>
@@ -439,12 +439,12 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                                         onClick={() => submitGuess(option)}
                                         disabled={hasAnswered}
                                         className={cn(
-                                            "h-16 font-display text-lg font-black rounded-2xl transition-all border-4 border-brand-border shadow-brutal",
+                                            "h-16 font-display text-lg rounded-2xl transition-all border-4 border-brand-border shadow-brutal",
                                             hasAnswered 
                                                 ? userAnswer === option 
                                                     ? 'bg-accent-primary text-brand-bg opacity-100' 
                                                     : 'bg-brand-inner text-tx-muted opacity-50'
-                                                : 'bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg active:translate-y-1 active:shadow-none'
+                                                : 'bg-brand-inner text-tx-base hover:bg-[#333A80] active:translate-y-1 active:shadow-none'
                                         )}
                                     >
                                         {option}
@@ -459,15 +459,15 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                                     onChange={e => setUserAnswer(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && submitGuess(userAnswer)}
                                     disabled={hasAnswered}
-                                    className="flex-1 h-16 text-xl bg-brand-inner border-4 border-brand-border focus:border-tx-base text-tx-base placeholder:text-tx-muted text-center rounded-2xl shadow-brutal outline-none font-bold transition-colors disabled:opacity-50"
+                                    className="flex-1 h-16 text-xl bg-brand-inner border-4 border-brand-border focus:border-accent-primary text-tx-base placeholder:text-tx-muted text-center rounded-2xl shadow-brutal outline-none font-bold transition-colors disabled:opacity-50"
                                     autoFocus
                                 />
                                 <button 
                                     onClick={() => submitGuess(userAnswer)}
                                     disabled={hasAnswered || !userAnswer.trim()}
-                                    className="h-16 w-32 bg-accent-success hover:bg-tx-base text-brand-bg font-display font-black tracking-wider rounded-2xl shadow-brutal border-4 border-brand-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="h-16 w-32 bg-accent-success hover:brightness-110 text-brand-bg font-display rounded-2xl shadow-brutal border-4 border-brand-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    VALIDER
+                                    Valider
                                 </button>
                             </div>
                         )}
@@ -493,9 +493,9 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                             );
 
                             return (
-                                <div key={p.id} className="flex items-center justify-between p-4 mb-2 last:mb-0 bg-brand-inner border-2 border-brand-border rounded-xl">
+                                <div key={p.id} className="flex items-center justify-between p-4 mb-2 last:mb-0 bg-brand-inner border-[3px] border-brand-border rounded-xl">
                                     <div className="flex items-center gap-4">
-                                        <div className="font-display font-black text-lg text-tx-base">{p.name}</div>
+                                        <div className="font-display text-lg text-tx-base">{p.name}</div>
                                         {answered && (
                                             isCorrect 
                                             ? <CheckCircle className="w-6 h-6 text-accent-success" />
@@ -504,7 +504,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <span className="text-sm font-bold text-tx-secondary uppercase tracking-widest">{gp?.last_answer || '-'}</span>
-                                        <span className="font-display font-black text-[#06B6D4] bg-brand-bg px-3 py-1 rounded-md border-2 border-brand-border">{gp?.score} pts</span>
+                                        <span className="font-display text-[#06B6D4] bg-brand-bg px-3 py-1 rounded-md border-[3px] border-brand-border">{gp?.score} pts</span>
                                     </div>
                                 </div>
                             );
@@ -517,11 +517,11 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
         {/* PHASE: PODIUM */}
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <Trophy className="w-16 h-16 text-[#06B6D4]" />
                     </div>
-                    <h2 className="font-display text-4xl font-black text-tx-base mb-8 uppercase tracking-widest">Classement Final</h2>
+                    <h2 className="font-display text-4xl text-tx-base mb-8">Classement Final</h2>
                     
                     <div className="w-full space-y-4 mb-8">
                         {sortedPlayers.map((p, i) => (
@@ -538,14 +538,14 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                                 
                                 <div className="flex items-center gap-4">
                                     <span className={cn(
-                                        "w-12 h-12 flex items-center justify-center rounded-xl font-display font-black text-2xl border-2 border-brand-border",
+                                        "w-12 h-12 flex items-center justify-center rounded-xl font-display text-2xl border-[3px] border-brand-border",
                                         i === 0 ? "bg-[#06B6D4] text-brand-bg" : "bg-brand-bg text-tx-base"
                                     )}>
                                         {i + 1}
                                     </span>
                                     
                                     <div className="flex flex-col text-left">
-                                        <span className="text-xl font-display font-black">{p.name}</span>
+                                        <span className="text-xl font-display">{p.name}</span>
                                         <span className={cn(
                                             "text-xs font-bold uppercase tracking-widest",
                                             i === 0 ? "text-brand-bg/80" : "text-tx-secondary"
@@ -555,7 +555,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                                     </div>
                                 </div>
                                 <span className={cn(
-                                    "text-3xl font-display font-black",
+                                    "text-3xl font-display",
                                     i === 0 ? "text-brand-bg" : "text-[#06B6D4]"
                                 )}>{p.score}</span>
                             </div>
@@ -565,9 +565,9 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                     {isHost && (
                         <button 
                             onClick={returnToLobby} 
-                            className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg shadow-brutal"
+                            className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[3px]"
                         >
-                            RETOUR AU SALON
+                            Retour au salon
                         </button>
                     )}
                 </div>

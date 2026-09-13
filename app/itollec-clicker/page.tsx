@@ -970,14 +970,14 @@ export default function ItollecClickerPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/?mode=solo"
-              className="h-10 md:h-11 px-3 md:px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
+              className="h-10 md:h-11 px-3 md:px-4 rounded-lg border-[3px] border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-[#333A80] transition-colors flex items-center justify-center"
             >
               Accueil
             </Link>
             <button
               type="button"
               onClick={() => setShowStats((v) => !v)}
-              className="h-10 md:h-11 px-3 md:px-4 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center gap-2"
+              className="h-10 md:h-11 px-3 md:px-4 rounded-lg border-[3px] border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center gap-2"
             >
               Stats
               {showStats ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -988,7 +988,7 @@ export default function ItollecClickerPage() {
                 setTutorialOpen(true);
                 setTutorialStep(0);
               }}
-              className="h-10 md:h-11 px-3 md:px-4 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
+              className="h-10 md:h-11 px-3 md:px-4 rounded-lg border-[3px] border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
             >
               Tutoriel
             </button>
@@ -1005,11 +1005,11 @@ export default function ItollecClickerPage() {
         {showStats && (
           <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal mb-8">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+              <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin</div>
                 <div className="text-2xl font-display font-black text-tx-base">{formatCoins(data.coins)} ₶</div>
               </div>
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+              <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">FrenlyCoin/s</div>
                 <div className="text-2xl font-display font-black text-tx-base">{formatRate(netPps)} ₶/s</div>
                 {data.wrinklers.length > 0 && (
@@ -1018,11 +1018,11 @@ export default function ItollecClickerPage() {
                   </div>
                 )}
               </div>
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+              <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Clics</div>
                 <div className="text-2xl font-display font-black text-tx-base">{formatShortNumber(data.clickCount)}</div>
               </div>
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+              <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Succès</div>
                 <div className="text-2xl font-display font-black text-tx-base">
                   {formatShortNumber(data.achievementsUnlocked.length)}
@@ -1031,7 +1031,7 @@ export default function ItollecClickerPage() {
             </div>
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4" ref={prestigeRef}>
+              <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4" ref={prestigeRef}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Prestige</div>
@@ -1048,9 +1048,9 @@ export default function ItollecClickerPage() {
                     onClick={abdicate}
                     disabled={prestigeAvailable.claimableNow <= 0}
                     className={cn(
-                      'h-12 px-4 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                      'h-12 px-4 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-[3px]',
                       prestigeAvailable.claimableNow > 0
-                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-[#333A80]'
                         : 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
                     )}
                   >
@@ -1064,9 +1064,9 @@ export default function ItollecClickerPage() {
                     onClick={() => buyPrestigeUpgrade('centJours')}
                     disabled={prestigeAvailable.availableMedals < 1}
                     className={cn(
-                      'h-12 px-4 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 text-left',
+                      'h-12 px-4 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-[3px] text-left',
                       prestigeAvailable.availableMedals >= 1
-                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-[#333A80]'
                         : 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
                     )}
                   >
@@ -1077,9 +1077,9 @@ export default function ItollecClickerPage() {
                     onClick={() => buyPrestigeUpgrade('sainteHelene')}
                     disabled={prestigeAvailable.availableMedals < 3 || data.prestige.sainteHeleneLevel >= 20}
                     className={cn(
-                      'h-12 px-4 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 text-left',
+                      'h-12 px-4 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-[3px] text-left',
                       prestigeAvailable.availableMedals >= 3 && data.prestige.sainteHeleneLevel < 20
-                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-[#333A80]'
                         : 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
                     )}
                   >
@@ -1088,7 +1088,7 @@ export default function ItollecClickerPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+              <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Événements</div>
                 <div className="text-sm font-bold text-tx-base mt-1">
                   Décrets actifs: {data.buffs.length} • Révolutionnaires: {data.wrinklers.length}
@@ -1108,9 +1108,9 @@ export default function ItollecClickerPage() {
                     onClick={() => setMiniGameOpen('forge')}
                     disabled={(data.buildingsOwned.forge ?? 0) < 15}
                     className={cn(
-                      'h-11 px-3 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                      'h-11 px-3 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-[3px]',
                       (data.buildingsOwned.forge ?? 0) >= 15
-                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-[#333A80]'
                         : 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
                     )}
                   >
@@ -1121,9 +1121,9 @@ export default function ItollecClickerPage() {
                     onClick={() => setMiniGameOpen('grandjeu')}
                     disabled={(data.buildingsOwned.strateges ?? 0) < 15}
                     className={cn(
-                      'h-11 px-3 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                      'h-11 px-3 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-[3px]',
                       (data.buildingsOwned.strateges ?? 0) >= 15
-                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-[#333A80]'
                         : 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
                     )}
                   >
@@ -1134,9 +1134,9 @@ export default function ItollecClickerPage() {
                     onClick={() => setMiniGameOpen('oracle')}
                     disabled={(data.buildingsOwned.oracle ?? 0) < 15}
                     className={cn(
-                      'h-11 px-3 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                      'h-11 px-3 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-[3px]',
                       (data.buildingsOwned.oracle ?? 0) >= 15
-                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                        ? 'bg-brand-card text-tx-base border-brand-border hover:bg-[#333A80]'
                         : 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
                     )}
                   >
@@ -1196,7 +1196,7 @@ export default function ItollecClickerPage() {
                     <button
                       type="button"
                       ref={decreeSpotRef}
-                      className="h-12 w-12 rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal flex items-center justify-center"
+                      className="h-12 w-12 rounded-2xl border-[3px] border-brand-border bg-brand-card shadow-brutal flex items-center justify-center"
                       aria-label="Décret Impérial"
                     >
                       <svg viewBox="0 0 64 64" className="h-7 w-7 text-accent-secondary" aria-hidden="true">
@@ -1220,7 +1220,7 @@ export default function ItollecClickerPage() {
                       type="button"
                       onClick={() => clickWrinkler(w.id)}
                       ref={i === 0 ? wrinklerSpotRef : undefined}
-                      className="absolute left-1/2 top-1/2 h-10 w-10 rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
+                      className="absolute left-1/2 top-1/2 h-10 w-10 rounded-2xl border-[3px] border-brand-border bg-brand-card shadow-brutal hover:bg-[#333A80] transition-colors flex items-center justify-center"
                       style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
                       aria-label="Révolutionnaire"
                       title="Révolutionnaire (3 clics)"
@@ -1234,7 +1234,7 @@ export default function ItollecClickerPage() {
                   <button
                     type="button"
                     ref={wrinklerSpotRef}
-                    className="absolute left-1/2 top-1/2 h-10 w-10 rounded-2xl border-2 border-brand-border bg-brand-card shadow-brutal flex items-center justify-center"
+                    className="absolute left-1/2 top-1/2 h-10 w-10 rounded-2xl border-[3px] border-brand-border bg-brand-card shadow-brutal flex items-center justify-center"
                     style={{ transform: 'translate(-50%, -50%) translate(-170px, 120px)' }}
                     aria-label="Révolutionnaire"
                   >
@@ -1245,7 +1245,7 @@ export default function ItollecClickerPage() {
 
               <div className="mt-4 min-h-[40px] w-full max-w-[420px]">
                 {data.comboActive ? (
-                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner px-4 py-2 shadow-brutal">
+                  <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner px-4 py-2 shadow-brutal">
                     <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary text-center">
                       Événement : Combo ×2 (20 clics en 5s)
                     </div>
@@ -1263,12 +1263,12 @@ export default function ItollecClickerPage() {
 
           <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal flex flex-col">
             <div className="flex items-center justify-between h-12">
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-2 flex gap-2" ref={tabsRef}>
+              <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-2 flex gap-2" ref={tabsRef}>
                 <button
                   type="button"
                   onClick={() => setActivePanel('buildings')}
                   className={cn(
-                    'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                    'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-[3px]',
                     activePanel === 'buildings'
                       ? 'bg-brand-card text-tx-base border-brand-border'
                       : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
@@ -1280,7 +1280,7 @@ export default function ItollecClickerPage() {
                   type="button"
                   onClick={() => setActivePanel('upgrades')}
                   className={cn(
-                    'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                    'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-[3px]',
                     activePanel === 'upgrades'
                       ? 'bg-brand-card text-tx-base border-brand-border'
                       : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
@@ -1292,7 +1292,7 @@ export default function ItollecClickerPage() {
                   type="button"
                   onClick={() => setActivePanel('achievements')}
                   className={cn(
-                    'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
+                    'px-4 h-11 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-[3px]',
                     activePanel === 'achievements'
                       ? 'bg-brand-card text-tx-base border-brand-border'
                       : 'bg-transparent text-tx-secondary border-transparent hover:text-tx-base hover:border-brand-border/50'
@@ -1318,7 +1318,7 @@ export default function ItollecClickerPage() {
                       onClick={() => buyBuilding(b.id)}
                       disabled={!affordable}
                       className={cn(
-                        'w-full text-left rounded-2xl border-2 border-brand-border bg-brand-inner p-4 shadow-brutal transition-colors',
+                        'w-full text-left rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4 shadow-brutal transition-colors',
                         affordable ? 'hover:bg-brand-card' : 'opacity-50 cursor-not-allowed'
                       )}
                     >
@@ -1343,7 +1343,7 @@ export default function ItollecClickerPage() {
 
             {activePanel === 'upgrades' && (
               <div className="mt-6 space-y-3 overflow-y-auto max-h-[55vh] md:h-[540px] md:max-h-none pr-1">
-                <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
                   <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Disponibles</div>
                   <div className="text-sm font-bold text-tx-base mt-1">{visibleUpgrades.length}</div>
                 </div>
@@ -1356,7 +1356,7 @@ export default function ItollecClickerPage() {
                       onClick={() => buyUpgrade(u.id)}
                       disabled={!affordable}
                       className={cn(
-                        'w-full text-left rounded-2xl border-2 border-brand-border bg-brand-inner p-4 shadow-brutal transition-colors',
+                        'w-full text-left rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4 shadow-brutal transition-colors',
                         affordable ? 'hover:bg-brand-card' : 'opacity-50 cursor-not-allowed'
                       )}
                     >
@@ -1383,13 +1383,13 @@ export default function ItollecClickerPage() {
 
             {activePanel === 'achievements' && (
               <div className="mt-6 space-y-3 overflow-y-auto max-h-[55vh] md:h-[540px] md:max-h-none pr-1">
-                <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
                   <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Bonus</div>
                   <div className="text-sm font-bold text-tx-base mt-1">
                     +{formatShortNumber(data.achievementsUnlocked.length)}% production globale
                   </div>
                 </div>
-                <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
                   <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Débloqués</div>
                   <div className="text-sm font-bold text-tx-base mt-1">
                     {data.achievementsUnlocked.length} / {achievements.length}
@@ -1398,7 +1398,7 @@ export default function ItollecClickerPage() {
                 <button
                   type="button"
                   onClick={() => setAchievementsOpen(true)}
-                  className="w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+                  className="w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-[3px] bg-brand-inner text-tx-base border-brand-border hover:bg-[#333A80]"
                 >
                   Voir la liste
                 </button>
@@ -1413,7 +1413,7 @@ export default function ItollecClickerPage() {
           type="button"
           onClick={clickDecree}
           ref={decreeSpotRef}
-          className="fixed h-14 w-14 rounded-[28px] border-2 border-brand-border bg-brand-card shadow-brutal flex items-center justify-center hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors z-[9998]"
+          className="fixed h-14 w-14 rounded-[28px] border-[3px] border-brand-border bg-brand-card shadow-brutal flex items-center justify-center hover:bg-[#333A80] transition-colors z-[9998]"
           style={{
             left: `${data.decree.xPct * 100}vw`,
             top: `${data.decree.yPct * 100}vh`,
@@ -1452,18 +1452,18 @@ export default function ItollecClickerPage() {
                 <button
                   type="button"
                   onClick={() => setAchievementsOpen(false)}
-                  className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                  className="h-11 px-4 rounded-lg border-[3px] border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-[#333A80] transition-colors"
                 >
                   Fermer
                 </button>
               </div>
 
-              <div className="mt-6 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+              <div className="mt-6 rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary mb-2">Rechercher</div>
                 <input
                   value={achievementQuery}
                   onChange={(e) => setAchievementQuery(e.target.value)}
-                  className="w-full h-12 rounded-lg border-2 border-brand-border bg-brand-card px-4 text-tx-base font-bold outline-none"
+                  className="w-full h-12 rounded-lg border-[3px] border-brand-border bg-brand-card px-4 text-tx-base font-bold outline-none"
                   placeholder="Nom ou description…"
                   aria-label="Rechercher un succès"
                 />
@@ -1474,7 +1474,7 @@ export default function ItollecClickerPage() {
                   const a = achievementById.get(id);
                   if (!a) return null;
                   return (
-                    <div key={id} className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4 shadow-brutal">
+                    <div key={id} className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4 shadow-brutal">
                       <div className="font-display font-black tracking-wider uppercase text-tx-base">{a.name}</div>
                       <div className="text-sm text-tx-secondary font-bold mt-2">{a.description}</div>
                     </div>
@@ -1485,7 +1485,7 @@ export default function ItollecClickerPage() {
                   const a = achievementById.get(id);
                   if (!a) return null;
                   return (
-                    <div key={id} className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4 opacity-50">
+                    <div key={id} className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4 opacity-50">
                       <div className="font-display font-black tracking-wider uppercase text-tx-base">{a.name}</div>
                       <div className="text-sm text-tx-secondary font-bold mt-2">{a.description}</div>
                     </div>
@@ -1514,7 +1514,7 @@ export default function ItollecClickerPage() {
                 <button
                   type="button"
                   onClick={() => setMiniGameOpen(null)}
-                  className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                  className="h-11 px-4 rounded-lg border-[3px] border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-[#333A80] transition-colors"
                 >
                   Fermer
                 </button>
@@ -1522,21 +1522,21 @@ export default function ItollecClickerPage() {
 
               {miniGameOpen === 'forge' && (
                 <div className="mt-6 space-y-4">
-                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4 text-sm text-tx-secondary font-bold">
+                  <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4 text-sm text-tx-secondary font-bold">
                     Choisis une allocation d’ouvriers. Chaque option coûte des FrenlyCoin et donne un bonus temporaire.
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => runForge('prod')}
-                      className="h-14 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors text-left"
+                      className="h-14 px-4 rounded-lg border-[3px] border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-[#333A80] transition-colors text-left"
                     >
                       Production +50% (500)
                     </button>
                     <button
                       type="button"
                       onClick={() => runForge('click')}
-                      className="h-14 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors text-left"
+                      className="h-14 px-4 rounded-lg border-[3px] border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-[#333A80] transition-colors text-left"
                     >
                       Clic ×2 (300)
                     </button>
@@ -1546,21 +1546,21 @@ export default function ItollecClickerPage() {
 
               {miniGameOpen === 'grandjeu' && (
                 <div className="mt-6 space-y-4">
-                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4 text-sm text-tx-secondary font-bold">
+                  <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4 text-sm text-tx-secondary font-bold">
                     Choisis une stratégie diplomatique. Effet 5 minutes.
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => runGrandJeu('diplomatie')}
-                      className="h-14 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors text-left"
+                      className="h-14 px-4 rounded-lg border-[3px] border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-[#333A80] transition-colors text-left"
                     >
                       Diplomatie +25%
                     </button>
                     <button
                       type="button"
                       onClick={() => runGrandJeu('propagande')}
-                      className="h-14 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors text-left"
+                      className="h-14 px-4 rounded-lg border-[3px] border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-[#333A80] transition-colors text-left"
                     >
                       Propagande Clic ×3
                     </button>
@@ -1570,13 +1570,13 @@ export default function ItollecClickerPage() {
 
               {miniGameOpen === 'oracle' && (
                 <div className="mt-6 space-y-4">
-                  <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-4 text-sm text-tx-secondary font-bold">
+                  <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4 text-sm text-tx-secondary font-bold">
                     Parie 25% de tes FrenlyCoin. Chance de gagner 45%. En cas de victoire : +200% de la mise.
                   </div>
                   <button
                     type="button"
                     onClick={runOracle}
-                    className="w-full h-14 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                    className="w-full h-14 px-4 rounded-lg border-[3px] border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-[#333A80] transition-colors"
                   >
                     Lancer l’Oracle
                   </button>
@@ -1590,7 +1590,7 @@ export default function ItollecClickerPage() {
       {tutorialOpen && tutorialSpot && (
         <div className="fixed inset-0 z-[99999]">
           <div
-            className="absolute rounded-[28px] border-2 border-tx-base pointer-events-none"
+            className="absolute rounded-[28px] border-[3px] border-accent-primary pointer-events-none"
             style={{
               top: Math.max(8, tutorialSpot.top - 8),
               left: Math.max(8, tutorialSpot.left - 8),
@@ -1619,10 +1619,10 @@ export default function ItollecClickerPage() {
                 onClick={() => setTutorialStep((s) => Math.max(0, s - 1))}
                 disabled={tutorialStep === 0}
                 className={cn(
-                  'h-11 px-4 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+                  'h-11 px-4 rounded-lg border-[3px] font-display font-black tracking-wider uppercase transition-colors',
                   tutorialStep === 0
                     ? 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
-                    : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                    : 'bg-brand-inner text-tx-base border-brand-border hover:bg-[#333A80]'
                 )}
               >
                 Retour
@@ -1631,7 +1631,7 @@ export default function ItollecClickerPage() {
               <button
                 type="button"
                 onClick={closeTutorial}
-                className="h-11 px-4 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors"
+                className="h-11 px-4 rounded-lg border-[3px] border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors"
               >
                 Passer
               </button>
@@ -1645,7 +1645,7 @@ export default function ItollecClickerPage() {
                   }
                   setTutorialStep((s) => Math.min(tutorialSteps.length - 1, s + 1));
                 }}
-                className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                className="h-11 px-4 rounded-lg border-[3px] border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-[#333A80] transition-colors"
               >
                 {tutorialStep >= tutorialSteps.length - 1 ? 'Terminer' : 'Suivant'}
               </button>

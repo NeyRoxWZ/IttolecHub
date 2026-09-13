@@ -89,7 +89,7 @@ export default function SandboxSlots({
         <div className="flex items-center gap-1.5">
           <div
             className={cn(
-              'h-7 px-2 rounded-lg border-2 flex items-center gap-1',
+              'h-7 px-2 rounded-lg border-[3px] flex items-center gap-1',
               highlight === 'streak' && 'ring-2 ring-accent-primary',
               state.streak > 0 ? 'border-accent-secondary bg-accent-secondary/10' : 'border-brand-border'
             )}
@@ -103,7 +103,7 @@ export default function SandboxSlots({
 
           <div
             className={cn(
-              'h-7 px-2 rounded-lg border-2 border-brand-border flex items-center gap-1.5',
+              'h-7 px-2 rounded-lg border-[3px] border-brand-border flex items-center gap-1.5',
               highlight === 'level' && 'ring-2 ring-accent-primary'
             )}
           >
@@ -132,7 +132,7 @@ export default function SandboxSlots({
               <div
                 key={i}
                 className={cn(
-                  'h-[86px] w-[70px] rounded-lg border-2 bg-brand-card flex items-center justify-center',
+                  'h-[86px] w-[70px] rounded-lg border-[3px] bg-brand-card flex items-center justify-center',
                   result?.won ? 'border-accent-success' : 'border-brand-border',
                   spinning && 'blur-[1px]'
                 )}
@@ -148,7 +148,7 @@ export default function SandboxSlots({
         {result && (
           <span
             className={cn(
-              'px-3 py-1.5 rounded-lg border-2 font-display font-black text-xs',
+              'px-3 py-1.5 rounded-lg border-[3px] font-display font-black text-xs',
               result.won
                 ? 'border-accent-success text-accent-success bg-accent-success/15'
                 : 'border-accent-primary text-accent-primary bg-accent-primary/15'

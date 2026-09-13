@@ -14,12 +14,12 @@ import { tempo } from '@/lib/casino/turbo';
 // The 6 prize tiers are laid out twice around the wheel (12 slices) so it
 // reads as a real wheel instead of six fat wedges. Both copies of a tier pay
 // the same, so which one we land on is purely cosmetic.
-const SEGMENT_COLORS = ['#334155', '#FF2A55', '#334155', '#4FC3F7', '#334155', '#FFD000'];
+const SEGMENT_COLORS = ['#2B3170', '#FF4F8B', '#2B3170', '#3B6BFF', '#2B3170', '#FFC61A'];
 
 const SEGMENTS: WheelSegment[] = [...WHEEL_OF_FORTUNE_SEGMENTS, ...WHEEL_OF_FORTUNE_SEGMENTS].map((v, i) => ({
   label: v >= 1000 ? `${v / 1000}k` : String(v),
   color: SEGMENT_COLORS[i % SEGMENT_COLORS.length],
-  textColor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] === '#FFD000' ? '#13131A' : '#fff',
+  textColor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] === '#FFC61A' ? '#0E1030' : '#fff',
 }));
 
 interface Props {
@@ -61,25 +61,25 @@ export default function DailyWheelModal({ onClose, onSpin }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[200] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
       {confetti > 0 && <Confetti trigger={confetti} intensity="big" />}
 
-      <div className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal animate-in zoom-in-95 duration-200">
+      <div className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200">
         <div className="flex items-start justify-between gap-4 mb-1">
           <div>
-            <h2 className="font-display text-2xl font-black">Roue Quotidienne</h2>
-            <p className="text-xs text-tx-secondary font-bold">Un tour gratuit chaque jour</p>
+            <h2 className="font-display text-3xl leading-none">Roue quotidienne</h2>
+            <p className="text-xs text-tx-secondary font-bold mt-2">Un tour gratuit chaque jour</p>
           </div>
           <button
             onClick={onClose}
             disabled={spinning}
-            className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base disabled:opacity-40 focus:outline-none"
+            aria-label="Fermer" className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] active:translate-y-[2px] flex items-center justify-center disabled:opacity-40 focus:outline-none"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="flex justify-center my-6">
+        <div className="flex justify-center my-10">
           <CasinoWheel
             ref={wheelRef}
             segments={SEGMENTS}
@@ -87,9 +87,9 @@ export default function DailyWheelModal({ onClose, onSpin }: Props) {
             labelSize={12}
             settleMs={tempo(1200)}
             hub={
-              <div className="w-16 h-16 rounded-full bg-brand-card border-4 border-brand-border flex items-center justify-center">
+              <div className="w-[72px] h-[72px] rounded-full bg-[#0E1030] border-[5px] border-brand-border flex items-center justify-center">
                 {reward !== null
-                  ? <span className="font-display font-black text-sm text-accent-primary">+{reward >= 1000 ? `${reward / 1000}k` : reward}</span>
+                  ? <span className="font-display text-lg text-accent-primary">+{reward >= 1000 ? `${reward / 1000}k` : reward}</span>
                   : <Sparkles className={cn('w-6 h-6 text-accent-primary', spinning && 'animate-pulse')} />}
               </div>
             }
@@ -101,23 +101,23 @@ export default function DailyWheelModal({ onClose, onSpin }: Props) {
             onClick={handleSpin}
             disabled={spinning}
             className={cn(
-              'w-full h-16 rounded-2xl font-display text-lg font-black tracking-wider border-4 border-brand-border shadow-brutal transition-all active:translate-y-1 active:shadow-none focus:outline-none',
-              spinning ? 'bg-brand-inner text-tx-muted cursor-not-allowed shadow-none' : 'bg-accent-primary text-brand-bg hover:brightness-110'
+              'w-full h-16 rounded-2xl font-display text-2xl border-4 border-brand-border transition-transform focus:outline-none',
+              spinning ? 'bg-brand-inner text-tx-muted cursor-not-allowed shadow-[inset_0_4px_0_#0B0E2A]' : 'bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[4px]'
             )}
           >
-            {spinning ? 'ÇA TOURNE...' : 'TOURNER — GRATUIT'}
+            {spinning ? 'Ça tourne…' : 'Tourner, c’est gratuit'}
           </button>
         ) : (
           <>
             <div className="text-center mb-4">
-              <div className="font-display text-4xl font-black text-accent-primary">+{reward.toLocaleString('en-US')} ₶</div>
+              <div className="font-display text-5xl leading-none text-accent-primary [-webkit-text-stroke:5px_#05061A] [paint-order:stroke_fill] [text-shadow:0_4px_0_#05061A]">+{reward.toLocaleString('en-US')} ₶</div>
               <p className="text-sm text-tx-secondary font-bold mt-1">Ajouté à ton solde · reviens demain</p>
             </div>
             <button
               onClick={onClose}
-              className="w-full h-14 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-success text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none"
+              className="w-full h-16 rounded-2xl font-display text-2xl border-4 border-brand-border transition-transform focus:outline-none bg-accent-success text-brand-bg shadow-[inset_0_-6px_0_#1E9A55,0_5px_0_#05061A] active:translate-y-[4px]"
             >
-              ENCAISSER
+              Encaisser
             </button>
           </>
         )}

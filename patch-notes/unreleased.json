@@ -1,3 +1,43 @@
 {
-  "entries": []
+  "entries": [
+    {
+      "id": "2026-09-13-01",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Salon multijoueur redessiné",
+      "details": "Choix du jeu en cartes colorées, liste des joueurs avec avatars, gros bouton pour lancer la partie."
+    },
+    {
+      "id": "2026-09-13-02",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Jeux multijoueur à la nouvelle direction artistique",
+      "details": "Barre du haut, chrono, vote pour revenir au salon et réactions refaits dans le nouveau style."
+    },
+    {
+      "id": "2026-09-13-03",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Notifications redessinées",
+      "details": "Les petites alertes en bas de l'écran prennent la couleur de ce qui se passe : vert pour un gain, rose pour une erreur."
+    },
+    {
+      "id": "2026-09-13-04",
+      "date": "2026-09-13",
+      "scope": "casino",
+      "type": "amelioration",
+      "title": "Fenêtres du casino redessinées",
+      "details": "Missions, roue du jour, ouverture de caisses, cadeaux, coffre, jackpot et prestige passent au nouveau style."
+    },
+    {
+      "id": "2026-09-13-05",
+      "date": "2026-09-13",
+      "scope": "casino",
+      "type": "amelioration",
+      "title": "Boutique, pass et Entre potes redessinés"
+    }
+  ]
 }

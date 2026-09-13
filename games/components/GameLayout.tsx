@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { Clock, Users, WifiOff } from 'lucide-react';
+import { Clock, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactionButton from './ReactionButton';
 
@@ -47,12 +47,14 @@ export default function GameLayout({
     }
   }, [isConnected]);
 
+  const urgent = timeLeft < 10;
+
   return (
     <div className="min-h-screen bg-transparent text-tx-base font-sans selection:bg-accent-primary/30 flex flex-col">
       {showDisconnected && (
-        <div className="fixed top-0 left-0 right-0 z-[100] bg-accent-secondary text-white text-sm font-bold uppercase tracking-widest text-center py-2 flex items-center justify-center gap-2 animate-in slide-in-from-top duration-300">
-          <WifiOff className="w-4 h-4" />
-          Connexion perdue — reconnexion en cours...
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[100] rounded-2xl border-[3px] border-brand-border bg-accent-secondary text-white font-display text-base px-4 py-2 flex items-center justify-center gap-2 shadow-[inset_0_-4px_0_#C92D63,0_4px_0_#05061A] animate-in slide-in-from-top duration-300">
+          <WifiOff className="w-5 h-5" />
+          Connexion perdue, on se reconnecte…
         </div>
       )}
 
@@ -61,31 +63,34 @@ export default function GameLayout({
           <ReactionButton roomId={roomId || ''} />
       </div>
 
-      {/* HEADER FIXED */}
-      <header className="relative z-50 bg-brand-card/90 backdrop-blur-md border-b-4 border-brand-border px-4 py-3 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      {/* HEADER */}
+      <header className="relative z-50 px-3 pt-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 rounded-[22px] border-4 border-brand-border bg-brand-card px-3 py-2.5 shadow-[inset_0_-5px_0_#151942,0_5px_0_#05061A]">
             {/* Left: Game Title & Round */}
-            <div className="flex flex-col">
-                <h1 className="text-lg md:text-2xl font-display font-black text-tx-base tracking-tight leading-none uppercase">
+            <div className="flex items-center gap-3 min-w-0">
+                <h1 className="text-xl md:text-3xl font-display text-tx-base leading-none truncate">
                     {gameTitle}
                 </h1>
-                <span className="text-xs md:text-sm text-tx-secondary font-bold uppercase tracking-widest mt-1">
+                <span className="shrink-0 inline-flex items-center h-8 rounded-xl border-[3px] border-brand-border bg-accent-info text-white font-display text-sm md:text-base px-2.5 shadow-[inset_0_-3px_0_#2F5BD0]">
                     Manche {roundCount}/{maxRounds}
                 </span>
             </div>
 
             {/* Center: Timer (Visual) */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex flex-col items-center gap-1.5 w-1/3 max-w-md">
-                 <div className="flex items-center gap-2 text-2xl font-display font-black tabular-nums text-tx-base">
-                    <Clock className="w-6 h-6 text-accent-primary" />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 mt-1.5 hidden md:flex items-center gap-3 w-1/3 max-w-sm">
+                 <div className={cn(
+                   'shrink-0 inline-flex items-center gap-1.5 h-10 rounded-xl border-[3px] border-brand-border px-3 font-display text-2xl tabular-nums',
+                   urgent ? 'bg-accent-secondary text-white animate-pulse' : 'bg-brand-bg text-white'
+                 )}>
+                    <Clock className={cn('w-5 h-5', urgent ? 'text-white' : 'text-accent-primary')} />
                     {timer}
                  </div>
                  {/* Progress Bar */}
-                 <div className="w-full h-3 bg-brand-inner border-2 border-brand-border rounded-full overflow-hidden">
-                    <div 
+                 <div className="flex-1 h-4 bg-brand-bg border-[3px] border-brand-border rounded-full overflow-hidden">
+                    <div
                         className={cn(
-                            "h-full transition-all duration-1000 ease-linear",
-                            timeLeft < 10 ? "bg-accent-secondary" : "bg-accent-primary"
+                            "h-full rounded-full transition-all duration-1000 ease-linear shadow-[inset_0_-3px_0_rgba(0,0,0,0.25)]",
+                            urgent ? "bg-accent-secondary" : "bg-accent-primary"
                         )}
                         style={{ width: `${Math.min(100, (timeLeft / 30) * 100)}%` }} // Fallback base 30s if max unknown
                     />
@@ -93,9 +98,12 @@ export default function GameLayout({
             </div>
 
             {/* Right: Timer (Mobile) or Extra Info */}
-            <div className="flex items-center gap-4">
-              <div className="md:hidden flex items-center gap-2 font-display font-black text-xl bg-brand-inner px-3 py-1 rounded-xl border-2 border-brand-border">
-                  <Clock className="w-5 h-5 text-accent-primary" />
+            <div className="flex items-center gap-3 shrink-0">
+              <div className={cn(
+                'md:hidden inline-flex items-center gap-1.5 h-10 rounded-xl border-[3px] border-brand-border px-2.5 font-display text-xl tabular-nums',
+                urgent ? 'bg-accent-secondary text-white' : 'bg-brand-bg text-white'
+              )}>
+                  <Clock className={cn('w-4 h-4', urgent ? 'text-white' : 'text-accent-primary')} />
                   {timer}
               </div>
               {/* Vote to Lobby button - desktop only in header */}

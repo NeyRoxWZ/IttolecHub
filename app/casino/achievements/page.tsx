@@ -64,18 +64,18 @@ export default function AchievementsPage() {
           <Link
             href="/casino"
             prefetch
-            className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
+            className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[2px] transition-transform focus:outline-none"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="min-w-0">
-            <h1 className="font-display text-xl sm:text-2xl font-black leading-none">Succès</h1>
+            <h1 className="font-display text-3xl sm:text-4xl leading-none">Succès</h1>
             <p className="text-[11px] text-tx-muted">
               {unlockedCount}/{achievements.length} débloqués · {points.toLocaleString('en-US')}/{totalPoints.toLocaleString('en-US')} points
             </p>
           </div>
 
-          <div className="ml-auto h-11 min-w-[160px] rounded-xl border-2 border-brand-border bg-brand-card px-3 flex flex-col justify-center">
+          <div className="ml-auto h-11 min-w-[160px] rounded-xl border-[3px] border-brand-border bg-brand-card px-3 flex flex-col justify-center">
             <div className="h-2 rounded-full bg-brand-inner border border-brand-border overflow-hidden">
               <div
                 className="h-full bg-accent-primary transition-[width] duration-500"
@@ -97,7 +97,7 @@ export default function AchievementsPage() {
                 key={c.id}
                 onClick={() => { sfx.click(); setFilter(c.id as any); }}
                 className={cn(
-                  'h-9 px-3 rounded-xl border-2 shrink-0 font-display font-black text-[11px] focus:outline-none transition-colors',
+                  'h-9 px-3 rounded-xl border-[3px] shrink-0 font-display font-black text-[11px] focus:outline-none transition-colors',
                   filter === c.id ? 'border-accent-primary bg-accent-primary/10 text-accent-primary'
                     : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
                 )}
@@ -111,7 +111,7 @@ export default function AchievementsPage() {
         {loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="h-[76px] rounded-xl border-2 border-brand-border bg-brand-card animate-pulse" />
+              <div key={i} className="h-[76px] rounded-xl border-[3px] border-brand-border bg-brand-card animate-pulse" />
             ))}
           </div>
         )}
@@ -124,13 +124,13 @@ export default function AchievementsPage() {
               <div
                 key={a.id}
                 className={cn(
-                  'rounded-xl border-2 p-3 flex items-center gap-3 transition-colors',
+                  'rounded-xl border-[3px] p-3 flex items-center gap-3 transition-colors',
                   got ? 'bg-brand-card' : 'bg-brand-card opacity-55'
                 )}
                 style={{ borderColor: got ? tier.color : undefined }}
               >
                 <div
-                  className="rounded-lg border-2 p-2 shrink-0"
+                  className="rounded-lg border-[3px] p-2 shrink-0"
                   style={{ borderColor: got ? tier.color : '#2A2A38', background: got ? `${tier.color}1A` : '#1A1A24' }}
                 >
                   {got ? <Award className="h-5 w-5" style={{ color: tier.color }} /> : <Lock className="h-5 w-5 text-tx-muted" />}
@@ -138,7 +138,7 @@ export default function AchievementsPage() {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <h3 className="font-display font-black text-[13px] truncate">{a.name}</h3>
+                    <h3 className="font-display text-[13px] truncate">{a.name}</h3>
                     {got && <Check className="h-3 w-3 shrink-0" style={{ color: tier.color }} />}
                   </div>
                   <p className="text-[11px] text-tx-secondary leading-tight line-clamp-2">{a.description}</p>

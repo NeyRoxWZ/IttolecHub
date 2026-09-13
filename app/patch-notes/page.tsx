@@ -49,18 +49,18 @@ export default function PatchNotesPage() {
           <Link
             href="/"
             aria-label="Accueil"
-            className="h-11 w-11 shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base transition-colors"
+            className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="font-display text-3xl font-black tracking-wider uppercase leading-none">Patch notes</h1>
+            <h1 className="font-display text-3xl leading-none">Patch notes</h1>
             <p className="text-[12px] font-black text-white mt-1 [text-shadow:0_1px_0_#14142B]">Tout ce qui a changé, version après version.</p>
           </div>
         </div>
 
         {RELEASES.length === 0 ? (
-          <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal text-center">
+          <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal text-center">
             <p className="text-tx-secondary">Aucune version publiée pour l&apos;instant.</p>
           </div>
         ) : (
@@ -72,9 +72,9 @@ export default function PatchNotesPage() {
                     key={g}
                     onClick={() => setFilter(g)}
                     className={cn(
-                      'h-9 px-3 rounded-lg border-2 font-display font-black text-[11px] tracking-wider uppercase transition-colors',
+                      'h-9 px-3 rounded-lg border-[3px] font-display font-black text-[11px] tracking-wider uppercase transition-colors',
                       filter === g
-                        ? g === 'tous' ? 'border-tx-base text-tx-base bg-brand-inner' : cn('bg-brand-inner', GROUP_META[g].active)
+                        ? g === 'tous' ? 'border-accent-primary text-tx-base bg-brand-inner' : cn('bg-brand-inner', GROUP_META[g].active)
                         : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
                     )}
                   >
@@ -94,12 +94,12 @@ export default function PatchNotesPage() {
                     className="bg-brand-card border-4 border-brand-border rounded-[28px] p-5 sm:p-6 shadow-brutal scroll-mt-4"
                   >
                     <div className="flex items-baseline justify-between gap-3 mb-1">
-                      <span className={cn('font-display font-black text-sm', latest ? 'text-accent-primary' : 'text-tx-muted')}>
+                      <span className={cn('font-display text-lg', latest ? 'text-accent-primary' : 'text-tx-muted')}>
                         v{release.version}{latest && ' · dernière'}
                       </span>
                       <span className="text-[11px] text-tx-muted">{formatReleaseDate(release.date)}</span>
                     </div>
-                    <h2 className="font-display text-2xl font-black leading-tight mb-5">{release.title}</h2>
+                    <h2 className="font-display text-2xl leading-tight mb-5">{release.title}</h2>
                     <PatchNotesView entries={release.entries} />
                   </section>
                 );

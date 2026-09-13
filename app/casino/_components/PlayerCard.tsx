@@ -92,17 +92,17 @@ export default function PlayerCard({ pseudo, onClose }: { pseudo: string; onClos
   const title = player ? getPrestigeTitle(player.prestigeCount) : null;
 
   return (
-    <div className="fixed inset-0 z-[220] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
+    <div className="fixed inset-0 z-[220] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
       <div
-        className="w-full max-w-3xl max-h-[92dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in zoom-in-95 duration-200"
+        className="w-full max-w-3xl max-h-[92dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="min-w-0">
-            <h2 className="font-display text-xl font-black truncate">{pseudo}</h2>
-            {title && <span className="text-[10px] font-black uppercase tracking-widest text-accent-primary">{title}</span>}
+            <h2 className="font-display text-4xl leading-none truncate">{pseudo}</h2>
+            {title && <span className="inline-block mt-2 px-2 py-0.5 rounded-lg border-2 border-brand-border bg-accent-primary text-brand-bg font-display text-sm">{title}</span>}
           </div>
-          <button onClick={onClose} className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none">
+          <button onClick={onClose} aria-label="Fermer" className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] active:translate-y-[2px] flex items-center justify-center focus:outline-none">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -123,15 +123,15 @@ export default function PlayerCard({ pseudo, onClose }: { pseudo: string; onClos
                 { label: 'Meilleure série', value: `${player.bestStreak}` },
                 { label: 'Succès', value: `${player.achievements}/${player.achievementsTotal}` },
               ].map((s) => (
-                <div key={s.label} className="rounded-xl border-2 border-brand-border bg-brand-inner p-2.5">
+                <div key={s.label} className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-2.5">
                   <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted">{s.label}</div>
-                  <div className="font-display font-black text-sm tabular-nums truncate">{s.value}</div>
+                  <div className="font-display text-xl leading-tight tabular-nums truncate">{s.value}</div>
                 </div>
               ))}
             </div>
 
             {chart ? (
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner p-3">
+              <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5">
                     {chart.up
@@ -158,8 +158,8 @@ export default function PlayerCard({ pseudo, onClose }: { pseudo: string; onClos
                   >
                     <defs>
                       <linearGradient id="playerFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={chart.up ? '#00FF94' : '#FF2A55'} stopOpacity="0.35" />
-                        <stop offset="100%" stopColor={chart.up ? '#00FF94' : '#FF2A55'} stopOpacity="0" />
+                        <stop offset="0%" stopColor={chart.up ? '#33D17A' : '#FF4F8B'} stopOpacity="0.35" />
+                        <stop offset="100%" stopColor={chart.up ? '#33D17A' : '#FF4F8B'} stopOpacity="0" />
                       </linearGradient>
                     </defs>
 
@@ -168,11 +168,12 @@ export default function PlayerCard({ pseudo, onClose }: { pseudo: string; onClos
                     ))}
 
                     <path d={chart.area} fill="url(#playerFill)" />
+                    <path d={chart.line} fill="none" stroke="#05061A" strokeWidth="8" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
                     <path
                       d={chart.line}
                       fill="none"
-                      stroke={chart.up ? '#00FF94' : '#FF2A55'}
-                      strokeWidth="2.5"
+                      stroke={chart.up ? '#33D17A' : '#FF4F8B'}
+                      strokeWidth="4"
                       strokeLinejoin="round"
                       strokeLinecap="round"
                       vectorEffect="non-scaling-stroke"
@@ -186,7 +187,7 @@ export default function PlayerCard({ pseudo, onClose }: { pseudo: string; onClos
                         />
                         <circle
                           cx={chart.x(hover)} cy={chart.y(point.balance)} r="5"
-                          fill={chart.up ? '#00FF94' : '#FF2A55'} stroke="#12121A" strokeWidth="2"
+                          fill={chart.up ? '#33D17A' : '#FF4F8B'} stroke="#05061A" strokeWidth="3"
                         />
                       </>
                     )}
@@ -194,7 +195,7 @@ export default function PlayerCard({ pseudo, onClose }: { pseudo: string; onClos
 
                   {point && (
                     <div
-                      className="absolute -top-1 pointer-events-none rounded-lg border-2 border-brand-border bg-brand-card px-2.5 py-1.5 shadow-brutal"
+                      className="absolute -top-1 pointer-events-none rounded-xl border-[3px] border-brand-border bg-brand-card px-2.5 py-1.5 shadow-[0_4px_0_#05061A]"
                       style={{
                         left: `${(chart.x(hover!) / W) * 100}%`,
                         transform: `translateX(${hover! > chart.pts.length / 2 ? '-105%' : '5%'})`,

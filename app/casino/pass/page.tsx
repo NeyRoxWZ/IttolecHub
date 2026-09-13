@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Coins, Clock, Lock, Check, Crown, X, Sparkles, Gift, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { BRAWL } from '@/lib/ui/brawl';
 import { sfx } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
@@ -215,12 +216,12 @@ export default function FrenlyPassPage() {
             <Link
               href="/casino"
               prefetch
-              className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
+              className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[2px] transition-transform focus:outline-none"
             >
               <ArrowLeft className="h-5 w-5" />
               </Link>
             <div className="min-w-0">
-              <h1 className="font-display text-xl sm:text-2xl font-black leading-none">Frenly Pass</h1>
+              <h1 className="font-display text-3xl sm:text-4xl leading-none">Frenly Pass</h1>
               <span className="text-[11px] text-tx-muted">
                 100 paliers · remis à zéro le 1er du mois ·{' '}
                 <Link href="/casino/inventaire" prefetch className="text-tx-base font-black underline underline-offset-2">
@@ -232,12 +233,12 @@ export default function FrenlyPassPage() {
 
           <div className="flex items-center gap-2">
             <div
-              className="h-11 flex items-center gap-2 px-3 rounded-xl border-2 border-brand-border bg-brand-inner"
+              className="h-11 flex items-center gap-2 px-3 rounded-xl border-[3px] border-brand-border bg-brand-inner"
               title={resetIn > 0 ? `Nouveau pass le ${resetDateLabel(resetIn)}` : 'Reset du passe'}
             >
               <Clock className="h-4 w-4 shrink-0 text-accent-primary" />
               <div className="leading-tight">
-                <div className="font-display font-black text-sm tabular-nums">{formatCountdown(resetIn)}</div>
+                <div className="font-display text-lg tabular-nums">{formatCountdown(resetIn)}</div>
                 {resetIn > 0 && (
                   <div className="text-[9px] font-bold text-tx-muted whitespace-nowrap">
                     nouveau pass {resetDateLabel(resetIn)}
@@ -253,9 +254,9 @@ export default function FrenlyPassPage() {
 
         {/* Progress + premium CTA */}
         <div className="flex flex-wrap items-center gap-3 mb-3 shrink-0">
-          <div className="flex-1 min-w-[260px] rounded-xl border-2 border-brand-border bg-brand-card px-4 py-2.5">
+          <div className="flex-1 min-w-[260px] rounded-xl border-[3px] border-brand-border bg-brand-card px-4 py-2.5">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="font-display font-black text-sm">
+              <span className="font-display text-lg">
                 Palier <span className="text-accent-primary">{state.tier}</span> / 100
               </span>
               <span className="text-[11px] font-bold text-tx-muted tabular-nums">
@@ -271,7 +272,7 @@ export default function FrenlyPassPage() {
             <button
               onClick={claimAll}
               disabled={claiming}
-              className="h-12 px-4 rounded-xl border-4 border-brand-border bg-accent-success text-brand-bg shadow-brutal flex items-center gap-2 font-display font-black text-xs tracking-wider hover:brightness-110 transition-all active:translate-y-0.5 focus:outline-none disabled:opacity-50"
+              className="h-12 px-4 rounded-xl border-4 border-brand-border bg-accent-success text-brand-bg shadow-brutal flex items-center gap-2 font-display text-base hover:brightness-110 transition-all active:translate-y-0.5 focus:outline-none disabled:opacity-50"
             >
               <Gift className="h-4 w-4" />
               {claiming ? '···' : `TOUT RÉCLAMER (${claimable})`}
@@ -279,40 +280,40 @@ export default function FrenlyPassPage() {
           )}
 
           {state.premium ? (
-            <div className="h-12 px-4 rounded-xl border-2 border-accent-primary bg-accent-primary/10 flex items-center gap-2">
-              <Crown className="h-4 w-4 text-accent-primary" />
-              <span className="font-display font-black text-xs text-accent-primary">VOIE PREMIUM ACTIVE</span>
+            <div className="h-12 px-4 rounded-xl border-[3px] border-brand-border bg-accent-success text-brand-bg shadow-[inset_0_-4px_0_#1E9A55] flex items-center gap-2">
+              <Crown className="h-5 w-5" />
+              <span className="font-display text-lg">Voie premium active</span>
             </div>
           ) : (
             <button
               onClick={buyPremium}
               disabled={buying}
-              className="h-12 px-4 rounded-xl border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal flex items-center gap-2 font-display font-black text-xs tracking-wider hover:brightness-110 transition-all active:translate-y-0.5 focus:outline-none disabled:opacity-50"
+              className={cn(BRAWL.yellow, 'h-12 px-4 text-lg')}
             >
-              <Crown className="h-4 w-4" />
-              {buying ? '···' : `DÉBLOQUER PREMIUM — ${premiumPrice.toLocaleString('en-US')} ₶`}
+              <Crown className="h-5 w-5" />
+              {buying ? '···' : `Débloquer premium · ${premiumPrice.toLocaleString('en-US')} ₶`}
             </button>
           )}
         </div>
 
         <CosmeticStockPanel />
 
-        {loading && <div className="h-64 rounded-2xl border-4 border-brand-border bg-brand-card animate-pulse" />}
+        {loading && <div className="h-64 rounded-[22px] border-4 border-brand-border bg-brand-card animate-pulse" />}
 
         {!loading && (
           <>
-            <div className="flex items-center gap-4 mb-2 text-[10px] font-black uppercase tracking-widest text-tx-muted shrink-0">
-              <span className="flex items-center gap-1.5"><Crown className="h-3 w-3 text-accent-primary" /> Premium</span>
-              <span className="flex items-center gap-1.5"><Sparkles className="h-3 w-3 text-accent-success" /> Gratuit</span>
-              <span className="normal-case font-bold text-tx-muted">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3 shrink-0">
+              <span className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl border-[3px] border-brand-border bg-accent-primary text-brand-bg font-display text-base"><Crown className="h-4 w-4" /> Premium</span>
+              <span className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl border-[3px] border-brand-border bg-accent-success text-brand-bg font-display text-base"><Sparkles className="h-4 w-4" /> Gratuit</span>
+              <span className="text-sm font-bold text-tx-secondary">
                 Chaque palier se réclame à la main. Ce qui reste est versé au reset du 1er du mois.
               </span>
               <button
                 onClick={jumpToCurrent}
-                className="ml-auto h-7 px-2.5 rounded-lg border-2 border-accent-primary bg-accent-primary/10 text-accent-primary flex items-center gap-1.5 normal-case text-[11px] font-black hover:bg-accent-primary/20 focus:outline-none"
+                className={cn(BRAWL.dark, 'ml-auto h-9 px-3 text-base')}
               >
                 Aller à mon palier
-                <ArrowRight className="h-3.5 w-3.5" />
+                <ArrowRight className="h-4 w-4" />
               </button>
             </div>
 
@@ -329,7 +330,7 @@ export default function FrenlyPassPage() {
                       onClick={() => { sfx.click(); setDetail({ tier: t, track: 'premium' }); }}
                     />
                     <div className={cn(
-                      'h-9 rounded-lg border-2 flex items-center justify-center font-display font-black text-sm shrink-0',
+                      'h-9 rounded-lg border-[3px] flex items-center justify-center font-display text-lg shrink-0',
                       state.tier >= t.tier ? 'border-accent-primary bg-accent-primary text-brand-bg'
                         : t.milestone ? 'border-accent-primary/60 text-accent-primary bg-brand-card'
                         : 'border-brand-border bg-brand-card text-tx-muted'
@@ -376,19 +377,19 @@ function TierCell({
   return (
     <div
       className={cn(
-        'relative h-[186px] w-full rounded-2xl border-4 p-2.5 flex flex-col items-center justify-start gap-1.5 transition-all',
-        claimed ? 'border-accent-success/50 bg-accent-success/5'
-          : canClaim ? 'border-accent-primary bg-accent-primary/10'
-          : reached ? 'border-brand-border bg-brand-card'
-          : 'border-brand-border bg-brand-card opacity-60',
-        tier.milestone && 'ring-2 ring-accent-primary/40'
+        'relative h-[186px] w-full rounded-[20px] border-4 border-brand-border p-2.5 flex flex-col items-center justify-start gap-1.5 transition-all',
+        claimed ? 'bg-[#1B4A3A] shadow-[inset_0_-5px_0_#12352A]'
+          : canClaim ? 'bg-[#4A3F1E] shadow-[inset_0_-5px_0_#332B12,0_0_0_3px_#FFC61A]'
+          : reached ? 'bg-brand-card shadow-[inset_0_-5px_0_#151942]'
+          : 'bg-brand-card shadow-[inset_0_-5px_0_#151942] opacity-60',
+        tier.milestone && !canClaim && 'shadow-[inset_0_-5px_0_#151942,0_0_0_3px_rgba(255,198,26,0.45)]'
       )}
     >
       <button onClick={onClick} className="w-full flex flex-col items-center gap-1 focus:outline-none">
         {cosmetic ? (
           <CosmeticPreview cosmetic={cosmetic} size={86} />
         ) : (
-          <div className="h-[86px] w-[86px] rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center">
+          <div className="h-[86px] w-[86px] rounded-xl border-[3px] border-brand-border bg-brand-inner flex items-center justify-center">
             {reward.kind === 'coins' ? <Coins className="h-9 w-9 text-accent-primary" /> : <Sparkles className="h-9 w-9 text-accent-success" />}
           </div>
         )}
@@ -404,15 +405,15 @@ function TierCell({
         <button
           onClick={onClaim}
           disabled={busy}
-          className="mt-auto w-full h-8 rounded-lg border-2 border-accent-primary bg-accent-primary text-brand-bg font-black text-[10px] tracking-widest focus:outline-none disabled:opacity-50"
+          className={cn(BRAWL.yellow, 'mt-auto w-full h-9 text-base')}
         >
-          {busy ? '···' : 'RÉCLAMER'}
+          {busy ? '···' : 'Réclamer'}
         </button>
       ) : (
-        <div className="mt-auto h-8 flex items-center justify-center text-[10px] font-black tracking-widest">
-          {claimed ? <span className="text-accent-success flex items-center gap-1"><Check className="h-3 w-3" /> PRIS</span>
-            : !active ? <span className="text-tx-muted flex items-center gap-1"><Lock className="h-3 w-3" /> PREMIUM</span>
-            : <span className="text-tx-muted">VERROUILLÉ</span>}
+        <div className="mt-auto h-9 flex items-center justify-center font-display text-base">
+          {claimed ? <span className="text-accent-success flex items-center gap-1"><Check className="h-4 w-4" /> Pris</span>
+            : !active ? <span className="text-tx-secondary flex items-center gap-1"><Lock className="h-4 w-4" /> Premium</span>
+            : <span className="text-tx-secondary">Verrouillé</span>}
         </div>
       )}
     </div>
@@ -436,14 +437,14 @@ function JustWon({ cosmetic, onClose }: { cosmetic: Cosmetic; onClose: () => voi
           <CosmeticPreview cosmetic={cosmetic} size={128} />
         </div>
 
-        <div className="font-display font-black text-base leading-tight">{cosmetic.name}</div>
+        <div className="font-display text-xl leading-tight">{cosmetic.name}</div>
         <div className="text-[11px] text-tx-muted mb-4">{gameLabel(cosmetic.gameSlug)}</div>
 
         <EquipButton cosmetic={cosmetic} className="w-full mb-2" />
 
         <button
           onClick={onClose}
-          className="w-full h-9 rounded-lg border-2 border-brand-border bg-brand-inner text-[10px] font-black tracking-widest text-tx-secondary focus:outline-none"
+          className="w-full h-9 rounded-lg border-[3px] border-brand-border bg-brand-inner text-[10px] font-black tracking-widest text-tx-secondary focus:outline-none"
         >
           PLUS TARD
         </button>
@@ -471,11 +472,11 @@ function TierDetail({
             <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">
               Palier {entry.tier.tier} · {entry.track === 'free' ? 'Gratuit' : 'Premium'}
             </div>
-            <h2 className="font-display text-lg font-black leading-tight">
+            <h2 className="font-display text-lg leading-tight">
               {cosmetic?.name || item?.name || `${(reward.amount || 0).toLocaleString('en-US')} ₶`}
             </h2>
           </div>
-          <button onClick={onClose} className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none">
+          <button onClick={onClose} className="h-9 w-9 shrink-0 rounded-lg border-[3px] border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -484,7 +485,7 @@ function TierDetail({
           {cosmetic ? (
             <CosmeticPreview cosmetic={cosmetic} size={168} />
           ) : (
-            <div className="h-[168px] w-[168px] rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center">
+            <div className="h-[168px] w-[168px] rounded-xl border-[3px] border-brand-border bg-brand-inner flex items-center justify-center">
               {reward.kind === 'coins' ? <Coins className="h-16 w-16 text-accent-primary" /> : <Sparkles className="h-16 w-16 text-accent-success" />}
             </div>
           )}

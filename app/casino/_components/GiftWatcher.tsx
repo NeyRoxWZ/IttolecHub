@@ -109,22 +109,22 @@ export default function GiftWatcher() {
   };
 
   return (
-    <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-sm bg-brand-card border-4 border-accent-success rounded-[28px] p-6 shadow-brutal text-center animate-in zoom-in-95 duration-200">
-        <div className="mx-auto h-16 w-16 rounded-2xl border-4 border-accent-success bg-accent-success/15 flex items-center justify-center mb-3">
-          <Gift className="h-8 w-8 text-accent-success" />
+    <div className="fixed inset-0 z-[300] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-sm bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-[0_8px_0_#05061A] text-center animate-in zoom-in-95 duration-200">
+        <div className="mx-auto h-20 w-20 rounded-3xl border-4 border-brand-border bg-accent-success flex items-center justify-center mb-4 shadow-[inset_0_-6px_0_#1E9A55,0_5px_0_#05061A]">
+          <Gift className="h-10 w-10 text-brand-bg" strokeWidth={2.5} />
         </div>
 
         <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Cadeau reçu</div>
-        <div className="font-display text-lg font-black mt-1">
+        <div className="font-display text-2xl mt-2 text-stroke-sm">
           {current.pseudo} t&apos;a envoyé
         </div>
-        <div className="font-display text-4xl font-black text-accent-success tabular-nums mt-1">
+        <div className="font-display text-6xl leading-none text-accent-success tabular-nums mt-2 [-webkit-text-stroke:6px_#05061A] [paint-order:stroke_fill] [text-shadow:0_5px_0_#05061A]">
           +{Math.round(current.amount).toLocaleString('en-US')} ₶
         </div>
 
         {current.message && (
-          <div className="mt-4 rounded-xl border-2 border-brand-border bg-brand-inner p-3 text-sm text-tx-secondary italic break-words">
+          <div className="mt-4 rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 text-sm font-bold text-white italic break-words">
             « {current.message} »
           </div>
         )}
@@ -132,15 +132,15 @@ export default function GiftWatcher() {
         <div className="flex gap-2 mt-5">
           <button
             onClick={() => { close(); router.push('/casino/potes'); }}
-            className="h-12 px-4 rounded-xl border-2 border-brand-border bg-brand-inner font-display font-black text-xs tracking-wider text-tx-secondary focus:outline-none"
+            className="h-14 px-5 rounded-2xl border-[3px] border-brand-border font-display text-lg transition-transform focus:outline-none bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A] active:translate-y-[3px]"
           >
-            VOIR
+            Voir
           </button>
           <button
             onClick={close}
-            className="flex-1 h-12 rounded-xl bg-accent-success text-brand-bg font-display font-black tracking-wider border-2 border-brand-border focus:outline-none"
+            className="flex-1 h-14 rounded-2xl border-[3px] border-brand-border font-display text-xl transition-transform focus:outline-none bg-accent-success text-brand-bg shadow-[inset_0_-6px_0_#1E9A55,0_5px_0_#05061A] active:translate-y-[4px]"
           >
-            {queue.length > 1 ? `MERCI · ${queue.length - 1} DE PLUS` : 'MERCI !'}
+            {queue.length > 1 ? `Merci · ${queue.length - 1} de plus` : 'Merci !'}
           </button>
         </div>
       </div>

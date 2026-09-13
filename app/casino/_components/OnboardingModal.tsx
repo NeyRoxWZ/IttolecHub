@@ -360,31 +360,32 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[250] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-lg max-h-[92dvh] flex flex-col bg-brand-card border-4 border-brand-border rounded-[28px] shadow-brutal animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[250] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-lg max-h-[92dvh] flex flex-col bg-brand-card border-4 border-brand-border rounded-[28px] shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200">
         <div className="flex items-start justify-between gap-4 p-6 pb-4">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="h-11 w-11 shrink-0 rounded-xl border-2 border-accent-primary bg-accent-primary/10 flex items-center justify-center">
-              <Icon className="h-5 w-5 text-accent-primary" />
+            <span className="h-14 w-14 shrink-0 rounded-2xl border-[3px] border-brand-border bg-accent-primary flex items-center justify-center shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A]">
+              <Icon className="h-7 w-7 text-brand-bg" strokeWidth={2.5} />
             </span>
             <div className="min-w-0">
               <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">
                 Étape {step + 1} / {STEPS.length}
               </div>
-              <h2 className="font-display text-lg font-black leading-tight">{current.title}</h2>
+              <h2 className="font-display text-2xl leading-tight mt-0.5">{current.title}</h2>
             </div>
           </div>
           <button
             onClick={onClose}
             title="Passer le guide"
-            className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none"
+            aria-label="Passer le guide"
+            className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] active:translate-y-[2px] flex items-center justify-center focus:outline-none"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="px-6 overflow-y-auto flex-1">
-          <div className="text-sm text-tx-secondary leading-relaxed space-y-3 [&_b]:text-tx-base [&_ul]:space-y-1">
+          <div className="text-sm font-bold text-tx-secondary leading-relaxed space-y-3 [&_b]:text-accent-primary [&_ul]:space-y-1">
             {current.body}
           </div>
 
@@ -405,9 +406,10 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
               <button
                 key={i}
                 onClick={() => { sfx.click(); setStep(i); }}
+                aria-label={`Étape ${i + 1}`}
                 className={cn(
-                  'h-1.5 flex-1 rounded-full transition-colors focus:outline-none',
-                  i <= step ? 'bg-accent-primary' : 'bg-brand-inner'
+                  'h-3 flex-1 rounded-full border-2 border-brand-border transition-colors focus:outline-none',
+                  i <= step ? 'bg-accent-primary' : 'bg-[#1A1D4A]'
                 )}
               />
             ))}
@@ -417,19 +419,19 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
             <button
               onClick={() => go(-1)}
               disabled={step === 0}
-              className="h-13 py-3 px-4 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base transition-colors focus:outline-none disabled:opacity-40"
+              aria-label="Étape précédente" className={`h-14 w-14 flex items-center justify-center rounded-2xl border-[3px] border-brand-border bg-[#2B3170] text-white font-display shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none disabled:opacity-40`}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-6 w-6" strokeWidth={3} />
             </button>
             <button
               onClick={() => (last ? onClose() : go(1))}
               disabled={blocked}
-              className="flex-1 py-3 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`flex-1 h-14 text-2xl flex items-center justify-center gap-2 rounded-2xl border-[3px] border-brand-border bg-accent-primary text-brand-bg font-display shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none disabled:opacity-50`}
             >
               {blocked
                 ? `LANCE ${owed} FOIS`
                 : last ? 'JOUER' : 'SUIVANT'}
-              {!blocked && !last && <ChevronRight className="h-4 w-4" />}
+              {!blocked && !last && <ChevronRight className="h-6 w-6" strokeWidth={3} />}
             </button>
           </div>
         </div>

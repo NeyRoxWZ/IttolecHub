@@ -89,17 +89,17 @@ export default function ConnexionPage() {
         <div className="flex items-center justify-center mb-8">
           <Link
             href="/"
-            className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
+            className="h-11 px-4 rounded-xl border-[3px] font-display text-lg border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px] transition-transform flex items-center justify-center"
           >
             Retour
           </Link>
         </div>
 
-        <div className="max-w-xl mx-auto bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
+        <div className="max-w-xl mx-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal">
           <div className="flex items-center justify-between h-12">
             <h1 className="font-display text-2xl md:text-3xl leading-none">Connexion</h1>
-            <div className="shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner p-2">
-              <span className="font-display font-black text-tx-base">ID</span>
+            <div className="shrink-0 rounded-lg border-[3px] border-brand-border bg-brand-inner p-2">
+              <span className="font-display text-tx-base">ID</span>
             </div>
           </div>
 
@@ -107,7 +107,7 @@ export default function ConnexionPage() {
             <button
               type="button"
               onClick={() => loginDiscord(nextPath)}
-              className="w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base flex items-center justify-center gap-3"
+              className="w-full h-14 rounded-xl font-display text-xl border-[3px] border-brand-border bg-[#5865F2] text-white shadow-[inset_0_-5px_0_#3C45C4,0_4px_0_#05061A] active:translate-y-[3px] transition-transform flex items-center justify-center gap-3"
             >
               <svg width="22" height="22" viewBox="0 0 256 199" aria-hidden="true" className="shrink-0">
                 <path
@@ -120,34 +120,34 @@ export default function ConnexionPage() {
 
             <div className="flex items-center gap-4">
               <div className="flex-1 h-[2px] bg-brand-border" />
-              <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Passphrase</div>
+              <div className="text-sm font-black text-tx-secondary">Passphrase</div>
               <div className="flex-1 h-[2px] bg-brand-border" />
             </div>
 
             <form onSubmit={handlePassphraseLogin} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
+                <label className="text-sm font-black text-tx-secondary">
                   Ton pseudo
                 </label>
                 <input
                   value={pseudo}
                   onChange={(e) => setPseudo(e.target.value)}
                   placeholder="PseudoCool"
-                  className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors"
+                  className="w-full h-12 rounded-lg bg-brand-inner border-[3px] border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-accent-primary transition-colors"
                   autoComplete="username"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
+                <label className="text-sm font-black text-tx-secondary">
                   Tes 6 mots (dans l&apos;ordre)
                 </label>
                 <input
                   value={passphrase}
                   onChange={(e) => setPassphrase(e.target.value)}
                   placeholder="pomme chat voiture arbre ..."
-                  className="w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors"
+                  className="w-full h-12 rounded-lg bg-brand-inner border-[3px] border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-accent-primary transition-colors"
                   autoComplete="current-password"
                   required
                 />
@@ -157,16 +157,15 @@ export default function ConnexionPage() {
                 type="submit"
                 disabled={loading}
                 className={cn(
-                  'w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
-                  'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base',
-                  loading && 'opacity-60 cursor-not-allowed hover:bg-brand-inner hover:text-tx-base hover:border-brand-border'
+                  'w-full h-14 rounded-xl font-display text-xl border-[3px] border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px] transition-transform',
+                  loading && 'opacity-60 cursor-not-allowed'
                 )}
               >
                 {loading ? 'Connexion...' : 'Se connecter'}
               </button>
             </form>
 
-            <div className="text-center text-xs font-bold tracking-widest uppercase text-tx-secondary">
+            <div className="text-center text-sm font-black text-tx-secondary">
               Pas encore de compte ?{' '}
               <Link href="/creer-compte" className="text-tx-base hover:text-accent-primary transition-colors">
                 Créer un compte
@@ -176,7 +175,7 @@ export default function ConnexionPage() {
             <button
               type="button"
               onClick={() => router.push('/')}
-              className="w-full h-12 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors"
+              className="w-full h-12 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white font-display text-lg shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] hover:bg-[#333A80] active:translate-y-[3px] transition-transform"
             >
               Revenir à l&apos;accueil
             </button>

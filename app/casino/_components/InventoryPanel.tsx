@@ -80,10 +80,10 @@ export default function InventoryPanel({
   const isEmpty = state.items.length === 0 && state.crates.length === 0 && activeEntries.length === 0;
 
   return (
-    <div className="rounded-2xl border-4 border-brand-border bg-brand-card p-4">
+    <div className="rounded-[22px] border-4 border-brand-border bg-brand-card p-4">
       <div className="flex items-center gap-2 mb-3">
         <Backpack className="h-4 w-4 text-accent-primary" />
-        <h2 className="font-display font-black text-sm">Inventaire</h2>
+        <h2 className="font-display text-lg">Inventaire</h2>
         <span className="text-[11px] text-tx-muted">Un objet ne s&apos;active que quand tu l&apos;utilises.</span>
       </div>
 
@@ -95,13 +95,13 @@ export default function InventoryPanel({
 
       {activeEntries.length > 0 && (
         <div className="mb-4">
-          <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2 flex items-center gap-1.5">
+          <div className="font-display text-2xl text-white mb-2 mt-1 flex items-center gap-1.5">
             <Zap className="h-3 w-3 text-accent-success" /> En cours
           </div>
           <div className="flex flex-wrap gap-2">
             {activeEntries.map((e) => (
-              <div key={e.effect} className="rounded-xl border-2 border-accent-success bg-accent-success/10 px-3 py-2">
-                <div className="font-display font-black text-[11px] leading-tight">
+              <div key={e.effect} className="rounded-xl border-[3px] border-accent-success bg-accent-success/10 px-3 py-2">
+                <div className="font-display text-[11px] leading-tight">
                   {EFFECT_LABEL[e.effect] || e.effect}
                 </div>
                 <div className="text-[10px] text-tx-secondary tabular-nums">
@@ -119,15 +119,15 @@ export default function InventoryPanel({
         {state.crates.map((crate) => {
           const count = Math.min(crate.quantity, batch[crate.id] || 1);
           return (
-            <div key={crate.id} className="relative rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-3 flex flex-col gap-2">
+            <div key={crate.id} className="relative rounded-xl border-[3px] border-accent-primary bg-accent-primary/10 p-3 flex flex-col gap-2">
               <div>
                 <Package className="h-4 w-4 text-accent-primary mb-1" />
-                <div className="font-display font-black text-[11px] leading-tight pr-6">{crate.name}</div>
+                <div className="font-display text-[11px] leading-tight pr-6">{crate.name}</div>
               </div>
               <span className="absolute top-1.5 right-2 text-[11px] font-black tabular-nums text-tx-muted">×{crate.quantity}</span>
 
               {crate.quantity > 1 && (
-                <div className="flex items-center h-7 rounded-lg border-2 border-brand-border bg-brand-inner self-start">
+                <div className="flex items-center h-7 rounded-lg border-[3px] border-brand-border bg-brand-inner self-start">
                   <button
                     onClick={() => setBatch((b) => ({ ...b, [crate.id]: Math.max(1, count - 1) }))}
                     className="h-full w-6 flex items-center justify-center text-tx-secondary hover:text-tx-base focus:outline-none"
@@ -143,7 +143,7 @@ export default function InventoryPanel({
                       ...b,
                       [crate.id]: Math.max(1, Math.min(crate.quantity, Math.floor(Number(e.target.value)) || 1)),
                     }))}
-                    className="w-9 h-full bg-transparent text-center font-display font-black text-[11px] tabular-nums focus:outline-none"
+                    className="w-9 h-full bg-transparent text-center font-display text-[11px] tabular-nums focus:outline-none"
                   />
                   <button
                     onClick={() => setBatch((b) => ({ ...b, [crate.id]: Math.min(crate.quantity, count + 1) }))}
@@ -163,7 +163,7 @@ export default function InventoryPanel({
               <button
                 onClick={() => onUse(crate.id, crate.name, count)}
                 disabled={busy !== null}
-                className="mt-auto h-8 rounded-lg border-2 border-accent-primary bg-accent-primary text-brand-bg font-black text-[10px] tracking-widest focus:outline-none disabled:opacity-50"
+                className="mt-auto h-8 rounded-lg border-[3px] border-accent-primary bg-accent-primary text-brand-bg font-black text-[10px] tracking-widest focus:outline-none disabled:opacity-50"
               >
                 {busy === crate.id ? '···' : count > 1 ? `OUVRIR ×${count}` : 'OUVRIR'}
               </button>
@@ -176,9 +176,9 @@ export default function InventoryPanel({
             key={item.id}
             onClick={() => onUse(item.id, item.name)}
             disabled={busy !== null}
-            className="relative rounded-xl border-2 border-brand-border bg-brand-inner p-3 text-left hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none disabled:opacity-50"
+            className="relative rounded-xl border-[3px] border-brand-border bg-brand-inner p-3 text-left hover:border-accent-primary hover:-translate-y-0.5 transition-all focus:outline-none disabled:opacity-50"
           >
-            <div className="font-display font-black text-[11px] leading-tight mb-0.5 pr-6">{item.name}</div>
+            <div className="font-display text-[11px] leading-tight mb-0.5 pr-6">{item.name}</div>
             <div className="text-[10px] text-tx-muted leading-tight line-clamp-2">{item.description}</div>
             <div className="text-[10px] font-black text-accent-primary mt-1">
               {busy === item.id ? '···' : 'UTILISER'}

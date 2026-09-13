@@ -63,7 +63,7 @@ export default function CosmeticStockPanel() {
     )}>
       <div className="flex items-center gap-2 mb-2">
         {low ? <AlertTriangle className="h-4 w-4 text-accent-secondary" /> : <Boxes className="h-4 w-4 text-accent-primary" />}
-        <h2 className="font-display font-black text-sm">Stock de cosmétiques</h2>
+        <h2 className="font-display text-lg">Stock de cosmétiques</h2>
         <span className="text-[11px] text-tx-muted">visible uniquement pour toi</span>
       </div>
 
@@ -82,9 +82,9 @@ export default function CosmeticStockPanel() {
           { label: 'Caisses', value: stock.crate },
           { label: 'Prestige', value: stock.prestige },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl border-2 border-brand-border bg-brand-inner p-2.5">
+          <div key={s.label} className="rounded-xl border-[3px] border-brand-border bg-brand-inner p-2.5">
             <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted">{s.label}</div>
-            <div className="font-display font-black text-lg tabular-nums">{s.value.toLocaleString('en-US')}</div>
+            <div className="font-display text-lg tabular-nums">{s.value.toLocaleString('en-US')}</div>
           </div>
         ))}
       </div>
@@ -95,7 +95,7 @@ export default function CosmeticStockPanel() {
             key={s.season}
             title={s.preview.join(' · ')}
             className={cn(
-              'h-8 px-2.5 rounded-lg border-2 flex items-center gap-1.5 text-[11px] font-black',
+              'h-8 px-2.5 rounded-lg border-[3px] flex items-center gap-1.5 text-[11px] font-black',
               s.live ? 'border-accent-primary bg-accent-primary text-brand-bg'
                 : s.past ? 'border-brand-border bg-brand-inner text-tx-muted'
                 : 'border-accent-success/60 bg-accent-success/10 text-accent-success'

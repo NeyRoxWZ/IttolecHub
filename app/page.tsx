@@ -153,7 +153,9 @@ export default function Home() {
   const goCreerCompte = () => { rememberNext(); router.push('/creer-compte'); };
 
   const modeSwitch = (
-    <nav className="flex gap-1 p-1.5 rounded-2xl bg-brand-bg border-[3px] border-brand-border" aria-label="Mode de jeu">
+    // Concentric corners: 22px outside, minus the 3px border and 6px padding,
+    // leaves 13px for the pill inside.
+    <nav className="flex gap-1 p-1.5 rounded-[22px] bg-brand-bg border-[3px] border-brand-border" aria-label="Mode de jeu">
       {(['multiplayer', 'solo'] as const).map((m) => (
         <button
           key={m}
@@ -161,7 +163,7 @@ export default function Home() {
           onClick={() => handleSetMode(m)}
           aria-pressed={mode === m}
           className={cn(
-            'h-10 px-5 rounded-xl font-display text-lg transition-colors',
+            'h-10 px-5 rounded-[13px] font-display text-lg transition-colors',
             mode === m
               ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00]'
               : 'text-tx-secondary hover:text-white'
@@ -355,7 +357,7 @@ export default function Home() {
               <div className="grid gap-6 lg:grid-cols-2 items-stretch">
                 <div className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[24px] p-5 md:p-6 shadow-[0_8px_0_#05061A]">
                   <div className="font-display text-2xl mb-4">{activeTab === 'create' ? 'Créer une salle' : 'Rejoindre une salle'}</div>
-                  <div className="flex gap-1 p-1.5 rounded-2xl bg-brand-bg border-[3px] border-brand-border">
+                  <div className="flex gap-1 p-1.5 rounded-[22px] bg-brand-bg border-[3px] border-brand-border">
                     {(['create', 'join'] as const).map((t) => (
                       <button
                         key={t}
@@ -363,7 +365,7 @@ export default function Home() {
                         onClick={() => { vibrate(HAPTIC.SOFT); setActiveTab(t); }}
                         aria-pressed={activeTab === t}
                         className={cn(
-                          'flex-1 h-11 rounded-xl font-display text-lg transition-colors',
+                          'flex-1 h-11 rounded-[13px] font-display text-lg transition-colors',
                           activeTab === t ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00]' : 'text-tx-secondary hover:text-white'
                         )}
                       >

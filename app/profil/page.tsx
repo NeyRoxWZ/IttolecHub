@@ -101,7 +101,7 @@ export default function ProfilPage() {
           <div className="flex-1 flex items-center">
             <Link
               href="/"
-              className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center justify-center"
+              className="h-11 px-4 rounded-xl border-[3px] font-display text-lg border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px] transition-transform flex items-center justify-center"
             >
               Accueil
             </Link>
@@ -111,7 +111,7 @@ export default function ProfilPage() {
             <button
               type="button"
               onClick={logout}
-              className="h-11 px-4 rounded-lg border-2 border-red-500/40 bg-brand-inner text-red-400 hover:text-red-300 hover:border-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 font-display font-black tracking-wider uppercase"
+              className="h-11 px-4 rounded-lg border-[3px] border-red-500/40 bg-brand-inner text-red-400 hover:text-red-300 hover:border-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 font-display"
               title="Se déconnecter"
             >
               <LogOut className="h-5 w-5" />
@@ -120,13 +120,13 @@ export default function ProfilPage() {
           </div>
         </div>
 
-        <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal">
+        <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             <div className="shrink-0">
               {user.avatar_url ? (
                 <Image src={user.avatar_url} alt="Avatar" width={96} height={96} unoptimized className="w-24 h-24 rounded-full border-4 border-brand-border shadow-brutal" />
               ) : (
-                <div className="w-24 h-24 rounded-full bg-brand-inner border-4 border-brand-border shadow-brutal flex items-center justify-center font-display font-black text-4xl text-tx-base">
+                <div className="w-24 h-24 rounded-full bg-brand-inner border-4 border-brand-border shadow-brutal flex items-center justify-center font-display text-4xl text-tx-base">
                   {user.pseudo[0].toUpperCase()}
                 </div>
               )}
@@ -140,7 +140,7 @@ export default function ProfilPage() {
                       value={newPseudo}
                       onChange={(e) => setNewPseudo(e.target.value)}
                       placeholder="Nouveau pseudo"
-                      className="w-full sm:max-w-[260px] h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors"
+                      className="w-full sm:max-w-[260px] h-12 rounded-lg bg-brand-inner border-[3px] border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-accent-primary transition-colors"
                     />
                     <div className="flex items-center gap-2">
                       <button
@@ -148,8 +148,8 @@ export default function ProfilPage() {
                         onClick={handleUpdatePseudo}
                         disabled={saving}
                         className={cn(
-                          'h-12 px-4 rounded-lg border-2 border-brand-border font-display font-black tracking-wider uppercase transition-colors flex items-center justify-center gap-2',
-                          'bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base',
+                          'h-12 px-4 rounded-lg border-[3px] border-brand-border font-display font-black tracking-wider uppercase transition-colors flex items-center justify-center gap-2',
+                          'bg-brand-inner text-tx-base hover:bg-[#333A80]',
                           saving && 'opacity-60 cursor-not-allowed hover:bg-brand-inner hover:text-tx-base hover:border-brand-border'
                         )}
                       >
@@ -159,7 +159,7 @@ export default function ProfilPage() {
                       <button
                         type="button"
                         onClick={() => setEditingPseudo(false)}
-                        className="h-12 px-4 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors"
+                        className="h-12 px-4 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white font-display text-lg shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] hover:bg-[#333A80] active:translate-y-[3px] transition-transform"
                       >
                         Annuler
                       </button>
@@ -167,7 +167,7 @@ export default function ProfilPage() {
                   </div>
                 ) : (
                   <>
-                    <h1 className="font-display text-3xl md:text-4xl font-black tracking-wider uppercase text-center sm:text-left">
+                    <h1 className="font-display text-3xl md:text-4xl text-center sm:text-left">
                       {user.pseudo}
                     </h1>
                     <button
@@ -176,7 +176,7 @@ export default function ProfilPage() {
                         setNewPseudo(user.pseudo);
                         setEditingPseudo(true);
                       }}
-                      className="h-11 w-11 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center"
+                      className="h-11 w-11 rounded-lg border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[2px] transition-transform flex items-center justify-center"
                       title="Modifier le pseudo"
                     >
                       <Edit2 className="w-5 h-5" />
@@ -185,27 +185,27 @@ export default function ProfilPage() {
                 )}
               </div>
 
-              <div className="mt-4 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
-                <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
+              <div className="mt-4 rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
+                <div className="text-sm font-black text-tx-secondary">
                   Méthode de connexion
                 </div>
-                <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">
+                <div className="mt-1 font-display text-tx-base">
                   {user.is_discord ? 'Discord' : 'Passphrase'}
                 </div>
               </div>
 
               {!user.is_discord && (
-                <div className="mt-4 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                <div className="mt-4 rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Passphrase</div>
-                      <div className="mt-1 font-display font-black tracking-wider uppercase text-tx-base">Sécurité</div>
+                      <div className="text-sm font-black text-tx-secondary">Passphrase</div>
+                      <div className="mt-1 font-display text-tx-base">Sécurité</div>
                     </div>
                     {!regenerating && (
                       <button
                         type="button"
                         onClick={handleRegenerateWords}
-                        className="h-12 px-4 rounded-lg border-2 border-brand-border bg-brand-card text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors flex items-center gap-2"
+                        className="h-12 px-4 rounded-xl border-[3px] font-display text-lg border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px] transition-transform flex items-center gap-2"
                       >
                         <RefreshCw className="w-4 h-4" />
                         Régénérer
@@ -215,9 +215,9 @@ export default function ProfilPage() {
 
                   {regenerating && (
                     <div className="mt-4 space-y-4">
-                      <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-4">
+                      <div className="rounded-2xl border-[3px] border-brand-border bg-brand-card p-4">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center shrink-0">
+                          <div className="w-10 h-10 rounded-xl border-[3px] border-brand-border bg-brand-inner flex items-center justify-center shrink-0">
                             <AlertTriangle className="w-5 h-5 text-red-400" />
                           </div>
                           <p className="text-sm text-tx-secondary font-bold leading-relaxed">
@@ -230,7 +230,7 @@ export default function ProfilPage() {
                         {newWords.map((w, i) => (
                           <div
                             key={i}
-                            className="bg-brand-card border-2 border-brand-border rounded-2xl py-3 px-4 shadow-brutal text-center font-display font-black tracking-wider uppercase text-tx-base"
+                            className="bg-brand-card border-[3px] border-brand-border rounded-2xl py-3 px-4 shadow-brutal text-center font-display text-tx-base"
                           >
                             {w}
                           </div>
@@ -241,7 +241,7 @@ export default function ProfilPage() {
                         <button
                           type="button"
                           onClick={copyNewWords}
-                          className="flex-1 h-12 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 h-12 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white font-display text-lg shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] hover:bg-[#333A80] active:translate-y-[3px] transition-transform flex items-center justify-center gap-2"
                         >
                           <Copy className="w-4 h-4" />
                           Copier
@@ -251,8 +251,8 @@ export default function ProfilPage() {
                           onClick={confirmRegenerate}
                           disabled={saving}
                           className={cn(
-                            'flex-1 h-12 rounded-lg border-2 border-brand-border font-display font-black tracking-wider uppercase transition-colors flex items-center justify-center gap-2',
-                            'bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg hover:border-tx-base',
+                            'flex-1 h-12 rounded-lg border-[3px] border-brand-border font-display font-black tracking-wider uppercase transition-colors flex items-center justify-center gap-2',
+                            'bg-brand-inner text-tx-base hover:bg-[#333A80]',
                             saving && 'opacity-60 cursor-not-allowed hover:bg-brand-inner hover:text-tx-base hover:border-brand-border'
                           )}
                         >
@@ -265,7 +265,7 @@ export default function ProfilPage() {
                             setRegenerating(false);
                             setNewWords([]);
                           }}
-                          className="flex-1 h-12 rounded-lg border-2 border-brand-border bg-brand-card text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+                          className="flex-1 h-12 rounded-xl border-[3px] font-display text-lg border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px] transition-transform"
                         >
                           Annuler
                         </button>
@@ -281,7 +281,7 @@ export default function ProfilPage() {
         </div>
 
         <div className="mt-10">
-          <h2 className="font-display text-2xl md:text-3xl font-black tracking-wider uppercase text-center md:text-left mb-6">
+          <h2 className="font-display text-2xl md:text-3xl text-center md:text-left mb-6">
             Statistiques
           </h2>
           <ProfileStats userId={user.id} />

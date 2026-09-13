@@ -61,27 +61,27 @@ export default function ActiveEffectsPanel({ onClose }: { onClose: () => void })
   const running = Object.values(effects);
 
   return (
-    <div className="fixed inset-0 z-[230] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
+    <div className="fixed inset-0 z-[230] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
       <div
-        className="w-full max-w-md max-h-[92dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in zoom-in-95 duration-200"
+        className="w-full max-w-md max-h-[92dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
-            <h2 className="font-display text-xl font-black flex items-center gap-2">
+            <h2 className="font-display text-3xl leading-none flex items-center gap-2">
               <Zap className="h-5 w-5 text-accent-success" /> Ce qui est actif
             </h2>
-            <p className="text-[11px] text-tx-muted mt-1">Les bonus se cumulent — voici le total.</p>
+            <p className="text-xs font-bold text-tx-secondary mt-2">Les bonus se cumulent : voici le total.</p>
           </div>
-          <button onClick={onClose} className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none">
+          <button onClick={onClose} aria-label="Fermer" className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] active:translate-y-[2px] flex items-center justify-center focus:outline-none">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* The headline: what a win is actually worth right now. */}
         <div className={cn(
-          'rounded-2xl border-2 p-4 mb-3',
-          totalWinBonus > 0 ? 'border-accent-success bg-accent-success/10' : 'border-brand-border bg-brand-inner'
+          'rounded-2xl border-[3px] border-brand-border p-4 mb-3',
+          totalWinBonus > 0 ? 'bg-[#16503A]' : 'bg-brand-inner'
         )}>
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className={cn('h-4 w-4', totalWinBonus > 0 ? 'text-accent-success' : 'text-tx-muted')} />
@@ -90,7 +90,7 @@ export default function ActiveEffectsPanel({ onClose }: { onClose: () => void })
             </span>
           </div>
           <div className={cn(
-            'font-display font-black text-3xl tabular-nums',
+            'font-display text-5xl leading-none tabular-nums',
             totalWinBonus > 0 ? 'text-accent-success' : 'text-tx-secondary'
           )}>
             +{pct(totalWinBonus)}
@@ -115,14 +115,14 @@ export default function ActiveEffectsPanel({ onClose }: { onClose: () => void })
         </div>
 
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">
+          <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3">
             <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted">Mise maximum</div>
-            <div className="font-display font-black text-sm tabular-nums">{maxBet.toLocaleString('en-US')} ₶</div>
+            <div className="font-display text-xl leading-tight tabular-nums">{maxBet.toLocaleString('en-US')} ₶</div>
             <div className="text-[10px] text-tx-muted">{pct(betPct)} du solde</div>
           </div>
-          <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3">
+          <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3">
             <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted">XP par mise</div>
-            <div className="font-display font-black text-sm tabular-nums">
+            <div className="font-display text-xl leading-tight tabular-nums">
               ×{effects.xp_multiplier?.magnitude ?? 1}
             </div>
             <div className="text-[10px] text-tx-muted">
@@ -131,7 +131,7 @@ export default function ActiveEffectsPanel({ onClose }: { onClose: () => void })
           </div>
         </div>
 
-        <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">
+        <div className="font-display text-lg leading-none mb-2">
           Objets en cours
         </div>
 
@@ -147,7 +147,7 @@ export default function ActiveEffectsPanel({ onClose }: { onClose: () => void })
               return (
                 <div
                   key={e.effect}
-                  className="rounded-xl border-2 p-3 flex items-center gap-3"
+                  className="rounded-2xl border-[3px] p-3 flex items-center gap-3"
                   style={{ borderColor: style.color, background: `${style.color}10` }}
                 >
                   <div className="min-w-0 flex-1">
@@ -173,9 +173,9 @@ export default function ActiveEffectsPanel({ onClose }: { onClose: () => void })
         <Link
           href="/casino/inventaire"
           onClick={onClose}
-          className="block w-full h-12 rounded-2xl border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal font-display font-black text-xs tracking-wider flex items-center justify-center hover:brightness-110 transition-all focus:outline-none"
+          className="w-full h-14 rounded-2xl border-4 border-brand-border font-display text-xl flex items-center justify-center transition-transform focus:outline-none bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[4px]"
         >
-          OUVRIR L&apos;INVENTAIRE
+          Ouvrir l&apos;inventaire
         </Link>
       </div>
     </div>

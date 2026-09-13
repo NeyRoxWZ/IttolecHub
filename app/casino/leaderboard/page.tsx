@@ -61,11 +61,11 @@ export default function LeaderboardPage() {
 
       <div className="max-w-2xl mx-auto">
         <header className="flex items-center gap-4 mb-6">
-          <button onClick={() => router.push('/casino')} className="h-12 w-12 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors">
+          <button onClick={() => router.push('/casino')} className="h-12 w-12 flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[2px] transition-transform">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="font-display text-2xl md:text-3xl font-black leading-none">Classement</h1>
+            <h1 className="font-display text-2xl md:text-3xl leading-none">Classement</h1>
             <p className="text-[11px] text-tx-muted mt-1">Clique sur un joueur pour voir sa courbe.</p>
           </div>
           <CasinoControls className="ml-auto" />
@@ -74,13 +74,13 @@ export default function LeaderboardPage() {
         <div className="grid grid-cols-2 gap-2 mb-6">
           <button
             onClick={() => setTab('alltime')}
-            className={cn('h-11 rounded-lg font-bold text-sm border-2 transition-colors focus:outline-none', tab === 'alltime' ? 'bg-brand-inner border-accent-primary' : 'bg-transparent border-brand-border text-tx-secondary')}
+            className={cn('h-11 rounded-lg font-bold text-sm border-[3px] transition-colors focus:outline-none', tab === 'alltime' ? 'bg-brand-inner border-accent-primary' : 'bg-transparent border-brand-border text-tx-secondary')}
           >
             All-time (solde)
           </button>
           <button
             onClick={() => setTab('season')}
-            className={cn('h-11 rounded-lg font-bold text-sm border-2 transition-colors focus:outline-none', tab === 'season' ? 'bg-brand-inner border-accent-primary' : 'bg-transparent border-brand-border text-tx-secondary')}
+            className={cn('h-11 rounded-lg font-bold text-sm border-[3px] transition-colors focus:outline-none', tab === 'season' ? 'bg-brand-inner border-accent-primary' : 'bg-transparent border-brand-border text-tx-secondary')}
           >
             Cette saison (gains)
           </button>
@@ -99,19 +99,19 @@ export default function LeaderboardPage() {
                   key={i}
                   onClick={() => { sfx.click(); setOpened(r.pseudo); }}
                   className={cn(
-                    'w-full text-left flex items-center gap-3 p-3 rounded-xl border-2 shadow-brutal transition-all',
+                    'w-full text-left flex items-center gap-3 p-3 rounded-xl border-[3px] shadow-brutal transition-all',
                     'hover:-translate-y-0.5 hover:border-accent-primary focus:outline-none',
                     i < 3 ? 'border-accent-primary bg-accent-primary/10' : 'border-brand-border bg-brand-card'
                   )}
                 >
                   <div className="w-8 flex items-center justify-center shrink-0">
-                    {i < 3 ? <Medal className={cn('w-5 h-5', RANK_COLOR[i])} /> : <span className="font-display font-black text-tx-secondary">{i + 1}</span>}
+                    {i < 3 ? <Medal className={cn('w-5 h-5', RANK_COLOR[i])} /> : <span className="font-display text-tx-secondary">{i + 1}</span>}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-bold truncate">{r.pseudo}</div>
                     {prestigeTitle && <div className="text-[10px] font-black uppercase tracking-widest text-accent-primary">{prestigeTitle}</div>}
                   </div>
-                  <div className="font-display font-black tabular-nums shrink-0">{r.value.toLocaleString('en-US')} ₶</div>
+                  <div className="font-display tabular-nums shrink-0">{r.value.toLocaleString('en-US')} ₶</div>
                 </button>
               );
             })}

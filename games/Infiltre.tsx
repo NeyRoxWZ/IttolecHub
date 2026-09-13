@@ -673,31 +673,31 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in">
                {players.length < 4 ? (
-                 <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center">
-                     <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl mb-4">
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center">
+                     <div className="bg-brand-inner border-[3px] border-brand-border p-4 rounded-xl mb-4">
                          <User className="w-12 h-12 text-tx-secondary animate-pulse" />
                      </div>
                      <p className="font-display text-2xl font-bold text-tx-base text-center">En attente de joueurs</p>
                      <p className="text-tx-secondary mt-2 font-bold">{players.length} / 4 minimum</p>
                  </div>
                ) : (
-                 <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full max-w-md">
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full max-w-md">
                     <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
                         <User className="w-16 h-16 text-accent-primary" />
                     </div>
-                    <p className="font-display text-2xl font-black text-tx-base text-center mb-8 uppercase tracking-widest">Prêt à lancer ?</p>
+                    <p className="font-display text-2xl text-tx-base text-center mb-8">Prêt à lancer ?</p>
                     
                     {isHost ? (
                         <button 
                             onClick={startNewGame}
-                            className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
+                            className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg active:translate-y-[3px] shadow-brutal"
                         >
                             COMMENCER LA PARTIE
                         </button>
                     ) : (
                         <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
                             <Loader2 className="w-6 h-6 animate-spin text-accent-primary" />
-                            <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                            <span className="font-display text-tx-base">En attente de l'hôte...</span>
                         </div>
                     )}
                  </div>
@@ -709,31 +709,31 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         {currentPhase === 'roles' && (
             myRole ? (
                 <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full shadow-brutal relative overflow-hidden">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full shadow-brutal relative overflow-hidden">
                         {amIReady && (
                             <div className="absolute inset-0 bg-brand-bg/90 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in">
                                 <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl shadow-brutal mb-4">
                                     <Check className="w-16 h-16 text-accent-success" />
                                 </div>
-                                <h3 className="font-display text-3xl font-black text-tx-base">Vous êtes prêt !</h3>
+                                <h3 className="font-display text-3xl text-tx-base">Vous êtes prêt !</h3>
                                 <p className="text-tx-secondary font-bold mt-2">En attente des autres...</p>
                             </div>
                         )}
 
-                        <h3 className="font-display text-2xl font-black text-tx-secondary mb-8 uppercase tracking-widest">Votre Identité</h3>
+                        <h3 className="font-display text-2xl text-tx-secondary mb-8">Votre Identité</h3>
                         
                         <div className="flex flex-col items-center gap-6 mb-8 min-h-[200px] justify-center">
                             {showRole ? (
                                 <div className="animate-in zoom-in duration-200 flex flex-col items-center">
                                     <div className={cn(
-                                        "font-display text-4xl font-black mb-6 px-6 py-2 rounded-xl border-4 border-brand-border bg-brand-inner shadow-brutal",
+                                        "font-display text-4xl mb-6 px-6 py-2 rounded-xl border-4 border-brand-border bg-brand-inner shadow-brutal",
                                         myRole === 'MASTER' ? 'text-accent-primary' : myRole === 'INFILTRE' ? 'text-accent-secondary' : 'text-[#06B6D4]'
                                     )}>
                                         {myRole === 'MASTER' ? 'MAÎTRE DU JEU' : myRole === 'INFILTRE' ? 'INFILTRÉ' : 'CITOYEN'}
                                     </div>
                                     <div className="bg-brand-inner px-8 py-6 rounded-2xl border-4 border-brand-border shadow-brutal w-full">
                                         <span className="block text-xs font-bold text-tx-secondary uppercase tracking-widest mb-2">Mot Secret</span>
-                                        <span className="font-display text-4xl font-black text-tx-base break-words">
+                                        <span className="font-display text-4xl text-tx-base break-words">
                                             {myRole === 'CITIZEN' ? '???' : secretWord}
                                         </span>
                                     </div>
@@ -749,7 +749,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                         </div>
 
                         <button
-                            className="w-full bg-brand-inner border-4 border-brand-border rounded-2xl p-4 mb-6 transition-all hover:bg-tx-base hover:text-brand-bg group select-none touch-none shadow-brutal active:translate-y-1 active:shadow-none"
+                            className="w-full bg-brand-inner border-4 border-brand-border rounded-2xl p-4 mb-6 transition-all hover:bg-[#333A80] group select-none touch-none shadow-brutal active:translate-y-1 active:shadow-none"
                             onMouseDown={() => setShowRole(true)}
                             onMouseUp={() => setShowRole(false)}
                             onMouseLeave={() => setShowRole(false)}
@@ -762,10 +762,10 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                         <button 
                             onClick={sendReady} 
                             className={cn(
-                                "w-full h-16 font-display text-xl font-black tracking-wider rounded-2xl border-4 border-brand-border transition-all relative z-30 shadow-brutal",
+                                "w-full h-16 font-display text-xl rounded-2xl border-4 border-brand-border transition-all relative z-30 shadow-brutal",
                                 amIReady 
                                 ? "bg-accent-success text-brand-bg" 
-                                : "bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary"
+                                : "bg-accent-primary text-brand-bg active:translate-y-[3px]"
                             )}
                         >
                             {amIReady ? (
@@ -803,9 +803,9 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                             onTouchEnd={() => setShowRole(false)}
                         >
                             {showRole ? (
-                                <span className="font-display font-black text-tx-base animate-in fade-in">
+                                <span className="font-display text-tx-base animate-in fade-in">
                                     <span className={cn(
-                                        "mr-3 px-2 py-0.5 rounded border-2 border-brand-border bg-brand-inner",
+                                        "mr-3 px-2 py-0.5 rounded border-[3px] border-brand-border bg-brand-inner",
                                         myRole === 'MASTER' ? 'text-accent-primary' : myRole === 'INFILTRE' ? 'text-accent-secondary' : 'text-[#06B6D4]'
                                     )}>
                                         {myRole === 'MASTER' ? 'MAÎTRE' : myRole === 'INFILTRE' ? 'INFILTRÉ' : 'CITOYEN'}
@@ -895,13 +895,13 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                                         <div className="flex gap-2 w-full animate-in fade-in">
                                                             <button 
                                                                 onClick={() => triggerWordFound(q.playerId)} 
-                                                                className="flex-1 h-12 rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
+                                                                className="flex-1 h-12 rounded-xl font-display border-4 border-brand-border bg-accent-primary text-brand-bg active:translate-y-[3px] shadow-brutal"
                                                             >
                                                                 CONFIRMER
                                                             </button>
                                                             <button 
                                                                 onClick={() => setConfirmingWinnerId(null)} 
-                                                                className="h-12 px-4 rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base"
+                                                                className="h-12 px-4 rounded-xl font-display border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base"
                                                             >
                                                                 <X className="w-5 h-5" />
                                                             </button>
@@ -909,7 +909,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                                     ) : (
                                                         <button 
                                                             onClick={() => setConfirmingWinnerId(q.playerId)} 
-                                                            className="w-full h-12 rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-brand-inner text-accent-primary hover:bg-accent-primary hover:text-brand-bg shadow-brutal transition-colors flex items-center justify-center gap-2"
+                                                            className="w-full h-12 rounded-xl font-display border-4 border-brand-border bg-brand-inner text-accent-primary hover:bg-accent-primary hover:text-brand-bg shadow-brutal transition-colors flex items-center justify-center gap-2"
                                                         >
                                                             Valider la victoire de {asker?.name}
                                                         </button>
@@ -919,13 +919,13 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                             {/* Regular buttons */}
                                             {likelySecret && confirmingWinnerId === q.playerId ? null : (
                                                 <div className="grid grid-cols-3 gap-3">
-                                                    <button onClick={() => answerQuestion(q.id, 'OUI')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success shadow-brutal transition-colors">
+                                                    <button onClick={() => answerQuestion(q.id, 'OUI')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success shadow-brutal transition-colors">
                                                         <ThumbsUp className="w-5 h-5 mb-1" /> OUI
                                                     </button>
-                                                    <button onClick={() => answerQuestion(q.id, 'NON')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-inner hover:text-accent-secondary shadow-brutal transition-colors">
+                                                    <button onClick={() => answerQuestion(q.id, 'NON')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display border-4 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-inner hover:text-accent-secondary shadow-brutal transition-colors">
                                                         <ThumbsDown className="w-5 h-5 mb-1" /> NON
                                                     </button>
-                                                    <button onClick={() => answerQuestion(q.id, 'NE_SAIS_PAS')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display font-black tracking-wider border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base shadow-brutal transition-colors">
+                                                    <button onClick={() => answerQuestion(q.id, 'NE_SAIS_PAS')} className="h-14 flex flex-col items-center justify-center rounded-xl font-display border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base shadow-brutal transition-colors">
                                                         <HelpCircle className="w-5 h-5 mb-1" /> NSP
                                                     </button>
                                                 </div>
@@ -949,12 +949,12 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                 value={userQuestion}
                                 onChange={e => setUserQuestion(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && sendQuestion()}
-                                className="flex-1 h-14 bg-brand-inner border-4 border-brand-border rounded-2xl px-6 text-lg font-bold text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors shadow-brutal"
+                                className="flex-1 h-14 bg-brand-inner border-4 border-brand-border rounded-2xl px-6 text-lg font-bold text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-accent-primary transition-colors shadow-brutal"
                             />
                             <button 
                                 onClick={sendQuestion} 
                                 disabled={!userQuestion.trim()}
-                                className="h-14 w-16 bg-accent-primary border-4 border-brand-border rounded-2xl flex items-center justify-center text-brand-bg hover:bg-tx-base transition-colors shadow-brutal disabled:bg-brand-inner disabled:text-tx-muted disabled:cursor-not-allowed"
+                                className="h-14 w-16 bg-accent-primary border-4 border-brand-border rounded-2xl flex items-center justify-center text-brand-bg hover:brightness-110 transition-colors shadow-brutal disabled:bg-brand-inner disabled:text-tx-muted disabled:cursor-not-allowed"
                             >
                                 <Send className="w-6 h-6" />
                             </button>
@@ -971,7 +971,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                 <button 
                                     key={p.id}
                                     onClick={() => triggerWordFound(p.id)}
-                                    className="h-12 px-4 rounded-xl border-2 border-brand-border bg-brand-inner text-accent-primary font-bold hover:border-accent-primary shadow-sm flex items-center"
+                                    className="h-12 px-4 rounded-xl border-[3px] border-brand-border bg-brand-inner text-accent-primary font-bold hover:border-accent-primary shadow-sm flex items-center"
                                 >
                                     <Crown className="w-4 h-4 mr-2" />
                                     {p.name}
@@ -987,7 +987,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         {(currentPhase === 'voting_finder' || currentPhase === 'voting_infiltre') && (
             <div className="flex flex-col w-full h-full relative">
                 <div className="text-center mb-6">
-                    <h2 className="font-display text-4xl font-black text-tx-base mb-2 uppercase tracking-widest">
+                    <h2 className="font-display text-4xl text-tx-base mb-2">
                         {currentPhase === 'voting_finder' ? "Qui est l'Infiltré ?" : "Dernière chance !"}
                     </h2>
                     <p className="text-tx-secondary font-bold text-lg">
@@ -1014,7 +1014,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                 return (
                                     <div key={pid} className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[24px] overflow-hidden h-[300px] relative w-full md:w-[31%] lg:w-[23%] shadow-brutal">
                                         <div className="p-4 text-center border-b-4 border-brand-border bg-brand-inner">
-                                            <div className="font-display font-black text-xl text-tx-base">{p?.name}</div>
+                                            <div className="font-display text-xl text-tx-base">{p?.name}</div>
                                             {pid === finderId && currentPhase === 'voting_finder' && (
                                                 <span className="text-[10px] bg-accent-primary text-brand-bg px-2 py-1 rounded-md mt-2 inline-block font-black uppercase tracking-widest shadow-sm">A trouvé le mot</span>
                                             )}
@@ -1025,7 +1025,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                             {votesForThisPlayer.map((v: any) => {
                                                 const voterName = players.find(pl => pl.id === v.voter_id)?.name;
                                                 return (
-                                                    <span key={v.id} className="text-[10px] font-bold bg-brand-inner border-2 border-brand-border px-2 py-1 rounded-md text-tx-base shadow-sm">
+                                                    <span key={v.id} className="text-[10px] font-bold bg-brand-inner border-[3px] border-brand-border px-2 py-1 rounded-md text-tx-base shadow-sm">
                                                         {voterName}
                                                     </span>
                                                 );
@@ -1038,7 +1038,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                                 <button 
                                                     onClick={() => sendVote(pid)}
                                                     className={cn(
-                                                        "w-full h-12 rounded-xl font-display font-black tracking-wider transition-colors border-2 border-brand-border flex items-center justify-center shadow-brutal",
+                                                        "w-full h-12 rounded-xl font-display transition-colors border-[3px] border-brand-border flex items-center justify-center shadow-brutal",
                                                         pid === playerId ? "opacity-50 cursor-not-allowed bg-brand-inner text-tx-muted" :
                                                         hasVotedForThis ? "bg-accent-success text-brand-bg" : "bg-accent-secondary text-brand-bg hover:bg-brand-inner hover:text-accent-secondary"
                                                     )}
@@ -1066,21 +1066,21 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         {/* PHASE: RESULTS */}
         {currentPhase === 'results' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <Crown className="w-16 h-16 text-accent-primary" />
                     </div>
                     
-                    <h2 className="font-display text-4xl font-black text-tx-base mb-2 uppercase tracking-widest">
+                    <h2 className="font-display text-4xl text-tx-base mb-2">
                         Victoire {game.winner === 'CITIZENS' ? 'des Citoyens' : game.winner === 'INFILTRE' ? "de l'Infiltré" : 'de Personne'} !
                     </h2>
                     
                     <div className="grid gap-3 mt-8 text-left max-h-[300px] overflow-y-auto custom-scrollbar p-4 bg-brand-bg/50 rounded-2xl border-4 border-brand-border shadow-inner">
                         {players.map(p => (
-                            <div key={p.id} className="flex justify-between items-center p-4 bg-brand-inner border-2 border-brand-border rounded-xl shadow-sm">
-                                <span className="font-display font-black text-lg text-tx-base">{p.name}</span>
+                            <div key={p.id} className="flex justify-between items-center p-4 bg-brand-inner border-[3px] border-brand-border rounded-xl shadow-sm">
+                                <span className="font-display text-lg text-tx-base">{p.name}</span>
                                 <span className={cn(
-                                    "font-black text-sm uppercase tracking-widest px-3 py-1 rounded-md border-2 border-brand-border",
+                                    "font-black text-sm uppercase tracking-widest px-3 py-1 rounded-md border-[3px] border-brand-border",
                                     roles[p.id] === 'MASTER' ? 'bg-accent-primary text-brand-bg' : 
                                     roles[p.id] === 'INFILTRE' ? 'bg-accent-secondary text-brand-bg' : 'bg-[#06B6D4] text-brand-bg'
                                 )}>
@@ -1093,14 +1093,14 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                     {isHost && (
                         <button 
                             onClick={nextGameRound} 
-                            className="mt-8 w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success shadow-brutal"
+                            className="mt-8 w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success shadow-brutal"
                         >
                             {currentRoundNumber >= rounds ? "REVENIR AU SALON" : "MANCHE SUIVANTE"}
                         </button>
                     )}
                     <button 
                         onClick={() => router.push('/')} 
-                        className="mt-6 w-full h-14 rounded-2xl font-display font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base shadow-brutal flex items-center justify-center gap-3"
+                        className="mt-6 w-full h-14 rounded-2xl font-display transition-colors border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base shadow-brutal flex items-center justify-center gap-3"
                     >
                         <Home className="w-5 h-5" /> RETOUR AU MENU
                     </button>

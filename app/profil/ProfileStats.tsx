@@ -19,10 +19,10 @@ const big = (n: number) => (Math.abs(n) < 1_000_000 ? fmt(n) : formatShortNumber
  */
 function Tile({ label, value, tone }: { label: string; value: string; tone?: 'up' | 'down' }) {
   return (
-    <div className="rounded-xl border-2 border-brand-border bg-brand-inner px-3 py-2 min-w-0">
+    <div className="rounded-xl border-[3px] border-brand-border bg-brand-inner px-3 py-2 min-w-0">
       <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted truncate">{label}</div>
       <div className={cn(
-        'font-display font-black text-sm tabular-nums truncate',
+        'font-display text-lg tabular-nums truncate',
         tone === 'up' && 'text-accent-success',
         tone === 'down' && 'text-accent-secondary'
       )}>
@@ -38,12 +38,12 @@ function Block({ title, icon: Icon, href, children }: {
   return (
     <section className="bg-brand-card border-4 border-brand-border rounded-[28px] p-4 sm:p-5 shadow-brutal">
       <div className="flex items-center justify-between gap-3 mb-3">
-        <h3 className="font-display text-lg font-black flex items-center gap-2">
+        <h3 className="font-display text-lg flex items-center gap-2">
           <Icon className="h-4 w-4 text-accent-primary" /> {title}
         </h3>
         <Link
           href={href}
-          className="h-8 px-3 rounded-lg border-2 border-brand-border bg-brand-inner font-display font-black text-[10px] tracking-wider flex items-center hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+          className="h-8 px-3 rounded-lg border-[3px] border-brand-border bg-brand-inner font-display text-[10px] flex items-center hover:bg-[#333A80] transition-colors"
         >
           JOUER
         </Link>

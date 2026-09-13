@@ -779,31 +779,31 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in">
                {players.length < 3 ? (
-                 <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center">
-                     <div className="bg-brand-inner border-2 border-brand-border p-4 rounded-xl mb-4">
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center">
+                     <div className="bg-brand-inner border-[3px] border-brand-border p-4 rounded-xl mb-4">
                          <User className="w-12 h-12 text-tx-secondary animate-pulse" />
                      </div>
                      <p className="font-display text-2xl font-bold text-tx-base text-center">En attente de joueurs</p>
                      <p className="text-tx-secondary mt-2 font-bold">{players.length} / 3 minimum</p>
                  </div>
                ) : (
-                 <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full max-w-md">
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full max-w-md">
                     <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
                         <User className="w-16 h-16 text-accent-primary" />
                     </div>
-                    <p className="font-display text-2xl font-black text-tx-base text-center mb-8 uppercase tracking-widest">Prêt à lancer ?</p>
+                    <p className="font-display text-2xl text-tx-base text-center mb-8">Prêt à lancer ?</p>
                     
                     {isHost ? (
                         <button 
                             onClick={startNewGame}
-                            className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
+                            className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg active:translate-y-[3px] shadow-brutal"
                         >
                             COMMENCER LA PARTIE
                         </button>
                     ) : (
                         <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
                             <Loader2 className="w-6 h-6 animate-spin text-accent-primary" />
-                            <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                            <span className="font-display text-tx-base">En attente de l'hôte...</span>
                         </div>
                     )}
                  </div>
@@ -815,25 +815,25 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {currentPhase === 'roles' && (
             myRole ? (
                 <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full shadow-brutal relative overflow-hidden">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full shadow-brutal relative overflow-hidden">
                         {amIReady && (
                             <div className="absolute inset-0 bg-brand-bg/90 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in">
                                 <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl shadow-brutal mb-4">
                                     <Check className="w-16 h-16 text-accent-success" />
                                 </div>
-                                <h3 className="font-display text-3xl font-black text-tx-base">Vous êtes prêt !</h3>
+                                <h3 className="font-display text-3xl text-tx-base">Vous êtes prêt !</h3>
                                 <p className="text-tx-secondary font-bold mt-2">En attente des autres...</p>
                             </div>
                         )}
 
-                        <h3 className="font-display text-2xl font-black text-tx-secondary mb-8 uppercase tracking-widest">Votre Identité</h3>
+                        <h3 className="font-display text-2xl text-tx-secondary mb-8">Votre Identité</h3>
                         
                         <div className="flex flex-col items-center gap-6 mb-8 min-h-[200px] justify-center">
                             {showRole ? (
                                 <div className="animate-in zoom-in duration-200 flex flex-col items-center">
                                     {playersKnowRole && (
                                         <div className={cn(
-                                            "font-display text-4xl font-black mb-6 px-6 py-2 rounded-xl border-4 border-brand-border bg-brand-inner shadow-brutal",
+                                            "font-display text-4xl mb-6 px-6 py-2 rounded-xl border-4 border-brand-border bg-brand-inner shadow-brutal",
                                             myRole === 'CIVIL' ? 'text-[#06B6D4]' : myRole === 'UNDERCOVER' ? 'text-accent-secondary' : 'text-tx-base'
                                         )}>
                                             {myRole}
@@ -841,7 +841,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                     )}
                                     <div className="bg-brand-inner px-8 py-6 rounded-2xl border-4 border-brand-border shadow-brutal w-full">
                                         <span className="block text-xs font-bold text-tx-secondary uppercase tracking-widest mb-2">Mot Secret</span>
-                                        <span className="font-display text-4xl font-black text-tx-base break-words">
+                                        <span className="font-display text-4xl text-tx-base break-words">
                                             {myRole === 'MR_WHITE' ? '???' : myRole === 'UNDERCOVER' ? undercoverWord : civilWord}
                                         </span>
                                     </div>
@@ -857,7 +857,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                         </div>
 
                         <button
-                            className="w-full bg-brand-inner border-4 border-brand-border rounded-2xl p-4 mb-6 transition-all hover:bg-tx-base hover:text-brand-bg group select-none touch-none shadow-brutal active:translate-y-1 active:shadow-none"
+                            className="w-full bg-brand-inner border-4 border-brand-border rounded-2xl p-4 mb-6 transition-all hover:bg-[#333A80] group select-none touch-none shadow-brutal active:translate-y-1 active:shadow-none"
                             onMouseDown={() => setShowRole(true)}
                             onMouseUp={() => setShowRole(false)}
                             onMouseLeave={() => setShowRole(false)}
@@ -870,10 +870,10 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                         <button 
                             onClick={sendReady} 
                             className={cn(
-                                "w-full h-16 font-display text-xl font-black tracking-wider rounded-2xl border-4 border-brand-border transition-all relative z-30 shadow-brutal",
+                                "w-full h-16 font-display text-xl rounded-2xl border-4 border-brand-border transition-all relative z-30 shadow-brutal",
                                 amIReady 
                                 ? "bg-accent-success text-brand-bg" 
-                                : "bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary"
+                                : "bg-accent-primary text-brand-bg active:translate-y-[3px]"
                             )}
                         >
                             {amIReady ? (
@@ -912,9 +912,9 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                             onTouchEnd={() => setShowRole(false)}
                         >
                             {showRole ? (
-                                <span className="font-display font-black text-tx-base animate-in fade-in">
+                                <span className="font-display text-tx-base animate-in fade-in">
                                     {playersKnowRole && <span className={cn(
-                                        "mr-3 px-2 py-0.5 rounded border-2 border-brand-border bg-brand-inner",
+                                        "mr-3 px-2 py-0.5 rounded border-[3px] border-brand-border bg-brand-inner",
                                         myRole === 'CIVIL' ? 'text-[#06B6D4]' : myRole === 'UNDERCOVER' ? 'text-accent-secondary' : 'text-tx-base'
                                     )}>{myRole}</span>}
                                     {myRole === 'MR_WHITE' ? '???' : myRole === 'UNDERCOVER' ? undercoverWord : civilWord}
@@ -950,7 +950,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                             "p-4 text-center border-b-4 border-brand-border sticky top-0 z-10",
                                             isSpeaking ? "bg-accent-primary text-brand-bg" : "bg-brand-inner text-tx-base"
                                         )}>
-                                            <div className="font-display font-black text-xl truncate">
+                                            <div className="font-display text-xl truncate">
                                                 {p?.name}
                                             </div>
                                             {isSpeaking && <div className="text-[10px] font-black uppercase tracking-widest animate-pulse mt-1 opacity-80">En train d'écrire...</div>}
@@ -963,7 +963,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                                             {votesForThisPlayer.map((v: any) => {
                                                                 const voterName = players.find(pl => pl.id === v.voter_id)?.name;
                                                                 return (
-                                                                    <span key={v.id} className="text-[10px] font-bold bg-brand-bg border-2 border-brand-border px-2 py-1 rounded-md text-tx-base shadow-sm">
+                                                                    <span key={v.id} className="text-[10px] font-bold bg-brand-bg border-[3px] border-brand-border px-2 py-1 rounded-md text-tx-base shadow-sm">
                                                                         {voterName}
                                                                     </span>
                                                                 );
@@ -979,7 +979,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                         {/* Scrollable Content */}
                                         <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar pb-20 bg-brand-bg/50">
                                             {pClues.map((c, idx) => (
-                                                <div key={idx} className="bg-brand-inner border-2 border-brand-border p-3 rounded-xl text-sm font-bold text-tx-base shadow-brutal animate-in slide-in-from-bottom-2">
+                                                <div key={idx} className="bg-brand-inner border-[3px] border-brand-border p-3 rounded-xl text-sm font-bold text-tx-base shadow-brutal animate-in slide-in-from-bottom-2">
                                                     <span className="opacity-50 mr-2 text-xs font-black text-tx-secondary">#{idx + 1}</span>
                                                     {c.text}
                                                 </div>
@@ -992,7 +992,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                                 <button 
                                                     onClick={() => sendVoteAction(pid)}
                                                     className={cn(
-                                                        "w-full h-12 rounded-xl font-display font-black tracking-wider transition-colors border-2 border-brand-border flex items-center justify-center shadow-brutal",
+                                                        "w-full h-12 rounded-xl font-display transition-colors border-[3px] border-brand-border flex items-center justify-center shadow-brutal",
                                                         pid === playerId ? "opacity-50 cursor-not-allowed bg-brand-inner text-tx-muted" :
                                                         hasVotedForThis ? "bg-accent-success text-brand-bg" : "bg-accent-secondary text-brand-bg hover:bg-brand-inner hover:text-accent-secondary"
                                                     )}
@@ -1016,8 +1016,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                         <button 
                             onClick={toggleSkipVote}
                             className={cn(
-                                "rounded-2xl border-4 border-brand-border shadow-brutal font-display font-black tracking-wider transition-all px-8 py-4 text-lg flex items-center",
-                                skipVotes.includes(playerId || '') ? "bg-accent-success text-brand-bg" : "bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg"
+                                "rounded-2xl border-4 border-brand-border shadow-brutal font-display transition-all px-8 py-4 text-lg flex items-center",
+                                skipVotes.includes(playerId || '') ? "bg-accent-success text-brand-bg" : "bg-brand-inner text-tx-base hover:bg-[#333A80]"
                             )}
                         >
                             {skipVotes.includes(playerId || '') ? (
@@ -1042,13 +1042,13 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                 value={userClue}
                                 onChange={e => setUserClue(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && sendClue()}
-                                className="flex-1 h-14 bg-brand-inner border-4 border-brand-border rounded-2xl px-6 text-lg font-bold text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors shadow-brutal"
+                                className="flex-1 h-14 bg-brand-inner border-4 border-brand-border rounded-2xl px-6 text-lg font-bold text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-accent-primary transition-colors shadow-brutal"
                                 autoFocus
                             />
                             <button 
                                 onClick={sendClue} 
                                 disabled={!userClue.trim()}
-                                className="h-14 w-16 bg-accent-primary border-4 border-brand-border rounded-2xl flex items-center justify-center text-brand-bg hover:bg-tx-base transition-colors shadow-brutal disabled:bg-brand-inner disabled:text-tx-muted disabled:cursor-not-allowed"
+                                className="h-14 w-16 bg-accent-primary border-4 border-brand-border rounded-2xl flex items-center justify-center text-brand-bg hover:brightness-110 transition-colors shadow-brutal disabled:bg-brand-inner disabled:text-tx-muted disabled:cursor-not-allowed"
                             >
                                 <Send className="w-6 h-6" />
                             </button>
@@ -1058,7 +1058,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                 
                 {/* PHASE: DISCUSSION / VOTE INFO */}
                 {currentPhase === 'discussion' && (
-                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-accent-secondary text-brand-bg px-8 py-3 rounded-2xl font-display font-black tracking-wider shadow-brutal border-4 border-brand-border animate-bounce z-40 flex items-center">
+                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-accent-secondary text-brand-bg px-8 py-3 rounded-2xl font-display shadow-brutal border-4 border-brand-border animate-bounce z-40 flex items-center">
                         <MessageSquare className="w-5 h-5 mr-3" />
                         Débattez !
                     </div>
@@ -1069,11 +1069,11 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {/* PHASE: MR WHITE GUESS */}
         {currentPhase === 'mrwhite_guess' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <AlertTriangle className="w-16 h-16 text-accent-primary animate-pulse" />
                     </div>
-                    <h2 className="font-display text-3xl font-black text-tx-base mb-2">Mr. White a été trouvé !</h2>
+                    <h2 className="font-display text-3xl text-tx-base mb-2">Mr. White a été trouvé !</h2>
                     <p className="text-tx-secondary font-bold mb-8">Il a une chance de gagner s&apos;il trouve le mot des Civils.</p>
                     
                     {eliminatedPlayerId === playerId ? (
@@ -1082,11 +1082,11 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                 placeholder="Quel est le mot ?" 
                                 value={mrWhiteGuess}
                                 onChange={e => setMrWhiteGuess(e.target.value)}
-                                className="w-full h-14 bg-brand-inner border-4 border-brand-border rounded-2xl px-6 text-lg font-bold text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base transition-colors shadow-brutal text-center"
+                                className="w-full h-14 bg-brand-inner border-4 border-brand-border rounded-2xl px-6 text-lg font-bold text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-accent-primary transition-colors shadow-brutal text-center"
                             />
                             <button 
                                 onClick={sendMrWhiteGuess} 
-                                className="w-full h-14 rounded-2xl font-display font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
+                                className="w-full h-14 rounded-2xl font-display transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg active:translate-y-[3px] shadow-brutal"
                             >
                                 TENTER
                             </button>
@@ -1103,23 +1103,23 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {/* PHASE: RESULTS */}
         {currentPhase === 'results' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <Crown className="w-16 h-16 text-accent-primary" />
                     </div>
                     
-                    <h2 className="font-display text-4xl font-black text-tx-base mb-2 uppercase tracking-widest">
+                    <h2 className="font-display text-4xl text-tx-base mb-2">
                         Victoire {game.winner === 'CIVILS' ? 'des Civils' : 'des Imposteurs'} !
                     </h2>
                     
                     <div className="grid gap-3 mt-8 text-left max-h-[300px] overflow-y-auto custom-scrollbar p-4 bg-brand-bg/50 rounded-2xl border-4 border-brand-border shadow-inner">
                         {players.map(p => (
-                            <div key={p.id} className="flex justify-between items-center p-4 bg-brand-inner border-2 border-brand-border rounded-xl shadow-sm">
-                                <span className="font-display font-black text-lg text-tx-base">{p.name}</span>
+                            <div key={p.id} className="flex justify-between items-center p-4 bg-brand-inner border-[3px] border-brand-border rounded-xl shadow-sm">
+                                <span className="font-display text-lg text-tx-base">{p.name}</span>
                                 <span className={cn(
-                                    "font-black text-sm uppercase tracking-widest px-3 py-1 rounded-md border-2 border-brand-border",
+                                    "font-black text-sm uppercase tracking-widest px-3 py-1 rounded-md border-[3px] border-brand-border",
                                     roles[p.id] === 'CIVIL' ? 'bg-[#06B6D4] text-brand-bg' : 
-                                    roles[p.id] === 'UNDERCOVER' ? 'bg-accent-secondary text-brand-bg' : 'bg-tx-base text-brand-bg'
+                                    roles[p.id] === 'UNDERCOVER' ? 'bg-accent-secondary text-brand-bg' : 'bg-accent-primary text-brand-bg'
                                 )}>
                                     {roles[p.id]}
                                 </span>
@@ -1130,14 +1130,14 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                     {isHost && (
                         <button 
                             onClick={nextGameRound} 
-                            className="mt-8 w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success shadow-brutal"
+                            className="mt-8 w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success shadow-brutal"
                         >
                             {currentRoundNumber >= rounds ? "REVENIR AU SALON" : "MANCHE SUIVANTE"}
                         </button>
                     )}
                     <button 
                         onClick={() => router.push('/')} 
-                        className="mt-6 w-full h-14 rounded-2xl font-display font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base shadow-brutal flex items-center justify-center gap-3"
+                        className="mt-6 w-full h-14 rounded-2xl font-display transition-colors border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base shadow-brutal flex items-center justify-center gap-3"
                     >
                         <Home className="w-5 h-5" /> RETOUR AU MENU
                     </button>

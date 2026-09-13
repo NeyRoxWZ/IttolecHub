@@ -50,7 +50,7 @@ export default function DeleteAccount({ user }: { user: User }) {
     <>
       <div className="mt-10 rounded-[24px] border-4 border-red-500/40 bg-brand-card p-5 flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1">
-          <div className="font-display font-black tracking-wider uppercase text-red-400">Supprimer mon compte</div>
+          <div className="font-display text-red-400">Supprimer mon compte</div>
           <p className="text-sm text-tx-secondary mt-1">
             Efface ton compte et toutes tes données : sauvegardes, casino, Krash, messages, cadeaux. C&apos;est définitif.
           </p>
@@ -58,7 +58,7 @@ export default function DeleteAccount({ user }: { user: User }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="h-12 px-4 rounded-lg border-2 border-red-500/60 bg-brand-inner text-red-400 font-display font-black tracking-wider uppercase hover:bg-red-500/10 hover:border-red-400 flex items-center justify-center gap-2"
+          className="h-12 px-4 rounded-lg border-[3px] border-brand-border bg-accent-secondary text-white font-display shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[3px] flex items-center justify-center gap-2"
         >
           <Trash2 className="h-4 w-4" /> Supprimer
         </button>
@@ -68,8 +68,8 @@ export default function DeleteAccount({ user }: { user: User }) {
         <div className="fixed inset-0 z-[300] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => !busy && setOpen(false)}>
           <div className="w-full max-w-md bg-brand-card border-4 border-red-500/60 rounded-[28px] p-6 shadow-brutal" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3 mb-3">
-              <h2 className="font-display text-xl font-black uppercase tracking-wider text-red-400">Supprimer le compte {user.pseudo} ?</h2>
-              <button onClick={() => setOpen(false)} aria-label="Fermer" className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center">
+              <h2 className="font-display text-xl text-red-400">Supprimer le compte {user.pseudo} ?</h2>
+              <button onClick={() => setOpen(false)} aria-label="Fermer" className="h-9 w-9 shrink-0 rounded-lg border-[3px] border-brand-border bg-brand-inner flex items-center justify-center">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -79,25 +79,25 @@ export default function DeleteAccount({ user }: { user: User }) {
 
             {!user.is_discord && (
               <label className="block mt-4">
-                <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Tes 6 mots, dans l&apos;ordre</span>
+                <span className="text-sm font-black text-tx-secondary">Tes 6 mots, dans l&apos;ordre</span>
                 <input
                   value={words}
                   onChange={(e) => setWords(e.target.value)}
                   placeholder="pomme chat voiture arbre ..."
                   autoComplete="off"
-                  className="mt-1 w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-tx-base"
+                  className="mt-1 w-full h-12 rounded-lg bg-brand-inner border-[3px] border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-accent-primary"
                 />
               </label>
             )}
 
             <label className="block mt-4">
-              <span className="text-xs font-bold tracking-widest uppercase text-tx-secondary">Écris SUPPRIMER pour confirmer</span>
+              <span className="text-sm font-black text-tx-secondary">Écris SUPPRIMER pour confirmer</span>
               <input
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="SUPPRIMER"
                 autoComplete="off"
-                className="mt-1 w-full h-12 rounded-lg bg-brand-inner border-2 border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-red-400"
+                className="mt-1 w-full h-12 rounded-lg bg-brand-inner border-[3px] border-brand-border px-4 text-tx-base placeholder:text-tx-muted focus:outline-none focus:border-red-400"
               />
             </label>
 
@@ -106,7 +106,7 @@ export default function DeleteAccount({ user }: { user: User }) {
                 type="button"
                 onClick={() => setOpen(false)}
                 disabled={busy}
-                className="h-12 rounded-lg border-2 border-brand-border bg-brand-inner font-display font-black tracking-wider uppercase"
+                className="h-12 rounded-lg border-[3px] border-brand-border bg-brand-inner font-display"
               >
                 Annuler
               </button>
@@ -115,7 +115,7 @@ export default function DeleteAccount({ user }: { user: User }) {
                 onClick={remove}
                 disabled={!ready || busy}
                 className={cn(
-                  'h-12 rounded-lg border-2 border-red-500 bg-red-500 text-white font-display font-black tracking-wider uppercase',
+                  'h-12 rounded-lg border-[3px] border-red-500 bg-red-500 text-white font-display font-black tracking-wider uppercase',
                   (!ready || busy) && 'opacity-40 cursor-not-allowed'
                 )}
               >

@@ -64,11 +64,11 @@ export default function PatchNotesModal({ area }: { area: PatchArea }) {
 
   return (
     <div
-      className="fixed inset-0 z-[400] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-[400] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
       onClick={close}
     >
       <div
-        className="w-full max-w-md max-h-[88dvh] flex flex-col bg-brand-card border-4 border-brand-border rounded-[28px] shadow-brutal animate-in zoom-in-95 duration-200"
+        className="w-full max-w-md max-h-[88dvh] flex flex-col bg-brand-card border-4 border-brand-border rounded-[28px] shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -76,20 +76,19 @@ export default function PatchNotesModal({ area }: { area: PatchArea }) {
       >
         <div className="flex items-start justify-between gap-4 p-6 pb-4">
           <div className="min-w-0">
-            <div className="text-[10px] font-black uppercase tracking-widest text-accent-primary flex items-center gap-1.5">
+            <div className="w-fit px-2.5 py-1 rounded-lg border-2 border-brand-border bg-accent-primary text-brand-bg font-display text-sm flex items-center gap-1.5">
               <Sparkles className="h-3 w-3" /> Version {version}
             </div>
-            <h2 id="patch-notes-title" className="font-display text-xl font-black mt-1 leading-tight">
+            <h2 id="patch-notes-title" className="font-display text-3xl mt-2 leading-tight">
               Nouveautés {def.label}
             </h2>
-            <div className="text-[11px] text-tx-muted mt-1">
+            <div className="text-xs font-bold text-tx-secondary mt-1">
               {formatReleaseDate(release.date)} · {release.entries.length} changement{release.entries.length > 1 ? 's' : ''}
             </div>
           </div>
           <button
             onClick={close}
-            aria-label="Fermer"
-            className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none"
+            aria-label="Fermer" className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] active:translate-y-[2px] flex items-center justify-center focus:outline-none"
           >
             <X className="w-4 h-4" />
           </button>
@@ -97,9 +96,9 @@ export default function PatchNotesModal({ area }: { area: PatchArea }) {
 
         <ul className="flex-1 overflow-y-auto px-6 space-y-2">
           {shown.map((entry) => (
-            <li key={entry.id} className="flex gap-2.5 text-[13px] leading-snug">
-              <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent-primary" />
-              <span className="text-tx-secondary">{entry.title}</span>
+            <li key={entry.id} className="flex gap-2.5 items-start rounded-xl border-2 border-brand-border bg-brand-inner px-3 py-2 text-sm font-bold leading-snug">
+              <span className="mt-1 h-3 w-3 shrink-0 rounded-md border-2 border-brand-border bg-accent-primary" />
+              <span className="text-white">{entry.title}</span>
             </li>
           ))}
           {rest > 0 && (
@@ -111,15 +110,15 @@ export default function PatchNotesModal({ area }: { area: PatchArea }) {
           <Link
             href={`/patch-notes?zone=${def.zone}#v${version}`}
             onClick={close}
-            className="flex-1 h-12 rounded-xl border-2 border-brand-border bg-brand-inner font-display font-black text-xs tracking-wider text-tx-base flex items-center justify-center hover:border-tx-base focus:outline-none"
+            className="flex-1 h-14 text-lg flex items-center justify-center rounded-2xl border-[3px] border-brand-border bg-[#2B3170] text-white font-display shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none disabled:opacity-40"
           >
-            TOUT LE DÉTAIL
+            Tout le détail
           </Link>
           <button
             onClick={close}
-            className="flex-1 h-12 rounded-xl bg-accent-primary text-brand-bg font-display font-black text-xs tracking-wider border-2 border-brand-border focus:outline-none"
+            className="flex-1 h-14 text-lg rounded-2xl border-[3px] border-brand-border bg-accent-primary text-brand-bg font-display shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none disabled:opacity-50"
           >
-            C&apos;EST NOTÉ
+            C&apos;est noté
           </button>
         </div>
       </div>

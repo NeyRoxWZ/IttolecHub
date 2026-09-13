@@ -35,7 +35,7 @@ const CATEGORY_META: Record<ItemCategory, { label: string; icon: any; tone: stri
 const CRATE_TONE: Record<string, string> = {
   crate_wood: '#A9743F',
   crate_silver: '#C7CBD6',
-  crate_gold: '#FFD000',
+  crate_gold: '#FFC61A',
   crate_legendary: '#FF4DA6',
 };
 
@@ -178,20 +178,20 @@ export default function CasinoShop() {
             <Link
               href="/casino"
               prefetch
-              className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
+              className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[2px] transition-transform focus:outline-none"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div className="min-w-0">
-              <h1 className="font-display text-xl sm:text-2xl font-black leading-none">Boutique</h1>
+              <h1 className="font-display text-3xl sm:text-4xl leading-none">Boutique</h1>
               <span className="text-[11px] text-tx-muted">Un exemplaire par objet et par jour. Tout part dans ton inventaire.</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="h-11 flex items-center gap-2 px-3 rounded-xl border-2 border-brand-border bg-brand-inner" title="Prochaine rotation des objets du jour">
+            <div className="h-11 flex items-center gap-2 px-3 rounded-xl border-[3px] border-brand-border bg-brand-inner" title="Prochaine rotation des objets du jour">
               <Clock className="h-4 w-4 text-accent-primary" />
-              <span className="font-display font-black text-sm tabular-nums">{formatCountdown(resetIn)}</span>
+              <span className="font-display text-lg tabular-nums">{formatCountdown(resetIn)}</span>
             </div>
             <CasinoControls />
 
@@ -200,31 +200,31 @@ export default function CasinoShop() {
         </header>
 
         {/* CRATES — permanent stock */}
-        <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2 flex flex-wrap items-center gap-2">
+        <div className="font-display text-2xl text-white mb-2 mt-1 flex flex-wrap items-center gap-2">
           <Package className="h-3.5 w-3.5" /> Caisses
-          <span className="normal-case font-bold text-tx-muted">
+          <span className="font-body text-sm font-bold text-tx-secondary">
 une pièce par caisse — ce qui change, ce sont les chances de rareté
           </span>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           {crates.map((crate) => {
-            const tone = CRATE_TONE[crate.id] || '#FFD000';
+            const tone = CRATE_TONE[crate.id] || '#FFC61A';
             const quantity = qty[crate.id] || 1;
             return (
-              <div key={crate.id} className="rounded-2xl border-4 border-brand-border bg-brand-card p-3 flex flex-col shadow-brutal">
+              <div key={crate.id} className="rounded-[22px] border-4 border-brand-border bg-brand-card p-3 flex flex-col shadow-brutal">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="h-9 w-9 rounded-lg border-2 flex items-center justify-center shrink-0"
-                    style={{ borderColor: tone, background: `${tone}1A` }}>
-                    <Package className="h-4 w-4" style={{ color: tone }} />
+                  <span className="h-10 w-10 rounded-xl border-[3px] border-brand-border flex items-center justify-center shrink-0 shadow-[inset_0_-4px_0_rgba(0,0,0,0.25)]"
+                    style={{ background: tone }}>
+                    <Package className="h-5 w-5 text-brand-bg" />
                   </span>
-                  <h2 className="font-display font-black text-sm leading-tight">{crate.name}</h2>
+                  <h2 className="font-display text-lg leading-tight">{crate.name}</h2>
                 </div>
                 <p className="text-[11px] text-tx-secondary leading-snug mb-2">{crate.description}</p>
 
                 <div className="space-y-1 mb-2">
                   {RARITY_ORDER.map((r) => (
                     <div key={r} className="flex items-center gap-1.5">
-                      <span className="text-[9px] font-black uppercase tracking-widest w-14 shrink-0" style={{ color: RARITY_COLOR[r] }}>
+                      <span className="text-[11px] font-black w-[74px] shrink-0" style={{ color: RARITY_COLOR[r] }}>
                         {RARITY_LABEL[r]}
                       </span>
                       <div className="flex-1 h-1.5 rounded-full bg-brand-inner overflow-hidden">
@@ -242,7 +242,7 @@ une pièce par caisse — ce qui change, ce sont les chances de rareté
                   <button
                     onClick={() => buy(crate.id, crate.name, crate.price)}
                     disabled={busy !== null || balance < crate.price * quantity}
-                    className="flex-1 h-10 rounded-xl border-2 border-brand-border font-display font-black text-xs tracking-wide transition-all active:translate-y-0.5 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex-1 h-10 rounded-xl border-[3px] border-brand-border font-display text-base tracking-wide transition-transform shadow-[inset_0_-4px_0_rgba(0,0,0,0.25),0_3px_0_#05061A] active:translate-y-[3px] focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ background: tone, color: '#12121A' }}
                   >
                     {busy === crate.id ? '···' : `${(crate.price * quantity).toLocaleString('en-US')} ₶`}
@@ -254,13 +254,13 @@ une pièce par caisse — ce qui change, ce sont les chances de rareté
         </div>
 
         {/* DAILY CONSUMABLES */}
-        <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">
+        <div className="font-display text-2xl text-white mb-2 mt-1">
           Objets du jour
-          <span className="normal-case font-bold"> — 5 tirés dans un catalogue de 30, un seul exemplaire chacun</span>
+          <span className="font-body text-sm font-bold text-tx-secondary"> — 5 tirés dans un catalogue de 30, un seul exemplaire chacun</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
           {loading && Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="rounded-2xl border-4 border-brand-border bg-brand-card animate-pulse min-h-[210px]" />
+            <div key={i} className="rounded-[22px] border-4 border-brand-border bg-brand-card animate-pulse min-h-[210px]" />
           ))}
 
           {!loading && items.map((item) => {
@@ -276,12 +276,12 @@ une pièce par caisse — ce qui change, ce sont les chances de rareté
                   taken ? 'border-accent-success/60 opacity-60' : 'border-brand-border'
                 )}
               >
-                <div className={cn('self-start flex items-center gap-1.5 px-2 py-1 rounded-lg border-2 bg-brand-inner mb-3', meta.tone)}>
+                <div className={cn('self-start flex items-center gap-1.5 px-2 py-1 rounded-lg border-[3px] bg-brand-inner mb-3', meta.tone)}>
                   <Icon className="h-3.5 w-3.5" />
                   <span className="text-[10px] font-black uppercase tracking-widest">{meta.label}</span>
                 </div>
 
-                <h2 className="font-display font-black text-base leading-tight mb-1.5">{item.name}</h2>
+                <h2 className="font-display text-xl leading-tight mb-1.5">{item.name}</h2>
                 <p className="text-[12px] text-tx-secondary leading-snug">{item.description}</p>
                 <span className="mt-2 self-start text-[10px] font-bold text-tx-muted border border-brand-border rounded px-1.5 py-0.5">
                   {durationLabel(item)}
@@ -292,14 +292,14 @@ une pièce par caisse — ce qui change, ce sont les chances de rareté
                     onClick={() => buy(item.id, item.name, item.price, true)}
                     disabled={busy !== null || taken || balance < item.price}
                     className={cn(
-                      'w-full h-10 rounded-xl border-2 border-brand-border font-display font-black text-xs tracking-wide',
+                      'w-full h-10 rounded-xl border-[3px] border-brand-border font-display text-base tracking-wide',
                       'transition-all active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed',
                       taken ? 'bg-brand-inner text-accent-success'
                         : 'bg-accent-primary text-brand-bg hover:brightness-110 disabled:bg-brand-inner disabled:text-tx-muted'
                     )}
                   >
                     {busy === item.id ? '···'
-                      : taken ? 'DÉJÀ PRIS'
+                      : taken ? 'Déjà pris'
                       : `${item.price.toLocaleString('en-US')} ₶`}
                   </button>
                 </div>
@@ -323,7 +323,7 @@ function QuantityStepper({
   onSet: (id: string, value: number) => void;
 }) {
   return (
-    <div className="flex items-center h-10 rounded-xl border-2 border-brand-border bg-brand-inner shrink-0">
+    <div className="flex items-center h-10 rounded-xl border-[3px] border-brand-border bg-brand-inner shrink-0">
       <button onClick={() => onBump(id, -1)} className="h-full w-7 flex items-center justify-center text-tx-secondary hover:text-tx-base focus:outline-none">
         <Minus className="h-3 w-3" />
       </button>
@@ -332,7 +332,7 @@ function QuantityStepper({
         min={1}
         value={value}
         onChange={(e) => onSet(id, Number(e.target.value))}
-        className="w-10 h-full bg-transparent text-center font-display font-black text-xs tabular-nums focus:outline-none"
+        className="w-10 h-full bg-transparent text-center font-display text-base tabular-nums focus:outline-none"
       />
       <button onClick={() => onBump(id, 1)} className="h-full w-7 flex items-center justify-center text-tx-secondary hover:text-tx-base focus:outline-none">
         <Plus className="h-3 w-3" />

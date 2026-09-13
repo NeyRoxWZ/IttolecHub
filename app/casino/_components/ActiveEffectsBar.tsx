@@ -64,9 +64,9 @@ export default function ActiveEffectsBar({ className }: { className?: string }) 
         <Zap className="h-3 w-3 shrink-0 text-accent-success" />
 
         {total > 0 && (
-          <span className="shrink-0 h-7 px-2.5 rounded-lg border-2 border-accent-success bg-accent-success/15 flex items-center gap-1.5">
+          <span className="shrink-0 h-7 px-2.5 rounded-lg border-[3px] border-accent-success bg-accent-success/15 flex items-center gap-1.5">
             <span className="text-[9px] font-black uppercase tracking-widest text-accent-success">Bonus</span>
-            <span className="font-display font-black text-[11px] text-accent-success tabular-nums">
+            <span className="font-display text-[11px] text-accent-success tabular-nums">
               +{Math.round(total * 100)}%
             </span>
           </span>
@@ -85,7 +85,7 @@ export default function ActiveEffectsBar({ className }: { className?: string }) 
               key={e.effect}
               title={style.summary(e.magnitude)}
               className={cn(
-                'shrink-0 h-7 pl-2 pr-2.5 rounded-lg border-2 flex items-center gap-1.5',
+                'shrink-0 h-7 pl-2 pr-2.5 rounded-lg border-[3px] flex items-center gap-1.5',
                 soon && 'animate-pulse'
               )}
               style={{ borderColor: style.color, background: `${style.color}14` }}

@@ -351,13 +351,13 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
             {/* SETUP PHASE */}
             {currentPhase === 'setup' && (
                 <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
                         <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform rotate-3">
                             <Target className="w-16 h-16 text-accent-primary" />
                         </div>
                         
                         <div className="text-center space-y-2 mb-8">
-                            <h2 className="font-display text-4xl font-black text-tx-base uppercase tracking-wider">
+                            <h2 className="font-display text-4xl text-tx-base">
                                 Jauge <span className="text-accent-primary">Guessr</span>
                             </h2>
                             <p className="text-tx-secondary font-bold">
@@ -368,14 +368,14 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                         {isHost ? (
                             <button 
                                 onClick={startNewGame} 
-                                className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
+                                className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg active:translate-y-[3px] shadow-brutal"
                             >
                                 COMMENCER LA PARTIE
                             </button>
                         ) : (
                             <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
                                 <Clock className="w-6 h-6 animate-spin text-accent-primary" />
-                                <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                                <span className="font-display text-tx-base">En attente de l'hôte...</span>
                             </div>
                         )}
                     </div>
@@ -403,14 +403,14 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                         )}
 
                         {currentPhase === 'writing_clue' && (
-                            <h3 className="font-display text-lg md:text-xl font-black text-tx-base uppercase tracking-wider">
+                            <h3 className="font-display text-lg md:text-xl text-tx-base">
                                 {isGuider ? "Fais deviner avec un indice !" : `${players.find(p => p.id === guiderId)?.name} réfléchit...`}
                             </h3>
                         )}
                         {currentPhase === 'guessing' && (
                             <div className="flex flex-col items-center justify-center">
                                 <span className="text-xs font-bold text-tx-secondary uppercase tracking-widest mb-1">L'indice est :</span>
-                                <div className="font-display text-2xl md:text-3xl font-black text-accent-primary break-words max-w-full">
+                                <div className="font-display text-2xl md:text-3xl text-accent-primary break-words max-w-full">
                                     {clue}
                                 </div>
                             </div>
@@ -418,7 +418,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                         {currentPhase === 'round_results' && (
                             <div className="flex flex-col items-center justify-center">
                                 <span className="text-xs font-bold text-tx-secondary uppercase tracking-widest mb-1">L'indice était :</span>
-                                <div className="font-display text-2xl md:text-3xl font-black text-tx-base break-words max-w-full">
+                                <div className="font-display text-2xl md:text-3xl text-tx-base break-words max-w-full">
                                     {clue}
                                 </div>
                             </div>
@@ -429,10 +429,10 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                     <div className="relative w-full max-w-xl mt-4 px-4 md:px-8">
                         {/* Words at extremities */}
                         <div className="absolute top-full left-0 mt-2 text-left w-1/2 -translate-x-2 md:-translate-x-4 pr-4">
-                            <span className="font-display font-black text-sm md:text-lg text-tx-base leading-tight block break-words">{leftWord}</span>
+                            <span className="font-display text-lg md:text-lg text-tx-base leading-tight block break-words">{leftWord}</span>
                         </div>
                         <div className="absolute top-full right-0 mt-2 text-right w-1/2 translate-x-2 md:translate-x-4 pl-4">
-                            <span className="font-display font-black text-sm md:text-lg text-tx-base leading-tight block break-words">{rightWord}</span>
+                            <span className="font-display text-lg md:text-lg text-tx-base leading-tight block break-words">{rightWord}</span>
                         </div>
 
                         <svg 
@@ -464,14 +464,14 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                     <path 
                                         d={describeArc(Math.max(0, targetAngle - sizes.bullseye/2 - sizes.adjacent), Math.max(0, targetAngle - sizes.bullseye/2))} 
                                         fill="none" 
-                                        stroke="#FFD000" 
+                                        stroke="#FFC61A" 
                                         strokeWidth="20" 
                                     />
                                     {/* Right Adjacent */}
                                     <path 
                                         d={describeArc(Math.min(180, targetAngle + sizes.bullseye/2), Math.min(180, targetAngle + sizes.bullseye/2 + sizes.adjacent))} 
                                         fill="none" 
-                                        stroke="#FFD000" 
+                                        stroke="#FFC61A" 
                                         strokeWidth="20" 
                                     />
                                     {/* Bullseye */}
@@ -527,12 +527,12 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                         onChange={e => setClueInput(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && submitClue()}
                                         placeholder="Écrivez un indice..."
-                                        className="flex-1 h-16 px-6 text-xl font-bold bg-brand-inner border-4 border-brand-border rounded-2xl text-tx-base placeholder:text-tx-muted focus:border-tx-base shadow-brutal outline-none"
+                                        className="flex-1 h-16 px-6 text-xl font-bold bg-brand-inner border-4 border-brand-border rounded-2xl text-tx-base placeholder:text-tx-muted focus:border-accent-primary shadow-brutal outline-none"
                                     />
                                     <button 
                                         onClick={submitClue}
                                         disabled={!clueInput.trim()}
-                                        className="h-16 px-8 bg-accent-success hover:bg-tx-base text-brand-bg font-display font-black tracking-wider rounded-2xl shadow-brutal border-4 border-brand-border transition-colors disabled:bg-brand-inner disabled:text-tx-muted disabled:cursor-not-allowed"
+                                        className="h-16 px-8 bg-accent-success hover:brightness-110 text-brand-bg font-display rounded-2xl shadow-brutal border-4 border-brand-border transition-colors disabled:bg-brand-inner disabled:text-tx-muted disabled:cursor-not-allowed"
                                     >
                                         <Send className="w-6 h-6" />
                                     </button>
@@ -546,16 +546,16 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                     onClick={submitGuess}
                                     disabled={hasGuessed}
                                     className={cn(
-                                        "w-full h-16 font-display text-xl font-black tracking-wider rounded-2xl transition-all border-4 border-brand-border shadow-brutal flex items-center justify-center gap-3",
+                                        "w-full h-16 font-display text-xl rounded-2xl transition-all border-4 border-brand-border shadow-brutal flex items-center justify-center gap-3",
                                         hasGuessed 
                                         ? "bg-brand-inner text-tx-muted cursor-not-allowed" 
-                                        : "bg-accent-primary text-brand-bg hover:bg-tx-base active:translate-y-1 active:shadow-none"
+                                        : "bg-accent-primary text-brand-bg hover:brightness-110 active:translate-y-1 active:shadow-none"
                                     )}
                                 >
                                     {hasGuessed ? (
-                                        <>EN ATTENTE DES AUTRES <Loader2 className="w-5 h-5 animate-spin" /></>
+                                        <>En attente des autres <Loader2 className="w-5 h-5 animate-spin" /></>
                                     ) : (
-                                        <>VALIDER MA POSITION <Target className="w-6 h-6" /></>
+                                        <>Valider ma position <Target className="w-6 h-6" /></>
                                     )}
                                 </button>
                                 {!hasGuessed && (
@@ -569,7 +569,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                         {currentPhase === 'round_results' && (
                             <div className="space-y-6 animate-in slide-in-from-bottom-4">
                                 <div className="bg-brand-card border-4 border-brand-border rounded-2xl p-4 shadow-brutal">
-                                    <h4 className="font-display font-black text-tx-base uppercase tracking-widest text-center mb-4">Points de la manche</h4>
+                                    <h4 className="font-display text-tx-base text-center mb-4">Points de la manche</h4>
                                     <div className="space-y-2">
                                         {seekers.map(seeker => {
                                             const guess = guesses[seeker.id];
@@ -578,12 +578,12 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                             let points = 0;
                                             let color = "text-tx-muted";
                                             if (diff <= sizes.bullseye / 2) { points = 3; color = "text-accent-success"; }
-                                            else if (diff <= sizes.bullseye / 2 + sizes.adjacent) { points = 1; color = "text-[#FFD000]"; }
+                                            else if (diff <= sizes.bullseye / 2 + sizes.adjacent) { points = 1; color = "text-[#FFC61A]"; }
                                             
                                             return (
-                                                <div key={seeker.id} className="flex items-center justify-between bg-brand-inner p-3 rounded-xl border-2 border-brand-border">
+                                                <div key={seeker.id} className="flex items-center justify-between bg-brand-inner p-3 rounded-xl border-[3px] border-brand-border">
                                                     <span className="font-bold text-tx-base">{players.find(p => p.id === seeker.id)?.name}</span>
-                                                    <span className={cn("font-display font-black text-xl", color)}>+{points}</span>
+                                                    <span className={cn("font-display text-xl", color)}>+{points}</span>
                                                 </div>
                                             );
                                         })}
@@ -605,11 +605,11 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
             {/* PODIUM PHASE */}
             {currentPhase === 'podium' && (
                 <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                         <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                             <Trophy className="w-16 h-16 text-accent-primary" />
                         </div>
-                        <h2 className="font-display text-4xl font-black text-tx-base mb-8 uppercase tracking-widest">Classement Final</h2>
+                        <h2 className="font-display text-4xl text-tx-base mb-8">Classement Final</h2>
                         
                         <div className="w-full space-y-4 mb-8">
                             {sortedPlayers.filter(p => p.id !== guiderId || seekers.length === 0 /* handle 1 player edge case */).map((p, i) => (
@@ -619,21 +619,21 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                 )}>
                                     {/* Badges */}
                                     {i === 0 && (
-                                        <div className="absolute -top-4 -right-4 bg-[#FFD000] text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
+                                        <div className="absolute -top-4 -right-4 bg-accent-primary text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
                                             Télépathe
                                         </div>
                                     )}
                                     
                                     <div className="flex items-center gap-4">
                                         <span className={cn(
-                                            "w-12 h-12 flex items-center justify-center rounded-xl font-display font-black text-2xl border-2 border-brand-border",
-                                            i === 0 ? "bg-[#FFD000] text-brand-bg" : "bg-brand-bg text-tx-base"
+                                            "w-12 h-12 flex items-center justify-center rounded-xl font-display text-2xl border-[3px] border-brand-border",
+                                            i === 0 ? "bg-accent-primary text-brand-bg" : "bg-brand-bg text-tx-base"
                                         )}>
                                             {i + 1}
                                         </span>
                                         
                                         <div className="flex flex-col text-left">
-                                            <span className="text-xl font-display font-black">{p.name}</span>
+                                            <span className="text-xl font-display">{p.name}</span>
                                             <span className={cn(
                                                 "text-xs font-bold uppercase tracking-widest",
                                                 i === 0 ? "text-brand-bg/80" : "text-tx-secondary"
@@ -643,7 +643,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                         </div>
                                     </div>
                                     <span className={cn(
-                                        "text-3xl font-display font-black",
+                                        "text-3xl font-display",
                                         i === 0 ? "text-brand-bg" : "text-accent-primary"
                                     )}>{p.score} pts</span>
                                 </div>
@@ -653,9 +653,9 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                         {isHost && (
                             <button 
                                 onClick={returnToLobby} 
-                                className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg shadow-brutal"
+                                className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[3px]"
                             >
-                                RETOUR AU SALON
+                                Retour au salon
                             </button>
                         )}
                     </div>

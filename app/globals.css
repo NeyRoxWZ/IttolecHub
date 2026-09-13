@@ -72,6 +72,83 @@ h1.font-display {
 .bg-accent-success.shadow-brutal:active,
 .bg-accent-secondary.shadow-brutal:active { transform: translateY(3px); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25), 0 2px 0 #05061A; }
 
+/* ------------------------------------------------------------------ */
+/* Site-wide Brawl pass over the patterns every screen repeats, so a   */
+/* modal or page nobody rewrote by hand still reads as the same game.  */
+/* ------------------------------------------------------------------ */
+
+/* Section and modal titles in the display face get the outline too,
+   scaled to the text so small headings stay legible. */
+h2.font-display,
+h3.font-display {
+  color: #FFFFFF;
+  -webkit-text-stroke: max(3px, 0.12em) #05061A;
+  paint-order: stroke fill;
+  text-shadow: 0 max(2px, 0.08em) 0 #05061A;
+}
+
+/* Dark ghost buttons: thicker outline and a pressed-in bottom edge. */
+button.bg-brand-inner.border-2,
+a.bg-brand-inner.border-2,
+button.bg-brand-card.border-2,
+a.bg-brand-card.border-2 {
+  border-width: 3px;
+  border-color: #05061A;
+  box-shadow: inset 0 -4px 0 #0B0E2A, 0 3px 0 #05061A;
+  transition: transform 75ms ease-out, background-color 120ms;
+}
+button.bg-brand-inner.border-2:not(:disabled):active,
+a.bg-brand-inner.border-2:active,
+button.bg-brand-card.border-2:not(:disabled):active,
+a.bg-brand-card.border-2:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 -2px 0 #0B0E2A, 0 1px 0 #05061A;
+}
+
+/* "Invert on hover" read as a white flash on a dark page: a lighter indigo instead. */
+.hover\:bg-tx-base:hover { background-color: #333A80 !important; }
+.hover\:text-brand-bg:hover { color: #FFFFFF !important; }
+.hover\:border-tx-base:hover { border-color: #05061A !important; }
+
+/* Bright filled buttons everywhere get their darker bottom edge. */
+button.bg-accent-primary:not(.shadow-none):not(.shadow-brutal) { box-shadow: inset 0 -4px 0 #D98E00, 0 3px 0 #05061A; }
+button.bg-accent-success:not(.shadow-none):not(.shadow-brutal) { box-shadow: inset 0 -4px 0 #1E9A55, 0 3px 0 #05061A; }
+button.bg-accent-secondary:not(.shadow-none):not(.shadow-brutal) { box-shadow: inset 0 -4px 0 #C92D63, 0 3px 0 #05061A; }
+button.bg-accent-primary:not(:disabled):active,
+button.bg-accent-success:not(:disabled):active,
+button.bg-accent-secondary:not(:disabled):active { transform: translateY(2px); }
+
+/* Fields: sunk into the panel, yellow ring on focus. */
+input.bg-brand-inner,
+textarea.bg-brand-inner,
+select.bg-brand-inner {
+  border-width: 3px;
+  border-color: #05061A;
+  box-shadow: inset 0 3px 0 #0B0E2A;
+  font-weight: 800;
+}
+input.bg-brand-inner:focus,
+textarea.bg-brand-inner:focus,
+select.bg-brand-inner:focus {
+  outline: none;
+  box-shadow: inset 0 3px 0 #0B0E2A, 0 0 0 4px #FFC61A;
+}
+
+/* Modal cards: the hard shadow under every floating panel. */
+.fixed.inset-0 > .bg-brand-card.border-4,
+.fixed.inset-0 > div > .bg-brand-card.border-4 {
+  box-shadow: 0 8px 0 #05061A;
+}
+
+/* The tiny grey caps labels were hard to read: a notch bigger and brighter. */
+.text-\[9px\].uppercase.tracking-widest,
+.text-\[10px\].uppercase.tracking-widest {
+  font-size: 11px;
+}
+.uppercase.tracking-widest.text-tx-muted {
+  color: #C2C9F0;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

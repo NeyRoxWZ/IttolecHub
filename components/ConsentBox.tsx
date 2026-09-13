@@ -11,12 +11,12 @@ export default function ConsentBox({
   checked, onChange, minorNote = false,
 }: { checked: boolean; onChange: (value: boolean) => void; minorNote?: boolean }) {
   return (
-    <label className="flex items-start gap-3 cursor-pointer select-none rounded-xl border-2 border-brand-border bg-brand-inner p-3 hover:border-tx-base transition-colors">
+    <label className="flex items-start gap-3 cursor-pointer select-none rounded-xl border-[3px] border-brand-border bg-brand-inner p-3 hover:border-tx-base transition-colors">
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only peer" />
       <span
         aria-hidden
         className={cn(
-          'mt-0.5 h-6 w-6 shrink-0 rounded-md border-2 flex items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tx-base',
+          'mt-0.5 h-6 w-6 shrink-0 rounded-md border-[3px] flex items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tx-base',
           checked ? 'bg-accent-success border-accent-success text-brand-bg' : 'border-brand-border bg-brand-card'
         )}
       >

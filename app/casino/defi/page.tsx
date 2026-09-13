@@ -66,7 +66,7 @@ export default function DefiPage() {
   if (!state) {
     return (
       <main className="min-h-screen bg-transparent p-4">
-        <div className="max-w-2xl mx-auto h-64 rounded-2xl border-2 border-brand-border bg-brand-inner animate-pulse" />
+        <div className="max-w-2xl mx-auto h-64 rounded-2xl border-[3px] border-brand-border bg-brand-inner animate-pulse" />
       </main>
     );
   }
@@ -82,19 +82,19 @@ export default function DefiPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/casino"
-            className="h-11 w-11 shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center focus:outline-none"
+            className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-brand-inner flex items-center justify-center focus:outline-none"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-2xl font-black leading-none">Défi du jour</h1>
+            <h1 className="font-display text-2xl leading-none">Défi du jour</h1>
             <p className="text-[11px] text-tx-muted mt-1 flex items-center gap-1">
               <Clock className="h-3 w-3" /> nouveau dans {countdown(left)}
             </p>
           </div>
         </div>
 
-        <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-4 text-[12px] text-tx-secondary space-y-2">
+        <div className="rounded-2xl border-[3px] border-brand-border bg-brand-card p-4 text-[12px] text-tx-secondary space-y-2">
           <p className="flex items-start gap-2">
             <Info className="h-4 w-4 shrink-0 text-accent-primary mt-0.5" />
             <span>
@@ -114,7 +114,7 @@ export default function DefiPage() {
           <button
             onClick={async () => { vibrate(HAPTIC.MEDIUM); const d = await post({ action: 'start' }); if (d) sfx.bet(); }}
             disabled={busy || !user}
-            className="w-full h-16 rounded-2xl bg-accent-primary text-brand-bg font-display font-black tracking-wider border-4 border-brand-border shadow-brutal hover:brightness-110 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:shadow-none focus:outline-none"
+            className="w-full h-16 rounded-2xl bg-accent-primary text-brand-bg font-display border-4 border-brand-border shadow-brutal hover:brightness-110 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:shadow-none focus:outline-none"
           >
             {user ? 'COMMENCER LE DÉFI' : 'CONNECTE-TOI POUR JOUER'}
           </button>
@@ -131,12 +131,12 @@ export default function DefiPage() {
               <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">
                 {run.busted ? 'Ruiné' : over ? 'Terminé' : `Manche ${run.round + 1}/${state.totalRounds}`}
               </div>
-              <div className="font-display text-5xl font-black tabular-nums mt-1">
+              <div className="font-display text-5xl tabular-nums mt-1">
                 {fmt(run.bankroll)} <span className="text-2xl">₶</span>
               </div>
               {last !== null && (
                 <div className={cn(
-                  'inline-block mt-2 px-3 py-1 rounded-full font-display font-black text-sm',
+                  'inline-block mt-2 px-3 py-1 rounded-full font-display text-lg',
                   last > 1 ? 'bg-accent-success/15 text-accent-success' : 'bg-accent-secondary/15 text-accent-secondary'
                 )}>
                   ×{last}
@@ -150,7 +150,7 @@ export default function DefiPage() {
                   <div
                     key={i}
                     className={cn(
-                      'shrink-0 w-12 rounded-lg border-2 py-1 text-center font-display font-black text-[11px] tabular-nums',
+                      'shrink-0 w-12 rounded-lg border-[3px] py-1 text-center font-display font-black text-[11px] tabular-nums',
                       m > 1 ? 'border-accent-success/50 bg-accent-success/10 text-accent-success'
                             : 'border-accent-secondary/50 bg-accent-secondary/10 text-accent-secondary'
                     )}
@@ -162,7 +162,7 @@ export default function DefiPage() {
             )}
 
             {!over && (
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-4 space-y-3">
+              <div className="rounded-2xl border-[3px] border-brand-border bg-brand-card p-4 space-y-3">
                 <div className="flex items-center justify-between text-[11px] font-bold">
                   <span className="text-tx-muted">Ta mise</span>
                   <span className="text-tx-muted tabular-nums">max {fmt(maxBet)} ₶</span>
@@ -174,14 +174,14 @@ export default function DefiPage() {
                     const d = e.target.value.replace(/\D/g, '');
                     setBet(d ? Number(d).toLocaleString('en-US') : '');
                   }}
-                  className="w-full h-12 px-3 rounded-xl border-2 border-brand-border bg-brand-inner font-display font-black tabular-nums focus:outline-none focus:border-accent-primary"
+                  className="w-full h-12 px-3 rounded-xl border-[3px] border-brand-border bg-brand-inner font-display tabular-nums focus:outline-none focus:border-accent-primary"
                 />
                 <div className="grid grid-cols-4 gap-2">
                   {[0.1, 0.25, 0.5, 1].map((f) => (
                     <button
                       key={f}
                       onClick={() => { sfx.click(); setBet(fmt(Math.max(1, Math.floor(maxBet * f)))); }}
-                      className="h-9 rounded-lg border-2 border-brand-border bg-brand-inner font-display font-black text-[11px] text-tx-secondary focus:outline-none"
+                      className="h-9 rounded-lg border-[3px] border-brand-border bg-brand-inner font-display text-[11px] text-tx-secondary focus:outline-none"
                     >
                       {f === 1 ? 'MAX' : `${Math.round(f * 100)}%`}
                     </button>
@@ -199,7 +199,7 @@ export default function DefiPage() {
                     }
                   }}
                   disabled={busy || betValue < 1 || betValue > maxBet}
-                  className="w-full h-14 rounded-2xl bg-accent-primary text-brand-bg font-display font-black tracking-wider border-4 border-brand-border shadow-brutal hover:brightness-110 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:shadow-none disabled:active:translate-y-0 focus:outline-none"
+                  className="w-full h-14 rounded-2xl bg-accent-primary text-brand-bg font-display border-4 border-brand-border shadow-brutal hover:brightness-110 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:shadow-none disabled:active:translate-y-0 focus:outline-none"
                 >
                   JOUER LA MANCHE
                 </button>
@@ -216,8 +216,8 @@ export default function DefiPage() {
           </>
         )}
 
-        <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-4">
-          <h2 className="font-display font-black mb-2 flex items-center gap-2">
+        <div className="rounded-2xl border-[3px] border-brand-border bg-brand-card p-4">
+          <h2 className="font-display mb-2 flex items-center gap-2">
             <Trophy className="h-4 w-4 text-accent-primary" /> Classement du jour
           </h2>
           {state.board.length === 0 ? (
@@ -236,7 +236,7 @@ export default function DefiPage() {
                   <span className="text-[10px] text-tx-muted shrink-0">
                     {r.busted ? 'ruiné' : r.finished ? 'fini' : `${r.round}/${state.totalRounds}`}
                   </span>
-                  <span className="font-display font-black tabular-nums shrink-0 w-24 text-right">
+                  <span className="font-display tabular-nums shrink-0 w-24 text-right">
                     {fmt(Number(r.bankroll))} ₶
                   </span>
                 </div>

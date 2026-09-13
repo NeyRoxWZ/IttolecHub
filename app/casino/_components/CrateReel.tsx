@@ -114,7 +114,7 @@ export default function CrateReel({
           style={{
             borderLeft: '8px solid transparent',
             borderRight: '8px solid transparent',
-            borderTop: `14px solid ${settled ? tone : '#FFD000'}`,
+            borderTop: `14px solid ${settled ? tone : '#FFC61A'}`,
             filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.6))',
           }}
         />
@@ -142,7 +142,7 @@ export default function CrateReel({
               <div
                 key={cell.key + i}
                 className={cn(
-                  'shrink-0 rounded-xl border-2 flex flex-col items-center justify-center gap-1 p-2',
+                  'shrink-0 rounded-xl border-[3px] flex flex-col items-center justify-center gap-1 p-2',
                   settled && isTarget && 'scale-105'
                 )}
                 style={{
@@ -156,14 +156,14 @@ export default function CrateReel({
                 {cell.cosmetic ? (
                   <CosmeticPreview cosmetic={cell.cosmetic} size={72} />
                 ) : (
-                  <div className="h-[72px] w-[72px] rounded-xl border-2 border-brand-border bg-brand-card flex items-center justify-center">
+                  <div className="h-[72px] w-[72px] rounded-xl border-[3px] border-brand-border bg-brand-card flex items-center justify-center">
                     <Coins className="h-8 w-8" style={{ color: cellTone }} />
                   </div>
                 )}
                 <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: cellTone }}>
                   {RARITY_LABEL[rarity]}
                 </span>
-                <span className="font-display font-black text-[10px] leading-tight text-center line-clamp-2 px-1">
+                <span className="font-display text-[10px] leading-tight text-center line-clamp-2 px-1">
                   {cell.cosmetic?.name || `${(cell.reward?.amount || 0).toLocaleString('en-US')} ₶`}
                 </span>
               </div>
@@ -174,7 +174,7 @@ export default function CrateReel({
 
       <div className={cn('mt-3 flex flex-col items-center gap-2 transition-opacity duration-300', settled ? 'opacity-100' : 'opacity-0')}>
         <div className="text-center">
-          <div className="font-display font-black text-sm" style={{ color: tone }}>
+          <div className="font-display text-lg" style={{ color: tone }}>
             {won?.name || `${(reward.amount || 0).toLocaleString('en-US')} ₶`}
           </div>
           <div className="text-[11px] text-tx-muted">

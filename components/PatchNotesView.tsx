@@ -70,7 +70,7 @@ export default function PatchNotesView({ entries }: { entries: PatchEntry[] }) {
               className="w-full flex items-center gap-2 py-1.5 mb-1 text-left group"
             >
               <span className={cn('h-3.5 w-1.5 rounded-full', GROUP_META[group].bar)} />
-              <span className="font-display font-black text-sm uppercase tracking-widest">{GROUP_META[group].label}</span>
+              <span className="font-display text-lg">{GROUP_META[group].label}</span>
               <span className="text-[11px] font-bold text-tx-muted">{count}</span>
               <ChevronDown
                 className={cn(
@@ -81,7 +81,7 @@ export default function PatchNotesView({ entries }: { entries: PatchEntry[] }) {
             </button>
 
             {open && (
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-inner divide-y divide-brand-border/70">
+              <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner divide-y divide-brand-border/70">
                 {scopes.map(({ scope, entries: list }) => {
                   // A game described by a single entry titled after itself reads
                   // best as one line, not a heading over a line that repeats it.

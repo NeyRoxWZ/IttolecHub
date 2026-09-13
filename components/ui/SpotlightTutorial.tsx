@@ -114,13 +114,13 @@ export default function SpotlightTutorial(props: Props) {
     <div className="fixed inset-0 z-[99999]">
       {spot ? (
         <div
-          className="absolute rounded-[28px] border-2 border-tx-base pointer-events-none"
+          className="absolute rounded-[28px] border-4 border-accent-primary pointer-events-none"
           style={{
             top: Math.max(8, spot.top - 8),
             left: Math.max(8, spot.left - 8),
             width: Math.max(0, spot.width + 16),
             height: Math.max(0, spot.height + 16),
-            boxShadow: '0 0 0 9999px rgba(0,0,0,0.72)',
+            boxShadow: '0 0 0 9999px rgba(5,6,26,0.78)',
           }}
         />
       ) : (
@@ -129,16 +129,16 @@ export default function SpotlightTutorial(props: Props) {
 
       <div
         ref={cardRef}
-        className="absolute left-1/2 -translate-x-1/2 w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-brutal"
+        className="absolute left-1/2 -translate-x-1/2 w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-[0_8px_0_#05061A]"
         style={{ top: cardTop }}
         role="dialog"
         aria-modal="true"
         aria-label="Tutoriel"
       >
-        <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
+        <div className="w-fit px-2.5 py-1 rounded-lg border-2 border-brand-border bg-accent-primary text-brand-bg font-display text-sm">
           Tutoriel {stepIndex + 1} / {steps.length}
         </div>
-        <div className="mt-2 font-display text-2xl font-black tracking-wider uppercase text-tx-base">{step.title}</div>
+        <div className="mt-3 font-display text-3xl leading-tight text-stroke">{step.title}</div>
         <div className="mt-3 text-sm text-tx-secondary font-bold leading-relaxed">{step.body}</div>
 
         <div className="mt-6 flex items-center justify-between gap-3">
@@ -147,10 +147,10 @@ export default function SpotlightTutorial(props: Props) {
             onClick={() => onStepChange(Math.max(0, stepIndex - 1))}
             disabled={!canPrev}
             className={cn(
-              'h-11 px-4 rounded-lg border-2 font-display font-black tracking-wider uppercase transition-colors',
+              'h-12 px-4 rounded-xl border-[3px] font-display text-lg transition-transform',
               !canPrev
                 ? 'bg-transparent text-tx-secondary border-brand-border/40 opacity-60 cursor-not-allowed'
-                : 'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                : 'border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A] active:translate-y-[3px]'
             )}
           >
             Retour
@@ -159,7 +159,7 @@ export default function SpotlightTutorial(props: Props) {
           <button
             type="button"
             onClick={close}
-            className="h-11 px-4 rounded-lg border-2 border-brand-border bg-transparent text-tx-secondary font-display font-black tracking-wider uppercase hover:text-tx-base hover:border-tx-base transition-colors"
+            className="h-12 px-4 rounded-xl font-display text-lg text-tx-secondary hover:text-white transition-colors"
           >
             Passer
           </button>
@@ -173,7 +173,7 @@ export default function SpotlightTutorial(props: Props) {
               }
               onStepChange(Math.min(maxIndex, stepIndex + 1));
             }}
-            className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
+            className="h-12 px-5 rounded-xl border-[3px] border-brand-border font-display text-lg transition-transform bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[4px]"
           >
             {isLast ? 'Terminer' : 'Suivant'}
           </button>

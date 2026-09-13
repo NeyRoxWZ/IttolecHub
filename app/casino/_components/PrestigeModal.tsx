@@ -27,27 +27,26 @@ export default function PrestigeModal({
   const nextBonus = prestigeWinBonus(next);
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
+    <div className="fixed inset-0 z-[200] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
       <div
-        className="w-full max-w-md max-h-[92dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in zoom-in-95 duration-200"
+        className="w-full max-w-md max-h-[92dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
-            <h2 className="font-display text-xl font-black flex items-center gap-2">
+            <h2 className="font-display text-3xl leading-none flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-accent-primary" /> Prestige {next}
             </h2>
-            <p className="text-[11px] text-tx-muted mt-1">Irréversible. Lis avant de valider.</p>
+            <p className="text-xs font-black text-accent-secondary mt-2">Irréversible. Lis avant de valider.</p>
           </div>
-          <button onClick={onClose} className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none">
+          <button onClick={onClose} aria-label="Fermer" className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] active:translate-y-[2px] flex items-center justify-center focus:outline-none">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="rounded-xl border-2 border-accent-secondary bg-accent-secondary/10 p-3 mb-3">
+        <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 mb-3">
           <div className="flex items-center gap-2 mb-1">
-            <ArrowDown className="h-4 w-4 text-accent-secondary" />
-            <span className="font-display font-black text-xs uppercase tracking-widest text-accent-secondary">Ce que tu perds</span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border-2 border-brand-border bg-accent-secondary text-white font-display text-sm"><ArrowDown className="h-4 w-4" />Ce que tu perds</span>
           </div>
           <p className="text-sm text-tx-secondary leading-snug">
             Ton solde repart de <span className="font-black text-tx-base">{CASINO_STARTING_BALANCE.toLocaleString('en-US')} ₶</span>.
@@ -58,10 +57,9 @@ export default function PrestigeModal({
 
         {/* The exclusive piece, previewed with the artwork it will actually use. */}
         {cosmetic && (
-          <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 p-3 mb-3">
+          <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 mb-3">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-4 w-4 text-accent-primary" />
-              <span className="font-display font-black text-xs uppercase tracking-widest text-accent-primary">Cosmétique exclusif</span>
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border-2 border-brand-border bg-accent-primary text-brand-bg font-display text-sm"><Sparkles className="h-4 w-4" />Cosmétique exclusif</span>
             </div>
             <div className="flex items-center gap-3">
               <CosmeticPreview cosmetic={cosmetic} size={72} />
@@ -76,13 +74,12 @@ export default function PrestigeModal({
           </div>
         )}
 
-        <div className="rounded-xl border-2 border-accent-success bg-accent-success/10 p-3 mb-3">
+        <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 mb-3">
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="h-4 w-4 text-accent-success" />
-            <span className="font-display font-black text-xs uppercase tracking-widest text-accent-success">Bonus permanent</span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border-2 border-brand-border bg-accent-success text-brand-bg font-display text-sm"><TrendingUp className="h-4 w-4" />Bonus permanent</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-display font-black text-2xl text-accent-success tabular-nums">
+            <span className="font-display text-3xl text-accent-success tabular-nums">
               +{(nextBonus * 100).toFixed(1)}%
             </span>
             <span className="text-[11px] text-tx-secondary">
@@ -95,10 +92,9 @@ export default function PrestigeModal({
           </p>
         </div>
 
-        <div className="rounded-xl border-2 border-brand-border bg-brand-inner p-3 mb-5">
+        <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 mb-5">
           <div className="flex items-center gap-2 mb-1">
-            <ShieldCheck className="h-4 w-4 text-tx-secondary" />
-            <span className="font-display font-black text-xs uppercase tracking-widest text-tx-muted">Le reste</span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border-2 border-brand-border bg-[#2B3170] text-white font-display text-sm"><ShieldCheck className="h-4 w-4" />Le reste</span>
           </div>
           <p className="text-sm text-tx-secondary leading-snug">
             Titre <span className="font-black text-accent-primary">{nextTitle}</span> sous ton pseudo.
@@ -110,16 +106,16 @@ export default function PrestigeModal({
         <div className="flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base transition-colors focus:outline-none"
+            className="flex-1 h-14 text-xl rounded-2xl border-[3px] border-brand-border bg-[#2B3170] text-white font-display shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none disabled:opacity-40"
           >
-            ANNULER
+            Annuler
           </button>
           <button
             onClick={onConfirm}
             disabled={busy || balance < PRESTIGE_THRESHOLD}
-            className="flex-[1.4] py-3 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none disabled:opacity-50"
+            className="flex-[1.4] h-14 text-2xl rounded-2xl border-[3px] border-brand-border bg-accent-primary text-brand-bg font-display shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none disabled:opacity-50"
           >
-            {busy ? '···' : 'PRESTIGER'}
+            {busy ? '···' : 'Prestiger'}
           </button>
         </div>
       </div>

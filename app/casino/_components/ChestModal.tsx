@@ -80,27 +80,27 @@ export default function ChestModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[220] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
+    <div className="fixed inset-0 z-[220] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in zoom-in-95 duration-200"
+        className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
-            <h2 className="font-display text-xl font-black flex items-center gap-2">
+            <h2 className="font-display text-3xl leading-none flex items-center gap-2">
               <Gift className="h-5 w-5 text-accent-primary" /> Coffre d&apos;assiduité
             </h2>
-            <p className="text-[11px] text-tx-muted mt-1">
+            <p className="text-xs font-bold text-tx-secondary mt-2">
               Une case par jour. Un jour manqué et tu repars de la première.
             </p>
           </div>
-          <button onClick={onClose} className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none">
+          <button onClick={onClose} aria-label="Fermer" className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] active:translate-y-[2px] flex items-center justify-center focus:outline-none">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {state.broken && state.day === 0 && (
-          <div className="rounded-xl border-2 border-accent-secondary bg-accent-secondary/10 p-3 mb-3 text-sm text-accent-secondary font-bold">
+          <div className="rounded-2xl border-[3px] border-brand-border bg-accent-secondary p-3 mb-3 text-sm text-white font-black">
             Un jour a été sauté : le coffre repart de la première case.
           </div>
         )}
@@ -115,36 +115,36 @@ export default function ChestModal({ onClose }: { onClose: () => void }) {
               <div
                 key={d.day}
                 className={cn(
-                  'relative rounded-xl border-2 p-2 flex flex-col items-center justify-center gap-1 min-h-[84px]',
-                  d.day === CHEST_LENGTH && 'col-span-4 min-h-[92px]',
-                  done ? 'border-accent-success bg-accent-success/10'
-                    : isNext ? 'border-accent-primary bg-accent-primary/10 ring-2 ring-accent-primary/40'
-                    : 'border-brand-border bg-brand-inner opacity-70'
+                  'relative rounded-2xl border-[3px] border-brand-border p-2 flex flex-col items-center justify-center gap-1 min-h-[88px]',
+                  d.day === CHEST_LENGTH && 'col-span-4 min-h-[96px]',
+                  done ? 'bg-accent-success text-brand-bg shadow-[inset_0_-5px_0_#1E9A55]'
+                    : isNext ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] ring-4 ring-white'
+                    : 'bg-[#1A1D4A] text-white'
                 )}
               >
-                <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">
+                <span className="text-[11px] font-black uppercase tracking-widest opacity-80">
                   Jour {d.day}
                 </span>
 
                 {crate
-                  ? <Package className="h-5 w-5 text-accent-primary" />
-                  : <span className="font-display font-black text-sm tabular-nums">
+                  ? <Package className="h-6 w-6" strokeWidth={2.5} />
+                  : <span className="font-display text-lg leading-none tabular-nums">
                       {d.coins.toLocaleString('en-US')} ₶
                     </span>}
 
                 {crate && (
-                  <span className="text-[9px] font-bold text-tx-secondary text-center leading-tight">
+                  <span className="text-[10px] font-black text-center leading-tight opacity-85">
                     {crate.name}
                   </span>
                 )}
 
-                {done && <Check className="absolute top-1 right-1 h-3 w-3 text-accent-success" />}
+                {done && <span className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-white border-2 border-brand-border flex items-center justify-center"><Check className="h-3.5 w-3.5 text-brand-bg" strokeWidth={3} /></span>}
               </div>
             );
           })}
         </div>
 
-        <div className="flex items-center gap-2 mb-4 text-[11px] text-tx-muted">
+        <div className="flex items-center gap-2 mb-4 w-fit px-3 py-1.5 rounded-xl border-2 border-brand-border bg-brand-inner text-sm font-black text-tx-secondary">
           <Flame className={cn('h-3.5 w-3.5', state.day > 0 ? 'text-accent-secondary' : 'text-tx-muted')} />
           <span>
             {state.day > 0
@@ -157,10 +157,10 @@ export default function ChestModal({ onClose }: { onClose: () => void }) {
           onClick={open}
           disabled={busy || state.claimedToday}
           className={cn(
-            'w-full h-14 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border shadow-brutal transition-all focus:outline-none',
+            'w-full h-16 rounded-2xl font-display text-2xl border-4 border-brand-border transition-transform focus:outline-none',
             state.claimedToday
-              ? 'bg-brand-inner text-tx-muted cursor-default shadow-none'
-              : 'bg-accent-primary text-brand-bg hover:brightness-110 active:translate-y-1 active:shadow-none'
+              ? 'bg-brand-inner text-tx-muted cursor-default shadow-[inset_0_4px_0_#0B0E2A]'
+              : 'bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[4px]'
           )}
         >
           {busy ? '···' : state.claimedToday ? 'REVIENS DEMAIN' : `OUVRIR LA CASE ${state.next}`}

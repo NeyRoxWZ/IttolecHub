@@ -69,14 +69,14 @@ export default function PushToggle({ className }: { className?: string }) {
       disabled={busy}
       title={on ? 'Couper les notifications' : 'Être prévenu : coffre, missions, récap, pass, cadeaux'}
       className={cn(
-        'h-11 px-3 rounded-xl border-2 flex items-center gap-2 focus:outline-none transition-colors',
+        'h-11 px-3 rounded-xl border-[3px] flex items-center gap-2 focus:outline-none transition-colors',
         on ? 'border-accent-primary bg-accent-primary/10 text-accent-primary'
            : 'border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base',
         className
       )}
     >
       {on ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-      <span className="font-display font-black text-[11px]">
+      <span className="font-display text-[11px]">
         {on ? 'PRÉVENU' : 'ME PRÉVENIR'}
       </span>
     </button>

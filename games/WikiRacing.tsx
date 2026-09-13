@@ -426,13 +426,13 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
             {/* SETUP PHASE */}
             {currentPhase === 'setup' && (
                 <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg p-4 mx-auto mt-12">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
                         <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
                             <Search className="w-16 h-16 text-accent-primary" />
                         </div>
                         
                         <div className="text-center space-y-2 mb-8">
-                            <h2 className="font-display text-4xl font-black text-tx-base uppercase tracking-wider">
+                            <h2 className="font-display text-4xl text-tx-base">
                                 Wiki<span className="text-accent-primary">Racing</span>
                             </h2>
                             <p className="text-tx-secondary font-bold">
@@ -443,14 +443,14 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                         {isHost ? (
                             <button 
                                 onClick={startNewGame} 
-                                className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg hover:bg-brand-inner hover:text-accent-primary shadow-brutal"
+                                className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg active:translate-y-[3px] shadow-brutal"
                             >
                                 COMMENCER LA PARTIE
                             </button>
                         ) : (
                             <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
                                 <Clock className="w-6 h-6 animate-spin text-accent-primary" />
-                                <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                                <span className="font-display text-tx-base">En attente de l'hôte...</span>
                             </div>
                         )}
                     </div>
@@ -482,13 +482,13 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                                     <path d="M15 85C25 70 40 45 80 20" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="animate-[dash_1s_ease-in-out_forwards]"/>
                                     <path d="M60 15C70 15 80 15 85 20C85 30 80 40 75 45" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
-                                <h3 className="font-display font-black text-xl md:text-2xl transform -rotate-6 tracking-widest uppercase">C'est ça que tu cherches ?</h3>
+                                <h3 className="font-display text-xl md:text-2xl transform -rotate-6">C'est ça que tu cherches ?</h3>
                             </div>
 
                             {/* Main Warning Text */}
                             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center mt-20">
                                 <div className="bg-brand-inner border-4 border-brand-border p-8 rounded-3xl shadow-brutal mb-6 transform rotate-2">
-                                    <h2 className="font-display text-4xl md:text-5xl font-black text-tx-base uppercase mb-4">La recherche est désactivée.</h2>
+                                    <h2 className="font-display text-4xl md:text-5xl text-tx-base mb-4">La recherche est désactivée.</h2>
                                     <p className="text-xl font-bold text-tx-secondary uppercase tracking-widest">Pénalité de 5 secondes en cours...</p>
                                     <Loader2 className="w-12 h-12 animate-spin text-accent-primary mx-auto mt-6" />
                                 </div>
@@ -500,20 +500,20 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                     <div className="bg-brand-card border-b-4 border-brand-border p-3 md:p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm z-10 sticky top-0">
                         <div className="flex items-center gap-3">
                             <span className="text-tx-secondary font-bold uppercase tracking-widest text-xs">Cible :</span>
-                            <div className="font-display text-xl md:text-2xl font-black text-accent-primary break-words">
+                            <div className="font-display text-xl md:text-2xl text-accent-primary break-words">
                                 {targetPage.replace(/_/g, ' ')}
                             </div>
                         </div>
                         <div className="flex items-center gap-6">
-                            <div className="flex items-center gap-2 bg-brand-inner border-2 border-brand-border px-4 py-2 rounded-xl">
+                            <div className="flex items-center gap-2 bg-brand-inner border-[3px] border-brand-border px-4 py-2 rounded-xl">
                                 <LinkIcon className="w-5 h-5 text-tx-secondary" />
-                                <span className="font-display font-black text-xl text-tx-base">{localClicks}</span>
+                                <span className="font-display text-xl text-tx-base">{localClicks}</span>
                                 <span className="text-xs text-tx-secondary font-bold uppercase ml-1">Clics</span>
                             </div>
                             {countdownEndTime && (
-                                <div className="flex items-center gap-2 bg-accent-secondary border-2 border-brand-border px-4 py-2 rounded-xl text-brand-bg animate-pulse">
+                                <div className="flex items-center gap-2 bg-accent-secondary border-[3px] border-brand-border px-4 py-2 rounded-xl text-brand-bg animate-pulse">
                                     <Clock className="w-5 h-5" />
-                                    <span className="font-display font-black text-xl">{timeLeft}s</span>
+                                    <span className="font-display text-xl">{timeLeft}s</span>
                                 </div>
                             )}
                         </div>
@@ -527,16 +527,16 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                         {isLoadingPage && !cheatDetected && (
                             <div className="absolute inset-0 bg-brand-bg/50 backdrop-blur-sm flex flex-col items-center justify-center z-20">
                                 <Loader2 className="w-12 h-12 text-accent-primary animate-spin mb-4" />
-                                <span className="font-display font-black text-tx-base tracking-widest uppercase">Chargement de la page...</span>
+                                <span className="font-display text-tx-base">Chargement de la page...</span>
                             </div>
                         )}
                         
                         {hasFinished && !cheatDetected ? (
                             <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 text-center">
                                 <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-3xl shadow-brutal mb-6 transform rotate-3">
-                                    <Trophy className="w-16 h-16 text-[#FFD000]" />
+                                    <Trophy className="w-16 h-16 text-[#FFC61A]" />
                                 </div>
-                                <h3 className="font-display text-3xl font-black text-tx-base mb-4 uppercase">Objectif Atteint !</h3>
+                                <h3 className="font-display text-3xl text-tx-base mb-4">Objectif Atteint !</h3>
                                 <p className="text-tx-secondary font-bold text-lg">
                                     En attente des autres joueurs...
                                 </p>
@@ -555,8 +555,8 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
             {/* ROUND RESULTS PHASE */}
             {currentPhase === 'round_results' && (
                 <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-2xl p-4 mx-auto mt-12">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col w-full">
-                        <h2 className="font-display text-3xl font-black text-tx-base text-center uppercase tracking-wider mb-8">Résultats de la manche</h2>
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col w-full">
+                        <h2 className="font-display text-3xl text-tx-base text-center mb-8">Résultats de la manche</h2>
                         
                         <div className="space-y-3">
                             {players.map(p => {
@@ -565,16 +565,16 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                                 
                                 return (
                                     <div key={p.id} className={cn(
-                                        "flex items-center justify-between p-4 rounded-xl border-2 border-brand-border",
+                                        "flex items-center justify-between p-4 rounded-xl border-[3px] border-brand-border",
                                         isDnf ? "bg-brand-bg opacity-70" : "bg-brand-inner"
                                     )}>
-                                        <span className="font-display font-black text-lg text-tx-base">{p.name}</span>
+                                        <span className="font-display text-lg text-tx-base">{p.name}</span>
                                         {isDnf ? (
                                             <span className="text-accent-secondary font-bold uppercase tracking-widest text-sm">Temps écoulé</span>
                                         ) : (
                                             <div className="flex items-center gap-4">
                                                 <span className="text-tx-secondary font-bold text-sm">{stat.clicks} clics</span>
-                                                <span className="text-accent-primary font-black font-display">{formatTime(stat.time)}</span>
+                                                <span className="text-accent-primary font-display">{formatTime(stat.time)}</span>
                                             </div>
                                         )}
                                     </div>
@@ -595,11 +595,11 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
             {/* PODIUM PHASE */}
             {currentPhase === 'podium' && (
                 <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in mx-auto mt-12">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                         <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                             <Trophy className="w-16 h-16 text-accent-primary" />
                         </div>
-                        <h2 className="font-display text-4xl font-black text-tx-base mb-8 uppercase tracking-widest">Classement Final</h2>
+                        <h2 className="font-display text-4xl text-tx-base mb-8">Classement Final</h2>
                         
                         <div className="w-full space-y-4 mb-8">
                             {sortedPlayers.map((p, i) => (
@@ -608,25 +608,25 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                                     i === 0 ? "bg-accent-primary text-brand-bg transform scale-105 z-10" : "bg-brand-inner text-tx-base"
                                 )}>
                                     {i === 0 && (
-                                        <div className="absolute -top-4 -right-4 bg-[#FFD000] text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
+                                        <div className="absolute -top-4 -right-4 bg-accent-primary text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
                                             Encyclopédie
                                         </div>
                                     )}
                                     
                                     <div className="flex items-center gap-4">
                                         <span className={cn(
-                                            "w-12 h-12 flex items-center justify-center rounded-xl font-display font-black text-2xl border-2 border-brand-border",
-                                            i === 0 ? "bg-[#FFD000] text-brand-bg" : "bg-brand-bg text-tx-base"
+                                            "w-12 h-12 flex items-center justify-center rounded-xl font-display text-2xl border-[3px] border-brand-border",
+                                            i === 0 ? "bg-accent-primary text-brand-bg" : "bg-brand-bg text-tx-base"
                                         )}>
                                             {i + 1}
                                         </span>
                                         
                                         <div className="flex flex-col text-left">
-                                            <span className="text-xl font-display font-black">{p.name}</span>
+                                            <span className="text-xl font-display">{p.name}</span>
                                         </div>
                                     </div>
                                     <span className={cn(
-                                        "text-3xl font-display font-black",
+                                        "text-3xl font-display",
                                         i === 0 ? "text-brand-bg" : "text-accent-primary"
                                     )}>{p.score} pts</span>
                                 </div>
@@ -636,9 +636,9 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                         {isHost && (
                             <button 
                                 onClick={returnToLobby} 
-                                className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg shadow-brutal"
+                                className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[3px]"
                             >
-                                RETOUR AU SALON
+                                Retour au salon
                             </button>
                         )}
                     </div>

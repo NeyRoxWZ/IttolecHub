@@ -35,7 +35,7 @@ export default function CelebrationLayer() {
 
   return (
     <div
-      className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[300] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
       onClick={dismissCelebration}
     >
       <Confetti trigger={burst} intensity="huge" />
@@ -57,33 +57,33 @@ function TierBanner({ tiers }: { tiers: number[] }) {
         href="/casino/pass"
         prefetch
         onClick={dismissCelebration}
-        className="pointer-events-auto flex items-center gap-3 rounded-2xl border-4 border-accent-primary bg-brand-card/95 backdrop-blur px-4 py-3 shadow-brutal animate-in slide-in-from-top-4 fade-in duration-300"
+        className="pointer-events-auto flex items-center gap-3 rounded-2xl border-4 border-brand-border bg-accent-primary text-brand-bg px-4 py-3 shadow-[inset_0_-6px_0_#D98E00,0_6px_0_#05061A] animate-in slide-in-from-top-4 fade-in duration-300"
       >
-        <Crown className="h-6 w-6 text-accent-primary shrink-0" />
+        <Crown className="h-7 w-7 text-brand-bg shrink-0" strokeWidth={2.5} />
         <div className="min-w-0 flex-1">
-          <div className="font-display font-black text-sm leading-tight">
+          <div className="font-display text-lg leading-tight">
             {tiers.length > 1
               ? `Niveau ${tiers[tiers.length - 1]} — ${tiers.length} paliers gagnés`
               : `Niveau ${tiers[0]} gagné`}
           </div>
-          <div className="text-[11px] text-tx-muted">Récupère ta récompense dans le Frenly Pass.</div>
+          <div className="text-xs font-black opacity-80">Récupère ta récompense dans le Frenly Pass.</div>
         </div>
-        <span className="text-[10px] font-black text-accent-primary tracking-widest shrink-0">VOIR</span>
+        <span className="px-2 py-1 rounded-lg bg-brand-bg text-white font-display text-sm shrink-0">Voir</span>
       </Link>
     </div>
   );
 }
 
 function Panel({ event }: { event: Celebration }) {
-  const shell = 'relative w-full max-w-sm rounded-[28px] border-4 border-brand-border bg-brand-card p-8 text-center shadow-brutal animate-in zoom-in-90 duration-300';
+  const shell = 'relative w-full max-w-sm rounded-[28px] border-4 border-brand-border bg-brand-card p-8 text-center shadow-[0_8px_0_#05061A] animate-in zoom-in-90 duration-300';
 
   if (event.kind === 'jackpot') {
     return (
-      <div className={cn(shell, 'border-accent-primary')} onClick={(e) => e.stopPropagation()}>
-        <Gem className="h-14 w-14 text-accent-primary mx-auto mb-3" />
-        <h2 className="font-display text-3xl font-black text-accent-primary mb-1">JACKPOT</h2>
-        <p className="text-sm text-tx-secondary mb-4">Tu rafles toute la cagnotte commune.</p>
-        <div className="font-display font-black text-4xl text-accent-success tabular-nums mb-5">
+      <div className={shell} onClick={(e) => e.stopPropagation()}>
+        <span className="mx-auto mb-4 h-20 w-20 rounded-3xl border-4 border-brand-border bg-accent-info flex items-center justify-center shadow-[inset_0_-6px_0_#2F5BD0,0_5px_0_#05061A]"><Gem className="h-10 w-10 text-white" strokeWidth={2.5} /></span>
+        <h2 className="font-display text-6xl leading-none mb-2">Jackpot !</h2>
+        <p className="text-sm font-bold text-tx-secondary mb-4">Tu rafles toute la cagnotte commune.</p>
+        <div className="font-display text-5xl leading-none text-accent-success tabular-nums mb-6 [-webkit-text-stroke:5px_#05061A] [paint-order:stroke_fill] [text-shadow:0_4px_0_#05061A]">
           +{event.amount.toLocaleString('en-US')} ₶
         </div>
         <DismissButton />
@@ -93,32 +93,32 @@ function Panel({ event }: { event: Celebration }) {
 
   return (
     <div className={shell} onClick={(e) => e.stopPropagation()}>
-      <Crown className="h-12 w-12 text-accent-primary mx-auto mb-3" />
-      <h2 className="font-display text-2xl font-black mb-1">
+      <span className="mx-auto mb-4 h-20 w-20 rounded-3xl border-4 border-brand-border bg-accent-primary flex items-center justify-center shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A]"><Crown className="h-10 w-10 text-brand-bg" strokeWidth={2.5} /></span>
+      <h2 className="font-display text-3xl leading-tight mb-2">
         {event.tiers.length > 1 ? `${event.tiers.length} paliers débloqués` : `Palier ${event.tiers[0]} débloqué`}
       </h2>
-      <p className="text-sm text-tx-secondary mb-5">
+      <p className="text-sm font-bold text-tx-secondary mb-5">
         Récompenses à récupérer dans le Frenly Pass.
       </p>
       <div className="flex flex-wrap justify-center gap-1.5 mb-5">
         {event.tiers.slice(0, 12).map((t) => (
-          <span key={t} className="h-8 w-8 rounded-lg border-2 border-accent-primary bg-accent-primary/10 text-accent-primary font-display font-black text-xs flex items-center justify-center">
+          <span key={t} className="h-10 w-10 rounded-xl border-2 border-brand-border bg-accent-primary text-brand-bg font-display text-base flex items-center justify-center">
             {t}
           </span>
         ))}
       </div>
-      <DismissButton label="VOIR PLUS TARD" />
+      <DismissButton label="Voir plus tard" />
     </div>
   );
 }
 
-function DismissButton({ label = 'CONTINUER' }: { label?: string }) {
+function DismissButton({ label = 'Continuer' }: { label?: string }) {
   return (
     <button
       onClick={dismissCelebration}
-      className="w-full h-14 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none flex items-center justify-center gap-2"
+      className="w-full h-16 rounded-2xl font-display text-2xl border-4 border-brand-border transition-transform focus:outline-none flex items-center justify-center gap-2 bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[4px]"
     >
-      <Sparkles className="h-4 w-4" />
+      <Sparkles className="h-6 w-6" strokeWidth={2.5} />
       {label}
     </button>
   );

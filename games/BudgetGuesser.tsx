@@ -346,13 +346,13 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
         {/* PHASE: SETUP */}
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
-               <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+               <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
                    <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
                        <DollarSign className="w-16 h-16 text-accent-success" />
                    </div>
                    
                    <div className="text-center space-y-2 mb-8">
-                        <h2 className="font-display text-4xl font-black text-tx-base uppercase tracking-wider">Hollywood est prêt ?</h2>
+                        <h2 className="font-display text-4xl text-tx-base">Hollywood est prêt ?</h2>
                        <p className="text-tx-secondary font-bold">
                            Rounds : <span className="text-accent-primary font-black uppercase tracking-widest">{totalRounds}</span> • 
                            Temps : <span className="text-[#06B6D4] font-black uppercase tracking-widest">{settings.time || 30}s</span>
@@ -362,14 +362,14 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                    {isHost ? (
                        <button 
                            onClick={startNewGame}
-                           className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success shadow-brutal"
+                           className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-success text-brand-bg hover:bg-brand-inner hover:text-accent-success shadow-brutal"
                        >
-                           LANCER LA PARTIE
+                           Lancer la partie
                        </button>
                    ) : (
                         <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
                             <Loader2 className="w-6 h-6 animate-spin text-accent-success" />
-                            <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                            <span className="font-display text-tx-base">En attente de l'hôte...</span>
                        </div>
                    )}
                </div>
@@ -381,7 +381,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
             <div key={`${game.current_round}-${currentPhase}`} className="flex flex-col items-center w-full max-w-4xl gap-6 pt-4 px-4 animate-in fade-in duration-300">
                 
                 {/* MOVIE CARD */}
-                <div className="flex flex-col md:flex-row bg-brand-card rounded-[32px] overflow-hidden shadow-brutal border-4 border-brand-border w-full p-4 gap-6">
+                <div className="flex flex-col md:flex-row bg-brand-card rounded-[28px] overflow-hidden shadow-brutal border-4 border-brand-border w-full p-4 gap-6">
                     {/* Poster */}
                     <div className="w-full md:w-1/3 aspect-[2/3] relative bg-brand-inner rounded-2xl overflow-hidden border-4 border-brand-border shadow-inner">
                         {currentMovie.poster_path ? (
@@ -394,11 +394,11 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                     {/* Info */}
                     <div className="w-full md:w-2/3 flex flex-col justify-between p-2">
                         <div>
-                            <h2 className="font-display text-3xl md:text-5xl font-black text-tx-base mb-4 uppercase tracking-wider leading-tight">{currentMovie.title}</h2>
+                            <h2 className="font-display text-3xl md:text-5xl text-tx-base mb-4 leading-tight">{currentMovie.title}</h2>
                             <div className="flex flex-wrap gap-2 mb-4">
-                                <span className="bg-brand-inner border-2 border-brand-border px-4 py-1.5 rounded-xl text-sm font-black uppercase tracking-widest text-tx-base">{currentMovie.release_date}</span>
+                                <span className="bg-brand-inner border-[3px] border-brand-border px-4 py-1.5 rounded-xl text-sm font-black uppercase tracking-widest text-tx-base">{currentMovie.release_date}</span>
                                 {currentMovie.genres && currentMovie.genres.map((g: string) => (
-                                    <span key={g} className="bg-accent-primary/20 border-2 border-accent-primary text-accent-primary px-4 py-1.5 rounded-xl text-sm font-black uppercase tracking-widest">{g}</span>
+                                    <span key={g} className="bg-accent-primary/20 border-[3px] border-accent-primary text-accent-primary px-4 py-1.5 rounded-xl text-sm font-black uppercase tracking-widest">{g}</span>
                                 ))}
                             </div>
                         </div>
@@ -407,11 +407,11 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                         <div className="mt-8 bg-brand-inner border-4 border-brand-border p-6 rounded-2xl shadow-brutal">
                             <h3 className="text-tx-secondary text-sm font-black uppercase tracking-widest mb-2">Budget de production</h3>
                             {currentPhase === 'round_results' ? (
-                                <div className="font-display text-4xl md:text-5xl font-black text-accent-success animate-in zoom-in">
+                                <div className="font-display text-4xl md:text-5xl text-accent-success animate-in zoom-in">
                                     {formatCurrency(currentMovie.budget)}
                                 </div>
                             ) : (
-                                <div className="font-display text-4xl md:text-5xl font-black text-tx-muted bg-brand-bg/50 select-none blur-[10px] rounded-xl px-4 py-2 inline-block">
+                                <div className="font-display text-4xl md:text-5xl text-tx-muted bg-brand-bg/50 select-none blur-[10px] rounded-xl px-4 py-2 inline-block">
                                     $999,999,999
                                 </div>
                             )}
@@ -423,7 +423,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                 {currentPhase === 'playing' && (
                     <div className="w-full max-w-xl animate-in slide-in-from-bottom-4">
                         {hasGuessed ? (
-                            <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl font-display text-xl font-black uppercase tracking-wider shadow-brutal flex items-center justify-center gap-3 text-tx-base">
+                            <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl font-display text-xl shadow-brutal flex items-center justify-center gap-3 text-tx-base">
                                 <DollarSign className="w-6 h-6 text-accent-success" />
                                 Budget estimé ! Attente des autres...
                             </div>
@@ -437,16 +437,16 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                                         value={userGuess}
                                         onChange={e => setUserGuess(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && submitGuess()}
-                                        className="w-full h-16 pl-14 pr-4 text-2xl font-bold bg-brand-inner border-4 border-brand-border focus:border-tx-base text-tx-base placeholder:text-tx-muted rounded-2xl shadow-brutal outline-none transition-colors"
+                                        className="w-full h-16 pl-14 pr-4 text-2xl font-bold bg-brand-inner border-4 border-brand-border focus:border-accent-primary text-tx-base placeholder:text-tx-muted rounded-2xl shadow-brutal outline-none transition-colors"
                                         autoFocus
                                     />
                                 </div>
                                 <button 
                                     onClick={submitGuess}
                                     disabled={!userGuess.trim()}
-                                    className="h-16 px-8 bg-accent-success hover:bg-tx-base text-brand-bg font-display font-black tracking-wider rounded-2xl shadow-brutal border-4 border-brand-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="h-16 px-8 bg-accent-success hover:brightness-110 text-brand-bg font-display rounded-2xl shadow-brutal border-4 border-brand-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    VALIDER
+                                    Valider
                                 </button>
                             </div>
                         )}
@@ -467,12 +467,12 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                                     isWinner ? "bg-accent-success/20 border-accent-success" : "bg-brand-inner"
                                 )}>
                                     <div className="flex flex-col">
-                                        <span className="font-display font-black text-lg text-tx-base">{p.name}</span>
+                                        <span className="font-display text-lg text-tx-base">{p.name}</span>
                                         <span className="text-sm font-bold text-tx-secondary uppercase tracking-widest">Écart: {diff.toFixed(1)}%</span>
                                     </div>
                                     <div className="text-right">
                                         <div className={cn(
-                                            "font-display font-black text-xl",
+                                            "font-display text-xl",
                                             isWinner ? "text-accent-success" : "text-tx-base"
                                         )}>{formatCurrency(p.last_guess)}</div>
                                     </div>
@@ -487,11 +487,11 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
         {/* PHASE: PODIUM */}
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <Trophy className="w-16 h-16 text-accent-success" />
                     </div>
-                    <h2 className="font-display text-4xl font-black text-tx-base mb-8 uppercase tracking-widest">Classement Final</h2>
+                    <h2 className="font-display text-4xl text-tx-base mb-8">Classement Final</h2>
                     
                     <div className="w-full space-y-4 mb-8">
                         {sortedPlayers.map((p, i) => (
@@ -508,14 +508,14 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                                 
                                 <div className="flex items-center gap-4">
                                     <span className={cn(
-                                        "w-12 h-12 flex items-center justify-center rounded-xl font-display font-black text-2xl border-2 border-brand-border",
+                                        "w-12 h-12 flex items-center justify-center rounded-xl font-display text-2xl border-[3px] border-brand-border",
                                         i === 0 ? "bg-accent-primary text-brand-bg" : "bg-brand-bg text-tx-base"
                                     )}>
                                         {i + 1}
                                     </span>
                                     
                                     <div className="flex flex-col text-left">
-                                        <span className="text-xl font-display font-black">{p.name}</span>
+                                        <span className="text-xl font-display">{p.name}</span>
                                         <span className={cn(
                                             "text-xs font-bold uppercase tracking-widest",
                                             i === 0 ? "text-brand-bg/80" : "text-tx-secondary"
@@ -525,7 +525,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                                     </div>
                                 </div>
                                 <span className={cn(
-                                    "text-3xl font-display font-black",
+                                    "text-3xl font-display",
                                     i === 0 ? "text-brand-bg" : "text-accent-success"
                                 )}>{p.score}</span>
                             </div>
@@ -535,9 +535,9 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                     {isHost && (
                         <button 
                             onClick={returnToLobby} 
-                            className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg shadow-brutal"
+                            className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[3px]"
                         >
-                            RETOUR AU SALON
+                            Retour au salon
                         </button>
                     )}
                 </div>

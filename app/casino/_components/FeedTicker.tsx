@@ -76,7 +76,7 @@ export default function FeedTicker() {
       <div
         key={entry.id}
         className={cn(
-          'rounded-xl border-2 bg-brand-card/95 backdrop-blur px-3 py-2 shadow-brutal',
+          'rounded-xl border-[3px] bg-brand-card/95 backdrop-blur px-3 py-2 shadow-brutal',
           'animate-in slide-in-from-left-3 fade-in duration-300',
           entry.pinned ? 'border-accent-primary' : 'border-brand-border'
         )}
@@ -98,11 +98,11 @@ export default function FeedTicker() {
         </div>
 
         <div className="flex items-baseline gap-2 mt-0.5">
-          <span className="font-display font-black text-sm text-accent-success tabular-nums">
+          <span className="font-display text-lg text-accent-success tabular-nums">
             +{Number(entry.amount).toLocaleString('en-US')} ₶
           </span>
           {Number(entry.multiplier) > 1 && (
-            <span className="font-display font-black text-[11px] text-accent-primary tabular-nums">
+            <span className="font-display text-[11px] text-accent-primary tabular-nums">
               ×{Number(entry.multiplier)}
             </span>
           )}

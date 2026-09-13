@@ -73,27 +73,27 @@ export default function PushPrompt({ reasons = REASONS }: { reasons?: string[] }
 
   return (
     <div
-      className="fixed inset-0 z-[390] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-[390] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
       onClick={later}
     >
       <div
-        className="w-full max-w-sm bg-brand-card border-4 border-brand-border rounded-[28px] shadow-brutal p-6 animate-in zoom-in-95 duration-200"
+        className="w-full max-w-sm bg-brand-card border-4 border-brand-border rounded-[28px] shadow-[0_8px_0_#05061A] p-6 animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="push-prompt-title"
       >
-        <div className="h-12 w-12 rounded-2xl border-2 border-accent-primary bg-accent-primary/10 text-accent-primary flex items-center justify-center mb-4">
-          <Bell className="h-6 w-6" />
+        <div className="h-14 w-14 rounded-2xl border-[3px] border-brand-border bg-accent-primary text-brand-bg flex items-center justify-center mb-4 shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A]">
+          <Bell className="h-7 w-7" strokeWidth={2.5} />
         </div>
-        <h2 id="push-prompt-title" className="font-display text-xl font-black leading-tight">
+        <h2 id="push-prompt-title" className="font-display text-3xl leading-tight">
           Activer les notifications ?
         </h2>
-        <p className="text-[12px] text-tx-muted mt-1 mb-4">On te prévient seulement pour :</p>
+        <p className="text-sm font-bold text-tx-secondary mt-1 mb-4">On te prévient seulement pour :</p>
         <ul className="space-y-2 mb-6">
           {reasons.map((r) => (
-            <li key={r} className="flex gap-2.5 text-[13px] leading-snug text-tx-secondary">
-              <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent-primary" />
+            <li key={r} className="flex gap-2.5 items-start rounded-xl border-2 border-brand-border bg-brand-inner px-3 py-2 text-sm font-bold leading-snug text-white">
+              <span className="mt-1 h-3 w-3 shrink-0 rounded-md border-2 border-brand-border bg-accent-primary" />
               {r}
             </li>
           ))}
@@ -102,16 +102,16 @@ export default function PushPrompt({ reasons = REASONS }: { reasons?: string[] }
           <button
             onClick={later}
             disabled={busy}
-            className="flex-1 h-12 rounded-xl border-2 border-brand-border bg-brand-inner font-display font-black text-xs tracking-wider text-tx-secondary hover:text-tx-base focus:outline-none"
+            className="flex-1 h-14 text-lg rounded-2xl border-[3px] border-brand-border bg-[#2B3170] text-white font-display shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none disabled:opacity-40"
           >
-            PLUS TARD
+            Plus tard
           </button>
           <button
             onClick={enable}
             disabled={busy}
-            className="flex-1 h-12 rounded-xl bg-accent-primary text-brand-bg font-display font-black text-xs tracking-wider border-2 border-brand-border focus:outline-none disabled:opacity-60"
+            className="flex-1 h-14 text-lg rounded-2xl border-[3px] border-brand-border bg-accent-primary text-brand-bg font-display shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none disabled:opacity-50"
           >
-            {busy ? '…' : 'ACTIVER'}
+            {busy ? '…' : 'Activer'}
           </button>
         </div>
       </div>

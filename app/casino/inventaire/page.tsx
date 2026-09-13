@@ -175,12 +175,12 @@ export default function InventoryPage() {
             <Link
               href="/casino"
               prefetch
-              className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
+              className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[2px] transition-transform focus:outline-none"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div className="min-w-0">
-              <h1 className="font-display text-xl sm:text-2xl font-black leading-none">Inventaire</h1>
+              <h1 className="font-display text-3xl sm:text-4xl leading-none">Inventaire</h1>
               <span className="text-[11px] text-tx-muted">Tes objets et ta collection de cosmétiques.</span>
             </div>
           </div>
@@ -196,7 +196,7 @@ export default function InventoryPage() {
               key={id}
               onClick={() => { sfx.click(); setTab(id); setQuery(''); }}
               className={cn(
-                'h-11 px-4 rounded-xl border-2 flex items-center gap-2 font-display font-black text-xs tracking-wide focus:outline-none transition-colors',
+                'h-11 px-4 rounded-xl border-[3px] flex items-center gap-2 font-display text-base tracking-wide focus:outline-none transition-colors',
                 tab === id ? 'border-accent-primary bg-accent-primary/10 text-accent-primary'
                   : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
               )}
@@ -212,7 +212,7 @@ export default function InventoryPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={tab === 'objets' ? 'Chercher un objet…' : 'Chercher un cosmétique ou un jeu…'}
-              className="w-full h-11 bg-brand-inner border-2 border-brand-border rounded-xl pl-9 pr-9 text-sm font-bold focus:outline-none focus:border-accent-primary"
+              className="w-full h-11 bg-brand-inner border-[3px] border-brand-border rounded-xl pl-9 pr-9 text-sm font-bold focus:outline-none focus:border-accent-primary"
             />
             {query && (
               <button
@@ -244,7 +244,7 @@ export default function InventoryPage() {
                     slug === GLOBAL_SLUG ? 'border-accent-primary/60' : 'border-brand-border'
                   )}
                 >
-                  <span className="font-display font-black text-sm">{gameLabel(slug)}</span>
+                  <span className="font-display text-lg">{gameLabel(slug)}</span>
                   <span className="text-[11px] text-tx-muted leading-tight">
                     {slug === GLOBAL_SLUG ? 'Tous les jeux et écrans' : `${total} pièces`}
                   </span>
@@ -314,11 +314,11 @@ function CosmeticGrid({
       <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={onBack}
-          className="h-9 px-3 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-1.5 text-xs font-black hover:border-accent-primary focus:outline-none"
+          className="h-9 px-3 rounded-xl border-[3px] border-brand-border bg-brand-card flex items-center gap-1.5 text-xs font-black hover:border-accent-primary focus:outline-none"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Tous les jeux
         </button>
-        <span className="font-display font-black text-sm">{gameLabel(game)}</span>
+        <span className="font-display text-lg">{gameLabel(game)}</span>
         <span className="text-[11px] text-tx-muted">
           {game === GLOBAL_SLUG
             ? 'Tous les jeux · tapis et contour aussi sur les pages si la palette est activée'
@@ -330,7 +330,7 @@ function CosmeticGrid({
           {equippedCount > 0 && (
             <button
               onClick={() => onEquipAll(game, 'clear_all')}
-              className="h-9 px-3 rounded-xl border-2 border-brand-border bg-brand-card flex items-center gap-1.5 text-xs font-black text-tx-secondary hover:text-tx-base hover:border-tx-base focus:outline-none"
+              className="h-9 px-3 rounded-xl border-[3px] border-brand-border bg-brand-card flex items-center gap-1.5 text-xs font-black text-tx-secondary hover:text-tx-base hover:border-tx-base focus:outline-none"
             >
               <Eraser className="h-3.5 w-3.5" /> Tout retirer
             </button>
@@ -338,7 +338,7 @@ function CosmeticGrid({
           <button
             onClick={() => onEquipAll(game, 'equip_all')}
             disabled={ownedCount === 0}
-            className="h-9 px-3 rounded-xl border-2 border-accent-primary bg-accent-primary text-brand-bg flex items-center gap-1.5 text-xs font-black hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none"
+            className="h-9 px-3 rounded-xl border-[3px] border-accent-primary bg-accent-primary text-brand-bg flex items-center gap-1.5 text-xs font-black hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none"
           >
             <Wand2 className="h-3.5 w-3.5" /> Tout équiper
           </button>
@@ -351,7 +351,7 @@ function CosmeticGrid({
             key={t.key}
             onClick={() => { sfx.click(); onTheme(t.key); }}
             className={cn(
-              'h-8 px-2.5 rounded-lg border-2 shrink-0 text-[11px] font-black focus:outline-none transition-colors',
+              'h-8 px-2.5 rounded-lg border-[3px] shrink-0 text-[11px] font-black focus:outline-none transition-colors',
               theme === t.key ? 'border-accent-primary bg-accent-primary/10 text-accent-primary'
                 : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
             )}
@@ -373,10 +373,10 @@ function CosmeticGrid({
             return (
               <div key={piece.id} className="rounded-2xl border-4 border-dashed border-brand-border bg-brand-card p-3 flex flex-col items-center gap-2 opacity-70">
                 <span className="text-[9px] font-black uppercase tracking-widest text-tx-muted">{SLOT_LABEL[piece.slot]}</span>
-                <div className="h-[86px] w-[86px] rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center">
+                <div className="h-[86px] w-[86px] rounded-xl border-[3px] border-brand-border bg-brand-inner flex items-center justify-center">
                   <Lock className="h-7 w-7 text-tx-muted" />
                 </div>
-                <span className="font-display font-black text-[11px] text-tx-muted">?????</span>
+                <span className="font-display text-[11px] text-tx-muted">?????</span>
                 <span className="text-[10px] text-tx-muted text-center leading-tight">
                   {piece.prestige ? `Prestige ${piece.prestige}` : SOURCE_LABEL[piece.source]}
                 </span>
@@ -409,13 +409,13 @@ function CosmeticGrid({
               </span>
 
               <CosmeticPreview cosmetic={piece} size={86} />
-              <span className="font-display font-black text-[11px] leading-tight text-center">{piece.name}</span>
+              <span className="font-display text-[11px] leading-tight text-center">{piece.name}</span>
               <span className="text-[10px] text-tx-muted leading-tight text-center">{cosmeticEffect(piece)}</span>
 
               <button
                 onClick={() => onEquip(game, piece.slot, isEquipped ? null : piece.id)}
                 className={cn(
-                  'mt-auto w-full h-8 rounded-lg border-2 font-black text-[10px] tracking-widest focus:outline-none transition-colors',
+                  'mt-auto w-full h-8 rounded-lg border-[3px] font-black text-[10px] tracking-widest focus:outline-none transition-colors',
                   isEquipped ? 'border-accent-primary bg-accent-primary text-brand-bg'
                     : 'border-brand-border bg-brand-inner hover:border-accent-primary'
                 )}

@@ -92,12 +92,12 @@ export default function CommunityQuestPanel() {
 
   return (
     <div className={cn(
-      'rounded-2xl border-2 p-3',
+      'rounded-2xl border-[3px] p-3',
       state.completed ? 'border-accent-success bg-accent-success/10' : 'border-brand-border bg-brand-inner'
     )}>
       <div className="flex items-center gap-2 mb-1.5">
         <Users className={cn('h-4 w-4 shrink-0', state.completed ? 'text-accent-success' : 'text-accent-primary')} />
-        <span className="font-display font-black text-[12px] leading-tight flex-1 min-w-0">
+        <span className="font-display text-[12px] leading-tight flex-1 min-w-0">
           {state.quest.label}
         </span>
         {state.completed && <Check className="h-4 w-4 text-accent-success shrink-0" />}
@@ -119,7 +119,7 @@ export default function CommunityQuestPanel() {
 
       {/* What the bar is actually worth. Without this the goal reads as a
           chore: a big number to fill with no stated payoff. */}
-      <div className="mt-2.5 rounded-xl border-2 border-brand-border bg-brand-bg p-2.5">
+      <div className="mt-2.5 rounded-xl border-[3px] border-brand-border bg-brand-bg p-2.5">
         <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted mb-1">
           Si la barre se remplit
         </div>
@@ -170,7 +170,7 @@ export default function CommunityQuestPanel() {
         <button
           onClick={claim}
           disabled={busy}
-          className="mt-3 w-full h-10 rounded-xl border-2 border-accent-success bg-accent-success text-brand-bg font-display font-black text-[11px] tracking-widest hover:brightness-110 disabled:opacity-50 focus:outline-none"
+          className="mt-3 w-full h-10 rounded-xl border-[3px] border-accent-success bg-accent-success text-brand-bg font-display text-[11px] hover:brightness-110 disabled:opacity-50 focus:outline-none"
         >
           {busy ? '···' : `RÉCLAMER ${state.you!.reward.toLocaleString('en-US')} ₶`}
         </button>

@@ -122,12 +122,12 @@ export default function LivePage() {
           <Link
             href="/casino"
             prefetch
-            className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
+            className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[2px] transition-transform focus:outline-none"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="min-w-0">
-            <h1 className="font-display text-xl sm:text-2xl font-black leading-none flex items-center gap-2">
+            <h1 className="font-display text-3xl sm:text-4xl leading-none flex items-center gap-2">
               En direct
               <Radio className={cn('h-4 w-4 text-accent-secondary', !paused && 'animate-pulse')} />
             </h1>
@@ -137,7 +137,7 @@ export default function LivePage() {
           <button
             onClick={() => { sfx.click(); setPaused((p) => !p); }}
             className={cn(
-              'ml-auto h-11 px-3 rounded-xl border-2 flex items-center gap-2 font-display font-black text-xs tracking-wider focus:outline-none transition-colors',
+              'ml-auto h-11 px-3 rounded-xl border-[3px] flex items-center gap-2 font-display text-base tracking-wider focus:outline-none transition-colors',
               paused ? 'border-accent-primary bg-accent-primary/10 text-accent-primary' : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
             )}
           >
@@ -153,7 +153,7 @@ export default function LivePage() {
             { label: 'Perdu', value: totals.lost, tone: 'text-accent-secondary', icon: TrendingDown },
             { label: 'Solde net', value: totals.net, tone: totals.net >= 0 ? 'text-accent-success' : 'text-accent-secondary', icon: Radio },
           ].map((s) => (
-            <div key={s.label} className="rounded-xl border-2 border-brand-border bg-brand-card p-3">
+            <div key={s.label} className="rounded-xl border-[3px] border-brand-border bg-brand-card p-3">
               <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-tx-muted">
                 <s.icon className="h-3 w-3" /> {s.label}
               </div>
@@ -176,7 +176,7 @@ export default function LivePage() {
                 <div
                   key={r.id}
                   className={cn(
-                    'w-full text-left px-3 py-2.5 rounded-xl border-2 transition-all',
+                    'w-full text-left px-3 py-2.5 rounded-xl border-[3px] transition-all',
                     'animate-in slide-in-from-top-2 fade-in duration-300',
                     win ? 'border-accent-success/40 bg-accent-success/5' : 'border-brand-border bg-brand-card'
                   )}
@@ -202,7 +202,7 @@ export default function LivePage() {
                   )}
 
                   <span className={cn(
-                    'ml-auto font-display font-black text-sm tabular-nums shrink-0',
+                    'ml-auto font-display text-lg tabular-nums shrink-0',
                     win ? 'text-accent-success' : 'text-accent-secondary'
                   )}>
                     {win ? '+' : ''}{Number(r.amount).toLocaleString('en-US')} ₶

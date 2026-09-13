@@ -92,19 +92,19 @@ export default function MissionsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
+    <div className="fixed inset-0 z-[200] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
       <div
-        className="w-full max-w-md max-h-[88dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in zoom-in-95 duration-200"
+        className="w-full max-w-md max-h-[88dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
-            <h2 className="font-display text-xl font-black flex items-center gap-2">
+            <h2 className="font-display text-3xl leading-none flex items-center gap-2">
               <Target className="h-5 w-5 text-accent-primary" /> Missions
             </h2>
-            <p className="text-[11px] text-tx-muted mt-1">Trois horloges, trois listes.</p>
+            <p className="text-xs font-bold text-tx-secondary mt-2">Trois horloges, trois listes.</p>
           </div>
-          <button onClick={onClose} className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none">
+          <button onClick={onClose} aria-label="Fermer" className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] active:translate-y-[2px] flex items-center justify-center focus:outline-none">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -124,18 +124,18 @@ export default function MissionsModal({
                     key={scope}
                     onClick={() => { sfx.click(); setTab(scope); }}
                     className={cn(
-                      'relative h-12 rounded-xl border-2 px-2 flex flex-col items-center justify-center focus:outline-none transition-colors',
+                      'relative h-14 rounded-xl border-[3px] px-1 flex flex-col items-center justify-center focus:outline-none transition-transform active:translate-y-[2px]',
                       tab === scope
-                        ? 'border-accent-primary bg-accent-primary/10 text-accent-primary'
-                        : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
+                        ? 'border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00,0_3px_0_#05061A]'
+                        : 'border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A]'
                     )}
                   >
-                    <span className="font-display font-black text-[11px] leading-none">{SCOPE_LABEL[scope]}</span>
-                    <span className="text-[9px] font-bold text-tx-muted mt-0.5">
+                    <span className="font-display text-sm leading-none">{SCOPE_LABEL[scope]}</span>
+                    <span className="text-[11px] font-black opacity-80 mt-0.5">
                       {group.filter((m) => m.claimed).length}/{group.length}
                     </span>
                     {ready > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent-secondary text-white text-[10px] font-black flex items-center justify-center">
+                      <span className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white font-display text-xs flex items-center justify-center">
                         {ready}
                       </span>
                     )}
@@ -147,18 +147,18 @@ export default function MissionsModal({
               <button
                 onClick={() => { sfx.click(); setTab('commun'); }}
                 className={cn(
-                  'relative h-12 rounded-xl border-2 px-2 flex flex-col items-center justify-center focus:outline-none transition-colors',
+                  'relative h-14 rounded-xl border-[3px] px-1 flex flex-col items-center justify-center focus:outline-none transition-transform active:translate-y-[2px]',
                   tab === 'commun'
-                    ? 'border-accent-primary bg-accent-primary/10 text-accent-primary'
-                    : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
+                    ? 'border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00,0_3px_0_#05061A]'
+                    : 'border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A]'
                 )}
               >
-                <span className="font-display font-black text-[11px] leading-none">Commun</span>
-                <span className="text-[9px] font-bold text-tx-muted mt-0.5">
+                <span className="font-display text-sm leading-none">Commun</span>
+                <span className="text-[11px] font-black opacity-80 mt-0.5">
                   {community ? `${Math.min(100, Math.round((community.progress / community.target) * 100))}%` : '···'}
                 </span>
                 {community?.completed && community.you && !community.you.claimed && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent-secondary text-white text-[10px] font-black flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white font-display text-xs flex items-center justify-center">
                     1
                   </span>
                 )}
@@ -169,7 +169,7 @@ export default function MissionsModal({
               <CommunityQuestPanel />
             ) : (
               <>
-                <p className="text-[10px] text-tx-muted mb-2">{SCOPE_HINT[tab]}</p>
+                <p className="text-xs font-bold text-tx-secondary mb-2">{SCOPE_HINT[tab]}</p>
 
                 <div className="space-y-2.5">
                   {missions.filter((m) => m.scope === tab).map((m) => {
@@ -179,20 +179,20 @@ export default function MissionsModal({
                   <div
                     key={key}
                     className={cn(
-                      'rounded-xl border-2 p-3',
-                      m.claimed ? 'border-brand-border opacity-50'
-                        : m.complete ? 'border-accent-success bg-accent-success/10'
-                        : 'border-brand-border bg-brand-inner'
+                      'rounded-2xl border-[3px] border-brand-border p-3',
+                      m.claimed ? 'bg-brand-inner opacity-55'
+                        : m.complete ? 'bg-[#16503A]'
+                        : 'bg-brand-inner'
                     )}
                   >
                     <div className="flex items-center justify-between gap-3 mb-2">
-                      <span className="font-bold text-sm">{m.label}</span>
-                      <span className="text-[11px] font-black text-accent-primary shrink-0 tabular-nums">
+                      <span className="font-black text-sm">{m.label}</span>
+                      <span className="px-2 py-0.5 rounded-lg border-2 border-brand-border bg-accent-primary text-brand-bg font-display text-sm shrink-0 tabular-nums">
                         +{m.reward.toLocaleString('en-US')} ₶
                       </span>
                     </div>
 
-                    <div className="h-2 rounded-full bg-brand-bg border border-brand-border overflow-hidden mb-2">
+                    <div className="h-3 rounded-full bg-brand-bg border-2 border-brand-border overflow-hidden mb-2">
                       <div
                         className={cn('h-full transition-[width] duration-500', m.complete ? 'bg-accent-success' : 'bg-accent-primary')}
                         style={{ width: `${pct}%` }}
@@ -200,7 +200,7 @@ export default function MissionsModal({
                     </div>
 
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[11px] text-tx-muted tabular-nums">
+                      <span className="text-xs font-bold text-tx-secondary tabular-nums">
                         {Math.min(m.value, m.target).toLocaleString('en-US')} / {m.target.toLocaleString('en-US')} · +{m.xp} XP
                       </span>
                       {m.claimed ? (
@@ -211,9 +211,9 @@ export default function MissionsModal({
                         <button
                           onClick={() => claim(m)}
                           disabled={busy !== null}
-                          className="h-8 px-3 rounded-lg border-2 border-accent-success bg-accent-success text-brand-bg font-black text-[11px] hover:brightness-110 disabled:opacity-50 focus:outline-none active:scale-95 transition-transform"
+                          className="h-10 px-4 rounded-xl border-[3px] border-brand-border bg-accent-success text-brand-bg font-display text-base shadow-[inset_0_-4px_0_#1E9A55,0_3px_0_#05061A] active:translate-y-[2px] disabled:opacity-50 focus:outline-none transition-transform"
                         >
-                          {busy === key ? '···' : 'RÉCLAMER'}
+                          {busy === key ? '···' : 'Réclamer'}
                         </button>
                       ) : null}
                     </div>

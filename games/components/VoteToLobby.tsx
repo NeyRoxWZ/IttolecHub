@@ -109,20 +109,21 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode, gameT
         <button
           onClick={handleVote}
           disabled={hasVoted}
+          title="Voter pour retourner au salon"
           className={cn(
-              "h-10 flex items-center gap-2 px-4 rounded-xl border-2 transition-all font-bold uppercase tracking-widest",
-              hasVoted 
-              ? "bg-brand-inner text-tx-muted border-brand-border cursor-not-allowed" 
-              : "bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base shadow-sm active:translate-y-0.5 active:shadow-none"
+              "h-10 flex items-center gap-2 px-3 rounded-xl border-[3px] border-brand-border font-display text-base transition-transform",
+              hasVoted
+              ? "bg-accent-success text-brand-bg shadow-[inset_0_-4px_0_#1E9A55] cursor-not-allowed"
+              : "bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] hover:bg-[#333A80] active:translate-y-[3px]"
           )}
         >
           {hasVoted ? (
-            <div className="w-2 h-2 rounded-full bg-accent-success animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-brand-bg animate-pulse" />
           ) : (
             <LogOut className="w-4 h-4" />
           )}
-          <span className="text-sm">
-            {votes.length}/{requiredVotes}
+          <span className="tabular-nums">
+            Salon {votes.length}/{requiredVotes}
           </span>
         </button>
       </div>
@@ -132,20 +133,21 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode, gameT
         <button
           onClick={handleVote}
           disabled={hasVoted}
+          aria-label="Voter pour retourner au salon"
           className={cn(
-              "h-14 w-14 flex items-center justify-center rounded-2xl border-4 transition-all shadow-brutal",
-              hasVoted 
-              ? "bg-brand-inner text-tx-muted border-brand-border" 
-              : "bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg active:translate-y-1 active:shadow-none"
+              "h-14 w-14 flex items-center justify-center rounded-2xl border-4 border-brand-border transition-transform",
+              hasVoted
+              ? "bg-accent-success text-brand-bg shadow-[inset_0_-5px_0_#1E9A55,0_4px_0_#05061A]"
+              : "bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A] active:translate-y-[3px]"
           )}
         >
           {hasVoted ? (
-            <div className="w-3 h-3 rounded-full bg-accent-success animate-pulse" />
+            <div className="w-3 h-3 rounded-full bg-brand-bg animate-pulse" />
           ) : (
             <LogOut className="w-6 h-6" />
           )}
         </button>
-        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-black text-tx-base bg-brand-inner px-2 py-0.5 rounded-md border-2 border-brand-border whitespace-nowrap shadow-sm">
+        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 font-display text-sm text-brand-bg bg-accent-primary px-2 py-0.5 rounded-lg border-[3px] border-brand-border whitespace-nowrap tabular-nums">
           {votes.length}/{requiredVotes}
         </div>
       </div>

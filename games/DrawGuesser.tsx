@@ -918,13 +918,13 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
         {/* PHASE: SETUP */}
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
-               <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+               <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
                    <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform rotate-3">
                        <PenTool className="w-16 h-16 text-accent-secondary" />
                    </div>
                    
                    <div className="text-center space-y-2 mb-8">
-                        <h2 className="font-display text-4xl font-black text-tx-base uppercase tracking-wider">Prêt à dessiner ?</h2>
+                        <h2 className="font-display text-4xl text-tx-base">Prêt à dessiner ?</h2>
                        <p className="text-tx-secondary font-bold">
                            Rounds : <span className="text-accent-secondary font-black uppercase tracking-widest">{totalRounds}</span> • 
                            Temps : <span className="text-[#06B6D4] font-black uppercase tracking-widest">{settings.time || 90}s</span>
@@ -934,14 +934,14 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                    {isHost ? (
                        <button 
                            onClick={startNewGame}
-                           className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-inner hover:text-accent-secondary shadow-brutal"
+                           className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-inner hover:text-accent-secondary shadow-brutal"
                        >
-                           LANCER LA PARTIE
+                           Lancer la partie
                        </button>
                    ) : (
                         <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
                             <Loader2 className="w-6 h-6 animate-spin text-accent-secondary" />
-                            <span className="font-display font-black text-tx-base tracking-wider uppercase">En attente de l'hôte...</span>
+                            <span className="font-display text-tx-base">En attente de l'hôte...</span>
                        </div>
                    )}
                </div>
@@ -955,18 +955,18 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                 {/* TOP: Word Reveal Card */}
                 <div className="flex-shrink-0">
                     {isDrawer && currentPhase === 'playing' && (
-                        <div className="bg-brand-card p-6 rounded-[32px] border-4 border-brand-border shadow-brutal word-reveal-container">
+                        <div className="bg-brand-card p-6 rounded-[28px] border-4 border-brand-border shadow-brutal word-reveal-container">
                             <div className="flex flex-col items-center gap-4">
                                 <div className="word-display w-full">
                                     <div className="bg-brand-inner px-8 py-4 rounded-2xl border-4 border-brand-border w-full shadow-inner">
                                         <span className="block text-xs text-tx-secondary font-bold uppercase tracking-widest text-center mb-1">Mot à dessiner</span>
-                                        <span className="font-display text-3xl font-black text-tx-base block text-center uppercase tracking-wider">{currentWord?.word}</span>
+                                        <span className="font-display text-3xl text-tx-base block text-center">{currentWord?.word}</span>
                                     </div>
                                 </div>
                                 <p className="word-hint text-tx-secondary font-bold uppercase tracking-widest text-sm text-center">Maintenir le bouton pour voir le mot</p>
                                 <button
                                     type="button"
-                                    className="w-full bg-brand-inner hover:bg-tx-base active:bg-tx-base border-4 border-brand-border rounded-2xl py-4 transition-colors select-none touch-none shadow-brutal active:translate-y-1 active:shadow-none group"
+                                    className="w-full bg-brand-inner hover:brightness-110 active:bg-[#333A80] border-4 border-brand-border rounded-2xl py-4 transition-colors select-none touch-none shadow-brutal active:translate-y-1 active:shadow-none group"
                                 >
                                     <Eye className="w-8 h-8 mx-auto text-tx-base group-hover:text-brand-bg group-active:text-brand-bg transition-colors" />
                                 </button>
@@ -987,19 +987,19 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                     {!isDrawer && currentPhase === 'playing' && (
                         <div className="bg-brand-card px-8 py-4 rounded-2xl border-4 border-brand-border shadow-brutal flex items-center justify-center gap-4">
                             <PenTool className="w-6 h-6 text-accent-secondary animate-bounce" />
-                            <span className="font-display font-black text-xl text-tx-base uppercase tracking-wider">{getDrawerName()} dessine</span>
+                            <span className="font-display text-xl text-tx-base">{getDrawerName()} dessine</span>
                         </div>
                     )}
                     {currentPhase === 'round_results' && (
-                        <div className="bg-brand-card px-10 py-6 rounded-[32px] border-4 border-brand-border shadow-brutal flex flex-col items-center justify-center">
+                        <div className="bg-brand-card px-10 py-6 rounded-[28px] border-4 border-brand-border shadow-brutal flex flex-col items-center justify-center">
                             <span className="block text-sm text-tx-secondary font-bold uppercase tracking-widest text-center mb-2">Le mot était</span>
-                            <span className="font-display text-4xl font-black text-accent-secondary block text-center uppercase tracking-wider">{currentWord?.word}</span>
+                            <span className="font-display text-4xl text-accent-secondary block text-center">{currentWord?.word}</span>
                         </div>
                     )}
                 </div>
 
                 {/* MIDDLE: Canvas */}
-                <div className="flex-1 bg-white rounded-[32px] shadow-brutal overflow-hidden relative touch-none border-4 border-brand-border min-h-[300px]">
+                <div className="flex-1 bg-white rounded-[28px] shadow-brutal overflow-hidden relative touch-none border-4 border-brand-border min-h-[300px]">
                     <canvas
                         ref={canvasRef}
                         onMouseDown={startDrawing}
@@ -1035,7 +1035,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                                         key={s}
                                         onClick={() => setSize(s)}
                                         className={cn(
-                                            "rounded-full bg-brand-inner flex items-center justify-center transition-all border-2 border-brand-border",
+                                            "rounded-full bg-brand-inner flex items-center justify-center transition-all border-[3px] border-brand-border",
                                             size === s ? 'ring-2 ring-brand-border shadow-sm' : 'hover:bg-brand-card'
                                         )}
                                         style={{ width: s + 16, height: s + 16, minWidth: s + 16, minHeight: s + 16 }}
@@ -1046,12 +1046,12 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                             </div>
                             <div className="w-1 h-8 bg-brand-inner rounded-full" />
                             <button onClick={() => setColor('#FFFFFF')} className={cn(
-                                "p-2.5 rounded-xl border-2 transition-colors",
+                                "p-2.5 rounded-xl border-[3px] transition-colors",
                                 color === '#FFFFFF' ? 'bg-brand-card border-brand-border shadow-sm' : 'bg-brand-inner border-transparent hover:border-brand-border'
                             )}>
                                 <Eraser className="w-5 h-5 text-tx-base" />
                             </button>
-                            <button onClick={clearCanvas} className="p-2.5 rounded-xl bg-brand-inner border-2 border-transparent hover:border-accent-secondary hover:bg-accent-secondary/10 transition-colors group">
+                            <button onClick={clearCanvas} className="p-2.5 rounded-xl bg-brand-inner border-[3px] border-transparent hover:border-accent-secondary hover:bg-accent-secondary/10 transition-colors group">
                                 <Trash2 className="w-5 h-5 text-accent-secondary group-hover:scale-110 transition-transform" />
                             </button>
                         </div>
@@ -1066,13 +1066,13 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                                 placeholder="Devinez le mot..." 
                                 value={userGuess}
                                 onChange={e => setUserGuess(e.target.value)}
-                                className="flex-1 h-16 text-xl bg-brand-inner border-4 border-brand-border focus:border-tx-base text-tx-base placeholder:text-tx-muted text-center rounded-2xl shadow-brutal outline-none font-bold transition-colors"
+                                className="flex-1 h-16 text-xl bg-brand-inner border-4 border-brand-border focus:border-accent-primary text-tx-base placeholder:text-tx-muted text-center rounded-2xl shadow-brutal outline-none font-bold transition-colors"
                                 autoFocus
                             />
                             <button 
                                 type="submit" 
                                 disabled={!userGuess.trim()}
-                                className="h-16 w-20 bg-accent-success hover:bg-tx-base text-brand-bg font-black rounded-2xl shadow-brutal border-4 border-brand-border flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="h-16 w-20 bg-accent-success hover:brightness-110 text-brand-bg font-black rounded-2xl shadow-brutal border-4 border-brand-border flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Send className="w-6 h-6" />
                             </button>
@@ -1085,11 +1085,11 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
         {/* PHASE: PODIUM */}
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[32px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <Trophy className="w-16 h-16 text-accent-secondary" />
                     </div>
-                    <h2 className="font-display text-4xl font-black text-tx-base mb-8 uppercase tracking-widest">Classement Final</h2>
+                    <h2 className="font-display text-4xl text-tx-base mb-8">Classement Final</h2>
                     
                     <div className="w-full space-y-4 mb-8">
                         {sortedPlayers.map((p, i) => (
@@ -1099,21 +1099,21 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                             )}>
                                 {/* Badges */}
                                 {i === 0 && (
-                                    <div className="absolute -top-4 -right-4 bg-[#FFD000] text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
+                                    <div className="absolute -top-4 -right-4 bg-accent-primary text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
                                         Picasso
                                     </div>
                                 )}
                                 
                                 <div className="flex items-center gap-4">
                                     <span className={cn(
-                                        "w-12 h-12 flex items-center justify-center rounded-xl font-display font-black text-2xl border-2 border-brand-border",
-                                        i === 0 ? "bg-[#FFD000] text-brand-bg" : "bg-brand-bg text-tx-base"
+                                        "w-12 h-12 flex items-center justify-center rounded-xl font-display text-2xl border-[3px] border-brand-border",
+                                        i === 0 ? "bg-accent-primary text-brand-bg" : "bg-brand-bg text-tx-base"
                                     )}>
                                         {i + 1}
                                     </span>
                                     
                                     <div className="flex flex-col text-left">
-                                        <span className="text-xl font-display font-black">{p.name}</span>
+                                        <span className="text-xl font-display">{p.name}</span>
                                         <span className={cn(
                                             "text-xs font-bold uppercase tracking-widest",
                                             i === 0 ? "text-brand-bg/80" : "text-tx-secondary"
@@ -1123,7 +1123,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                                     </div>
                                 </div>
                                 <span className={cn(
-                                    "text-3xl font-display font-black",
+                                    "text-3xl font-display",
                                     i === 0 ? "text-brand-bg" : "text-accent-secondary"
                                 )}>{p.score}</span>
                             </div>
@@ -1133,9 +1133,9 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                     {isHost && (
                         <button 
                             onClick={returnToLobby} 
-                            className="w-full h-16 rounded-2xl font-display text-xl font-black tracking-wider transition-colors border-4 border-brand-border bg-brand-inner text-tx-base hover:bg-tx-base hover:text-brand-bg shadow-brutal"
+                            className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[3px]"
                         >
-                            RETOUR AU SALON
+                            Retour au salon
                         </button>
                     )}
                 </div>

@@ -59,7 +59,7 @@ export default function EquipButton({
       onClick={equip}
       disabled={state !== 'idle'}
       className={cn(
-        'rounded-lg border-2 font-black tracking-widest flex items-center justify-center gap-1.5 focus:outline-none transition-colors',
+        'rounded-lg border-[3px] font-black tracking-widest flex items-center justify-center gap-1.5 focus:outline-none transition-colors',
         size === 'sm' ? 'h-7 px-2 text-[9px]' : 'h-9 px-3 text-[10px]',
         state === 'done'
           ? 'border-accent-success bg-accent-success/15 text-accent-success'

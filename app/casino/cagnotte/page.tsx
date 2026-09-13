@@ -157,12 +157,12 @@ export default function CagnottePage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 mb-4">
-              <h2 className="font-display text-xl font-black flex items-center gap-2">
+              <h2 className="font-display text-xl flex items-center gap-2">
                 <Info className="h-5 w-5 text-accent-primary" /> Comment ça marche
               </h2>
               <button
                 onClick={() => setShowRules(false)}
-                className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none"
+                className="h-9 w-9 shrink-0 rounded-lg border-[3px] border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -204,22 +204,22 @@ export default function CagnottePage() {
         <div className="flex items-center gap-3">
           <Link
             href="/casino"
-            className="h-11 w-11 shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center focus:outline-none"
+            className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-brand-inner flex items-center justify-center focus:outline-none"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-2xl font-black leading-none">Cagnotte de groupe</h1>
+            <h1 className="font-display text-2xl leading-none">Cagnotte de groupe</h1>
             <p className="text-[11px] text-tx-muted mt-1">
               Vous misez ensemble, vous jouez avec la cagnotte, vous partagez ce qu&apos;il en reste.
             </p>
           </div>
           <button
             onClick={() => { sfx.click(); setShowRules((s) => !s); }}
-            className="h-11 px-3 shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center gap-1.5 text-tx-secondary focus:outline-none"
+            className="h-11 px-3 shrink-0 rounded-xl border-[3px] border-brand-border bg-brand-inner flex items-center gap-1.5 text-tx-secondary focus:outline-none"
           >
             <Info className="h-4 w-4" />
-            <span className="font-display font-black text-[11px]">RÈGLES</span>
+            <span className="font-display text-[11px]">RÈGLES</span>
           </button>
         </div>
 
@@ -229,7 +229,7 @@ export default function CagnottePage() {
         {(!syn || syn.status === 'done') && (
           <>
             {syn?.status === 'done' && state?.you && (
-              <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-4">
+              <div className="rounded-2xl border-[3px] border-brand-border bg-brand-card p-4">
                 <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-1">
                   Dernière cagnotte · {syn.code}
                 </div>
@@ -248,8 +248,8 @@ export default function CagnottePage() {
               </div>
             )}
 
-            <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-4 space-y-3">
-              <h2 className="font-display font-black">Créer une cagnotte</h2>
+            <div className="rounded-2xl border-[3px] border-brand-border bg-brand-card p-4 space-y-3">
+              <h2 className="font-display">Créer une cagnotte</h2>
 
               <div className="grid grid-cols-3 gap-2">
                 {SYNDICATE_DURATIONS.map((d) => (
@@ -257,7 +257,7 @@ export default function CagnottePage() {
                     key={d}
                     onClick={() => { sfx.click(); setDuration(d); }}
                     className={cn(
-                      'h-14 rounded-xl border-2 font-display font-black focus:outline-none',
+                      'h-14 rounded-xl border-[3px] font-display font-black focus:outline-none',
                       duration === d ? 'border-accent-primary bg-accent-primary/10 text-accent-primary' : 'border-brand-border bg-brand-inner text-tx-secondary'
                     )}
                   >
@@ -276,7 +276,7 @@ export default function CagnottePage() {
                 <input
                   type="text" inputMode="numeric" value={create.draft}
                   onChange={(e) => create.onChange(e.target.value)}
-                  className="mt-1 w-full h-12 px-3 rounded-xl border-2 border-brand-border bg-brand-inner font-display font-black tabular-nums focus:outline-none focus:border-accent-primary"
+                  className="mt-1 w-full h-12 px-3 rounded-xl border-[3px] border-brand-border bg-brand-inner font-display tabular-nums focus:outline-none focus:border-accent-primary"
                 />
               </div>
 
@@ -290,24 +290,24 @@ export default function CagnottePage() {
                   if (data) toast.success(`Cagnotte ${data.code} créée`);
                 }}
                 disabled={busy || create.value < SYNDICATE_MIN_BUY_IN || create.value > balance}
-                className="w-full h-14 rounded-2xl bg-accent-primary text-brand-bg font-display font-black tracking-wider border-4 border-brand-border shadow-brutal hover:brightness-110 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:shadow-none disabled:active:translate-y-0 focus:outline-none"
+                className="w-full h-14 rounded-2xl bg-accent-primary text-brand-bg font-display border-4 border-brand-border shadow-brutal hover:brightness-110 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:shadow-none disabled:active:translate-y-0 focus:outline-none"
               >
                 CRÉER
               </button>
             </div>
 
-            <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-4 space-y-3">
-              <h2 className="font-display font-black">Rejoindre avec un code</h2>
+            <div className="rounded-2xl border-[3px] border-brand-border bg-brand-card p-4 space-y-3">
+              <h2 className="font-display">Rejoindre avec un code</h2>
               <div className="flex gap-2">
                 <input
                   type="text" value={code} maxLength={6} placeholder="ABC123"
                   onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                  className="flex-1 min-w-0 h-12 px-3 rounded-xl border-2 border-brand-border bg-brand-inner font-display font-black tracking-[0.2em] uppercase focus:outline-none focus:border-accent-primary"
+                  className="flex-1 min-w-0 h-12 px-3 rounded-xl border-[3px] border-brand-border bg-brand-inner font-display tracking-[0.2em] focus:outline-none focus:border-accent-primary"
                 />
                 <input
                   type="text" inputMode="numeric" value={join.draft}
                   onChange={(e) => join.onChange(e.target.value)}
-                  className="w-32 shrink-0 h-12 px-3 rounded-xl border-2 border-brand-border bg-brand-inner font-display font-black tabular-nums focus:outline-none focus:border-accent-primary"
+                  className="w-32 shrink-0 h-12 px-3 rounded-xl border-[3px] border-brand-border bg-brand-inner font-display tabular-nums focus:outline-none focus:border-accent-primary"
                 />
               </div>
               <button
@@ -317,7 +317,7 @@ export default function CagnottePage() {
                   if (data) toast.success('Tu es dans la cagnotte');
                 }}
                 disabled={busy || code.length !== 6 || join.value < SYNDICATE_MIN_BUY_IN || join.value > balance}
-                className="w-full h-14 rounded-2xl border-4 border-brand-border bg-brand-inner font-display font-black tracking-wider text-tx-secondary hover:border-tx-base disabled:opacity-40 focus:outline-none"
+                className="w-full h-14 rounded-2xl border-4 border-brand-border bg-brand-inner font-display text-tx-secondary hover:border-tx-base disabled:opacity-40 focus:outline-none"
               >
                 REJOINDRE
               </button>
@@ -330,15 +330,15 @@ export default function CagnottePage() {
         {/* ---------------------------------------------------------- */}
         {syn && syn.status === 'open' && (
           <>
-            <div className="rounded-2xl border-4 border-brand-border bg-brand-card p-5 text-center">
+            <div className="rounded-[22px] border-4 border-brand-border bg-brand-card p-5 text-center">
               <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">
                 Cagnotte en préparation
               </div>
-              <div className="font-display text-5xl font-black tabular-nums mt-1">
+              <div className="font-display text-5xl tabular-nums mt-1">
                 {fmt(pot)} <span className="text-2xl">₶</span>
               </div>
               <div className="text-[11px] text-tx-muted mt-2">
-                Code <span className="font-display font-black tracking-[0.2em] text-tx-base">{syn.code}</span>
+                Code <span className="font-display tracking-[0.2em] text-tx-base">{syn.code}</span>
                 {' · '}{syn.duration_min} min
               </div>
               <div className="text-[11px] text-accent-primary font-bold mt-2">
@@ -346,10 +346,10 @@ export default function CagnottePage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border-2 border-brand-border bg-brand-card p-4">
+            <div className="rounded-2xl border-[3px] border-brand-border bg-brand-card p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Users className="h-4 w-4 text-accent-primary" />
-                <span className="font-display font-black text-sm">
+                <span className="font-display text-lg">
                   {state?.members.length}/{SYNDICATE_MAX_PLAYERS} joueurs
                 </span>
               </div>
@@ -365,7 +365,7 @@ export default function CagnottePage() {
                     <span className="text-[11px] text-tx-muted tabular-nums shrink-0">
                       {seedPot > 0 ? Math.round((Number(m.contribution) / seedPot) * 100) : 0}%
                     </span>
-                    <span className="font-display font-black tabular-nums shrink-0 w-24 text-right">
+                    <span className="font-display tabular-nums shrink-0 w-24 text-right">
                       {fmt(Number(m.contribution))} ₶
                     </span>
                   </div>
@@ -381,7 +381,7 @@ export default function CagnottePage() {
                     setCopied(true); sfx.click();
                     setTimeout(() => setCopied(false), 1600);
                   }}
-                  className="w-full h-12 rounded-xl border-2 border-brand-border bg-brand-inner font-display font-black text-xs tracking-wider text-tx-secondary flex items-center justify-center gap-2 focus:outline-none"
+                  className="w-full h-12 rounded-xl border-[3px] border-brand-border bg-brand-inner font-display text-base text-tx-secondary flex items-center justify-center gap-2 focus:outline-none"
                 >
                   {copied ? <Check className="h-4 w-4 text-accent-success" /> : <Copy className="h-4 w-4" />}
                   {copied ? 'CODE COPIÉ' : `PARTAGER LE CODE ${syn.code}`}
@@ -396,7 +396,7 @@ export default function CagnottePage() {
                         if (data) sfx.bigWin();
                       }}
                       disabled={busy || (state?.members.length || 0) < SYNDICATE_MIN_PLAYERS}
-                      className="w-full h-14 rounded-2xl bg-accent-primary text-brand-bg font-display font-black tracking-wider border-4 border-brand-border shadow-brutal flex items-center justify-center gap-2 hover:brightness-110 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:shadow-none disabled:active:translate-y-0 focus:outline-none"
+                      className="w-full h-14 rounded-2xl bg-accent-primary text-brand-bg font-display border-4 border-brand-border shadow-brutal flex items-center justify-center gap-2 hover:brightness-110 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:shadow-none disabled:active:translate-y-0 focus:outline-none"
                     >
                       <Play className="h-5 w-5" />
                       {(state?.members.length || 0) < SYNDICATE_MIN_PLAYERS
@@ -410,7 +410,7 @@ export default function CagnottePage() {
                         if (data) toast.success(`Annulée · ${fmt(data.refund)} ₶ rendus`);
                       }}
                       disabled={busy}
-                      className="w-full h-11 rounded-xl border-2 border-brand-border bg-brand-inner font-display font-black text-[11px] tracking-wider text-tx-muted flex items-center justify-center gap-2 focus:outline-none"
+                      className="w-full h-11 rounded-xl border-[3px] border-brand-border bg-brand-inner font-display text-[11px] text-tx-muted flex items-center justify-center gap-2 focus:outline-none"
                     >
                       <Trash2 className="h-3.5 w-3.5" /> ANNULER ET REMBOURSER
                     </button>

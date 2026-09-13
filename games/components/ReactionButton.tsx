@@ -97,7 +97,8 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <button 
-            className="flex items-center justify-center rounded-2xl w-14 h-14 transition-all bg-brand-inner border-4 border-brand-border text-tx-base shadow-brutal hover:bg-tx-base hover:text-brand-bg active:translate-y-1 active:shadow-none"
+            aria-label="Réagir"
+            className="flex items-center justify-center rounded-2xl w-14 h-14 transition-transform bg-accent-primary border-4 border-brand-border text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px]"
           >
             <Smile className="w-8 h-8" />
           </button>
@@ -113,7 +114,8 @@ export default function ReactionButton({ roomId }: { roomId: string }) {
               <button
                 key={r.label}
                 onClick={() => sendReaction(r.emoji)}
-                className="text-3xl p-3 bg-brand-inner border-2 border-brand-border hover:bg-tx-base rounded-2xl transition-transform active:scale-90 active:shadow-none shadow-sm"
+                aria-label={r.label}
+                className="text-3xl p-3 bg-[#2B3170] border-[3px] border-brand-border hover:bg-[#333A80] rounded-2xl transition-transform active:translate-y-[3px] shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A]"
               >
                 {r.emoji}
               </button>

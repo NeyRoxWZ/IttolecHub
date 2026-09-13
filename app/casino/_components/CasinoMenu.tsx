@@ -47,7 +47,7 @@ export default function CasinoMenu({ entries, pending }: { entries: MenuEntry[];
       <button
         onClick={() => { sfx.click(); vibrate(HAPTIC.SOFT); setOpen(true); }}
         aria-label="Menu"
-        className="relative sm:hidden h-11 w-11 shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center text-tx-secondary focus:outline-none"
+        className="relative sm:hidden h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-brand-inner flex items-center justify-center text-tx-secondary focus:outline-none"
       >
         <Menu className="h-5 w-5" />
         {pending > 0 && (
@@ -67,10 +67,10 @@ export default function CasinoMenu({ entries, pending }: { entries: MenuEntry[];
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display font-black text-lg">Casino</h2>
+              <h2 className="font-display text-lg">Casino</h2>
               <button
                 onClick={() => setOpen(false)}
-                className="h-9 w-9 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center focus:outline-none"
+                className="h-9 w-9 rounded-lg border-[3px] border-brand-border bg-brand-inner flex items-center justify-center focus:outline-none"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -82,13 +82,13 @@ export default function CasinoMenu({ entries, pending }: { entries: MenuEntry[];
                   key={entry.label}
                   onClick={() => { setOpen(false); entry.onSelect(); }}
                   className={cn(
-                    'relative h-16 px-3 rounded-xl border-2 flex items-center gap-2 text-left focus:outline-none',
+                    'relative h-16 px-3 rounded-xl border-[3px] flex items-center gap-2 text-left focus:outline-none',
                     entry.pending ? 'border-accent-secondary bg-brand-inner' : 'border-brand-border bg-brand-inner'
                   )}
                 >
                   <entry.icon className="h-4 w-4 shrink-0 text-accent-primary" />
                   <div className="min-w-0 leading-tight">
-                    <div className="font-display font-black text-[12px]">{entry.label}</div>
+                    <div className="font-display text-[12px]">{entry.label}</div>
                     <div className={cn('text-[9px] font-bold truncate', entry.pending ? 'text-accent-secondary' : 'text-tx-muted')}>
                       {entry.pending ? `${entry.pending} à réclamer` : entry.hint}
                     </div>
@@ -99,7 +99,7 @@ export default function CasinoMenu({ entries, pending }: { entries: MenuEntry[];
 
             <button
               onClick={() => { setOpen(false); router.push('/?mode=solo'); }}
-              className="mt-3 w-full h-12 rounded-xl border-2 border-brand-border bg-brand-inner font-display font-black text-xs tracking-wider text-tx-secondary focus:outline-none"
+              className="mt-3 w-full h-12 rounded-xl border-[3px] border-brand-border bg-brand-inner font-display text-base text-tx-secondary focus:outline-none"
             >
               QUITTER LE CASINO
             </button>

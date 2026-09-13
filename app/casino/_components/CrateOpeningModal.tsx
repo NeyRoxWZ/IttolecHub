@@ -48,14 +48,14 @@ export default function CrateOpeningModal({
   if (recap) return <Recap openings={openings} onClose={onClose} />;
 
   return (
-    <div className="fixed inset-0 z-[210] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-3xl bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[210] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-3xl bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2 min-w-0">
-            <Package className="h-5 w-5 text-accent-primary shrink-0" />
+            <span className="h-12 w-12 shrink-0 rounded-2xl border-[3px] border-brand-border bg-accent-primary flex items-center justify-center shadow-[inset_0_-4px_0_#D98E00]"><Package className="h-6 w-6 text-brand-bg" strokeWidth={2.5} /></span>
             <div className="min-w-0">
-              <div className="font-display font-black text-lg leading-none truncate">{crate?.name || 'Caisse'}</div>
-              <div className="text-[11px] text-tx-muted">
+              <div className="font-display text-3xl leading-none truncate text-stroke-sm">{crate?.name || 'Caisse'}</div>
+              <div className="text-xs font-bold text-tx-secondary mt-1">
                 {openings.length > 1 ? `Caisse ${Math.min(revealed + 1, openings.length)}/${openings.length}` : 'Une pièce'}
               </div>
             </div>
@@ -65,12 +65,12 @@ export default function CrateOpeningModal({
             <button
               onClick={() => { sfx.click(); setAuto((a) => !a); }}
               className={cn(
-                'h-10 px-3 rounded-xl border-2 flex items-center gap-1.5 font-display font-black text-[11px] tracking-wider focus:outline-none transition-colors',
-                auto ? 'border-accent-secondary bg-accent-secondary text-white' : 'border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base'
+                'h-12 px-4 rounded-xl border-[3px] border-brand-border flex items-center gap-1.5 font-display text-base focus:outline-none transition-transform active:translate-y-[3px]',
+                auto ? 'bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A]' : 'bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A]'
               )}
             >
               <Zap className="h-3.5 w-3.5" />
-              AUTO
+              Auto
             </button>
           )}
         </div>
@@ -80,15 +80,15 @@ export default function CrateOpeningModal({
             <CrateReel reward={openings[spinning].reward} onDone={onReelDone} />
           </div>
         ) : (
-          <div className="mb-5 rounded-2xl border-4 border-dashed border-brand-border bg-brand-inner h-[214px] flex flex-col items-center justify-center gap-2">
+          <div className="mb-5 rounded-2xl border-4 border-dashed border-[#3B4290] bg-brand-inner h-[214px] flex flex-col items-center justify-center gap-2">
             <Package className="h-10 w-10 text-tx-muted" />
-            <span className="text-sm text-tx-secondary font-bold">
+            <span className="font-display text-xl text-stroke-sm">
               {done ? 'Toutes les caisses sont ouvertes.' : 'Prêt à ouvrir.'}
             </span>
             {!done && crate && (
               <div className="flex flex-wrap justify-center gap-2 mt-1">
                 {RARITY_ORDER.filter((r) => crate.odds[r] > 0).map((r) => (
-                  <span key={r} className="text-[10px] font-black tabular-nums" style={{ color: RARITY_COLOR[r] }}>
+                  <span key={r} className="px-2 py-0.5 rounded-lg border-2 border-brand-border bg-brand-bg text-xs font-black tabular-nums" style={{ color: RARITY_COLOR[r] }}>
                     {RARITY_LABEL[r]} {(crate.odds[r] * 100).toFixed(crate.odds[r] < 0.01 ? 1 : 0)}%
                   </span>
                 ))}
@@ -100,20 +100,20 @@ export default function CrateOpeningModal({
         {done ? (
           <button
             onClick={() => { sfx.click(); setRecap(true); }}
-            className="w-full h-14 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none"
+            className="w-full h-16 rounded-2xl font-display text-2xl border-4 border-brand-border transition-transform focus:outline-none bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[4px]"
           >
-            VOIR LE RÉCAP
+            Voir le récap
           </button>
         ) : (
           <button
             onClick={spin}
             disabled={spinning !== null}
-            className="w-full h-14 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full h-16 rounded-2xl font-display text-2xl border-4 border-brand-border transition-transform focus:outline-none bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[4px] flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            {spinning !== null ? 'ÇA TOURNE…' : 'OUVRIR'}
-            {spinning === null && <ChevronRight className="h-4 w-4" />}
+            {spinning !== null ? 'Ça tourne…' : 'Ouvrir'}
+            {spinning === null && <ChevronRight className="h-6 w-6" strokeWidth={3} />}
             {openings.length > 1 && (
-              <span className="text-[11px] font-bold opacity-70">{revealed}/{openings.length}</span>
+              <span className="text-sm opacity-70">{revealed}/{openings.length}</span>
             )}
           </button>
         )}
@@ -130,14 +130,14 @@ function Recap({ openings, onClose }: { openings: CrateOpening[]; onClose: () =>
     .filter((g) => g.pieces.length > 0);
 
   return (
-    <div className="fixed inset-0 z-[210] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-2xl max-h-[90dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[210] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-2xl max-h-[90dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200">
         <div className="text-center mb-5">
-          <Check className="h-7 w-7 text-accent-success mx-auto mb-2" />
-          <h2 className="font-display text-2xl font-black leading-none">
+          <span className="mx-auto mb-3 h-14 w-14 rounded-2xl border-[3px] border-brand-border bg-accent-success flex items-center justify-center shadow-[inset_0_-5px_0_#1E9A55]"><Check className="h-8 w-8 text-brand-bg" strokeWidth={3} /></span>
+          <h2 className="font-display text-4xl leading-none">
             {openings.length} caisse{openings.length > 1 ? 's' : ''} ouverte{openings.length > 1 ? 's' : ''}
           </h2>
-          <p className="text-[11px] text-tx-muted mt-1">
+          <p className="text-sm font-bold text-tx-secondary mt-2">
             {cosmetics.length} nouvelle{cosmetics.length > 1 ? 's' : ''} pièce{cosmetics.length > 1 ? 's' : ''}
             {coins > 0 && ` · +${coins.toLocaleString('en-US')} ₶ de doublons`}
           </p>
@@ -145,7 +145,7 @@ function Recap({ openings, onClose }: { openings: CrateOpening[]; onClose: () =>
 
         {byRarity.map(({ rarity, pieces }) => (
           <div key={rarity} className="mb-4">
-            <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: RARITY_COLOR[rarity] }}>
+            <div className="inline-block px-2 py-0.5 rounded-lg border-2 border-brand-border bg-brand-bg text-xs font-black uppercase tracking-widest mb-2" style={{ color: RARITY_COLOR[rarity] }}>
               {RARITY_LABEL[rarity]} · {pieces.length}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -155,11 +155,11 @@ function Recap({ openings, onClose }: { openings: CrateOpening[]; onClose: () =>
                 return (
                   <div
                     key={`${r.cosmeticId}-${i}`}
-                    className="w-[104px] rounded-xl border-2 p-2 flex flex-col items-center gap-1.5"
+                    className="w-[108px] rounded-2xl border-[3px] p-2 flex flex-col items-center gap-1.5"
                     style={{ borderColor: RARITY_COLOR[rarity], background: `${RARITY_COLOR[rarity]}10` }}
                   >
                     <CosmeticPreview cosmetic={cosmetic} size={64} />
-                    <span className="font-display font-black text-[10px] leading-tight text-center line-clamp-2">{cosmetic.name}</span>
+                    <span className="font-display text-xs leading-tight text-center line-clamp-2">{cosmetic.name}</span>
                     <span className="text-[9px] text-tx-muted">{gameLabel(cosmetic.gameSlug)}</span>
                     <EquipButton cosmetic={cosmetic} size="sm" className="w-full" />
                   </div>
@@ -170,9 +170,9 @@ function Recap({ openings, onClose }: { openings: CrateOpening[]; onClose: () =>
         ))}
 
         {coins > 0 && (
-          <div className="rounded-xl border-2 border-accent-success bg-accent-success/10 px-4 py-3 mb-5 flex items-center justify-between">
-            <span className="text-sm font-bold text-tx-secondary">Doublons convertis</span>
-            <span className="font-display font-black text-lg text-accent-success tabular-nums">
+          <div className="rounded-2xl border-[3px] border-brand-border bg-accent-success text-brand-bg px-4 py-3 mb-5 flex items-center justify-between shadow-[inset_0_-5px_0_#1E9A55]">
+            <span className="text-sm font-black">Doublons convertis</span>
+            <span className="font-display text-2xl tabular-nums">
               +{coins.toLocaleString('en-US')} ₶
             </span>
           </div>
@@ -184,9 +184,9 @@ function Recap({ openings, onClose }: { openings: CrateOpening[]; onClose: () =>
 
         <button
           onClick={onClose}
-          className="w-full h-14 rounded-2xl font-display font-black tracking-wider border-4 border-brand-border bg-accent-primary text-brand-bg shadow-brutal hover:brightness-110 transition-all active:translate-y-1 active:shadow-none focus:outline-none"
+          className="w-full h-16 rounded-2xl font-display text-2xl border-4 border-brand-border transition-transform focus:outline-none bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[4px]"
         >
-          TERMINÉ
+          Terminé
         </button>
       </div>
     </div>
