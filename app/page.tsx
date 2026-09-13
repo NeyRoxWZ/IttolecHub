@@ -200,7 +200,9 @@ export default function Home() {
   };
 
   return (
-    <main className="bg-transparent min-h-screen md:h-screen flex flex-col justify-between md:overflow-hidden relative">
+    // Locked to one screen only when the window is big enough to hold it all;
+    // a narrow or short window (split screen) scrolls normally.
+    <main className="bg-transparent min-h-screen [@media(min-width:1024px)_and_(min-height:820px)]:h-screen flex flex-col justify-between [@media(min-width:1024px)_and_(min-height:820px)]:overflow-hidden relative">
       {easterEggActive && (
         <div 
           className="fixed inset-0 z-[9999] pointer-events-none"

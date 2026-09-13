@@ -3,6 +3,9 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/** Set just before a Discord sign-up, so the account can be created on return. */
+export const DISCORD_CONSENT_KEY = 'itollec_discord_consent';
+
 /** The box to tick before an account is created, by passphrase or by Discord. */
 export default function ConsentBox({
   checked, onChange, minorNote = false,

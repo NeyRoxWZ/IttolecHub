@@ -8,7 +8,7 @@ import { generatePassphrase } from '@/lib/words';
 import { Copy, RefreshCw, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import ConsentBox from '@/components/ConsentBox';
+import ConsentBox, { DISCORD_CONSENT_KEY } from '@/components/ConsentBox';
 
 export default function CreerComptePage() {
   const [pseudo, setPseudo] = useState('');
@@ -17,7 +17,7 @@ export default function CreerComptePage() {
   const [step, setStep] = useState<'pseudo' | 'words'>('pseudo');
   const [accepted, setAccepted] = useState(false);
   const router = useRouter();
-  const { setUserLocally } = useAuth();
+  const { setUserLocally, loginDiscord } = useAuth();
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,11 +98,41 @@ export default function CreerComptePage() {
             />
           </div>
 
+          <ConsentBox checked={accepted} onChange={setAccepted} minorNote />
+
           <button
             type="submit"
-            className="w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base"
+            disabled={!accepted}
+            className={cn(
+              'w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border',
+              accepted ? 'hover:bg-tx-base hover:text-brand-bg hover:border-tx-base' : 'opacity-50 cursor-not-allowed'
+            )}
           >
-            Continuer
+            Continuer avec un pseudo
+          </button>
+
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-[2px] bg-brand-border" />
+            <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">ou</div>
+            <div className="flex-1 h-[2px] bg-brand-border" />
+          </div>
+
+          <button
+            type="button"
+            disabled={!accepted}
+            onClick={() => {
+              if (!accepted) return;
+              try { sessionStorage.setItem(DISCORD_CONSENT_KEY, '1'); } catch {}
+              let next = '/';
+              try { next = sessionStorage.getItem('itollec_next_path') || '/'; } catch {}
+              void loginDiscord(next);
+            }}
+            className={cn(
+              'w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border',
+              accepted ? 'hover:bg-tx-base hover:text-brand-bg hover:border-tx-base' : 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            Créer mon compte avec Discord
           </button>
 
           <div className="text-center text-xs font-bold tracking-widest uppercase text-tx-secondary">
@@ -162,8 +192,6 @@ export default function CreerComptePage() {
               </div>
             </div>
           </div>
-
-          <ConsentBox checked={accepted} onChange={setAccepted} minorNote />
 
           <button
             type="button"

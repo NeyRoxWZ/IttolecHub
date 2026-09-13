@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import ConsentBox, { DISCORD_CONSENT_KEY } from '@/components/ConsentBox';
 
 export type User = {
   id: string;
@@ -28,6 +29,8 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingDiscord, setPendingDiscord] = useState(false);
+  const [consentTicked, setConsentTicked] = useState(false);
   const router = useRouter();
 
   const fetchUser = async () => {
@@ -47,6 +50,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .maybeSingle();
 
         if (!dbUser) {
+          // A new account needs the Conditions accepted first. Coming from
+          // "Créer un compte", the box was ticked there; coming straight from
+          // "Connexion", ask now, before anything is saved.
+          let consented = false;
+          try { consented = sessionStorage.getItem(DISCORD_CONSENT_KEY) === '1'; } catch {}
+          if (!consented) {
+            setPendingDiscord(true);
+            setLoading(false);
+            return;
+          }
+          try { sessionStorage.removeItem(DISCORD_CONSENT_KEY); } catch {}
+          setPendingDiscord(false);
+
           // Check if pseudo exists, if so append random digits
           let pseudo = discordUsername;
           const { data: existingPseudo } = await supabase.from('users').select('id').eq('pseudo', pseudo).maybeSingle();
@@ -142,6 +158,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AuthContext.Provider value={{ user, loading, loginDiscord, logout, refreshUser: fetchUser, setUserLocally }}>
       {children}
+      {pendingDiscord && (
+        <div className="fixed inset-0 z-[10000] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal space-y-4">
+            <h2 className="font-display text-2xl font-black leading-tight">Créer ton compte avec Discord</h2>
+            <p className="text-sm text-tx-secondary">
+              Aucun compte ItollecHub n&apos;est encore lié à ce Discord. Accepte les conditions pour le créer.
+            </p>
+            <ConsentBox checked={consentTicked} onChange={setConsentTicked} minorNote />
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={async () => { setPendingDiscord(false); await supabase.auth.signOut(); }}
+                className="h-12 rounded-lg border-2 border-brand-border bg-brand-inner font-display font-black tracking-wider uppercase"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={!consentTicked}
+                onClick={() => {
+                  try { sessionStorage.setItem(DISCORD_CONSENT_KEY, '1'); } catch {}
+                  void fetchUser();
+                }}
+                className="h-12 rounded-lg border-2 border-brand-border bg-tx-base text-brand-bg font-display font-black tracking-wider uppercase disabled:opacity-40"
+              >
+                Créer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 };

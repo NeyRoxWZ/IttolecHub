@@ -358,7 +358,7 @@
       "scope": "site",
       "type": "amelioration",
       "title": "Case à cocher avant de créer un compte",
-      "details": "Il faut accepter les Conditions et la politique de confidentialité avant de créer un compte ou de se connecter avec Discord."
+      "details": "À la création du compte, avec un pseudo ou avec Discord, il faut accepter les Conditions et la politique de confidentialité. La connexion à un compte existant ne demande rien."
     },
     {
       "id": "2026-09-13-25",
@@ -399,6 +399,14 @@
       "type": "amelioration",
       "title": "Barres de défilement discrètes",
       "details": "Les listes de Krash ont des barres fines et grises au lieu de traits jaunes entre les panneaux."
+    },
+    {
+      "id": "2026-09-13-30",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "correctif",
+      "title": "Accueil lisible en fenêtre réduite",
+      "details": "En écran partagé ou dans une petite fenêtre, la page d'accueil défile à nouveau : le bouton Jouer de Krash n'est plus inaccessible."
     }
   ]
 }
