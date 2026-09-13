@@ -8,12 +8,14 @@ import { generatePassphrase } from '@/lib/words';
 import { Copy, RefreshCw, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import ConsentBox from '@/components/ConsentBox';
 
 export default function CreerComptePage() {
   const [pseudo, setPseudo] = useState('');
   const [words, setWords] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'pseudo' | 'words'>('pseudo');
+  const [accepted, setAccepted] = useState(false);
   const router = useRouter();
   const { setUserLocally } = useAuth();
 
@@ -161,24 +163,20 @@ export default function CreerComptePage() {
             </div>
           </div>
 
+          <ConsentBox checked={accepted} onChange={setAccepted} minorNote />
+
           <button
             type="button"
             onClick={handleRegister}
-            disabled={loading}
+            disabled={loading || !accepted}
             className={cn(
               'w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2',
               'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base',
-              loading && 'opacity-60 cursor-not-allowed hover:bg-brand-inner hover:text-tx-base hover:border-brand-border'
+              (loading || !accepted) && 'opacity-60 cursor-not-allowed hover:bg-brand-inner hover:text-tx-base hover:border-brand-border'
             )}
           >
             {loading ? 'Création...' : "J'ai sauvegardé mes mots, créer mon compte"}
           </button>
-          <p className="text-[11px] text-tx-muted text-center leading-snug">
-            En créant un compte, tu acceptes les{' '}
-            <a href="/conditions" className="underline hover:text-tx-base">Conditions</a> et la{' '}
-            <a href="/confidentialite" className="underline hover:text-tx-base">politique de confidentialité</a>.
-            Moins de 15 ans : avec l&apos;accord d&apos;un parent.
-          </p>
 
           <button
             type="button"

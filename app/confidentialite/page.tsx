@@ -125,7 +125,8 @@ export default function ConfidentialitePage() {
                 en indiquant ton pseudo ; une réponse est apportée dans un délai d&apos;un mois.
               </p>
               <p>
-                Tu peux aussi changer ton pseudo depuis ta page Profil et couper les notifications à tout moment.
+                Depuis ta page Profil, tu peux aussi changer ton pseudo et <b>supprimer ton compte</b> : toutes tes
+                données sont alors effacées immédiatement. Les notifications se coupent à tout moment.
                 Si tu estimes que tes droits ne sont pas respectés, tu peux adresser une réclamation à la CNIL
                 (<a href="https://www.cnil.fr" className="underline" rel="noopener noreferrer" target="_blank">cnil.fr</a>).
               </p>

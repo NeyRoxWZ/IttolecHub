@@ -262,7 +262,7 @@
       "scope": "krash",
       "type": "equilibrage",
       "title": "Frais seulement sur le gain",
-      "details": "Un trade gagnant n'affiche jamais de perte à cause des frais, et un trade perdant n'en paie aucun. Le levier est plafonné sur l'actif d'un résultat annoncé."
+      "details": "Un trade perdant ne paie aucun frais, et un trade gagnant garde toujours au moins la moitié de son gain. Le levier est plafonné sur l'actif d'un résultat annoncé."
     },
     {
       "id": "2026-09-13-13",
@@ -343,6 +343,38 @@
       "type": "amelioration",
       "title": "Conditions rappelées à l'inscription",
       "details": "Les écrans de création de compte et de connexion rappellent les Conditions et la politique de confidentialité."
+    },
+    {
+      "id": "2026-09-13-23",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "nouveau",
+      "title": "Supprimer son compte",
+      "details": "Depuis la page Profil : toutes tes données sont effacées tout de suite, après confirmation avec tes 6 mots ou ta session Discord."
+    },
+    {
+      "id": "2026-09-13-24",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Case à cocher avant de créer un compte",
+      "details": "Il faut accepter les Conditions et la politique de confidentialité avant de créer un compte ou de se connecter avec Discord."
+    },
+    {
+      "id": "2026-09-13-25",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "correctif",
+      "title": "Chronos Krash à l'heure",
+      "details": "L'horloge du jeu était décalée de plusieurs heures : un trade d'une minute affichait un compte à rebours énorme et le pari flash répondait « trop tard » avant la fin du chrono."
+    },
+    {
+      "id": "2026-09-13-26",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Le levier expliqué dans le guide",
+      "details": "Une page du guide montre avec un exemple ce que change le levier et quand une position est liquidée."
     }
   ]
 }

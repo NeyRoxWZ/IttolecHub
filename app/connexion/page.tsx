@@ -6,11 +6,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import ConsentBox from '@/components/ConsentBox';
 
 export default function ConnexionPage() {
   const [pseudo, setPseudo] = useState('');
   const [passphrase, setPassphrase] = useState('');
   const [loading, setLoading] = useState(false);
+  // Discord creates the account on first sign-in, so it needs the same consent as sign-up.
+  const [accepted, setAccepted] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { loginDiscord, setUserLocally, user, loading: authLoading } = useAuth();
@@ -104,10 +107,15 @@ export default function ConnexionPage() {
           </div>
 
           <div className="mt-6 space-y-6">
+            <ConsentBox checked={accepted} onChange={setAccepted} minorNote />
             <button
               type="button"
-              onClick={() => loginDiscord(nextPath)}
-              className="w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base flex items-center justify-center gap-3"
+              onClick={() => accepted && loginDiscord(nextPath)}
+              disabled={!accepted}
+              className={cn(
+                '-mt-3 w-full h-14 rounded-lg font-display font-black tracking-wider uppercase transition-colors border-2 bg-brand-inner text-tx-base border-brand-border flex items-center justify-center gap-3',
+                accepted ? 'hover:bg-tx-base hover:text-brand-bg hover:border-tx-base' : 'opacity-50 cursor-not-allowed'
+              )}
             >
               <svg width="22" height="22" viewBox="0 0 256 199" aria-hidden="true" className="shrink-0">
                 <path
@@ -117,11 +125,6 @@ export default function ConnexionPage() {
               </svg>
               Se connecter avec Discord
             </button>
-            <p className="-mt-3 text-[11px] text-tx-muted text-center leading-snug">
-              En te connectant, tu acceptes les{' '}
-              <a href="/conditions" className="underline hover:text-tx-base">Conditions</a> et la{' '}
-              <a href="/confidentialite" className="underline hover:text-tx-base">politique de confidentialité</a>.
-            </p>
 
             <div className="flex items-center gap-4">
               <div className="flex-1 h-[2px] bg-brand-border" />

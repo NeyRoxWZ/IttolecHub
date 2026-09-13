@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import {
-  ArrowUp, ChevronLeft, ChevronRight, Gift, Newspaper, Sparkles, Timer, X,
+  ArrowUp, ChevronLeft, ChevronRight, Gift, Newspaper, Sparkles, Timer, X, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
@@ -33,8 +33,24 @@ const STEPS: Step[] = [
     title: '30 secondes et c’est plié',
     body: (
       <>
-        <p>Un trade dure 30 s, 1 min ou 5 min, puis le résultat tombe tout seul, en pourcentage.</p>
-        <p>Le <b>levier</b> multiplie tout : en x2, 1 % de mouvement = 2 % sur ta mise. x5 après {LEVERAGE_UNLOCK[5]} trades, x10 après {LEVERAGE_UNLOCK[10]}. Enchaîne les gains pour un bonus de série.</p>
+        <p>Un trade dure 30 s, 1 min ou 5 min, puis le résultat tombe tout seul, en pourcentage. Tu peux aussi retirer avant la fin.</p>
+        <p>« Libre » garde la position ouverte jusqu’à ce que tu la retires. Enchaîne les trades gagnants pour un bonus de série.</p>
+      </>
+    ),
+  },
+  {
+    icon: Zap,
+    title: 'Le levier, en gros',
+    body: (
+      <>
+        <p>Le levier <b>multiplie le mouvement de la cote</b> sur ta mise. Tu mises 100 ₶ et la cote monte de 3 % :</p>
+        <ul className="list-disc pl-5 space-y-0.5">
+          <li>x1 : +3 ₶</li>
+          <li>x2 : +6 ₶</li>
+          <li>x10 : <b className="text-accent-success">+30 ₶</b></li>
+        </ul>
+        <p>Mais ça marche aussi dans l’autre sens. Si la cote va contre toi de <b>100 ÷ levier %</b> (50 % en x2, 10 % en x10), la position est <b className="text-rose-400">liquidée</b> : tu perds la mise, jamais plus.</p>
+        <p>Frais : seulement sur un trade gagnant, jamais sur une perte. x5 après {LEVERAGE_UNLOCK[5]} trades, x10 après {LEVERAGE_UNLOCK[10]}.</p>
       </>
     ),
   },

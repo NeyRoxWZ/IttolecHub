@@ -161,7 +161,7 @@ export default function TradePanel({
         <span className="text-tx-muted">Si {asset.name} bouge de 10 %</span>
         <span className="text-right font-bold tabular-nums">± {Math.round(stake * effectiveLeverage * 0.1).toLocaleString('fr-FR')} ₶</span>
         <span className="text-tx-muted">Frais</span>
-        <span className="text-right font-bold">{(KRASH_FEE_RATE * effectiveLeverage * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} % de la mise, sur le gain seulement</span>
+        <span className="text-right font-bold">sur le gain : la moitié au plus, max {(KRASH_FEE_RATE * effectiveLeverage * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} % de la mise</span>
         {effectiveLeverage > 1 && liqLong && (
           <>
             <span className="text-tx-muted">Liquidation (monte)</span>

@@ -259,10 +259,13 @@ export function durationLabel(seconds: number): string {
  * keeps reading the news from turning into a money printer.
  */
 export const KRASH_FEE_RATE = 0.008;
+/** Share of a gain the fee may take, whatever the cap: a win always keeps half. */
+export const KRASH_FEE_SHARE = 0.5;
 
 export function profitFee(grossProfit: number, stake: number, leverage: number): number {
   if (grossProfit <= 0) return 0;
-  return Math.min(grossProfit, Math.max(1, Math.round(stake * leverage * KRASH_FEE_RATE)));
+  // Half the gain at most, so a winning trade always keeps something.
+  return Math.min(Math.floor(grossProfit * KRASH_FEE_SHARE), Math.round(stake * leverage * KRASH_FEE_RATE));
 }
 
 /** A position's value at `price`: never below zero. */

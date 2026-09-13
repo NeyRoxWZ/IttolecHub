@@ -12,6 +12,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import ProfileStats from './ProfileStats';
+import DeleteAccount from './DeleteAccount';
 import { cn } from '@/lib/utils';
 
 export default function ProfilPage() {
@@ -285,6 +286,8 @@ export default function ProfilPage() {
           </h2>
           <ProfileStats userId={user.id} />
         </div>
+
+        <DeleteAccount user={user} />
       </div>
     </main>
   );
