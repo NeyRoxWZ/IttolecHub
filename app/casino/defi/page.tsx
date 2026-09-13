@@ -66,7 +66,7 @@ export default function DefiPage() {
   if (!state) {
     return (
       <main className="min-h-screen bg-transparent px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
-        <div className="max-w-3xl h-64 rounded-2xl border-[3px] border-brand-border bg-brand-inner animate-pulse" />
+        <div className="h-64 rounded-2xl border-[3px] border-brand-border bg-brand-inner animate-pulse" />
       </main>
     );
   }
@@ -78,7 +78,7 @@ export default function DefiPage() {
 
   return (
     <main className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
-      <div className="max-w-7xl mx-auto space-y-4 [&>*]:max-w-3xl">
+      <div className="max-w-7xl mx-auto space-y-4">
         <div className="flex items-center gap-3">
           <Link
             href="/casino"

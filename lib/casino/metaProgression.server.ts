@@ -338,7 +338,8 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
       wagered: input.wagered || 0,
       plays: 1,
       won: input.payout > 0 ? input.payout : 0,
-      crates: 0,
+      bigWins: isWin && base >= 10 ? 1 : 0,
+      game: gameSlug,
     }),
   ]).then(([, , , missions, , achievements]) => [missions, achievements] as const);
 

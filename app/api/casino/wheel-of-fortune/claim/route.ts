@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase/server';
 import { rollWheelOfFortune, WHEEL_OF_FORTUNE_SEGMENTS } from '@/lib/casino/meta';
 import { advancePass } from '@/lib/casino/pass.server';
 import { PASS_XP } from '@/lib/casino/pass';
+import { nudgeCommunity } from '@/lib/casino/community.server';
 
 function isSameUtcDay(a: Date, b: Date): boolean {
   return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
     });
 
     const pass = await advancePass(userId, PASS_XP.dailyWheel, 'activity');
+    await nudgeCommunity(userId, { dailyWheel: 1 });
 
     return NextResponse.json({ reward, newBalance, segmentIndex, pass });
   } catch (err) {

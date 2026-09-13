@@ -59,7 +59,7 @@ export default function LeaderboardPage() {
     <main className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
       {opened && <PlayerCard pseudo={opened} onClose={() => setOpened(null)} />}
 
-      <div className="max-w-7xl mx-auto [&>*]:max-w-3xl">
+      <div className="max-w-7xl mx-auto">
         <header className="flex items-center gap-4 mb-6">
           <button onClick={() => router.push('/casino')} className="h-12 w-12 shrink-0 inline-flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none">
             <ArrowLeft className="h-6 w-6" strokeWidth={3} />
@@ -91,7 +91,7 @@ export default function LeaderboardPage() {
         ) : rows.length === 0 ? (
           <p className="text-tx-secondary text-center">Personne pour l&apos;instant.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="grid gap-2 lg:grid-cols-2">
             {rows.map((r, i) => {
               const prestigeTitle = r.prestigeCount ? getPrestigeTitle(r.prestigeCount) : null;
               return (

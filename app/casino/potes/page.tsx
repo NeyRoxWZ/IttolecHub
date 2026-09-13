@@ -47,7 +47,7 @@ export default function PotesPage() {
 
   return (
     <main className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
-      <div className="max-w-7xl mx-auto space-y-4 [&>*]:max-w-3xl">
+      <div className="max-w-7xl mx-auto space-y-4">
         <div className="flex items-center gap-3">
           <Link
             href="/casino"
@@ -139,7 +139,7 @@ function Duels({ user, balance, setBalance, refresh }: any) {
   if (!state) return <Skeleton />;
 
   return (
-    <div className="space-y-3">
+    <div className="grid gap-3 lg:grid-cols-2 items-start">
       <div className="rounded-2xl border-[3px] border-brand-border bg-brand-card p-4 space-y-3">
         <h2 className="font-display">Lancer un défi</h2>
         <p className="text-[11px] text-tx-muted">
@@ -345,7 +345,7 @@ function Cadeaux({ user, balance, setBalance }: any) {
   const cost = giftCoinCost(amount.value);
 
   return (
-    <div className="space-y-3">
+    <div className="grid gap-3 lg:grid-cols-2 items-start">
       <div className="rounded-2xl border-[3px] border-brand-border bg-brand-card p-4 space-y-3">
         <h2 className="font-display">Offrir des jetons</h2>
         <p className="text-[11px] text-tx-muted">
@@ -462,7 +462,7 @@ function Parrainage({ user, refresh }: any) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="grid gap-3 lg:grid-cols-2 items-start">
       <div className="rounded-2xl border-[3px] border-brand-border bg-brand-card p-4 space-y-3">
         <h2 className="font-display">Ton code</h2>
         <p className="text-[11px] text-tx-muted">

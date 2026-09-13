@@ -7,7 +7,7 @@ import { sfx } from '@/lib/casino/sfx';
 import { cosmeticById, RARITY_COLOR, RARITY_LABEL, gameLabel, type Rarity } from '@/lib/casino/cosmetics';
 import { crateById, RARITY_ORDER, type CrateOpening } from '@/lib/casino/crates';
 import CosmeticPreview from './CosmeticPreview';
-import EquipButton from './EquipButton';
+import EquipButton, { resetEquipMarks } from './EquipButton';
 import CrateReel from './CrateReel';
 
 const RECAP_ORDER: Rarity[] = ['legendaire', 'epique', 'rare', 'commun'];
@@ -38,6 +38,8 @@ export default function CrateOpeningModal({
     setSpinning(null);
     setRevealed((r) => r + 1);
   }, []);
+
+  useEffect(() => { resetEquipMarks(); }, [openings]);
 
   useEffect(() => {
     if (!auto || done || spinning !== null) return;
@@ -75,9 +77,9 @@ export default function CrateOpeningModal({
           )}
         </div>
 
-        {spinning !== null ? (
+        {spinning !== null || (done && openings.length === 1) ? (
           <div className="mb-5">
-            <CrateReel reward={openings[spinning].reward} onDone={onReelDone} />
+            <CrateReel reward={openings[spinning ?? 0].reward} onDone={onReelDone} />
           </div>
         ) : (
           <div className="mb-5 rounded-2xl border-4 border-dashed border-[#3B4290] bg-brand-inner h-[214px] flex flex-col items-center justify-center gap-2">
@@ -98,11 +100,13 @@ export default function CrateOpeningModal({
         )}
 
         {done ? (
+          // A single crate already showed its piece on the reel: a recap of
+          // one would only repeat it, so the button simply closes.
           <button
-            onClick={() => { sfx.click(); setRecap(true); }}
+            onClick={() => { sfx.click(); if (openings.length > 1) setRecap(true); else onClose(); }}
             className="w-full h-16 rounded-2xl font-display text-2xl border-4 border-brand-border transition-transform focus:outline-none bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[4px]"
           >
-            Voir le récap
+            {openings.length > 1 ? 'Voir le récap' : 'Terminé'}
           </button>
         ) : (
           <button

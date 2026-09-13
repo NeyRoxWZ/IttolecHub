@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import { reactToLive, reactionsFor, LIVE_EMOJI } from '@/lib/casino/live.server';
+import { nudgeCommunity } from '@/lib/casino/community.server';
 
 /** The public tape: the last settled bets, everyone included. */
 export async function GET(request: Request) {
@@ -39,6 +40,8 @@ export async function POST(request: Request) {
 
     const result = await reactToLive(userId, Number(body?.live_id), String(body?.emoji || ''));
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+    // Taking a reaction back doesn't count; adding or swapping one does.
+    if (result.emoji) await nudgeCommunity(userId, { reactions: 1 });
     return NextResponse.json(result);
   } catch (err) {
     console.error('Erreur réaction:', err);

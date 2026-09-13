@@ -17,7 +17,7 @@ export default function LegalPage({
 }) {
   return (
     <main className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
-      <div className="max-w-7xl mx-auto [&>*]:max-w-3xl">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Link
             href="/"
@@ -35,7 +35,7 @@ export default function LegalPage({
         <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-5 sm:p-8 shadow-brutal">
           <div className="text-sm text-tx-secondary leading-relaxed">{intro}</div>
 
-          <div className="mt-6 space-y-6">
+          <div className="mt-6 grid gap-x-10 gap-y-6 lg:grid-cols-2">
             {sections.map((section, i) => (
               <section key={section.title}>
                 <h2 className="font-display text-lg text-tx-base mb-2">

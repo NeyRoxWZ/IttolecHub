@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase/server';
 import {
-  currentQuest, communityPeriod, contributorReward, questById,
-  type CommunityQuest,
+  currentQuest, communityPeriod, contributorReward, questById, contributionFor,
+  type CommunityQuest, type CommunityContribution,
 } from './community';
 
 /**
@@ -31,20 +31,15 @@ export interface CommunityProgress {
   completed: boolean;
 }
 
-/** Push whatever this settlement contributed to the week's goal. */
+/** Push whatever this action contributed to the week's goal. */
 export async function advanceCommunity(
   userId: string,
-  contribution: { wagered: number; plays: number; won: number; crates: number },
+  contribution: CommunityContribution,
 ): Promise<CommunityProgress | null> {
   const period = communityPeriod();
   const quest = currentQuest(period);
 
-  const amount =
-    quest.kind === 'wager_total' ? contribution.wagered
-    : quest.kind === 'play_count' ? contribution.plays
-    : quest.kind === 'win_total' ? contribution.won
-    : contribution.crates;
-
+  const amount = contributionFor(quest, contribution);
   if (amount <= 0) return null;
 
   const pseudo = await pseudoOf(userId);
@@ -62,6 +57,14 @@ export async function advanceCommunity(
   if (error || !data || data.length === 0) return null;
   const row = data[0] as { progress: number; target: number; completed: boolean };
   return { progress: Number(row.progress), target: Number(row.target), completed: row.completed };
+}
+
+/**
+ * The same, from a route whose own job is something else (a chat message, a
+ * claimed mission…): a failure here must never fail that action.
+ */
+export async function nudgeCommunity(userId: string, contribution: CommunityContribution): Promise<void> {
+  try { await advanceCommunity(userId, contribution); } catch (err) { console.error('Objectif commun:', err); }
 }
 
 export interface CommunityState {

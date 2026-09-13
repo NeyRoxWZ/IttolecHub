@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase/server';
 import { ensureMissions } from '@/lib/casino/metaProgression.server';
 import { periodKey, MISSION_SCOPES, type MissionScope } from '@/lib/casino/missions';
 import { advancePass } from '@/lib/casino/pass.server';
+import { nudgeCommunity } from '@/lib/casino/community.server';
 import { PASS_XP } from '@/lib/casino/pass';
 import { levelFromXp, levelUpReward } from '@/lib/casino/progression';
 
@@ -93,6 +94,7 @@ export async function POST(request: Request) {
     });
 
     const pass = await advancePass(userId, PASS_XP.mission, 'activity');
+    await nudgeCommunity(userId, { missions: 1 });
 
     return NextResponse.json({
       reward: row.def.reward,

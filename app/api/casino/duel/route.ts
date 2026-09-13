@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { duelState, createDuel, joinDuel, playDuel, cancelDuel } from '@/lib/casino/duel.server';
+import { nudgeCommunity } from '@/lib/casino/community.server';
 
 export async function GET(request: Request) {
   try {
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
     }
 
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+    if (body?.action === 'play') await nudgeCommunity(userId, { duels: 1 });
     return NextResponse.json(result);
   } catch (err) {
     console.error('Erreur duel:', err);

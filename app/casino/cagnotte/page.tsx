@@ -200,7 +200,7 @@ export default function CagnottePage() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto space-y-4 [&>*]:max-w-3xl">
+      <div className="max-w-7xl mx-auto space-y-4">
         <div className="flex items-center gap-3">
           <Link
             href="/casino"

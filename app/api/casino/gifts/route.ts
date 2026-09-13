@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { giftsFor, sendGift } from '@/lib/casino/social.server';
+import { nudgeCommunity } from '@/lib/casino/community.server';
 
 export async function GET(request: Request) {
   try {
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
       body?.item_id ? String(body.item_id) : undefined,
     );
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+    await nudgeCommunity(userId, { gifts: 1 });
     return NextResponse.json(result);
   } catch (err) {
     console.error('Erreur cadeau:', err);

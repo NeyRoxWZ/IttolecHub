@@ -110,6 +110,38 @@
       "type": "correctif",
       "title": "Jeux centrés dans leur carte",
       "details": "La roue et les autres jeux ne sont plus collés en haut de la scène : la place du bandeau de résultat est équilibrée au-dessus et en dessous."
+    },
+    {
+      "id": "2026-09-13-15",
+      "date": "2026-09-13",
+      "scope": "casino",
+      "type": "correctif",
+      "title": "Plus de double récap à l'ouverture d'une caisse",
+      "details": "Une seule caisse ouverte : la pièce reste affichée avec son bouton, sans second récap. Équiper une pièce la marque équipée partout dans la fenêtre."
+    },
+    {
+      "id": "2026-09-13-16",
+      "date": "2026-09-13",
+      "scope": "casino",
+      "type": "amelioration",
+      "title": "Heure du prochain objectif commun",
+      "details": "Le panneau indique quand l'objectif se termine et quand le suivant commence, même après avoir récupéré ta récompense."
+    },
+    {
+      "id": "2026-09-13-17",
+      "date": "2026-09-13",
+      "scope": "casino",
+      "type": "nouveau",
+      "title": "Objectifs communs variés",
+      "details": "Réagir dans En direct, discuter, offrir des cadeaux, jouer des duels, réclamer des missions, ouvrir le coffre, tourner la roue du jour, décrocher des gains à ×10, jouer à un jeu précis, le défi du jour ou le pass. Jamais le même type deux semaines de suite."
+    },
+    {
+      "id": "2026-09-13-18",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Pages en pleine largeur",
+      "details": "Classement, En direct, Entre potes et pages légales utilisent toute la largeur, en deux colonnes sur ordinateur."
     }
   ]
 }

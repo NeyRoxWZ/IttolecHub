@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ensurePass, passClaims, buyPassPremium, claimPassTier, claimAllPass } from '@/lib/casino/pass.server';
 import { supabase } from '@/lib/supabase/server';
+import { nudgeCommunity } from '@/lib/casino/community.server';
 import {
   passTrack, PASS_TIERS, PASS_PREMIUM_PRICE, PASS_XP,
   passXpForTier, tierFromPassXp, secondsUntilReset, passPeriodKey, currentSeason, seasonsRemaining,
@@ -67,12 +68,16 @@ export async function POST(request: Request) {
     if (action === 'claim') {
       const result = await claimPassTier(userId, Number(body?.tier), body?.track === 'premium' ? 'premium' : 'free');
       if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+      await nudgeCommunity(userId, { passTiers: 1 });
       return NextResponse.json(result);
     }
 
     if (action === 'claim_all') {
       const result = await claimAllPass(userId);
       if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+      const granted = (result as { granted?: unknown }).granted;
+      const claimedCount = Array.isArray(granted) ? granted.length : Number(granted) || 0;
+      if (claimedCount > 0) await nudgeCommunity(userId, { passTiers: claimedCount });
       return NextResponse.json(result);
     }
 

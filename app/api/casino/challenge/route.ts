@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { challengeState, startChallenge, playChallengeRound } from '@/lib/casino/challenge.server';
+import { nudgeCommunity } from '@/lib/casino/community.server';
 
 export async function GET(request: Request) {
   try {
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
       : await playChallengeRound(userId, Number(body?.bet));
 
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+    if (body?.action !== 'start') await nudgeCommunity(userId, { challengeRounds: 1 });
     return NextResponse.json(result);
   } catch (err) {
     console.error('Erreur défi:', err);

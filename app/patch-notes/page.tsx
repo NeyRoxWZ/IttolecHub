@@ -44,7 +44,7 @@ export default function PatchNotesPage() {
 
   return (
     <main className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
-      <div className="max-w-7xl mx-auto [&>*]:max-w-3xl">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-5">
           <Link
             href="/"

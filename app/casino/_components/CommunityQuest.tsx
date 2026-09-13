@@ -22,6 +22,13 @@ export function timeLeft(iso: string): string {
   return `encore ${Math.max(1, min)} min`;
 }
 
+/** "lundi à 02:00 (dans 3 j 4 h)", in the player's own time zone. */
+export function nextGoalLabel(iso: string): string {
+  const at = new Date(iso);
+  const when = at.toLocaleString('fr-FR', { weekday: 'long', hour: '2-digit', minute: '2-digit' }).replace(' ', ' à ');
+  return `${when} (${timeLeft(iso).replace('encore', 'dans')})`;
+}
+
 interface State {
   quest: Quest;
   period?: string;
@@ -122,6 +129,13 @@ export default function CommunityQuestPanel() {
           style={{ width: `${pct}%` }}
         />
       </div>
+
+      {state.endsAt && (
+        <div className="mb-1.5 text-xs font-bold text-tx-secondary">
+          {state.completed ? 'Prochain objectif' : 'Fin de l’objectif'}{' '}
+          <b className="text-white">{nextGoalLabel(state.endsAt)}</b>
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-tx-muted tabular-nums">
         <span>

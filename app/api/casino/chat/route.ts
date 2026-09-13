@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { chatHistory, postChat } from '@/lib/casino/social.server';
+import { nudgeCommunity } from '@/lib/casino/community.server';
 
 export async function GET() {
   try {
@@ -18,6 +19,7 @@ export async function POST(request: Request) {
 
     const result = await postChat(userId, String(body?.body || ''));
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+    await nudgeCommunity(userId, { chat: 1 });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('Erreur chat:', err);

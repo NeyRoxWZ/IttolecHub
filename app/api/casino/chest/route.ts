@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase/server';
 import { CHEST_DAYS, CHEST_LENGTH, chestRewardFor } from '@/lib/casino/events';
 import { addToInventory } from '@/lib/casino/inventory.server';
 import { loadEffects, consumeEffects } from '@/lib/casino/effects.server';
+import { nudgeCommunity } from '@/lib/casino/community.server';
 
 function isSameUtcDay(a: Date, b: Date): boolean {
   return a.getUTCFullYear() === b.getUTCFullYear()
@@ -91,6 +92,7 @@ export async function POST(request: Request) {
     }
 
     if (reward.crate) await addToInventory(userId, reward.crate);
+    await nudgeCommunity(userId, { chests: 1 });
 
     return NextResponse.json({
       day,

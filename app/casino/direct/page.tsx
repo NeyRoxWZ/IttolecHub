@@ -117,7 +117,7 @@ export default function LivePage() {
     <main className="min-h-[100dvh] bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
       {opened && <PlayerCard pseudo={opened} onClose={() => setOpened(null)} />}
 
-      <div className="max-w-7xl mx-auto [&>*]:max-w-3xl">
+      <div className="max-w-7xl mx-auto">
         <header className="flex items-center gap-3 mb-3 flex-wrap">
           <Link
             href="/casino"
@@ -169,7 +169,7 @@ export default function LivePage() {
             Rien pour l&apos;instant. La première mise apparaîtra ici.
           </p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="grid gap-2 lg:grid-cols-2 items-start">
             {rows.map((r) => {
               const win = r.amount > 0;
               return (
