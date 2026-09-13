@@ -179,6 +179,7 @@ export default function PecheGame({ userId }: { userId: string }) {
       {opening && (
         <ChestOpening
           packsLeft={state.packs}
+          equipped={state.equipped}
           onOpen={(count) => api('open_pack', { count })}
           onEquip={async (id) => { const c = COSMETIC_BY_ID.get(id); if (c && await api('equip', { slot: c.slot, cosmetic_id: id })) toast.success(`${c.name} équipé`); }}
           onClose={() => setOpening(false)}

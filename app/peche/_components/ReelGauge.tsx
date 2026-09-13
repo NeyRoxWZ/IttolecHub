@@ -33,17 +33,30 @@ export default function ReelGauge({
 
   const setHold = useCallback((v: boolean) => { s.current.holding = v; }, []);
 
+  // Hold anywhere on the page, not just on the narrow bar: clicking or
+  // touching outside it used to do nothing, so only the space bar worked.
   useEffect(() => {
     const down = (e: KeyboardEvent) => { if (e.code === 'Space') { e.preventDefault(); setHold(true); } };
     const up = (e: KeyboardEvent) => { if (e.code === 'Space') setHold(false); };
+    const press = (e: Event) => { e.preventDefault(); setHold(true); };
     const release = () => setHold(false);
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
-    window.addEventListener('pointerup', release);
+    window.addEventListener('mousedown', press);
+    window.addEventListener('touchstart', press, { passive: false });
+    window.addEventListener('mouseup', release);
+    window.addEventListener('touchend', release);
+    window.addEventListener('touchcancel', release);
+    window.addEventListener('blur', release);
     return () => {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
-      window.removeEventListener('pointerup', release);
+      window.removeEventListener('mousedown', press);
+      window.removeEventListener('touchstart', press);
+      window.removeEventListener('mouseup', release);
+      window.removeEventListener('touchend', release);
+      window.removeEventListener('touchcancel', release);
+      window.removeEventListener('blur', release);
     };
   }, [setHold]);
 
@@ -99,7 +112,6 @@ export default function ReelGauge({
     <div className="flex items-stretch gap-3 select-none touch-none">
       <div
         className="relative w-20 h-72 rounded-2xl border-4 border-brand-border bg-[#0E1030] overflow-hidden cursor-pointer"
-        onPointerDown={(e) => { e.preventDefault(); setHold(true); }}
       >
         <div
           className="absolute left-1 right-1 rounded-lg border-[3px] border-brand-border transition-colors"
@@ -118,7 +130,7 @@ export default function ReelGauge({
       <div className="flex flex-col justify-center gap-2 max-w-[160px]">
         <div className="font-display text-2xl leading-tight">{st.t < GRACE ? 'Prépare-toi…' : 'Ça mord !'}</div>
         <p className="text-sm font-bold text-tx-secondary leading-snug">
-          Maintiens (clic, doigt ou espace) pour garder le curseur jaune dans la zone verte. Relâche pour descendre.
+          Maintiens le clic n’importe où (ou le doigt, ou espace) pour faire monter le curseur jaune dans la zone verte. Relâche pour descendre.
         </p>
         <div className={cn('self-start px-2 py-0.5 rounded-lg border-2 border-brand-border font-display text-sm', st.perfect ? 'bg-accent-primary text-brand-bg' : 'bg-[#2B3170] text-tx-secondary')}>
           {st.perfect ? 'Parfait en cours' : 'Plus parfait'}
