@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Coins, Minus, Plus, HelpCircle, X, Volume2, VolumeX, Flame, Zap, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { BRAWL } from '@/lib/ui/brawl';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { sfx } from '@/lib/casino/sfx';
 import { CASINO_MIN_BET } from '@/lib/casino/core';
@@ -74,33 +75,36 @@ export function RulesModal({ title, rules, onClose }: { title: string; rules: Ru
   return (
     <div className="fixed inset-0 z-[200] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in zoom-in-95 duration-200"
+        className={cn(BRAWL.panel, 'w-full max-w-md max-h-[90dvh] overflow-y-auto p-6 animate-in zoom-in-95 duration-200')}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 mb-5">
-          <h2 className="font-display text-xl font-black">Comment jouer — {title}</h2>
-          <button onClick={onClose} className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none">
-            <X className="w-4 h-4" />
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Comment jouer</div>
+            <h2 className="font-display text-3xl leading-none text-stroke mt-1">{title}</h2>
+          </div>
+          <button onClick={onClose} aria-label="Fermer" className={cn(BRAWL.dark, 'h-11 w-11 shrink-0')}>
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <ol className="space-y-2.5 mb-5">
+        <ol className="space-y-3 mb-5">
           {rules.howTo.map((step, i) => (
             <li key={i} className="flex gap-3 text-sm">
-              <span className="shrink-0 w-6 h-6 rounded-full bg-accent-primary text-brand-bg font-black text-xs flex items-center justify-center">{i + 1}</span>
-              <span className="text-tx-secondary leading-relaxed pt-0.5">{step}</span>
+              <span className="shrink-0 w-8 h-8 rounded-xl bg-accent-primary border-2 border-brand-border text-brand-bg font-display text-base flex items-center justify-center shadow-[inset_0_-3px_0_#D98E00]">{i + 1}</span>
+              <span className="text-tx-secondary font-bold leading-relaxed pt-1">{step}</span>
             </li>
           ))}
         </ol>
 
         {rules.payouts && rules.payouts.length > 0 && (
           <>
-            <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted mb-2">Gains</div>
-            <div className="space-y-1 mb-5">
-              {rules.payouts.map((p) => (
-                <div key={p.label} className="flex justify-between text-sm border-b border-brand-border/60 pb-1">
-                  <span className="text-tx-secondary">{p.label}</span>
-                  <span className="font-bold">{p.value}</span>
+            <div className="font-display text-lg mb-2">Gains</div>
+            <div className="rounded-2xl bg-brand-inner border-[3px] border-brand-border overflow-hidden mb-5">
+              {rules.payouts.map((p, i) => (
+                <div key={p.label} className={cn('flex justify-between gap-3 px-3 py-2 text-sm', i > 0 && 'border-t-2 border-brand-border')}>
+                  <span className="text-tx-secondary font-bold">{p.label}</span>
+                  <span className="font-display text-base text-accent-primary">{p.value}</span>
                 </div>
               ))}
             </div>
@@ -149,12 +153,12 @@ export function BetControls({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="text-[10px] font-black tracking-widest uppercase text-tx-muted">Ta mise</label>
-        <span className="text-[10px] font-bold text-tx-muted">max {fmt(maxBet)} ₶</span>
+        <label className="font-display text-lg leading-none">Ta mise</label>
+        <span className="text-[11px] font-black text-tx-muted">max {fmt(maxBet)} ₶</span>
       </div>
       <div className="flex items-center gap-2">
-        <button onClick={() => bump(-step)} disabled={disabled} className="h-12 w-12 shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base disabled:opacity-40 focus:outline-none active:scale-95 transition-transform">
-          <Minus className="h-4 w-4" />
+        <button onClick={() => bump(-step)} disabled={disabled} aria-label="Baisser la mise" className={cn(BRAWL.dark, 'h-14 w-14 shrink-0')}>
+          <Minus className="h-5 w-5" strokeWidth={3} />
         </button>
         <div className="flex-1 relative">
           <input
@@ -174,15 +178,15 @@ export function BetControls({
               if (draft !== null && draft !== '') setAmount(clamp(Number(draft.replace(/[^0-9]/g, ''))));
               setDraft(null);
             }}
-            className="w-full h-12 bg-brand-inner border-2 border-brand-border rounded-xl pl-3 pr-7 text-center font-display font-black text-lg tabular-nums focus:outline-none focus:border-accent-primary disabled:opacity-40"
+            className="w-full h-14 bg-brand-bg border-[3px] border-brand-border rounded-xl pl-3 pr-8 text-center font-display text-2xl text-white tabular-nums shadow-[inset_0_4px_0_#05061A] focus:outline-none focus:ring-4 focus:ring-accent-primary disabled:opacity-40"
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-tx-muted font-bold pointer-events-none">₶</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-accent-primary font-display text-lg pointer-events-none">₶</span>
         </div>
-        <button onClick={() => bump(step)} disabled={disabled} className="h-12 w-12 shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base disabled:opacity-40 focus:outline-none active:scale-95 transition-transform">
-          <Plus className="h-4 w-4" />
+        <button onClick={() => bump(step)} disabled={disabled} aria-label="Monter la mise" className={cn(BRAWL.dark, 'h-14 w-14 shrink-0')}>
+          <Plus className="h-5 w-5" strokeWidth={3} />
         </button>
       </div>
-      <div className="grid grid-cols-4 gap-2 mt-2">
+      <div className="grid grid-cols-4 gap-2 mt-3">
         {[
           { label: '½', value: Math.floor(amount / 2) },
           { label: '×2', value: amount * 2 },
@@ -193,7 +197,7 @@ export function BetControls({
             key={q.label}
             onClick={() => setTo(q.value)}
             disabled={disabled}
-            className="h-9 rounded-lg border-2 border-brand-border bg-brand-inner text-xs font-bold hover:border-accent-primary disabled:opacity-40 focus:outline-none active:scale-95 transition-transform"
+            className={cn(BRAWL.dark, 'h-10 text-base')}
           >
             {q.label}
           </button>
@@ -214,9 +218,9 @@ export function PlayButton({
   variant?: 'primary' | 'success' | 'danger'; className?: string;
 }) {
   const palette = {
-    primary: 'bg-accent-primary text-brand-bg hover:brightness-110',
-    success: 'bg-accent-success text-brand-bg hover:brightness-110',
-    danger: 'bg-accent-secondary text-white hover:brightness-110',
+    primary: 'bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] hover:brightness-105',
+    success: 'bg-accent-success text-brand-bg shadow-[inset_0_-6px_0_#1E9A55,0_5px_0_#05061A] hover:brightness-105',
+    danger: 'bg-accent-secondary text-white shadow-[inset_0_-6px_0_#C92D63,0_5px_0_#05061A] hover:brightness-105',
   }[variant];
 
   return (
@@ -224,9 +228,9 @@ export function PlayButton({
       onClick={onClick}
       disabled={disabled || loading}
       className={cn(
-        'h-16 w-full rounded-2xl font-display text-lg font-black tracking-wider border-4 border-brand-border shadow-brutal',
-        'transition-all active:translate-y-1 active:shadow-none focus:outline-none',
-        disabled || loading ? 'bg-brand-inner text-tx-muted cursor-not-allowed shadow-none' : palette,
+        'h-16 w-full rounded-2xl font-display text-2xl tracking-wide border-4 border-brand-border',
+        'transition-transform active:translate-y-[4px] focus:outline-none focus-visible:ring-4 focus-visible:ring-white',
+        disabled || loading ? 'bg-brand-inner text-tx-muted cursor-not-allowed shadow-[inset_0_4px_0_#0B0E2A]' : palette,
         className
       )}
     >
@@ -334,11 +338,7 @@ export function AutoBadge({ control, className }: { control: AutoControl; classN
   return (
     <button
       onClick={() => { sfx.click(); vibrate(HAPTIC.SOFT); control.stop(); }}
-      className={cn(
-        'h-9 px-3 rounded-lg border-2 border-accent-secondary bg-accent-secondary text-white',
-        'font-display font-black text-[11px] tracking-wider flex items-center gap-1.5 focus:outline-none',
-        className
-      )}
+      className={cn(BRAWL.pink, 'h-10 px-3 text-sm', className)}
     >
       <RotateCcw className="h-3.5 w-3.5 animate-spin" style={{ animationDuration: '1.6s' }} />
       STOP AUTO
@@ -381,7 +381,7 @@ export function AutoTargetField({
             if (Number.isNaN(n)) return;
             onChange(Math.min(max, Math.max(min, n)));
           }}
-          className="w-full h-9 bg-brand-inner border-2 border-brand-border rounded-lg pl-3 pr-7 text-sm font-bold tabular-nums focus:outline-none focus:border-accent-primary"
+          className="w-full h-10 bg-brand-bg border-[3px] border-brand-border rounded-xl pl-3 pr-7 text-sm font-black text-white tabular-nums focus:outline-none focus:ring-4 focus:ring-accent-primary"
         />
         {suffix && (
           <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tx-muted font-bold text-xs pointer-events-none">
@@ -453,9 +453,11 @@ export function PlayRow({
           disabled={canAuto !== undefined ? !canAuto : disabled}
           title="Rejoue tout seul jusqu'à ce que tu l'arrêtes"
           className={cn(
-            'h-16 w-16 shrink-0 rounded-2xl border-4 border-brand-border font-display font-black text-[11px] tracking-wider',
-            'flex flex-col items-center justify-center gap-0.5 transition-all active:translate-y-1 focus:outline-none disabled:opacity-40',
-            auto ? 'bg-accent-secondary text-white shadow-none translate-y-0.5' : 'bg-brand-inner text-tx-secondary shadow-brutal hover:text-tx-base'
+            'h-16 w-16 shrink-0 rounded-2xl border-4 border-brand-border font-display text-sm',
+            'flex flex-col items-center justify-center gap-0.5 transition-transform active:translate-y-[4px] focus:outline-none disabled:opacity-40',
+            auto
+              ? 'bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_2px_0_#05061A] translate-y-[3px]'
+              : 'bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_5px_0_#05061A]'
           )}
         >
           <RotateCcw className={cn('h-4 w-4', auto && 'animate-spin')} style={auto ? { animationDuration: '1.6s' } : undefined} />
@@ -478,7 +480,7 @@ export function PlayRow({
               value={stopBelow || ''}
               placeholder="aucun seuil"
               onChange={(e) => setStopBelow(Math.max(0, Math.floor(Number(e.target.value)) || 0))}
-              className="w-full h-9 bg-brand-inner border-2 border-brand-border rounded-lg pl-3 pr-7 text-sm font-bold tabular-nums focus:outline-none focus:border-accent-primary"
+              className="w-full h-10 bg-brand-bg border-[3px] border-brand-border rounded-xl pl-3 pr-7 text-sm font-black text-white tabular-nums placeholder:text-tx-muted focus:outline-none focus:ring-4 focus:ring-accent-primary"
             />
             <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tx-muted font-bold text-xs pointer-events-none">₶</span>
           </div>
@@ -502,16 +504,16 @@ export function ResultBanner({
   nearMiss?: ReactNode;
 }) {
   return (
-    <div className="h-12 flex items-center justify-center">
+    <div className="h-14 flex items-center justify-center">
       {state !== 'idle' && (
         <div
           className={cn(
-            'px-5 py-2.5 rounded-xl border-2 font-display font-black text-sm animate-in zoom-in-95 fade-in duration-200',
-            state === 'win' && 'border-accent-success text-accent-success bg-accent-success/15',
-            state === 'lose' && !nearMiss && 'border-accent-secondary text-accent-secondary bg-accent-secondary/15',
+            'px-5 py-2 rounded-2xl border-[3px] border-brand-border font-display text-xl animate-in zoom-in-90 fade-in duration-200',
+            state === 'win' && 'bg-accent-success text-brand-bg shadow-[inset_0_-4px_0_#1E9A55,0_4px_0_#05061A]',
+            state === 'lose' && !nearMiss && 'bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_4px_0_#05061A]',
             // A near miss is highlighted, not blinking: the pulse read as a bug.
-            state === 'lose' && nearMiss && 'border-accent-primary text-accent-primary bg-accent-primary/15',
-            state === 'push' && 'border-tx-secondary text-tx-secondary bg-brand-inner'
+            state === 'lose' && nearMiss && 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00,0_4px_0_#05061A]',
+            state === 'push' && 'bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_4px_0_#05061A]'
           )}
         >
           {state === 'lose' && nearMiss ? nearMiss : children}
@@ -532,15 +534,20 @@ export function StreakMeter({ streak }: { streak: number }) {
   const next = nextStreakTier(streak);
 
   return (
-    <div className="shrink-0 rounded-xl border-2 border-brand-border bg-brand-inner px-3 py-2">
+    <div className="shrink-0 rounded-2xl border-[3px] border-brand-border bg-brand-inner px-3 py-2">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <Flame className={cn('h-4 w-4', bonus > 0 ? 'text-accent-secondary' : 'text-tx-muted')} />
-          <span className="font-display font-black text-sm">{streak}</span>
-          {label && <span className="text-[10px] font-black tracking-widest text-accent-secondary">{label}</span>}
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            'h-8 w-8 rounded-xl border-2 border-brand-border flex items-center justify-center',
+            bonus > 0 ? 'bg-[#FF8A1F] shadow-[inset_0_-3px_0_#CC6508]' : 'bg-[#2B3170]'
+          )}>
+            <Flame className="h-4 w-4 text-white" strokeWidth={2.5} />
+          </span>
+          <span className="font-display text-xl">{streak}</span>
+          {label && <span className="text-[11px] font-black tracking-widest text-accent-secondary uppercase">{label}</span>}
         </div>
         {bonus > 0 && (
-          <span className="text-[11px] font-bold text-accent-success">+{Math.round(bonus * 100)}% de gain</span>
+          <span className="px-2 py-0.5 rounded-lg bg-accent-success border-2 border-brand-border text-brand-bg font-display text-sm">+{Math.round(bonus * 100)}%</span>
         )}
       </div>
       {next && (
@@ -598,9 +605,9 @@ export function PlayingCard({
 
   if (hidden || rank === undefined) {
     return (
-      <div className={cn(dims, 'rounded-lg border-2 border-brand-border shrink-0 flex items-center justify-center animate-in fade-in duration-200')}
-        style={{ background: 'repeating-linear-gradient(45deg, #1E1E28, #1E1E28 5px, #2A2A38 5px, #2A2A38 10px)' }}>
-        <span className="text-tx-muted font-black opacity-50">?</span>
+      <div className={cn(dims, 'rounded-xl border-[3px] border-brand-border shrink-0 flex items-center justify-center animate-in fade-in duration-200 shadow-[0_3px_0_#05061A]')}
+        style={{ background: 'repeating-linear-gradient(45deg, #8B3DFF, #8B3DFF 6px, #7431E0 6px, #7431E0 12px)' }}>
+        <span className="font-display text-white text-stroke-sm">?</span>
       </div>
     );
   }
@@ -609,11 +616,11 @@ export function PlayingCard({
     <div
       className={cn(
         dims,
-        'rounded-lg border-2 bg-white shrink-0 relative flex items-center justify-center font-display font-black',
+        'rounded-xl border-[3px] bg-white shrink-0 relative flex items-center justify-center font-display',
         'animate-in zoom-in-90 slide-in-from-bottom-2 duration-200',
-        highlight ? 'border-accent-primary ring-2 ring-accent-primary' : 'border-brand-border'
+        highlight ? 'border-brand-border ring-4 ring-accent-primary' : 'border-brand-border'
       )}
-      style={{ color: red ? '#D32F2F' : '#111', boxShadow: '0 2px 6px rgba(0,0,0,0.45)' }}
+      style={{ color: red ? '#E0245E' : '#05061A', boxShadow: '0 3px 0 #05061A' }}
     >
       <span className={cn('absolute top-1.5 left-2 leading-none', corner)}>{rankLabel(rank)}</span>
       <span>{suit}</span>
@@ -687,39 +694,43 @@ export function GameShell({
             {back ? (
               <button
                 onClick={() => { sfx.click(); back(); }}
-                className="h-11 w-11 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
+                aria-label="Retour"
+                className={cn(BRAWL.pink, 'h-12 w-12 shrink-0')}
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-6 w-6" strokeWidth={3} />
               </button>
             ) : (
               <Link
                 href="/casino"
                 prefetch
-                className="h-11 w-11 flex items-center justify-center rounded-xl border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-tx-base hover:border-tx-base transition-colors focus:outline-none"
+                aria-label="Retour au casino"
+                className={cn(BRAWL.pink, 'h-12 w-12 shrink-0')}
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-6 w-6" strokeWidth={3} />
               </Link>
             )}
-            <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-black">{title}</h1>
+            <h1 className="font-display text-3xl sm:text-4xl leading-none">{title}</h1>
             <button
               onClick={() => { sfx.click(); setShowRules(true); }}
-              className="h-9 px-3 flex items-center gap-1.5 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-secondary hover:text-accent-primary hover:border-accent-primary transition-colors focus:outline-none"
+              className={cn(BRAWL.dark, 'h-11 px-3 text-base')}
             >
-              <HelpCircle className="h-4 w-4" />
-              <span className="text-xs font-bold hidden sm:inline">Règles</span>
+              <HelpCircle className="h-5 w-5" />
+              <span className="hidden sm:inline">Règles</span>
             </button>
           </div>
 
           <div className="flex items-center gap-2">
             {level !== undefined && (
-              <div className="h-11 hidden sm:flex items-center px-3 rounded-xl border-2 border-brand-border bg-brand-inner">
+              <div className="h-12 hidden sm:flex items-center pl-1.5 pr-3 rounded-2xl border-[3px] border-brand-border bg-brand-bg">
                 <LevelBar level={level} into={xpIntoLevel ?? 0} needed={xpForNext ?? 1} />
               </div>
             )}
             {streak !== undefined && streak > 1 && (
-              <div className="h-11 flex items-center gap-1.5 px-3 rounded-xl border-2 border-accent-secondary bg-accent-secondary/10">
-                <Flame className="h-4 w-4 text-accent-secondary" />
-                <span className="font-display font-black text-sm text-accent-secondary">{streak}</span>
+              <div className="h-12 flex items-center gap-1.5 pl-1.5 pr-3 rounded-2xl border-[3px] border-brand-border bg-brand-bg">
+                <span className="h-8 w-8 rounded-xl bg-[#FF8A1F] border-2 border-brand-border flex items-center justify-center shadow-[inset_0_-3px_0_#CC6508]">
+                  <Flame className="h-4 w-4 text-white" strokeWidth={2.5} />
+                </span>
+                <span className="font-display text-lg text-white">{streak}</span>
               </div>
             )}
             <CasinoControls />
@@ -727,7 +738,7 @@ export function GameShell({
             {/* The emblem cosmetic rides on the balance chip. */}
             {EmblemArt && (
               <span
-                className="h-11 w-11 shrink-0 rounded-xl border-2 flex items-center justify-center"
+                className="h-12 w-12 shrink-0 rounded-xl border-[3px] flex items-center justify-center"
                 style={{ borderColor: emblem?.color, background: `${emblem?.color}14` }}
               >
                 <EmblemArt size={20} />
@@ -747,16 +758,20 @@ export function GameShell({
               border?.animated && 'animate-pulse-border'
             )}
             style={{
-              background: table ? tableBackground(table) : undefined,
+              // Default table: the panel with the site's soft stripes, so a game
+              // without a skin still sits on something rather than a flat fill.
+              background: table
+                ? tableBackground(table)
+                : 'repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 20px, transparent 20px 40px), #1E2358',
               borderColor: border?.color,
-              boxShadow: border?.glow ? `0 0 22px ${border.color}66` : undefined,
+              boxShadow: border?.glow ? `0 0 22px ${border.color}66, 0 6px 0 #05061A` : '0 6px 0 #05061A',
             }}
           >
             {particles && <ParticleField color={particles.color || '#FFD000'} style={particles.particleStyle || 'drift'} />}
             {cosmetics.lose_fx && <LoseFlash params={cosmetics.lose_fx.params} />}
             <StageFit filter={skin ? skinFilter(skin) : undefined}>{stage}</StageFit>
           </div>
-          <div className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 sm:p-5 shadow-brutal flex flex-col gap-4 min-h-0">
+          <div className={cn(BRAWL.panel, 'rounded-[24px] p-4 sm:p-5 flex flex-col gap-4 min-h-0')}>
             <ActiveEffectsBar />
             {streak !== undefined && <StreakMeter streak={streak} />}
             {panel}
@@ -939,16 +954,16 @@ export function HistoryStrip({ history }: { history: { id: string; amount: numbe
   if (history.length === 0) return null;
   return (
     <div className="mt-auto shrink-0">
-      <div className="text-[10px] font-black tracking-widest uppercase text-tx-muted mb-1.5">Dernières parties</div>
+      <div className="font-display text-base mb-1.5">Dernières parties</div>
       <div className="flex gap-1.5 overflow-hidden">
         {history.slice(0, 6).map((h) => (
           <span
             key={h.id}
             className={cn(
-              'text-[11px] font-bold px-2 py-1 rounded-md border tabular-nums',
-              h.amount > 0 ? 'border-accent-success/60 text-accent-success bg-accent-success/10'
-                : h.amount === 0 ? 'border-tx-secondary/50 text-tx-secondary'
-                : 'border-accent-secondary/60 text-accent-secondary bg-accent-secondary/10'
+              'text-xs font-display px-2 py-1 rounded-lg border-2 border-brand-border tabular-nums',
+              h.amount > 0 ? 'bg-accent-success text-brand-bg'
+                : h.amount === 0 ? 'bg-[#2B3170] text-white'
+                : 'bg-accent-secondary text-white'
             )}
           >
             {h.amount > 0 ? '+' : ''}{h.amount.toLocaleString('en-US')}
