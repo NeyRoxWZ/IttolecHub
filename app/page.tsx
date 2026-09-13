@@ -680,8 +680,8 @@ export default function Home() {
                   type="button"
                   onClick={() => window.location.assign('/itollec-clicker')}
                   className={cn(
-                    'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
-                    'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                    'mt-auto w-full h-14 rounded-xl font-display text-xl tracking-wider transition-transform border-[3px] relative z-10',
+                    'bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:-translate-y-0.5'
                   )}
                 >
                   Jouer
@@ -709,8 +709,8 @@ export default function Home() {
                   type="button"
                   onClick={() => window.location.assign('/casino')}
                   className={cn(
-                    'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
-                    'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                    'mt-auto w-full h-14 rounded-xl font-display text-xl tracking-wider transition-transform border-[3px] relative z-10',
+                    'bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:-translate-y-0.5'
                   )}
                 >
                   Jouer
@@ -738,8 +738,8 @@ export default function Home() {
                   type="button"
                   onClick={() => window.location.assign('/krash')}
                   className={cn(
-                    'mt-auto w-full h-14 rounded-lg font-display font-black tracking-wider transition-colors border-2 relative z-10',
-                    'bg-brand-inner text-tx-base border-brand-border hover:bg-tx-base hover:text-brand-bg hover:border-tx-base'
+                    'mt-auto w-full h-14 rounded-xl font-display text-xl tracking-wider transition-transform border-[3px] relative z-10',
+                    'bg-accent-primary text-brand-bg border-brand-border shadow-brutal hover:-translate-y-0.5'
                   )}
                 >
                   Jouer
@@ -751,11 +751,11 @@ export default function Home() {
       </section>
 
       <footer className="pb-2 md:pb-3 px-6">
-        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold tracking-widest uppercase text-tx-muted">
-          <Link href="/mentions-legales" className="hover:text-tx-secondary transition-colors">Mentions légales</Link>
-          <Link href="/conditions" className="hover:text-tx-secondary transition-colors">Conditions</Link>
-          <Link href="/confidentialite" className="hover:text-tx-secondary transition-colors">Confidentialité</Link>
-          <Link href="/patch-notes" className="hover:text-tx-secondary transition-colors">Patch Notes</Link>
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-black tracking-widest uppercase text-white [text-shadow:0_1px_0_#14142B]">
+          <Link href="/mentions-legales" className="hover:underline">Mentions légales</Link>
+          <Link href="/conditions" className="hover:underline">Conditions</Link>
+          <Link href="/confidentialite" className="hover:underline">Confidentialité</Link>
+          <Link href="/patch-notes" className="hover:underline">Patch Notes</Link>
         </div>
       </footer>
     </main>

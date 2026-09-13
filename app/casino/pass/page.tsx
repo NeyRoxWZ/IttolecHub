@@ -223,7 +223,7 @@ export default function FrenlyPassPage() {
               <h1 className="font-display text-xl sm:text-2xl font-black leading-none">Frenly Pass</h1>
               <span className="text-[11px] text-tx-muted">
                 100 paliers · remis à zéro le 1er du mois ·{' '}
-                <Link href="/casino/inventaire" prefetch className="text-accent-primary font-bold underline underline-offset-2">
+                <Link href="/casino/inventaire" prefetch className="text-tx-base font-black underline underline-offset-2">
                   ta collection
                 </Link>
               </span>

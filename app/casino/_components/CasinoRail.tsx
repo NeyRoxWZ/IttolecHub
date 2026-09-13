@@ -33,7 +33,8 @@ export interface Claim {
 export function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[9px] font-black uppercase tracking-widest text-tx-muted mb-1 px-0.5">
+      {/* Sits on the blue page, not on a panel: white to stay readable. */}
+      <div className="text-[10px] font-black uppercase tracking-widest text-white mb-1 px-0.5 [text-shadow:0_1px_0_#14142B]">
         {title}
       </div>
       {children}

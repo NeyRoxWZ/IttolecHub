@@ -405,7 +405,7 @@ export default function CasinoHub() {
             <button
               onClick={() => { sfx.click(); setShowJackpot(true); }}
               title="Comment gagner la cagnotte ?"
-              className="hidden sm:flex h-11 items-center gap-2 px-3 rounded-xl border-2 border-dashed border-accent-primary/60 bg-accent-primary/5 hover:bg-accent-primary/10 transition-colors focus:outline-none"
+              className="hidden sm:flex h-11 items-center gap-2 px-3 rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal hover:bg-brand-inner transition-colors focus:outline-none"
             >
               <Gem className="h-4 w-4 shrink-0 text-accent-primary" />
               <div className="leading-tight text-left">

@@ -16,8 +16,7 @@ import { tableBackground } from './CosmeticPreview';
  * grid the whole site is built on. The skin goes *under* these instead.
  */
 const QUADRILLAGE =
-  'linear-gradient(to right, #262635 1px, transparent 1px) 0 0 / 32px 32px, ' +
-  'linear-gradient(to bottom, #262635 1px, transparent 1px) 0 0 / 32px 32px';
+  'repeating-linear-gradient(135deg, rgba(255,255,255,0.06) 0 24px, transparent 24px 48px)';
 
 /**
  * The general set, applied to the whole casino.

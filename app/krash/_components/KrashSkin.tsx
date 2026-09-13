@@ -7,10 +7,9 @@ import Confetti from '@/app/casino/_components/Confetti';
 import type { CosmeticParams } from '@/lib/casino/cosmetics';
 import { useKrashLoadout } from '../_lib/useKrashLoadout';
 
-/** The site's grid, kept on top of a background skin, as the casino does. */
+/** The site's stripes, kept on top of a background skin, as the casino does. */
 const QUADRILLAGE =
-  'linear-gradient(to right, #262635 1px, transparent 1px) 0 0 / 32px 32px, ' +
-  'linear-gradient(to bottom, #262635 1px, transparent 1px) 0 0 / 32px 32px';
+  'repeating-linear-gradient(135deg, rgba(255,255,255,0.06) 0 24px, transparent 24px 48px)';
 
 /** Fired by the positions hook when a withdrawal is a big win. */
 export const KRASH_BIG_WIN_EVENT = 'krash:bigwin';
@@ -62,7 +61,7 @@ export default function KrashSkin() {
         <style>{'main[data-krash] { background: transparent !important; }'}</style>
       )}
       {cosmetics.border && (
-        <style>{`main[data-krash] .shadow-brutal.border-brand-border { border-color: var(--krash-accent) !important; ${cosmetics.border.params.glow ? 'box-shadow: 0 0 14px var(--krash-accent), 4px 4px 0 #000 !important;' : ''} }`}</style>
+        <style>{`main[data-krash] .shadow-brutal.border-brand-border { border-color: var(--krash-accent) !important; ${cosmetics.border.params.glow ? 'box-shadow: 0 0 14px var(--krash-accent), 0 5px 0 #14142B !important;' : ''} }`}</style>
       )}
       {burst > 0 && <Confetti trigger={burst} intensity="huge" />}
     </>

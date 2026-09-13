@@ -47,7 +47,7 @@ export default function EventBanner({ className }: { className?: string }) {
         href={`/casino/${game}`}
         prefetch
         title={`Sur ${GAME_LABELS[game] || game} aujourd'hui, tes bénéfices sont majorés de ${Math.round(GAME_OF_DAY_BONUS * 100)}%. La mise remboursée ne change pas.`}
-        className="h-11 px-3 rounded-xl border-2 border-accent-primary/60 bg-accent-primary/5 flex items-center gap-2 hover:bg-accent-primary/10 transition-colors focus:outline-none"
+        className="h-11 px-3 rounded-xl border-2 border-brand-border bg-brand-card shadow-brutal flex items-center gap-2 hover:bg-brand-inner transition-colors focus:outline-none"
       >
         <Star className="h-4 w-4 shrink-0 text-accent-primary" />
         <div className="leading-tight">

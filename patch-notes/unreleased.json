@@ -407,6 +407,14 @@
       "type": "correctif",
       "title": "Accueil lisible en fenêtre réduite",
       "details": "En écran partagé ou dans une petite fenêtre, la page d'accueil défile à nouveau : le bouton Jouer de Krash n'est plus inaccessible."
+    },
+    {
+      "id": "2026-09-13-31",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Nouvelle direction artistique",
+      "details": "Tout le site passe en style « Brawl » : fond bleu, panneaux blancs aux contours épais, titres détourés comme le logo, boutons en relief qui s'enfoncent au clic."
     }
   ]
 }

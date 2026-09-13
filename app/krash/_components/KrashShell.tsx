@@ -64,7 +64,7 @@ export default function KrashShell({
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="leading-none min-w-0">
-            <div className="font-display text-3xl font-black tracking-wider text-rose-400 drop-shadow-[3px_3px_0_rgba(0,0,0,0.8)]">KRASH</div>
+            <div className="font-display text-3xl tracking-wider text-white [-webkit-text-stroke:5px_#14142B] [paint-order:stroke_fill] [text-shadow:0_3px_0_#14142B]">KRASH</div>
             {title && <div className="text-[11px] font-bold uppercase tracking-widest text-tx-muted mt-1">{title}</div>}
           </div>
 

@@ -55,7 +55,7 @@ export default function PatchNotesPage() {
           </Link>
           <div>
             <h1 className="font-display text-3xl font-black tracking-wider uppercase leading-none">Patch notes</h1>
-            <p className="text-[11px] text-tx-muted mt-1">Tout ce qui a changé, version après version.</p>
+            <p className="text-[12px] font-black text-white mt-1 [text-shadow:0_1px_0_#14142B]">Tout ce qui a changé, version après version.</p>
           </div>
         </div>
 
@@ -75,7 +75,7 @@ export default function PatchNotesPage() {
                       'h-9 px-3 rounded-lg border-2 font-display font-black text-[11px] tracking-wider uppercase transition-colors',
                       filter === g
                         ? g === 'tous' ? 'border-tx-base text-tx-base bg-brand-inner' : cn('bg-brand-inner', GROUP_META[g].active)
-                        : 'border-brand-border text-tx-muted hover:text-tx-base'
+                        : 'border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base'
                     )}
                   >
                     {g === 'tous' ? 'Tout' : GROUP_META[g].label}

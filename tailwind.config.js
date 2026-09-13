@@ -12,24 +12,34 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
+      // Direction "Brawl": white panels with thick ink outlines on a blue
+      // page, chunky outlined titles, buttons with a pressed-in bottom edge.
+      // The token names are the old ones so every screen switches at once:
+      //  brand.bg     ink, the dark tone (text on bright fills, dark wells)
+      //  brand.card   white panel
+      //  brand.inner  pale blue well inside a panel
+      //  brand.border ink outline
       colors: {
         brand: {
-          bg: '#13131A',
-          grid: '#262635',
-          card: '#1E1E28',
-          border: '#000000',
-          inner: '#13131A', // Utilisons le fond principal pour l'intérieur
+          bg: '#14142B',
+          grid: '#3D74F5',
+          card: '#FFFFFF',
+          border: '#14142B',
+          inner: '#EAF0FF',
+          page: '#4C82FF',
         },
         accent: {
-          primary: '#FFD000', // BOUTON_FOND
-          secondary: '#FF2A55', // NOTIF_ERREUR
-          success: '#00FF94', // NOTIF_SUCCES
-          info: '#E0E0E0', // NOTIF_INFO
+          primary: '#FFC61A',
+          secondary: '#FF4F8B',
+          success: '#33D17A',
+          info: '#2F6BFF',
         },
+        // Secondary and muted text also sit straight on the blue page (section
+        // labels, subtitles): dark enough to stay readable there too.
         tx: {
-          base: '#FFFFFF',
-          secondary: '#A0A0B0',
-          muted: 'rgba(160,160,176,0.6)',
+          base: '#14142B',
+          secondary: '#3A3A5A',
+          muted: 'rgba(20,20,43,0.7)',
         },
       },
       borderRadius: {
@@ -40,14 +50,14 @@ module.exports = {
         full: '9999px',
       },
       fontFamily: {
-        display: ['Nunito', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
+        display: ['"Lilita One"', '"Arial Black"', 'sans-serif'],
+        body: ['Nunito', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        brutal: '4px 4px 0px #000000', // CARTE_OMBRE / BOUTON_OMBRE
-        'brutal-cyan': '4px 4px 0px #00FF94', // Using success for now
-        'brutal-dark': '4px 4px 0px #000000',
-        card: '0 4px 24px rgba(0,0,0,0.4)',
+        brutal: '0 5px 0 #14142B',
+        'brutal-cyan': '0 5px 0 #1E9A55',
+        'brutal-dark': '0 5px 0 #14142B',
+        card: '0 6px 0 #14142B',
       },
       keyframes: {
         'float-up': {
