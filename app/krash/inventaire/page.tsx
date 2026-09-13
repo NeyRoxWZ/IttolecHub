@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Backpack, Clock, Lock, Package, Palette, Search, Sparkles, X } from 'lucide-react';
+import { Backpack, Clock, Dices, Lock, Package, Palette, Search, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
@@ -61,6 +61,8 @@ export default function KrashInventoryPage() {
       if (!res.ok) { toast.error(data.error ?? 'Impossible'); sfx.lose(); return; }
       if (typeof data.balance === 'number') setKrashBalance(data.balance);
       if (data.openings?.length) {
+        // The pieces just won must count as owned before the recap shows them.
+        await refreshKrashLoadout(user.id);
         setOpenings(data.openings);
       } else {
         sfx.select();
@@ -72,7 +74,23 @@ export default function KrashInventoryPage() {
   };
 
   const catalogue = useMemo(() => visibleKrashCosmetics(), []);
-  const owned = new Set(loadout.owned.length ? loadout.owned : inv.cosmetics);
+  const owned = new Set([...loadout.owned, ...inv.cosmetics]);
+
+  const randomize = async () => {
+    if (!user || busy) return;
+    setBusy('random');
+    try {
+      const res = await fetch('/api/krash/cosmetics', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, action: 'random' }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? 'Impossible'); return; }
+      sfx.crateOpen();
+      toast.success(`${data.count} cosmétique${data.count > 1 ? 's' : ''} équipé${data.count > 1 ? 's' : ''} au hasard`);
+      await refreshKrashLoadout(user.id);
+    } finally { setBusy(null); }
+  };
   const shown = catalogue.filter((c) => {
     if (slot !== 'tous' && c.slot !== slot) return false;
     if (ownedOnly && !owned.has(c.id)) return false;
@@ -185,7 +203,16 @@ export default function KrashInventoryPage() {
       ) : (
         <>
           <section className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 shadow-brutal mb-4">
-            <h2 className="font-display font-black tracking-wider uppercase mb-3">Équipé</h2>
+            <div className="flex items-center gap-2 mb-3">
+              <h2 className="font-display font-black tracking-wider uppercase">Équipé</h2>
+              <button
+                onClick={randomize}
+                disabled={busy === 'random' || owned.size === 0}
+                className="ml-auto h-9 px-3 rounded-lg border-2 border-accent-primary text-accent-primary bg-accent-primary/10 font-display font-black text-[11px] tracking-wider flex items-center gap-1.5 disabled:opacity-40"
+              >
+                <Dices className="h-4 w-4" /> ALÉATOIRE
+              </button>
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
               {KRASH_SLOTS.map((s) => {
                 const c = loadout.cosmetics[s];

@@ -69,8 +69,8 @@
       "date": "2026-09-12",
       "scope": "krash",
       "type": "nouveau",
-      "title": "Levier jusqu'à x10",
-      "details": "Multiplie gains et pertes. x5 se débloque après 5 trades, x10 après 20. Une position se ferme toute seule si la cote va trop loin contre toi, même hors ligne."
+      "title": "Levier jusqu'à x50",
+      "details": "Multiplie gains et pertes. x2 d'office, x5 après 3 trades, x10 après 10, jusqu'à x50 selon le marché. Une position se ferme toute seule si la cote va trop loin contre toi, même hors ligne."
     },
     {
       "id": "2026-09-12-10",
@@ -137,14 +137,6 @@
       "details": "Pendant 25 secondes après chaque news, parie si sa cible sera plus haute ou plus basse une minute plus tard. Le côté évident rapporte peu, le pari risqué jusqu'à x5."
     },
     {
-      "id": "2026-09-12-18",
-      "date": "2026-09-12",
-      "scope": "krash",
-      "type": "nouveau",
-      "title": "Dividendes",
-      "details": "Une position à l'achat sur une entreprise (FRX 40 ou Global 50) rapporte 0,25 % de sa mise par demi-heure gardée, jusqu'à 3 %, versés au retrait."
-    },
-    {
       "id": "2026-09-12-19",
       "date": "2026-09-12",
       "scope": "krash",
@@ -206,7 +198,7 @@
       "scope": "krash",
       "type": "nouveau",
       "title": "Guide et fiche joueur",
-      "details": "Un guide en dix étapes à la première visite, et la courbe de ton solde Krash en cliquant sur ton solde ou sur un joueur du classement."
+      "details": "Un guide en quatre pages à la première visite, puis ton premier trade guidé. La courbe de ton solde Krash s'ouvre en cliquant sur ton solde ou sur un joueur du classement."
     },
     {
       "id": "2026-09-13-05",
@@ -231,6 +223,126 @@
       "type": "correctif",
       "title": "L'effet des nouvelles news n'est plus coupé",
       "details": "Le contour qui signale une news fraîche était rogné par le bord de la liste."
+    },
+    {
+      "id": "2026-09-13-08",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "nouveau",
+      "title": "Mentions légales",
+      "details": "Nouvelle page qui indique l'éditeur, le contact et les hébergeurs du site, et comment signaler un contenu."
+    },
+    {
+      "id": "2026-09-13-09",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Confidentialité et Conditions complétées",
+      "details": "Responsable du traitement, bases légales, transferts hors UE, droit de réclamation auprès de la CNIL, règle des moins de 15 ans, et une clause rappelant que Krash et ses news sont fictifs."
+    },
+    {
+      "id": "2026-09-13-10",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Trades à durée",
+      "details": "Choisis 30 s, 1 min ou 5 min : la position se ferme toute seule et le résultat se révèle en pourcentage. Le mode libre reste disponible."
+    },
+    {
+      "id": "2026-09-13-11",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Résultats annoncés",
+      "details": "Toutes les 12 minutes 30, un résultat est annoncé à l'avance (« Dans 2 min 30 : résultats de Xvidia ») puis révélé d'un coup."
+    },
+    {
+      "id": "2026-09-13-12",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "equilibrage",
+      "title": "Frais seulement sur le gain",
+      "details": "Un trade gagnant n'affiche jamais de perte à cause des frais, et un trade perdant n'en paie aucun. Le levier est plafonné sur l'actif d'un résultat annoncé."
+    },
+    {
+      "id": "2026-09-13-13",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Série de gains",
+      "details": "Chaque trade gagnant d'affilée augmente le bonus sur le suivant, comme la série de victoires du casino."
+    },
+    {
+      "id": "2026-09-13-14",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Vue simple : ce qui bouge",
+      "details": "Par défaut, la liste montre les 8 actifs qui bougent le plus, tous marchés confondus, avec deux gros boutons ÇA MONTE et ÇA BAISSE. Les onglets de marchés restent à un clic."
+    },
+    {
+      "id": "2026-09-13-15",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Compte à rebours des résultats",
+      "details": "Un bandeau affiche le prochain résultat annoncé et le temps restant, avec un bouton pour parier dessus."
+    },
+    {
+      "id": "2026-09-13-16",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Flèche sur la courbe et flash du résultat",
+      "details": "Une grosse flèche apparaît sur la courbe quand une news touche l'actif affiché, et l'écran flashe en vert ou en rouge quand un trade se termine."
+    },
+    {
+      "id": "2026-09-13-17",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Les news 50/50 réservées au pari flash",
+      "details": "Une news sans direction claire n'apparaît que le temps de son pari flash, pour garder le fil lisible."
+    },
+    {
+      "id": "2026-09-13-18",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Tout récupérer dans le pass",
+      "details": "Un récapitulatif montre tout ce qui vient d'être récupéré, avec un bouton Équiper sur chaque cosmétique."
+    },
+    {
+      "id": "2026-09-13-19",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Tenue aléatoire",
+      "details": "Un bouton dans l'inventaire équipe une pièce au hasard par emplacement, parmi celles que tu possèdes."
+    },
+    {
+      "id": "2026-09-13-20",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "correctif",
+      "title": "Cosmétique de caisse bien débloqué",
+      "details": "Une pièce gagnée dans une caisse s'affichait encore verrouillée dans le récapitulatif et l'inventaire."
+    },
+    {
+      "id": "2026-09-13-21",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "amelioration",
+      "title": "Boutique plus sobre",
+      "details": "Les cartes d'objets perdent leur bordure colorée."
+    },
+    {
+      "id": "2026-09-13-22",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Conditions rappelées à l'inscription",
+      "details": "Les écrans de création de compte et de connexion rappellent les Conditions et la politique de confidentialité."
     }
   ]
 }

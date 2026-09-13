@@ -37,4 +37,6 @@ export interface KrashNews {
   /** A market-wide KRACH or BULL RUN, or the rumour announcing one. */
   event?: 'krach' | 'bullrun';
   rumour?: boolean;
+  /** A result announced in advance, and the announcement itself. */
+  scheduled?: { resolveAt: number; asset: string; announce: boolean };
 }

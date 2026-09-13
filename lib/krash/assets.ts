@@ -225,20 +225,44 @@ export const KRASH_REFILL_AMOUNT = 1000;
 export const KRASH_MIN_STAKE = 10;
 export const KRASH_MAX_STAKE_PCT = 0.5;
 
-export const LEVERAGES = [1, 2, 5, 10] as const;
+export const LEVERAGES = [1, 2, 5, 10, 25, 50] as const;
 export type Leverage = (typeof LEVERAGES)[number];
 
-/** Closed trades needed before a leverage opens up, so newcomers start gently. */
-export const LEVERAGE_UNLOCK: Record<Leverage, number> = { 1: 0, 2: 0, 5: 5, 10: 20 };
+/** Closed trades needed before a leverage opens up. Early, so the big moves come quickly. */
+export const LEVERAGE_UNLOCK: Record<Leverage, number> = { 1: 0, 2: 0, 5: 3, 10: 10, 25: 20, 50: 40 };
 
 /**
- * Fee per side, on the leveraged amount — the coin sink that keeps reading
- * the news from turning into a money printer. Tuned by simulation.
+ * The highest leverage each market allows. Past a point, leverage on a jumpy
+ * asset stops being a risk and becomes a free lottery ticket: the loss is capped
+ * at the stake while the gain is not. Measured by simulation.
  */
-export const KRASH_FEE_RATE = 0.0015;
+export const MARKET_MAX_LEVERAGE: Record<MarketId, Leverage> = { frx: 50, global: 50, matieres: 25, crypto: 25, meme: 10 };
 
-export function tradeFee(stake: number, leverage: number): number {
-  return Math.max(1, Math.round(stake * leverage * KRASH_FEE_RATE));
+/** Lower still on the asset of an announced result, until it is revealed. */
+export const SCHEDULED_MAX_LEVERAGE: Record<MarketId, Leverage> = { frx: 10, global: 5, matieres: 5, crypto: 2, meme: 2 };
+
+export function maxLeverageFor(asset: Asset, announcedAsset?: string | null): Leverage {
+  return asset.id === announcedAsset ? SCHEDULED_MAX_LEVERAGE[asset.market] : MARKET_MAX_LEVERAGE[asset.market];
+}
+
+/** Timed trades close by themselves after this many seconds; null is a free trade. */
+export const DURATIONS = [30, 60, 300] as const;
+export type TradeDuration = (typeof DURATIONS)[number];
+
+export function durationLabel(seconds: number): string {
+  return seconds < 60 ? `${seconds} s` : `${Math.round(seconds / 60)} min`;
+}
+
+/**
+ * The fee is taken on the gain only, never on a loss or on the stake: a
+ * winning trade must never show red because of fees. It is the coin sink that
+ * keeps reading the news from turning into a money printer.
+ */
+export const KRASH_FEE_RATE = 0.008;
+
+export function profitFee(grossProfit: number, stake: number, leverage: number): number {
+  if (grossProfit <= 0) return 0;
+  return Math.min(grossProfit, Math.max(1, Math.round(stake * leverage * KRASH_FEE_RATE)));
 }
 
 /** A position's value at `price`: never below zero. */
@@ -254,24 +278,6 @@ export function positionValue(
 export function liquidationPrice(p: { side: 'long' | 'short'; leverage: number; entry_price: number }): number | null {
   if (p.side === 'long') return p.leverage > 1 ? p.entry_price * (1 - 1 / p.leverage) : null;
   return p.entry_price * (1 + 1 / p.leverage);
-}
-
-/* ------------------------------------------------------------------ */
-/* Dividends                                                            */
-/* ------------------------------------------------------------------ */
-
-/** Company shares pay for being held: a reason to keep a good position open. */
-export const DIVIDEND_MARKETS: MarketId[] = ['frx', 'global'];
-export const DIVIDEND_RATE_PER_HALF_HOUR = 0.0025;
-export const DIVIDEND_CAP = 0.03;
-
-/** Earned by a long company position by `nowSeconds`; on the stake, so leverage does not inflate it. */
-export function dividendFor(
-  p: { market: string; side: 'long' | 'short'; stake: number; opened_at: string }, nowSeconds: number,
-): number {
-  if (p.side !== 'long' || !DIVIDEND_MARKETS.includes(p.market as MarketId)) return 0;
-  const halfHours = Math.floor((nowSeconds - Date.parse(p.opened_at) / 1000) / 1800);
-  return Math.floor(p.stake * Math.min(DIVIDEND_CAP, Math.max(0, halfHours) * DIVIDEND_RATE_PER_HALF_HOUR));
 }
 
 /* ------------------------------------------------------------------ */

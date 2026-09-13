@@ -2,126 +2,59 @@
 
 import { useState, type ReactNode } from 'react';
 import {
-  ArrowDown, ArrowUp, Briefcase, ChevronLeft, ChevronRight, Coins, Gift, Info, Newspaper, Palette, ShoppingBag, Sparkles, X, Zap,
+  ArrowUp, ChevronLeft, ChevronRight, Gift, Newspaper, Sparkles, Timer, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
-import { FLASH, KRASH_FEE_RATE, KRASH_MAX_STAKE_PCT, KRASH_REFILL_AMOUNT, KRASH_START_BALANCE, LEVERAGE_UNLOCK } from '@/lib/krash/assets';
-import { KRASH_PASS_TIERS, KRASH_PREMIUM_PRICE } from '@/lib/krash/pass';
-import { KRASH_COSMETICS } from '@/lib/krash/cosmetics';
+import { KRASH_REFILL_AMOUNT, KRASH_START_BALANCE, LEVERAGE_UNLOCK } from '@/lib/krash/assets';
 
-export const ONBOARDING_KEY = 'krash_onboarding_v1';
+/** Bumped when the guide changes enough to be worth showing again. */
+export const ONBOARDING_KEY = 'krash_onboarding_v2';
 
-interface Step { icon: typeof Info; title: string; body: ReactNode }
-
-const pct = (n: number) => `${Math.round(n * 1000) / 10} %`;
+interface Step { icon: typeof Timer; title: string; body: ReactNode }
 
 /**
- * The guided tour, built like the casino's: one idea per page, numbers read
- * from the constants the game actually runs on.
+ * Four pages, then straight to a first trade: the rest is learnt by playing,
+ * with the hints on the market page.
  */
 const STEPS: Step[] = [
   {
-    icon: Info,
-    title: 'Des FrenlyCoins à part',
-    body: (
-      <>
-        <p>Krash a son propre portefeuille de ₶, <b>séparé du casino</b>. La monnaie est 100 % fictive : rien ne s’achète ni ne se retire en vrai argent.</p>
-        <p>Tu démarres avec {KRASH_START_BALANCE.toLocaleString('fr-FR')} ₶. À sec, tu peux te renflouer à {KRASH_REFILL_AMOUNT.toLocaleString('fr-FR')} ₶ une fois par jour.</p>
-      </>
-    ),
-  },
-  {
     icon: ArrowUp,
-    title: 'Acheter ou vendre',
+    title: 'Ça monte ou ça baisse ?',
     body: (
       <>
-        <p><b className="text-accent-success">Acheter</b> : tu gagnes si la cote <b>monte</b>. <b className="text-rose-400">Vendre</b> : tu gagnes si elle <b>baisse</b>.</p>
-        <p>Mise jusqu’à {Math.round(KRASH_MAX_STAKE_PCT * 100)} % de ton solde par position. Frais : {pct(KRASH_FEE_RATE)} du montant à l’ouverture et au retrait.</p>
-        <p>Les cotes sont les mêmes pour tout le monde, à la seconde près.</p>
+        <p>Choisis une entreprise, une crypto ou un mème. Parie qu’elle <b className="text-accent-success">monte</b> ou qu’elle <b className="text-rose-400">baisse</b>.</p>
+        <p>Tu démarres avec {KRASH_START_BALANCE.toLocaleString('fr-FR')} ₶, un portefeuille <b>séparé du casino</b>. À sec, renfloue-toi à {KRASH_REFILL_AMOUNT.toLocaleString('fr-FR')} ₶.</p>
       </>
     ),
   },
   {
-    icon: Zap,
-    title: 'Le levier',
+    icon: Timer,
+    title: '30 secondes et c’est plié',
     body: (
       <>
-        <p>Le levier multiplie le mouvement : en x5, une hausse de 1 % rapporte 5 % de ta mise.</p>
-        <p>Mais si la cote va trop loin contre toi (20 % en x5, 10 % en x10), la position est <b>liquidée</b> : tu perds la mise. Même quand tu n’es pas connecté.</p>
-        <p>x5 se débloque après {LEVERAGE_UNLOCK[5]} trades, x10 après {LEVERAGE_UNLOCK[10]}.</p>
+        <p>Un trade dure 30 s, 1 min ou 5 min, puis le résultat tombe tout seul, en pourcentage.</p>
+        <p>Le <b>levier</b> multiplie tout : en x2, 1 % de mouvement = 2 % sur ta mise. x5 après {LEVERAGE_UNLOCK[5]} trades, x10 après {LEVERAGE_UNLOCK[10]}. Enchaîne les gains pour un bonus de série.</p>
       </>
     ),
   },
   {
     icon: Newspaper,
-    title: 'Les news font bouger les cotes',
+    title: 'Les news font tout bouger',
     body: (
       <>
-        <p>Chaque news dit ses chances : « ↑ Luxe 88 % » veut dire 88 % de chances que le luxe monte.</p>
-        <p><b>Claire</b> : presque sûr. <b>Floue</b> : probable. <b>50/50</b> : personne ne sait, ça bouge fort.</p>
-        <p>Le marché sent venir la news : une partie du mouvement est déjà faite quand elle tombe. Deux fois par jour environ, un <b className="text-rose-400">KRACH</b> ou un <b className="text-accent-success">BULL RUN</b> secoue tout, annoncé par une rumeur.</p>
-      </>
-    ),
-  },
-  {
-    icon: ArrowDown,
-    title: 'Le pari flash',
-    body: (
-      <>
-        <p>Pendant {FLASH.window} secondes après chaque news, parie si sa cible sera plus haute ou plus basse {FLASH.horizon} secondes plus tard.</p>
-        <p>Le côté évident rapporte peu, le pari risqué jusqu’à x{FLASH.maxMultiplier}.</p>
-      </>
-    ),
-  },
-  {
-    icon: Briefcase,
-    title: 'Ton argent reste placé',
-    body: (
-      <>
-        <p>Une position reste ouverte jusqu’à ce que tu la <b>retires</b>, même si tu changes de marché ou fermes le jeu.</p>
-        <p>La page <b>Placements</b> montre tout ce que tu as placé, avec le gain en direct, et retire tout en un clic.</p>
-        <p>Une position à l’achat sur une entreprise rapporte des dividendes tant que tu la gardes.</p>
+        <p>« ↑ Luxe 88 % » : 88 % de chances que le luxe monte. Une flèche apparaît sur la courbe quand une news touche ton actif.</p>
+        <p>Toutes les 12 min 30, un <b className="text-accent-primary">résultat est annoncé</b> avec un compte à rebours : place-toi avant la révélation.</p>
       </>
     ),
   },
   {
     icon: Gift,
-    title: 'Revenir chaque jour',
-    body: (
-      <>
-        <p>Le <b>coffre</b> grimpe avec ta série de jours. Trois <b>missions</b> par jour, les mêmes pour tous.</p>
-        <p>Le <b>pass Krash</b> a {KRASH_PASS_TIERS} paliers par mois, remplis en jouant. La voie <b>premium</b> ({KRASH_PREMIUM_PRICE.toLocaleString('fr-FR')} ₶) double les récompenses.</p>
-      </>
-    ),
-  },
-  {
-    icon: ShoppingBag,
-    title: 'Boutique et objets',
-    body: (
-      <>
-        <p>Cinq objets par jour : zéro frais, remboursement de perte, parachute contre la liquidation, bonus de profit, XP double…</p>
-        <p>Ils vont dans l’<b>inventaire</b> : tu les utilises quand tu veux, ils agissent sur tes prochains trades.</p>
-      </>
-    ),
-  },
-  {
-    icon: Palette,
-    title: 'Cosmétiques',
-    body: (
-      <>
-        <p>{KRASH_COSMETICS.length} pièces à collectionner : couleurs de courbe, fonds, contours, titres, effets de gain, packs sonores et emblèmes.</p>
-        <p>La moitié sort du pass, l’autre des <b>caisses</b>. Tout s’équipe dans l’inventaire.</p>
-      </>
-    ),
-  },
-  {
-    icon: Coins,
     title: 'À toi de jouer',
     body: (
       <>
-        <p>Commence petit : une mise de 50 ₶ sans levier sur une grosse entreprise, puis retire-la. Regarde comment la news la fait bouger.</p>
-        <p>Ce guide se rouvre depuis le rail, bouton <b>Guide</b>.</p>
+        <p>Coffre du jour, missions, pass Krash, boutique et cosmétiques : tout est dans le rail à gauche.</p>
+        <p>Premier trade : prends un actif de la liste « Ça bouge », laisse 1 min et appuie sur <b>ÇA MONTE</b> ou <b>ÇA BAISSE</b>.</p>
       </>
     ),
   },

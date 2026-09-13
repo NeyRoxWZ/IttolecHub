@@ -87,19 +87,13 @@ export function useKrashPass(poll = false) {
     await refresh();
   }, [post, refresh, afterRewards]);
 
-  const claimAll = useCallback(async () => {
+  /** Everything reached at once; the page shows what came out. */
+  const claimAll = useCallback(async (): Promise<KrashPassReward[]> => {
     const { ok, data } = await post({ action: 'claim_all' });
-    if (ok) {
-      const rewards = data.rewards as KrashPassReward[];
-      afterRewards(rewards);
-      const coins = rewards.filter((r) => r.kind === 'coins').reduce((s, r) => s + (r.amount ?? 0), 0);
-      const others = rewards.filter((r) => r.kind !== 'coins').map(krashRewardLabel);
-      toast.success(`${rewards.length} récompense${rewards.length > 1 ? 's' : ''} récupérée${rewards.length > 1 ? 's' : ''}`, {
-        description: [coins ? `+${coins.toLocaleString('fr-FR')} ₶` : null, ...others].filter(Boolean).join(' · '),
-        duration: 6000,
-      });
-    }
+    const rewards = ok ? (data.rewards as KrashPassReward[]) : [];
+    if (rewards.length) afterRewards(rewards);
     await refresh();
+    return rewards;
   }, [post, refresh, afterRewards]);
 
   const buyPremium = useCallback(async () => {

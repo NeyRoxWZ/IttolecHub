@@ -278,6 +278,19 @@ export async function cosmeticsState(userId: string) {
   };
 }
 
+/** One owned piece at random in every slot the player has something for. */
+export async function equipRandom(userId: string): Promise<{ ok: true; count: number }> {
+  const { data: inv } = await supabase.from('krash_inventory').select('item_id').eq('user_id', userId);
+  const owned = (inv || []).map((r) => krashCosmeticById(r.item_id)).filter((c): c is NonNullable<typeof c> => !!c);
+  const rows = KRASH_SLOTS.flatMap((slot) => {
+    const pool = owned.filter((c) => c.slot === slot);
+    if (!pool.length) return [];
+    return [{ user_id: userId, slot, cosmetic_id: pool[Math.floor(rand() * pool.length)].id }];
+  });
+  if (rows.length) await supabase.from('krash_loadout').upsert(rows, { onConflict: 'user_id,slot' });
+  return { ok: true, count: rows.length };
+}
+
 export async function equipCosmetic(userId: string, slot: string, cosmeticId: string | null): Promise<{ ok: true } | Fail> {
   if (!KRASH_SLOTS.includes(slot as KrashSlot)) return { ok: false, status: 400, error: 'Emplacement inconnu' };
   if (cosmeticId === null) {

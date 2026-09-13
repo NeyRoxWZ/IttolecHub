@@ -21,6 +21,22 @@ export interface KrashPosition {
   exit_price: number | null;
   closed_at: string | null;
   payout: number | null;
+  duration: number | null;
+  closes_at: string | null;
+  perks?: { fee_free?: boolean };
+}
+
+/** A trade the server just closed, as the reveal shows it. */
+export interface KrashSettlement {
+  position: KrashPosition;
+  payout: number;
+  pnl: number;
+  pct: number;
+  bonus: number;
+  refund: number;
+  fee: number;
+  streak: number;
+  liquidated: boolean;
 }
 
 export interface KrashStats {
@@ -43,6 +59,8 @@ export function useKrashPositions() {
   const [stats, setStats] = useState<KrashStats | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [reveals, setReveals] = useState<KrashSettlement[]>([]);
+  const dismissReveal = useCallback(() => setReveals((r) => r.slice(1)), []);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -55,7 +73,10 @@ export function useKrashPositions() {
       setStats(data.stats);
       applyKrashWallet(data.wallet);
       setLoaded(true);
-      for (const p of data.liquidatedNow as KrashPosition[]) {
+      // Timed trades the clock just closed get their reveal.
+      const timed = (data.settledNow as KrashSettlement[]).filter((s) => s.position.closes_at);
+      if (timed.length) setReveals((r) => [...r, ...timed]);
+      for (const p of (data.liquidatedNow as KrashPosition[]).filter((l) => !l.closes_at)) {
         sfx.bust();
         toast.error(`Liquidé : ${ASSET_BY_ID.get(p.asset)?.name ?? p.asset} x${p.leverage}`, {
           description: `La cote est allée trop loin contre toi. −${fmt(p.stake + p.fee)} ₶`,
@@ -73,6 +94,20 @@ export function useKrashPositions() {
     return () => clearInterval(id);
   }, [load]);
 
+  // A timed trade reveals on time rather than at the next poll: ask again
+  // just after the earliest deadline, once the server has the closing tick.
+  const nextDeadline = open.reduce<number | null>((min, p) => {
+    if (!p.closes_at) return min;
+    const t = Date.parse(p.closes_at);
+    return min === null || t < min ? t : min;
+  }, null);
+  useEffect(() => {
+    if (nextDeadline === null) return;
+    const wait = Math.max(500, nextDeadline - Date.now() + 2500);
+    const id = setTimeout(load, wait);
+    return () => clearTimeout(id);
+  }, [nextDeadline, load]);
+
   const post = useCallback(async (body: object) => {
     const res = await fetch('/api/krash/trade', {
       method: 'POST',
@@ -83,7 +118,7 @@ export function useKrashPositions() {
     return { ok: res.ok, data };
   }, [user]);
 
-  const openPosition = useCallback(async (input: { asset: string; side: 'long' | 'short'; leverage: number; stake: number }) => {
+  const openPosition = useCallback(async (input: { asset: string; side: 'long' | 'short'; leverage: number; stake: number; duration?: number | null }) => {
     if (!user) return false;
     setBusy('open');
     try {
@@ -93,7 +128,7 @@ export function useKrashPositions() {
       setKrashBalance(data.balance);
       const name = ASSET_BY_ID.get(input.asset)?.name ?? input.asset;
       toast.success(`${input.side === 'long' ? 'Achat' : 'Vente'} ${name} x${input.leverage}`, {
-        description: `${fmt(input.stake)} ₶ placés · frais ${fmt(data.position.fee)} ₶`,
+        description: input.duration ? `${fmt(input.stake)} ₶ · résultat dans ${input.duration < 60 ? `${input.duration} s` : `${input.duration / 60} min`}` : `${fmt(input.stake)} ₶ placés`,
       });
       await load();
       return true;
@@ -153,5 +188,5 @@ export function useKrashPositions() {
     }
   }, [post, load, open]);
 
-  return { open, recent, stats, loaded, busy, reload: load, openPosition, closePosition, closeAll };
+  return { open, recent, stats, loaded, busy, reload: load, openPosition, closePosition, closeAll, reveals, dismissReveal };
 }

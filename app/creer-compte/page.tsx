@@ -173,6 +173,12 @@ export default function CreerComptePage() {
           >
             {loading ? 'Création...' : "J'ai sauvegardé mes mots, créer mon compte"}
           </button>
+          <p className="text-[11px] text-tx-muted text-center leading-snug">
+            En créant un compte, tu acceptes les{' '}
+            <a href="/conditions" className="underline hover:text-tx-base">Conditions</a> et la{' '}
+            <a href="/confidentialite" className="underline hover:text-tx-base">politique de confidentialité</a>.
+            Moins de 15 ans : avec l&apos;accord d&apos;un parent.
+          </p>
 
           <button
             type="button"

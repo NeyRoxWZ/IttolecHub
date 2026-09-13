@@ -18,6 +18,8 @@ export interface MarketSnapshot {
   news: KrashNews[];
   /** The KRACH or BULL RUN of the last quarter hour, if any. */
   event: KrashNews | null;
+  /** The announced result waiting to be revealed, if any. */
+  upcoming?: KrashNews | null;
 }
 
 /** Live points kept per asset for the chart: fifteen minutes at one per tick. */

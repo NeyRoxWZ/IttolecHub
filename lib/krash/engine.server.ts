@@ -49,9 +49,20 @@ const EVENT_RATE = 0.8;
 const EVENT_RUMOUR_LEAD = 5;
 
 const PRE_MOVE = 30;
-const PRE_SHARE = 0.6;
+const PRE_SHARE = 0.4;
 /** An event hits the prices first; the headline explains it this many seconds later. */
 const EVENT_HEADLINE_LAG = 40;
+
+/**
+ * Announced results: every SCHEDULE_EVERY slots, a result is announced a couple
+ * of minutes ahead ("Dans 2 min 30 : résultats de Xvidia") and then revealed
+ * in one jump. The direction is a coin toss nobody can read beforehand — the
+ * move is applied at the reveal, never smelled in advance — so the tension is
+ * in being positioned before it lands.
+ */
+const SCHEDULE_EVERY = 10;
+const SCHEDULE_ANNOUNCE_OFFSET = 6;
+const SCHEDULE_RESOLVE_OFFSET = 8;
 const POST_TAU = 10;
 const FADE_START = 900;
 const FADE_TAU = 1500;
@@ -170,12 +181,15 @@ export interface NewsEvent {
   /** Set on the big market-wide moves, and on the rumour announcing one. */
   event?: MarketEvent;
   rumour?: boolean;
+  scheduled?: { resolveAt: number; asset: string; announce: boolean };
 }
 
 interface ResolvedNews extends NewsEvent {
   effects: Map<string, number>;
   /** When the move starts, if not at publication. */
   effectAt?: number;
+  /** The whole move lands at publication, with no drift beforehand. */
+  instant?: boolean;
 }
 
 const ASSET_INDEX = new Map(ASSETS.map((a, i) => [a.id, i + 1]));
@@ -227,11 +241,19 @@ function arcPlan(a: number): { arc: Arc; chapters: ArcChapter[] } {
 
 interface EventPlan { slot: number; kind: MarketEvent; cryptoOnly: boolean }
 
+function isScheduleSlot(slot: number): boolean {
+  const o = ((slot % SCHEDULE_EVERY) + SCHEDULE_EVERY) % SCHEDULE_EVERY;
+  return o === SCHEDULE_ANNOUNCE_OFFSET || o === SCHEDULE_RESOLVE_OFFSET;
+}
+
 function eventPlan(window: number): EventPlan | null {
   if (mix(window, 71, 3) >= EVENT_RATE) return null;
   const margin = EVENT_RUMOUR_LEAD + 30;
+  let slot = window * EVENT_WINDOW_SLOTS + margin + Math.floor(mix(window, 73, 5) * (EVENT_WINDOW_SLOTS - 2 * margin));
+  // Keep clear of announced results, so neither the rumour nor the event is lost.
+  while (isScheduleSlot(slot) || isScheduleSlot(slot - EVENT_RUMOUR_LEAD)) slot += 1;
   return {
-    slot: window * EVENT_WINDOW_SLOTS + margin + Math.floor(mix(window, 73, 5) * (EVENT_WINDOW_SLOTS - 2 * margin)),
+    slot,
     kind: mix(window, 79, 7) < 0.5 ? 'krach' : 'bullrun',
     cryptoOnly: mix(window, 83, 9) < 0.4,
   };
@@ -278,6 +300,57 @@ function eventHeadline(plan: EventPlan, rumour: boolean): Headline {
       // Gold is where the money hides when everything else burns.
       { asset: 'GOLD', up: 1 - up, strength: 0.05 },
     ],
+  };
+}
+
+const SCHEDULE_POOL = ASSETS.filter((a) =>
+  (COMPANY_MARKETS.includes(a.market) && a.cap >= 100) || a.market === 'crypto' || a.market === 'meme' || a.market === 'matieres');
+
+const SCHEDULE_STRENGTH: Record<MarketId, number> = { frx: 0.08, global: 0.1, crypto: 0.18, meme: 0.4, matieres: 0.1 };
+
+const SCHEDULE_COPY: Record<MarketId, { category: NewsCategory; announce: string; up: string; down: string }> = {
+  frx: { category: 'entreprise', announce: 'Dans {t} : résultats trimestriels de {E}.', up: '{E} pulvérise les attentes : résultats records !', down: '{E} déçoit lourdement : résultats en chute libre.' },
+  global: { category: 'entreprise', announce: 'Dans {t} : {E} publie ses résultats.', up: '{E} explose les prévisions, le titre s’envole !', down: '{E} rate tout : le titre plonge.' },
+  crypto: { category: 'crypto', announce: 'Dans {t} : décision du régulateur américain sur {E}.', up: 'Feu vert du régulateur pour {E} !', down: 'Le régulateur bloque {E}.' },
+  meme: { category: 'rumeur', announce: 'Dans {t} : un influenceur géant va parler de {E} en direct.', up: 'L’influenceur achète massivement du {E} !', down: 'L’influenceur traite {E} d’arnaque en direct.' },
+  matieres: { category: 'eco', announce: 'Dans {t} : chiffres mondiaux des stocks de {E}.', up: 'Pénurie de {E} : les stocks s’effondrent !', down: '{E} : stocks au plus haut, les prix plongent.' },
+};
+
+function delayLabel(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return s ? `${m} min ${s}` : `${m} min`;
+}
+
+function scheduledAtSlot(slot: number): ResolvedNews | null {
+  const round = Math.floor(slot / SCHEDULE_EVERY);
+  const offset = slot - round * SCHEDULE_EVERY;
+  if (offset !== SCHEDULE_ANNOUNCE_OFFSET && offset !== SCHEDULE_RESOLVE_OFFSET) return null;
+
+  const asset = SCHEDULE_POOL[pickCycling(round, SCHEDULE_POOL.length, 61)];
+  const up = mix(round, 67, 11) < 0.5;
+  const strength = SCHEDULE_STRENGTH[asset.market] * (0.8 + 0.5 * mix(round, 71, 13));
+  const copy = SCHEDULE_COPY[asset.market];
+  const resolveAt = EPOCH + (round * SCHEDULE_EVERY + SCHEDULE_RESOLVE_OFFSET) * SLOT + 5;
+  const hint = (p: number) => [{ label: asset.name, up: p, markets: [asset.market], ref: asset.id }];
+
+  if (offset === SCHEDULE_ANNOUNCE_OFFSET) {
+    const at = EPOCH + slot * SLOT + 5;
+    return {
+      id: String(slot), at, category: copy.category, certainty: 'pile',
+      text: copy.announce.replace('{E}', asset.name).replace('{t}', delayLabel(resolveAt - at)),
+      hints: hint(0.5), markets: [asset.market],
+      scheduled: { resolveAt, asset: asset.id, announce: true },
+      effects: new Map(),
+    };
+  }
+  return {
+    id: String(slot), at: resolveAt, category: copy.category, certainty: 'evidente',
+    text: (up ? copy.up : copy.down).replace('{E}', asset.name),
+    hints: hint(up ? 1 : 0), markets: [asset.market],
+    scheduled: { resolveAt, asset: asset.id, announce: false },
+    effects: new Map([[asset.id, (up ? 1 : -1) * strength]]),
+    instant: true,
   };
 }
 
@@ -370,9 +443,12 @@ function newsAtSlot(slot: number): ResolvedNews | null {
   if (newsCache.has(slot)) return newsCache.get(slot)!;
 
   let news: ResolvedNews | null = null;
-  const event = eventAtSlot(slot);
+  const scheduled = scheduledAtSlot(slot);
+  const event = scheduled ? null : eventAtSlot(slot);
 
-  if (event) {
+  if (scheduled) {
+    news = scheduled;
+  } else if (event) {
     news = resolveHeadline(slot, eventHeadline(event.plan, event.rumour), { company: null, country: null, number: null });
     news.event = event.plan.kind;
     news.rumour = event.rumour;
@@ -424,7 +500,7 @@ function slotOf(t: number): number {
 }
 
 function publish(n: ResolvedNews): NewsEvent {
-  const { effects: _hidden, effectAt: _start, ...pub } = n;
+  const { effects: _hidden, effectAt: _start, instant: _instant, ...pub } = n;
   return pub;
 }
 
@@ -459,14 +535,24 @@ export function activeEvent(t: number, within = 15 * 60): NewsEvent | null {
 /* Prices                                                               */
 /* ------------------------------------------------------------------ */
 
-interface Effect { at: number; delta: number }
+/** The announced result still to be revealed at `t`, once its announcement is out. */
+export function upcomingScheduled(t: number): NewsEvent | null {
+  const round = Math.floor(slotOf(t) / SCHEDULE_EVERY);
+  for (const r of [round, round - 1]) {
+    const n = newsAtSlot(r * SCHEDULE_EVERY + SCHEDULE_ANNOUNCE_OFFSET);
+    if (n?.scheduled && n.at <= t && n.scheduled.resolveAt > t) return publish(n);
+  }
+  return null;
+}
+
+interface Effect { at: number; delta: number; instant?: boolean }
 
 function effectsFor(assetId: string, from: number, to: number): Effect[] {
   const out: Effect[] = [];
   for (let s = slotOf(from - EFFECT_LIFETIME) - 1; s <= slotOf(to + PRE_MOVE) + 1; s++) {
     const n = newsAtSlot(s);
     const delta = n?.effects.get(assetId);
-    if (delta) out.push({ at: n!.effectAt ?? n!.at, delta });
+    if (delta) out.push({ at: n!.effectAt ?? n!.at, delta, instant: n!.instant });
   }
   return out;
 }
@@ -482,6 +568,12 @@ function impactShare(dt: number): number {
   return share;
 }
 
+/** An instant effect: nothing before, all of it at once, then the usual fade. */
+function instantShare(dt: number): number {
+  if (dt < 0) return 0;
+  return dt > FADE_START ? Math.exp(-(dt - FADE_START) / FADE_TAU) : 1;
+}
+
 function priceWith(asset: Asset, t: number, effects: Effect[]): number {
   const index = ASSET_INDEX.get(asset.id)!;
   const marketKey = 1001 + MARKET_ORDER.indexOf(asset.market);
@@ -491,7 +583,7 @@ function priceWith(asset: Asset, t: number, effects: Effect[]): number {
     + asset.vol * 0.035 * (mix(index, tick, 99) * 2 - 1);
   for (const e of effects) {
     const dt = t - e.at;
-    if (dt > -PRE_MOVE && dt < EFFECT_LIFETIME) log += Math.log1p(Math.max(-0.95, e.delta)) * impactShare(dt);
+    if (dt > -PRE_MOVE && dt < EFFECT_LIFETIME) log += Math.log1p(Math.max(-0.95, e.delta)) * (e.instant ? instantShare(dt) : impactShare(dt));
   }
   return Math.exp(log);
 }

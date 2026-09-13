@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { MARKET_ORDER, assetsOf, type MarketId } from '@/lib/krash/assets';
-import { TICK, activeEvent, newsBetween, nowTick, priceAt, quantize } from '@/lib/krash/engine.server';
+import { TICK, activeEvent, newsBetween, nowTick, priceAt, quantize, upcomingScheduled } from '@/lib/krash/engine.server';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +41,7 @@ export function GET(request: Request) {
       assets,
       news: newsBetween(at - NEWS_WINDOW, at).slice(0, NEWS_LIMIT),
       event: activeEvent(at),
+      upcoming: upcomingScheduled(at),
     },
     { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=31536000, immutable' } },
   );

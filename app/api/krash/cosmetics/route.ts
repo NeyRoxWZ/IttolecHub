@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cosmeticsState, equipCosmetic } from '@/lib/krash/meta.server';
+import { cosmeticsState, equipCosmetic, equipRandom } from '@/lib/krash/meta.server';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +14,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    if (body?.user_id && body?.action === 'random') {
+      const done = await equipRandom(body.user_id);
+      return NextResponse.json({ ...done, ...(await cosmeticsState(body.user_id)) });
+    }
     if (!body?.user_id || !body?.slot) return NextResponse.json({ error: 'user_id et slot requis' }, { status: 400 });
     const result = await equipCosmetic(body.user_id, String(body.slot), body.cosmetic_id ? String(body.cosmetic_id) : null);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });

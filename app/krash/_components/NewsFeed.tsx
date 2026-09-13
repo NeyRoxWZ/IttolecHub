@@ -141,10 +141,9 @@ function FlashStrip({
 
 /**
  * The headlines. Each one is coloured by kind, says how sure its effect is,
- * and shows the likely direction per target. Headlines about other markets
- * stay visible but dimmed: a war moves oil stocks and bitcoin alike, so the
- * whole feed is worth a glance. A fresh one offers a flash bet for a few
- * seconds.
+ * and shows the likely direction per target. A fresh one offers a flash bet
+ * for a few seconds; a 50/50 one exists only for that bet and leaves the feed
+ * once it closes.
  */
 export default function NewsFeed({
   news, market, now, className,
@@ -240,6 +239,7 @@ export default function NewsFeed({
           const big = n.event && !n.rumour;
           const bet = betByNews.get(n.id);
           const flashOpen = !big && clock - n.at < FLASH.window;
+          if (n.certainty === 'pile' && !big && !flashOpen && !bet) return null;
           return (
             <article
               key={n.id}

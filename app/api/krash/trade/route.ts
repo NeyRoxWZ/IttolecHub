@@ -30,6 +30,7 @@ export async function POST(request: Request) {
           side: String(body.side ?? ''),
           leverage: Number(body.leverage),
           stake: Number(body.stake),
+          duration: body.duration == null ? null : Number(body.duration),
         });
         break;
       case 'close':

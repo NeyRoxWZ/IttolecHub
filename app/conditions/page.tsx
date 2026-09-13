@@ -7,11 +7,11 @@ export default function ConditionsPage() {
   return (
     <LegalPage
       title="Conditions"
-      updated="12 septembre 2026"
+      updated="13 septembre 2026"
       intro={
         <p>
           Ces conditions encadrent l&apos;utilisation d&apos;ItollecHub, un site de mini-jeux gratuits : jeux
-          multijoueur, jeux solo et casino en monnaie virtuelle. En jouant, tu les acceptes.
+          multijoueur, jeux solo, casino et bourse Krash en monnaie virtuelle. En jouant, tu les acceptes. L&apos;éditeur et son contact figurent dans les <a href="/mentions-legales" className="underline">mentions légales</a>.
         </p>
       }
       sections={[
@@ -25,6 +25,16 @@ export default function ConditionsPage() {
                 personne : sans elle, un compte créé par passphrase ne peut pas être récupéré.
               </p>
             </>
+          ),
+        },
+        {
+          title: 'Âge',
+          body: (
+            <p>
+              Le site est ouvert à tous. Si tu as moins de 15 ans, tu dois avoir l&apos;accord d&apos;un de tes
+              parents pour créer un compte, car celui-ci enregistre des données te concernant (voir la page
+              Confidentialité).
+            </p>
           ),
         },
         {
@@ -60,6 +70,23 @@ export default function ConditionsPage() {
           ),
         },
         {
+          title: 'Krash, une bourse fictive',
+          body: (
+            <>
+              <p>
+                Krash simule une bourse avec des FrenlyCoins séparés de ceux du casino, tout aussi fictifs.
+                Ce n&apos;est pas un conseil en investissement et rien n&apos;y reflète de vrais marchés.
+              </p>
+              <p>
+                Les entreprises portent des <b>noms parodiques inventés</b> et n&apos;ont aucun lien avec des
+                sociétés réelles. Les news, y compris celles qui citent des pays, sont <b>entièrement
+                fictives</b> et générées par le jeu : elles ne rapportent aucun fait réel et ne visent
+                personne.
+              </p>
+            </>
+          ),
+        },
+        {
           title: 'Comportement',
           body: (
             <>
@@ -70,6 +97,7 @@ export default function ConditionsPage() {
                 <li>tricher, exploiter un bug volontairement ou automatiser le jeu en dehors des outils prévus.</li>
               </ul>
               <p>Un compte qui ne respecte pas ces règles peut voir son pseudo changé, sa progression réinitialisée ou son accès retiré.</p>
+              <p>Pour signaler un contenu ou un joueur, écris à l&apos;adresse indiquée dans les mentions légales.</p>
             </>
           ),
         },

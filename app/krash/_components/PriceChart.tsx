@@ -22,7 +22,7 @@ export interface ChartLine { price: number; kind: 'entry' | 'liquidation'; label
  * curve can be matched to the news that caused it.
  */
 export default function PriceChart({
-  points, lines = [], news = [], height = 280, colors,
+  points, lines = [], news = [], height = 280, colors, arrow,
 }: {
   points: [number, number][];
   lines?: ChartLine[];
@@ -30,6 +30,8 @@ export default function PriceChart({
   height?: number;
   /** Rising and falling colours, from the player's chart skin. */
   colors?: { up: string; down: string };
+  /** A headline that just landed on this asset: which way it pushes. */
+  arrow?: { key: string; up: boolean; label: string } | null;
 }) {
   const upColor = colors?.up ?? UP;
   const downColor = colors?.down ?? DOWN;
@@ -115,6 +117,21 @@ export default function PriceChart({
           </div>
         );
       })}
+      {arrow && (
+        <div
+          key={arrow.key}
+          className={`pointer-events-none absolute right-8 flex flex-col items-center animate-in fade-in zoom-in-50 duration-500 ${arrow.up ? 'top-3' : 'bottom-6'}`}
+        >
+          <span
+            className={`font-display font-black leading-none text-6xl drop-shadow-[0_0_14px_currentColor] ${arrow.up ? 'animate-bounce text-accent-success' : 'animate-bounce text-rose-400'}`}
+          >
+            {arrow.up ? '▲' : '▼'}
+          </span>
+          <span className={`mt-1 px-2 py-0.5 rounded-md text-[10px] font-black ${arrow.up ? 'bg-accent-success text-brand-bg' : 'bg-rose-500 text-white'}`}>
+            NEWS · {arrow.label}
+          </span>
+        </div>
+      )}
       <div
         style={{ top: `${(view.lastY / 300) * 100}%`, background: color }}
         className="absolute right-0 h-3 w-3 -translate-y-1/2 translate-x-1/2 rounded-full shadow-[0_0_12px_currentColor] animate-pulse"

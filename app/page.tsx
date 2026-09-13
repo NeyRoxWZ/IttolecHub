@@ -750,6 +750,7 @@ export default function Home() {
 
       <footer className="pb-2 md:pb-3 px-6">
         <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold tracking-widest uppercase text-tx-muted">
+          <Link href="/mentions-legales" className="hover:text-tx-secondary transition-colors">Mentions légales</Link>
           <Link href="/conditions" className="hover:text-tx-secondary transition-colors">Conditions</Link>
           <Link href="/confidentialite" className="hover:text-tx-secondary transition-colors">Confidentialité</Link>
           <Link href="/patch-notes" className="hover:text-tx-secondary transition-colors">Patch Notes</Link>

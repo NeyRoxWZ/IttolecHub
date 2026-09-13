@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
 import { useKrashWallet } from './_lib/useKrashWallet';
 import {
-  ASSETS, ASSET_BY_ID, MARKETS, MARKET_ORDER, SECTORS, assetsOf, formatPrice, liquidationPrice, positionValue,
+  ASSETS, ASSET_BY_ID, MARKETS, MARKET_ORDER, SECTORS, assetsOf, formatPrice, liquidationPrice, maxLeverageFor, positionValue,
   type Asset, type MarketId,
 } from '@/lib/krash/assets';
 import KrashShell from './_components/KrashShell';
@@ -15,11 +15,14 @@ import KrashRail from './_components/KrashRail';
 import PriceChart, { type ChartLine } from './_components/PriceChart';
 import NewsFeed from './_components/NewsFeed';
 import TradePanel from './_components/TradePanel';
+import TradeReveal from './_components/TradeReveal';
 import PositionCard from './_components/PositionCard';
 import { serverNow, useKrashMarket, type MarketAsset } from './_lib/useKrashMarket';
 import { useKrashPositions } from './_lib/useKrashPositions';
 import { useKrashLoadout } from './_lib/useKrashLoadout';
 import KrashOnboarding, { ONBOARDING_KEY } from './_components/KrashOnboarding';
+import UpcomingBanner from './_components/UpcomingBanner';
+import { useKrashMovers } from './_lib/useKrashMovers';
 
 type Range = '15m' | '1h' | '6h';
 const RANGE_SECONDS: Record<Range, number> = { '15m': 900, '1h': 3600, '6h': 21600 };
@@ -102,20 +105,26 @@ export default function KrashMarketPage() {
   });
   const [range, setRange] = useState<Range>('15m');
   const [intro, setIntro] = useState(false);
+  // The simple view lists what moves most across every market; the market
+  // tabs are one click away for those who want them.
+  const [simple, setSimple] = useState(true);
 
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('krash_view') || 'null');
       if (saved?.market && MARKET_ORDER.includes(saved.market)) setMarket(saved.market);
       if (saved?.selected) setSelected((s) => ({ ...s, ...saved.selected }));
+      if (typeof saved?.simple === 'boolean') setSimple(saved.simple);
       // The full guide replaces the short intro card on a first visit.
       if (!localStorage.getItem(ONBOARDING_KEY)) setGuide(true);
     } catch {}
   }, []);
 
   useEffect(() => {
-    try { localStorage.setItem('krash_view', JSON.stringify({ market, selected })); } catch {}
-  }, [market, selected]);
+    try { localStorage.setItem('krash_view', JSON.stringify({ market, selected, simple })); } catch {}
+  }, [market, selected, simple]);
+
+  const movers = useKrashMovers(simple);
 
   const { snapshot, live } = useKrashMarket(market);
   const assetId = selected[market];
@@ -179,6 +188,19 @@ export default function KrashMarketPage() {
 
   const now = snapshot?.at ?? serverNow();
   const c = change(current);
+
+  // The freshest clear-cut headline touching the asset on screen, for the
+  // arrow on the chart: its own target first, else one aimed at its market.
+  const arrow = useMemo(() => {
+    if (!snapshot) return null;
+    for (const n of snapshot.news) {
+      if (snapshot.at - n.at > 20) break;
+      if (n.certainty === 'pile' || n.rumour) continue;
+      const hint = n.hints.find((h) => h.ref === assetId) ?? n.hints.find((h) => h.markets.includes(asset.market));
+      if (hint && hint.up !== 0.5) return { key: n.id, up: hint.up > 0.5, label: hint.label };
+    }
+    return null;
+  }, [snapshot, assetId, asset.market]);
   const holdings = new Set(positions.open.map((p) => p.asset));
 
   const [query, setQuery] = useState('');
@@ -196,6 +218,7 @@ export default function KrashMarketPage() {
   return (
     <KrashShell wide badge={positions.open.length}>
       <div className="2xl:h-[calc(100dvh-96px)] 2xl:flex 2xl:flex-col">
+      {positions.reveals[0] && <TradeReveal settlement={positions.reveals[0]} onClose={positions.dismissReveal} />}
       {guide && <KrashOnboarding onClose={() => { setGuide(false); try { localStorage.setItem(ONBOARDING_KEY, '1'); } catch {} }} />}
       {intro && (
         <div className="relative mb-4 bg-brand-card border-4 border-rose-400/70 rounded-[24px] p-4 pr-12 shadow-brutal">
@@ -213,6 +236,10 @@ export default function KrashMarketPage() {
             <li>Ton argent reste placé jusqu’à ce que tu le <b className="text-tx-base">retires</b>, même si tu changes de marché. Tout est dans Placements.</li>
           </ul>
         </div>
+      )}
+
+      {snapshot?.upcoming?.scheduled && (
+        <UpcomingBanner upcoming={snapshot.upcoming} selected={assetId === snapshot.upcoming.scheduled.asset} onPick={pick} />
       )}
 
       {snapshot?.event && (
@@ -242,7 +269,16 @@ export default function KrashMarketPage() {
 
         {/* Assets */}
         <aside className="bg-brand-card border-4 border-brand-border rounded-[24px] shadow-brutal p-3 lg:max-h-[calc(100vh-120px)] 2xl:max-h-none flex flex-col min-h-0">
-          <div className="flex flex-wrap gap-1.5 mb-2">
+          <div className="flex items-center justify-between gap-2 mb-2 px-1">
+            <span className="font-display font-black text-sm tracking-wider uppercase">{simple ? 'Ça bouge' : 'Marchés'}</span>
+            <button
+              onClick={() => { sfx.click(); setSimple((v) => !v); }}
+              className="h-7 px-2 rounded-lg border-2 border-brand-border text-[10px] font-black uppercase tracking-widest text-tx-muted hover:text-tx-base hover:border-tx-base"
+            >
+              {simple ? 'Tous les marchés' : 'Vue simple'}
+            </button>
+          </div>
+          {!simple && <div className="flex flex-wrap gap-1.5 mb-2">
             {MARKET_ORDER.map((m) => (
               <button
                 key={m}
@@ -255,7 +291,7 @@ export default function KrashMarketPage() {
                 {MARKETS[m].label}
               </button>
             ))}
-          </div>
+          </div>}
           <div className="relative mb-2">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-tx-muted" />
             <input
@@ -272,13 +308,33 @@ export default function KrashMarketPage() {
             )}
           </div>
           <p className="text-[10px] text-tx-muted px-1 mb-1">
-            {searching ? 'Tous les marchés. Clique pour y aller.' : `${MARKETS[market].description} Variation sur 1 h.`}
+            {searching ? 'Tous les marchés. Clique pour y aller.' : simple ? 'Les 8 plus gros mouvements des 15 dernières minutes, tous marchés.' : `${MARKETS[market].description} Variation sur 1 h.`}
           </p>
           <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto min-h-0 -mx-1 px-1 pb-1">
             {searching && searchAssets(query).length === 0 && (
               <p className="text-[12px] text-tx-muted px-2 py-4">Rien ne correspond.</p>
             )}
-            {(searching ? searchAssets(query) : assetsOf(market)).map((a) => (
+            {simple && !searching && movers.length === 0 && (
+              <p className="text-[12px] text-tx-muted px-2 py-4">Chargement…</p>
+            )}
+            {simple && !searching && movers.map((m) => {
+              const star = snapshot?.upcoming?.scheduled?.asset === m.id;
+              return (
+                <div key={m.id} className="shrink-0 w-[170px] lg:w-auto relative">
+                  <AssetRow
+                    id={m.id}
+                    // Price and hour-old price shaped like the market feed, so the row reads the same.
+                    data={byId.get(m.id) ?? { id: m.id, price: m.price, prev: m.prev, hourAgo: m.hourAgo }}
+                    selected={m.id === assetId}
+                    onPick={() => pick(m.id)}
+                    holding={holdings.has(m.id)}
+                    showMarket
+                  />
+                  {star && <span className="absolute -top-1 right-1 px-1.5 rounded bg-accent-primary text-brand-bg text-[9px] font-black">RÉSULTAT</span>}
+                </div>
+              );
+            })}
+            {!(simple && !searching) && (searching ? searchAssets(query) : assetsOf(market)).map((a) => (
               <div key={a.id} className="shrink-0 w-[170px] lg:w-auto">
                 <AssetRow id={a.id} data={byId.get(a.id)} selected={a.id === assetId} onPick={() => pick(a.id)} holding={holdings.has(a.id)} showMarket={searching} />
               </div>
@@ -304,7 +360,7 @@ export default function KrashMarketPage() {
                 </div>
               </div>
             </div>
-            <PriceChart points={points} lines={lines} colors={chartColors} height={250} news={snapshot?.news.filter((n) => n.markets.includes(market)) ?? []} />
+            <PriceChart points={points} lines={lines} colors={chartColors} height={250} arrow={arrow} news={snapshot?.news.filter((n) => n.markets.includes(market)) ?? []} />
             <div className="mt-2 flex gap-1.5">
               {(['15m', '1h', '6h'] as Range[]).map((r) => (
                 <button
@@ -322,6 +378,12 @@ export default function KrashMarketPage() {
             </div>
           </section>
 
+          {positions.stats && positions.stats.trades === 0 && positions.open.length === 0 && (
+            <div className="rounded-xl border-2 border-accent-primary bg-accent-primary/10 px-3 py-2 text-[12px] text-tx-secondary leading-snug">
+              <b className="font-display text-accent-primary">Ton premier trade :</b> tout est réglé (1 min, 10 % du solde, x2). Appuie sur <b className="text-accent-success">ÇA MONTE</b> ou <b className="text-rose-400">ÇA BAISSE</b> en dessous.
+            </div>
+          )}
+
           <div className="grid gap-4 md:grid-cols-2 2xl:flex-1 2xl:min-h-0">
             <TradePanel
               asset={asset}
@@ -329,7 +391,9 @@ export default function KrashMarketPage() {
               balance={wallet.balance}
               trades={positions.stats?.trades ?? 0}
               busy={positions.busy === 'open'}
-              onOpen={(side, leverage, stake) => positions.openPosition({ asset: assetId, side, leverage, stake })}
+              maxLeverage={maxLeverageFor(asset, snapshot?.upcoming?.scheduled?.asset)}
+              capReason={snapshot?.upcoming?.scheduled?.asset === assetId ? 'Résultat annoncé : levier limité' : null}
+              onOpen={(side, leverage, stake, duration) => positions.openPosition({ asset: assetId, side, leverage, stake, duration })}
             />
 
             <section className="bg-brand-card border-4 border-brand-border rounded-[24px] p-4 shadow-brutal">

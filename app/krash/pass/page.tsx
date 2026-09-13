@@ -7,6 +7,8 @@ import { sfx } from '@/lib/casino/sfx';
 import { KRASH_DAILY_TRADE_XP_CAP, KRASH_PASS_XP, KRASH_PASS_TIERS } from '@/lib/krash/pass';
 import KrashShell from '../_components/KrashShell';
 import KrashRewardCard from '../_components/KrashRewardCard';
+import PassRewardsRecap from '../_components/PassRewardsRecap';
+import type { KrashPassReward } from '@/lib/krash/pass';
 import { unclaimedCount, useKrashPass } from '../_lib/useKrashPass';
 import { useKrashWallet } from '../_lib/useKrashWallet';
 
@@ -28,6 +30,7 @@ export default function KrashPassPage() {
   const trackRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
+  const [recap, setRecap] = useState<KrashPassReward[] | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30000);
@@ -54,6 +57,7 @@ export default function KrashPassPage() {
 
   return (
     <KrashShell title="Pass Krash" wide>
+      {recap && <PassRewardsRecap rewards={recap} onClose={() => setRecap(null)} />}
       <section className="bg-brand-card border-4 border-brand-border rounded-[24px] p-5 shadow-brutal mb-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
           <div>
@@ -88,7 +92,7 @@ export default function KrashPassPage() {
             </button>
             {waiting > 0 && (
               <button
-                onClick={() => run(claimAll)}
+                onClick={() => run(async () => { const r = await claimAll(); if (r.length) setRecap(r); })}
                 disabled={busy}
                 className="h-11 px-4 rounded-xl bg-fuchsia-500 text-white border-2 border-brand-border shadow-brutal font-display font-black text-xs tracking-wider animate-pulse disabled:opacity-50"
               >

@@ -117,6 +117,11 @@ export default function ConnexionPage() {
               </svg>
               Se connecter avec Discord
             </button>
+            <p className="-mt-3 text-[11px] text-tx-muted text-center leading-snug">
+              En te connectant, tu acceptes les{' '}
+              <a href="/conditions" className="underline hover:text-tx-base">Conditions</a> et la{' '}
+              <a href="/confidentialite" className="underline hover:text-tx-base">politique de confidentialité</a>.
+            </p>
 
             <div className="flex items-center gap-4">
               <div className="flex-1 h-[2px] bg-brand-border" />

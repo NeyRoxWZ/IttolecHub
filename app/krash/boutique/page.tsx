@@ -13,6 +13,7 @@ import type { KrashItemCategory, KrashShopItem } from '@/lib/krash/shop';
 import KrashShell from '../_components/KrashShell';
 import KrashCrateModal from '../_components/KrashCrateModal';
 import { setKrashBalance, useKrashWallet } from '../_lib/useKrashWallet';
+import { refreshKrashLoadout } from '../_lib/useKrashLoadout';
 
 const CATEGORY: Record<KrashItemCategory, { label: string; icon: typeof Coins; color: string }> = {
   protection: { label: 'Protection', icon: ShieldCheck, color: '#00FF94' },
@@ -99,6 +100,8 @@ export default function KrashShopPage() {
       const o = await opened.json();
       if (!opened.ok) { toast.error(o.error ?? 'Ouverture impossible'); return; }
       if (typeof o.balance === 'number') setKrashBalance(o.balance);
+      // The pieces just won must count as owned before the recap shows them.
+      await refreshKrashLoadout(user.id);
       setOpenings(o.openings);
     } finally { setBusy(null); }
   };
@@ -122,7 +125,7 @@ export default function KrashShopPage() {
             const bought = purchased.includes(item.id);
             const tooPoor = wallet.balance < item.price;
             return (
-              <div key={item.id} className="bg-brand-card border-4 border-brand-border rounded-[20px] p-4 shadow-brutal flex flex-col" style={{ borderTopColor: meta.color }}>
+              <div key={item.id} className="bg-brand-card border-4 border-brand-border rounded-[20px] p-4 shadow-brutal flex flex-col">
                 <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: meta.color }}>
                   <Icon className="h-3.5 w-3.5" /> {meta.label}
                 </div>
