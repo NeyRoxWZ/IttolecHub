@@ -5,7 +5,7 @@ import { ArrowLeft, Fish } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import PecheGame from './_components/PecheGame';
 
-/** Frenly Pêche (beta): any signed-in player can fish. */
+/** Pêche (beta): any signed-in player can fish. */
 export default function PechePage() {
   const { user, loading } = useAuth();
 
@@ -26,7 +26,7 @@ export default function PechePage() {
               >
                 <ArrowLeft className="h-6 w-6" strokeWidth={3} />
               </Link>
-              <h1 className="font-display text-3xl sm:text-4xl leading-none">Frenly Pêche</h1>
+              <h1 className="font-display text-3xl sm:text-4xl leading-none">Pêche</h1>
             </div>
             <div className="max-w-xl mx-auto mt-10 bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center shadow-[0_8px_0_#05061A]">
               <span className="mx-auto mb-4 h-16 w-16 rounded-2xl border-[3px] border-brand-border bg-accent-info flex items-center justify-center shadow-[inset_0_-5px_0_#2F5BD0]">

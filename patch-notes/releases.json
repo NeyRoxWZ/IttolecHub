@@ -1,9 +1,56 @@
 {
   "releases": [
     {
+      "version": "1.3.0",
+      "date": "2026-09-13",
+      "title": "Pêche : météo, matériaux et nouvelles icônes",
+      "entries": [
+        {
+          "id": "2026-09-13-01",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Nouvelles icônes d’appli",
+          "details": "Les applis Casino et Pêche installées sur l’écran d’accueil ont de nouvelles icônes aux couleurs du site. L’appli de pêche s’appelle simplement « Pêche »."
+        },
+        {
+          "id": "2026-09-13-02",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "amelioration",
+          "title": "La météo change en douceur",
+          "details": "Un front de nuages traverse la scène et le ciel, la pluie ou la brume arrivent en fondu, avec un bandeau qui annonce la nouvelle météo."
+        },
+        {
+          "id": "2026-09-13-03",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "amelioration",
+          "title": "Matériaux plus visibles en solo",
+          "details": "Chaque prise en solo rapporte au moins un matériau, les prises auto les affichent aussi, et l’onglet Pêche explique à quoi ils servent."
+        },
+        {
+          "id": "2026-09-13-04",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "correctif",
+          "title": "Noms des onglets en entier",
+          "details": "Les noms sous les icônes du menu Aller à ne sont plus coupés."
+        },
+        {
+          "id": "2026-09-13-05",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "amelioration",
+          "title": "Frenly Pêche devient Pêche",
+          "details": "Le jeu s’appelle maintenant simplement Pêche, partout sur le site."
+        }
+      ]
+    },
+    {
       "version": "1.2.0",
       "date": "2026-09-13",
-      "title": "Frenly Pêche en bêta",
+      "title": "Pêche en bêta",
       "entries": [
         {
           "id": "2026-09-13-01",
@@ -42,7 +89,7 @@
           "date": "2026-09-13",
           "scope": "peche",
           "type": "nouveau",
-          "title": "Frenly Pêche arrive en bêta",
+          "title": "Pêche arrive en bêta",
           "details": "Nouveau jeu solo : pêche des centaines d’espèces dans 40 coins de pêche et des profondeurs sans fin. Améliore ton matériel, pose une canne automatique et enchaîne les Marées pour recommencer plus fort."
         },
         {
@@ -98,7 +145,7 @@
           "date": "2026-09-13",
           "scope": "peche",
           "type": "nouveau",
-          "title": "Frenly Pêche sur ton téléphone",
+          "title": "Pêche sur ton téléphone",
           "details": "Le jeu s’adapte aux petits écrans et s’installe comme une appli depuis ton navigateur (Ajouter à l’écran d’accueil)."
         }
       ]
@@ -106,7 +153,7 @@
     {
       "version": "1.1.0",
       "date": "2026-09-13",
-      "title": "Guides, objectifs communs et Frenly Pêche en approche",
+      "title": "Guides, objectifs communs et Pêche en approche",
       "entries": [
         {
           "id": "2026-09-13-01",
@@ -272,7 +319,7 @@
           "date": "2026-09-13",
           "scope": "peche",
           "type": "nouveau",
-          "title": "Frenly Pêche arrive bientôt",
+          "title": "Pêche arrive bientôt",
           "details": "Un nouveau jeu solo de pêche est en construction : sa carte est déjà visible dans Solo."
         },
         {

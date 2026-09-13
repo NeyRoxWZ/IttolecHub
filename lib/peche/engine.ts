@@ -1,5 +1,5 @@
 /**
- * Frenly Pêche — formulas. Pure functions shared by the server (which decides)
+ * Pêche — formulas. Pure functions shared by the server (which decides)
  * and the client (which displays costs, odds and previews).
  */
 

@@ -14,7 +14,7 @@ import {
 } from './engine';
 
 /**
- * Frenly Pêche — server side. The server draws every catch and holds the only
+ * Pêche — server side. The server draws every catch and holds the only
  * copy of the player's state; the browser only plays the reeling gauge.
  *
  * Writes go through a version check: two requests landing together (the auto

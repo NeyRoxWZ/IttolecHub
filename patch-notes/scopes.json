@@ -26,7 +26,7 @@
 
     { "id": "clicker", "label": "ItollecClicker", "group": "solo" },
     { "id": "krash", "label": "Krash", "group": "solo" },
-    { "id": "peche", "label": "Frenly Pêche", "group": "solo" },
+    { "id": "peche", "label": "Pêche", "group": "solo" },
 
     { "id": "budgetguessr", "label": "BudgetGuessr", "group": "multi" },
     { "id": "drawguessr", "label": "DrawGuessr", "group": "multi" },

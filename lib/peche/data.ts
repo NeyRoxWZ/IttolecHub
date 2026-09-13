@@ -1,5 +1,5 @@
 /**
- * Frenly Pêche — static content: rarities, fishing spots, species, gear, the
+ * Pêche — static content: rarities, fishing spots, species, gear, the
  * prestige tree, titles, weather, shop items, missions and cosmetics.
  * Formulas live in ./engine.
  */

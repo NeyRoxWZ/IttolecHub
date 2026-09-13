@@ -230,7 +230,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
           </Link>
           <div className="min-w-0">
             <h1 className="font-display text-2xl sm:text-4xl leading-none flex items-center gap-2">
-              Frenly Pêche
+              Pêche
               <span title="Le jeu est en bêta : l’équilibrage peut encore changer." className="rounded-lg border-[3px] border-brand-border bg-accent-info px-2 py-0.5 text-sm text-white shadow-[inset_0_-3px_0_#2F5BD0]">BÊTA</span>
             </h1>
             <p className="text-sm font-bold text-tx-secondary mt-0.5">{zone.region} · {zone.name}</p>
