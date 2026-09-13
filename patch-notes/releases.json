@@ -1,6 +1,141 @@
 {
   "releases": [
     {
+      "version": "1.0.1",
+      "date": "2026-09-13",
+      "title": "Nouvelle direction artistique",
+      "entries": [
+        {
+          "id": "2026-09-12-01",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Patch notes plus lisibles",
+          "details": "Une ligne par changement, classée par zone puis par jeu, sans le mur de badges et de filtres."
+        },
+        {
+          "id": "2026-09-12-02",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "amelioration",
+          "title": "Nouveautés propres à chaque jeu",
+          "details": "Le casino et ItollecClicker affichent chacun leurs propres nouveautés à l'ouverture, une seule fois par version."
+        },
+        {
+          "id": "2026-09-12-03",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Une app par jeu sur l'écran d'accueil",
+          "details": "Ajouter le casino ou ItollecClicker à l'écran d'accueil depuis leur page installe une app qui s'ouvre directement sur ce jeu, avec sa propre icône."
+        },
+        {
+          "id": "2026-09-12-04",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Sections des patch notes pliées par défaut",
+          "details": "Chaque version affiche ses zones repliées ; on ouvre celle qu'on veut, et le navigateur retient ce qu'on a ouvert."
+        },
+        {
+          "id": "2026-09-12-05",
+          "date": "2026-09-12",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Notifications proposées dans l'app du casino",
+          "details": "En ouvrant le casino depuis l'écran d'accueil, on te propose d'activer les notifications : coffre du jour, missions et défi du jour, récap du lundi, nouveau pass du mois et cadeaux reçus."
+        },
+        {
+          "id": "2026-09-12-06",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Nouveau logo",
+          "details": "Le logo ItollecHub est refait et reprend sa place en haut à gauche."
+        },
+        {
+          "id": "2026-09-12-20",
+          "date": "2026-09-12",
+          "scope": "site",
+          "type": "correctif",
+          "title": "Les apps de jeu s'ouvrent sur leur jeu",
+          "details": "Sur iPhone, une app ajoutée à l'écran d'accueil depuis le casino ou ItollecClicker pouvait s'ouvrir sur l'accueil du site. Supprime l'ancienne icône et ajoute-la de nouveau depuis la page du jeu."
+        },
+        {
+          "id": "2026-09-13-08",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Mentions légales",
+          "details": "Nouvelle page qui indique l'éditeur, le contact et les hébergeurs du site, et comment signaler un contenu."
+        },
+        {
+          "id": "2026-09-13-09",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Confidentialité et Conditions complétées",
+          "details": "Responsable du traitement, bases légales, transferts hors UE, droit de réclamation auprès de la CNIL, règle des moins de 15 ans."
+        },
+        {
+          "id": "2026-09-13-23",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Supprimer son compte",
+          "details": "Depuis la page Profil : toutes tes données sont effacées tout de suite, après confirmation avec tes 6 mots ou ta session Discord."
+        },
+        {
+          "id": "2026-09-13-24",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Case à cocher avant de créer un compte",
+          "details": "À la création du compte, avec un pseudo ou avec Discord, il faut accepter les Conditions et la politique de confidentialité. La connexion à un compte existant ne demande rien."
+        },
+        {
+          "id": "2026-09-13-30",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "correctif",
+          "title": "Accueil lisible en fenêtre réduite",
+          "details": "En écran partagé ou dans une petite fenêtre, la page d'accueil défile à nouveau : les jeux du bas ne sont plus inaccessibles."
+        },
+        {
+          "id": "2026-09-13-31",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Nouvelle direction artistique",
+          "details": "Tout le site passe en style « Brawl », en sombre : panneaux aux gros contours noirs, titres détourés comme le logo, boutons en relief qui s'enfoncent au clic. L'accueil et le casino sont réorganisés : jaquettes des jeux, cartes colorées, récompenses et accès mis en avant."
+        },
+        {
+          "id": "2026-09-13-32",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "amelioration",
+          "title": "Les 20 jeux redessinés",
+          "details": "Roue d'arcade avec ampoules, machine à sous rose, dés blancs, tapis rayés, gobelets, caisses en bois, fusée, dino : chaque jeu reprend le nouveau style, avec des boutons de choix en relief."
+        },
+        {
+          "id": "2026-09-13-33",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Comment jouer animé",
+          "details": "En multijoueur, une petite animation montre les trois étapes : créer la salle, choisir un jeu, jouer jusqu'au podium."
+        },
+        {
+          "id": "2026-09-13-34",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "amelioration",
+          "title": "Cosmétiques redessinés",
+          "details": "Tapis plus vifs avec de gros motifs (rayures, damier, pois, rayons), contours épais sans halo, effets, emblèmes et packs sonores dessinés dans le nouveau style."
+        }
+      ]
+    },
+    {
       "version": "1.0.0",
       "date": "2026-09-12",
       "title": "ItollecHub 1.0 — le lancement",
