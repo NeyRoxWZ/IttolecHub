@@ -63,6 +63,7 @@ export default function PecheGame({ userId }: { userId: string }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [castInfo, setCastInfo] = useState<{ id: string; rarity: number; green: number; speed: number; fill: number; drain: number } | null>(null);
   const [autoNextAt, setAutoNextAt] = useState<number | null>(null);
+  const [autoPops, setAutoPops] = useState<{ key: number; speciesId: string; rarity: number; value: number; variant: string }[]>([]);
   const [landed, setLanded] = useState<Landed | null>(null);
   const [busy, setBusy] = useState(false);
   const [auto, setAuto] = useState(false);
@@ -148,10 +149,12 @@ export default function PecheGame({ userId }: { userId: string }) {
       if (r?.nextAt) setAutoNextAt(r.nextAt);
       if (r?.catches?.length) {
         sfx.coin();
-        setAutoFeed((prev) => [
-          ...r.catches.map((c: { speciesId: string; rarity: number; value: number; variant: string }) => ({ key: Date.now() + n++, ...c })),
-          ...prev,
-        ].slice(0, 8));
+        const items = r.catches.map((c: { speciesId: string; rarity: number; value: number; variant: string }) => ({ key: Date.now() + n++, ...c }));
+        setAutoFeed((prev) => [...items, ...prev].slice(0, 8));
+        // Shown on the scene too, whatever tab is open: the feed in the panel
+        // was out of sight most of the time.
+        setAutoPops((prev) => [...items, ...prev].slice(0, 4));
+        items.forEach((it: { key: number }) => setTimeout(() => setAutoPops((p) => p.filter((x) => x.key !== it.key)), 3500));
       }
     };
     void tick();
@@ -232,6 +235,23 @@ export default function PecheGame({ userId }: { userId: string }) {
           {/* Boosts float over the scene: showing them never changes the page's size. */}
           <div className="absolute top-3 left-3 right-3 z-20 pointer-events-none"><ActiveEffects effects={state.effects} /></div>
           {auto && hasAuto && <AutoProgress nextAt={autoNextAt} interval={autoInterval} />}
+          <div className="absolute right-3 top-14 z-20 flex flex-col items-end gap-1.5 pointer-events-none">
+            {autoPops.map((p) => {
+              const sp = getSpecies(p.speciesId);
+              if (!sp) return null;
+              return (
+                <div key={p.key} className="animate-in slide-in-from-right-6 fade-in duration-300 flex items-center gap-2 rounded-xl border-[3px] border-brand-border bg-brand-card/95 pl-1 pr-2.5 py-1 shadow-[0_3px_0_#05061A]"
+                  style={{ boxShadow: `inset 4px 0 0 ${RARITIES[p.rarity].color}, 0 3px 0 #05061A` }}
+                >
+                  <FishIcon color={sp.color} rarity={sp.rarity} size={40} variant={p.variant} />
+                  <div className="leading-tight">
+                    <div className="font-display text-sm">{sp.name}{p.variant ? ` · ${VARIANTS[p.variant as keyof typeof VARIANTS].label}` : ''}</div>
+                    <div className="text-xs font-black text-accent-success tabular-nums">+{fmtBig(p.value)} ₶ · auto</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
           <div className="relative z-10 flex-1 flex items-center justify-center p-4">
             {phase === 'reeling' && castInfo && (
