@@ -7,6 +7,30 @@
       "type": "amelioration",
       "title": "Nouvelles icônes d’appli",
       "details": "Les applis Casino et Pêche installées sur l’écran d’accueil ont de nouvelles icônes aux couleurs du site. L’appli de pêche s’appelle simplement « Pêche »."
+    },
+    {
+      "id": "2026-09-13-02",
+      "date": "2026-09-13",
+      "scope": "peche",
+      "type": "amelioration",
+      "title": "La météo change en douceur",
+      "details": "Un front de nuages traverse la scène et le ciel, la pluie ou la brume arrivent en fondu, avec un bandeau qui annonce la nouvelle météo."
+    },
+    {
+      "id": "2026-09-13-03",
+      "date": "2026-09-13",
+      "scope": "peche",
+      "type": "amelioration",
+      "title": "Matériaux plus visibles en solo",
+      "details": "Chaque prise en solo rapporte au moins un matériau, les prises auto les affichent aussi, et l’onglet Pêche explique à quoi ils servent."
+    },
+    {
+      "id": "2026-09-13-04",
+      "date": "2026-09-13",
+      "scope": "peche",
+      "type": "correctif",
+      "title": "Noms des onglets en entier",
+      "details": "Les noms sous les icônes du menu Aller à ne sont plus coupés."
     }
   ]
 }

@@ -1,12 +1,15 @@
 'use client';
 
-import { COSMETIC_BY_ID, getSpecies, zoneInfo, type CosmeticSlot, type WeatherId } from '@/lib/peche/data';
+import { useEffect, useRef, useState } from 'react';
+import { COSMETIC_BY_ID, WEATHER, getSpecies, zoneInfo, type CosmeticSlot, type WeatherId } from '@/lib/peche/data';
 import type { PortCatch, PortPlayer } from './usePort';
 
 type Phase = 'idle' | 'waiting' | 'reeling' | 'landed' | 'lost';
 
 const INK = '#05061A';
 const WATER_Y = 196;
+/** Weather colours and layers ease over two seconds instead of snapping. */
+const FADE = { transition: 'fill 2s ease, stop-color 2s ease, opacity 2s ease, transform 2s ease' };
 
 function colorsOf(equipped: Partial<Record<CosmeticSlot, string>>, slot: CosmeticSlot, fallback: string[]) {
   const c = equipped[slot] ? COSMETIC_BY_ID.get(equipped[slot]!) : undefined;
@@ -55,6 +58,18 @@ export default function Scene({
 }) {
   const z = zoneInfo(zoneId);
   const decor = equipped.decor ? COSMETIC_BY_ID.get(equipped.decor) : undefined;
+
+  // Remember the weather we drew last: a change (not the first draw) plays the cloud front and the banner.
+  const lastWeather = useRef(weather);
+  const [change, setChange] = useState<{ key: number; to: WeatherId; dark: boolean } | null>(null);
+  useEffect(() => {
+    if (lastWeather.current === weather) return;
+    lastWeather.current = weather;
+    const next = { key: Date.now(), to: weather, dark: weather === 'orage' || weather === 'lune' };
+    setChange(next);
+    const t = setTimeout(() => setChange((c) => (c?.key === next.key ? null : c)), 3300);
+    return () => clearTimeout(t);
+  }, [weather]);
   const dark = weather === 'orage' || weather === 'lune';
   const sky = decor ? decor.colors[0] : dark ? '#1A1E3A' : z.sky;
   const sunColor = weather === 'lune' ? '#F4F4FF' : decor ? decor.colors[1] : '#FFE27A';
@@ -113,14 +128,18 @@ export default function Scene({
         .sc-flash { animation: scFlash 6s linear infinite; }
         .sc-pop { animation: scPop 3.4s ease-out forwards; }
         .sc-rock { transform-box: fill-box; transform-origin: 50% 100%; animation: scRock 3s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) { .sc-cloud, .sc-wave, .sc-wave2, .sc-bob, .sc-bite, .sc-ring, .sc-swim, .sc-swimback, .sc-circle, .sc-shake, .sc-jump, .sc-twinkle, .sc-rain, .sc-flash, .sc-pop, .sc-rock { animation: none; } }
+        @keyframes scFront { 0% { transform: translateX(-620px); opacity: 0 } 15% { opacity: .95 } 85% { opacity: .95 } 100% { transform: translateX(620px); opacity: 0 } }
+        @keyframes scBanner { 0% { transform: translate(-50%, -12px); opacity: 0 } 12%, 80% { transform: translate(-50%, 0); opacity: 1 } 100% { transform: translate(-50%, -8px); opacity: 0 } }
+        .sc-front { animation: scFront 2.4s ease-in-out forwards; }
+        .sc-banner { animation: scBanner 3.2s ease-out forwards; }
+        @media (prefers-reduced-motion: reduce) { .sc-cloud, .sc-wave, .sc-wave2, .sc-bob, .sc-bite, .sc-ring, .sc-swim, .sc-swimback, .sc-circle, .sc-shake, .sc-jump, .sc-twinkle, .sc-rain, .sc-flash, .sc-pop, .sc-rock, .sc-front { animation: none; } .sc-front { display: none; } }
       `}</style>
 
       <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" className="w-full h-full block">
         <defs>
           <linearGradient id="scSky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={sky} />
-            <stop offset="1" stopColor={dark ? '#3A3F6A' : '#FFFFFF'} stopOpacity={dark ? 1 : 0.55} />
+            <stop offset="0" stopColor={sky} style={FADE} />
+            <stop offset="1" stopColor={dark ? '#3A3F6A' : '#FFFFFF'} stopOpacity={dark ? 1 : 0.55} style={FADE} />
           </linearGradient>
           <linearGradient id="scWater" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor={z.top} />
@@ -132,22 +151,22 @@ export default function Scene({
         </defs>
 
         {/* Sky */}
-        <rect width="480" height="360" fill={sky} />
+        <rect width="480" height="360" fill={sky} style={FADE} />
         <rect width="480" height={WATER_Y} fill="url(#scSky)" />
-        {(dark || decor?.id === 'de-nuit' || decor?.id === 'de-pass') && [[40, 30], [96, 70], [150, 22], [236, 48], [300, 18], [352, 76], [420, 40], [190, 96]].map(([x, y], i) => (
-          <circle key={i} className="sc-twinkle" style={{ animationDelay: `${i * 300}ms` }} cx={x} cy={y} r="2.2" fill="#FFFFFF" />
-        ))}
+        <g style={{ ...FADE, opacity: dark || decor?.id === 'de-nuit' || decor?.id === 'de-pass' ? 1 : 0 }}>
+          {[[40, 30], [96, 70], [150, 22], [236, 48], [300, 18], [352, 76], [420, 40], [190, 96]].map(([x, y], i) => (
+            <circle key={i} className="sc-twinkle" style={{ animationDelay: `${i * 300}ms` }} cx={x} cy={y} r="2.2" fill="#FFFFFF" />
+          ))}
+        </g>
         {decor?.id === 'de-aurore' && <path d="M0 70 Q 120 20 240 70 T 480 60 L 480 110 Q 360 70 240 120 T 0 120 Z" fill="#33D17A" opacity="0.45" />}
-        {weather !== 'orage' && (
-          <g>
-            <circle cx="398" cy="64" r="44" fill={sunColor} opacity="0.25" />
-            <circle cx="398" cy="64" r="30" fill={sunColor} stroke={INK} strokeWidth="5" />
-          </g>
-        )}
+        <g style={{ ...FADE, opacity: weather === 'orage' ? 0 : 1, transform: weather === 'orage' ? 'translateY(40px)' : 'none' }}>
+          <circle cx="398" cy="64" r="44" fill={sunColor} opacity="0.25" style={FADE} />
+          <circle cx="398" cy="64" r="30" fill={sunColor} stroke={INK} strokeWidth="5" style={FADE} />
+        </g>
         {[{ y: 42, s: 1, d: 60 }, { y: 88, s: 0.7, d: 90 }, { y: 24, s: 0.55, d: 120 }].map((c, i) => (
           <g key={i} className="sc-cloud" style={{ animationDuration: `${c.d}s`, animationDelay: `-${i * 25}s` }}>
             <g transform={`translate(0 ${c.y}) scale(${c.s})`}>
-              <path d="M0 20 Q 0 0 22 4 Q 34 -12 54 2 Q 76 -2 78 18 Q 92 20 88 32 L 4 32 Q -8 30 0 20 Z" fill={dark ? '#5A6080' : '#FFFFFF'} stroke={INK} strokeWidth="4" strokeLinejoin="round" opacity={weather === 'brume' ? 0.9 : 1} />
+              <path d="M0 20 Q 0 0 22 4 Q 34 -12 54 2 Q 76 -2 78 18 Q 92 20 88 32 L 4 32 Q -8 30 0 20 Z" fill={dark ? '#5A6080' : '#FFFFFF'} stroke={INK} strokeWidth="4" strokeLinejoin="round" opacity={weather === 'brume' ? 0.9 : 1} style={FADE} />
             </g>
           </g>
         ))}
@@ -253,7 +272,8 @@ export default function Scene({
         </g>
 
         {/* Weather */}
-        {(weather === 'pluie' || weather === 'orage') && (
+        {/* Always drawn, faded in and out, so a change of weather rolls in instead of snapping. */}
+        <g style={{ ...FADE, opacity: weather === 'pluie' || weather === 'orage' ? 1 : 0 }}>
           <g className="sc-rain">
             {Array.from({ length: 60 }, (_, i) => {
               const x = (i * 53) % 480;
@@ -261,10 +281,27 @@ export default function Scene({
               return <line key={i} x1={x} y1={y} x2={x - 6} y2={y + 15} stroke="#DDEFFF" strokeOpacity="0.7" strokeWidth="2.5" />;
             })}
           </g>
-        )}
-        {weather === 'brume' && <rect width="480" height="360" fill="#FFFFFF" opacity="0.32" />}
+        </g>
+        <rect width="480" height="360" fill="#FFFFFF" style={{ ...FADE, opacity: weather === 'brume' ? 0.32 : 0 }} />
         {weather === 'orage' && <rect className="sc-flash" width="480" height="360" fill="#FFFFFF" />}
+
+        {/* The change itself: a bank of cloud sweeps across the scene. */}
+        {change && (
+          <g key={change.key} className="sc-front" pointerEvents="none">
+            {[40, 120, 200, 280].map((y, i) => (
+              <g key={y} transform={`translate(${i % 2 ? -60 : 0} ${y}) scale(${2.2 - i * 0.2})`}>
+                <path d="M0 20 Q 0 0 22 4 Q 34 -12 54 2 Q 76 -2 78 18 Q 92 20 88 32 L 4 32 Q -8 30 0 20 Z" fill={change.dark ? '#5A6080' : '#FFFFFF'} stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+                <path d="M100 20 Q 100 0 122 4 Q 134 -12 154 2 Q 176 -2 178 18 Q 192 20 188 32 L 104 32 Q 92 30 100 20 Z" fill={change.dark ? '#4A5070' : '#EAF4FF'} stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+              </g>
+            ))}
+          </g>
+        )}
       </svg>
+      {change && (
+        <div key={`b${change.key}`} className="sc-banner absolute left-1/2 top-16 z-10 -translate-x-1/2 pointer-events-none flex items-center gap-2 rounded-xl border-[3px] border-brand-border bg-brand-card/95 px-3 py-1.5 font-display text-lg text-white shadow-[0_3px_0_#05061A] whitespace-nowrap">
+          {WEATHER[change.to].label} arrive
+        </div>
+      )}
     </div>
   );
 }

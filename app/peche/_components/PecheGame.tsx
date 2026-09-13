@@ -83,7 +83,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
   const [phase, setPhase] = useState<Phase>('idle');
   const [castInfo, setCastInfo] = useState<{ id: string; rarity: number; green: number; speed: number; fill: number; drain: number } | null>(null);
   const [autoNextAt, setAutoNextAt] = useState<number | null>(null);
-  const [autoPops, setAutoPops] = useState<{ key: number; speciesId: string; rarity: number; value: number; variant: string }[]>([]);
+  const [autoPops, setAutoPops] = useState<{ key: number; speciesId: string; rarity: number; value: number; variant: string; materials?: Record<string, number> }[]>([]);
   const [landed, setLanded] = useState<Landed | null>(null);
   const [busy, setBusy] = useState(false);
   const [auto, setAuto] = useState(false);
@@ -177,7 +177,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
       if (r?.catches?.length) {
         sfx.coin();
         r.catches.slice(0, 3).forEach((c: { speciesId: string; rarity: number; variant: string }) => sendRef.current(c));
-        const items = r.catches.map((c: { speciesId: string; rarity: number; value: number; variant: string }) => ({ key: Date.now() + n++, ...c }));
+        const items = r.catches.map((c: { speciesId: string; rarity: number; value: number; variant: string; materials?: Record<string, number> }) => ({ key: Date.now() + n++, ...c }));
         setAutoFeed((prev) => [...items, ...prev].slice(0, 8));
         // Shown on the scene too, whatever tab is open: the feed in the panel
         // was out of sight most of the time.
@@ -312,6 +312,13 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
                   <div className="leading-tight">
                     <div className="font-display text-sm">{sp.name}{p.variant ? ` · ${VARIANTS[p.variant as keyof typeof VARIANTS].label}` : ''}</div>
                     <div className="text-xs font-black text-accent-success tabular-nums">+{fmtBig(p.value)} ₶ · auto</div>
+                    {p.materials && Object.keys(p.materials).length > 0 && (
+                      <div className="text-[11px] font-black tabular-nums flex gap-1.5">
+                        {Object.entries(p.materials).map(([m, q]) => (
+                          <span key={m} style={{ color: MATERIALS[m as MaterialId].color }}>+{q} {MATERIALS[m as MaterialId].label}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -355,8 +362,8 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
         <section className={cn(BRAWL.panel, 'p-4 flex flex-col gap-3 h-[640px] lg:h-full min-h-0')}>
           <div className="shrink-0 rounded-[18px] border-[3px] border-brand-border bg-brand-inner p-2.5">
             <div className="font-display text-lg leading-none sm:mb-2">Aller à</div>
-            {/* Phones: one row that scrolls sideways. From sm up: two rows of eight. */}
-            <div className="flex gap-1 overflow-x-auto pt-2 pb-1 -mx-1 px-1 sm:grid sm:grid-cols-8 sm:gap-x-1 sm:gap-y-2 sm:overflow-visible sm:pb-0">
+            {/* Phones: one row that scrolls sideways. Wider: rows of eight, or six in the narrow side column, so no label is cut. */}
+            <div className="flex gap-1 overflow-x-auto pt-2 pb-1 -mx-1 px-1 sm:grid sm:grid-cols-8 lg:grid-cols-6 sm:gap-x-1 sm:gap-y-2 sm:overflow-visible sm:pb-0">
               {TABS.map((t, i) => {
                 const swatch = BRAWL_SWATCHES[i % BRAWL_SWATCHES.length];
                 const on = tab === t.id;
@@ -367,9 +374,9 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
                   : t.id === 'port' && port.length > 1 ? port.length : 0;
                 return (
                   <button key={t.id} onClick={() => { sfx.click(); setTab(t.id); }} aria-current={on ? 'page' : undefined}
-                    className="group flex flex-col items-center gap-1 text-center focus:outline-none min-w-0 shrink-0 w-[62px] sm:w-auto">
+                    className="group flex flex-col items-center gap-1 text-center focus:outline-none shrink-0 min-w-[56px] px-0.5 sm:min-w-0 sm:px-0">
                     <span
-                      className={cn(BRAWL.iconTile, 'h-10 w-10 text-white transition-transform group-hover:-translate-y-0.5 group-active:translate-y-[2px]', on && 'ring-[3px] ring-accent-primary ring-offset-2 ring-offset-brand-inner -translate-y-0.5')}
+                      className={cn(BRAWL.iconTile, 'h-9 w-9 text-white transition-transform group-hover:-translate-y-0.5 group-active:translate-y-[2px]', on && 'ring-[3px] ring-accent-primary ring-offset-2 ring-offset-brand-inner -translate-y-0.5')}
                       style={{ background: swatch.fill, boxShadow: `inset 0 -4px 0 ${swatch.shade}, 0 3px 0 #05061A` }}
                     >
                       <t.icon className="h-5 w-5" strokeWidth={2.5} />
@@ -377,7 +384,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
                         <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white font-display text-[11px] flex items-center justify-center">{badge}</span>
                       )}
                     </span>
-                    <span className={cn('text-[10px] font-black leading-tight line-clamp-1 max-w-full', on ? 'text-accent-primary' : 'text-tx-secondary group-hover:text-white')}>{t.label}</span>
+                    <span className={cn('text-[10px] font-black leading-tight whitespace-nowrap', on ? 'text-accent-primary' : 'text-tx-secondary group-hover:text-white')}>{t.label}</span>
                   </button>
                 );
               })}
@@ -385,7 +392,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-            {tab === 'peche' && <PechePanel state={state} api={api} autoFeed={autoFeed} />}
+            {tab === 'peche' && <PechePanel state={state} api={api} autoFeed={autoFeed} mode={mode} />}
             {tab === 'quetes' && <QuestsPanel state={state} api={api} />}
             {tab === 'boutique' && <ShopPanel state={state} api={api} onOpen={() => setOpening(true)} />}
             {tab === 'cosmetiques' && <CosmeticsPanel state={state} api={api} />}
@@ -525,12 +532,20 @@ function Box({ title, children, right }: { title: string; children: React.ReactN
   );
 }
 
-function PechePanel({ state, api, autoFeed }: { state: PecheState; api: Api; autoFeed: { key: number; speciesId: string; rarity: number; value: number }[] }) {
+function PechePanel({ state, api, autoFeed, mode }: { state: PecheState; api: Api; autoFeed: { key: number; speciesId: string; rarity: number; value: number }[]; mode: Mode }) {
   const bagTotal = state.bag.reduce((s, b) => s + b.price, 0);
   const bagCount = state.bag.reduce((s, b) => s + b.count, 0);
   return (
     <div className="space-y-3">
-      <Materials materials={state.materials} />
+      <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3">
+        <div className="font-display text-xl mb-1">Mes matériaux</div>
+        <p className="text-xs font-bold text-tx-secondary mb-2">
+          {mode === 'solo'
+            ? 'En solo, chaque poisson pêché (à la main ou en auto) rapporte des matériaux en plus des ₶. Ils servent à améliorer ta canne et ton bateau dans Matériel.'
+            : 'Au port public, les prises ne donnent pas de matériaux, mais valent ×1,5. Repasse en Solo (en haut) pour en gagner.'}
+        </p>
+        <Materials materials={state.materials} />
+      </div>
       <Box
         title={`Bourriche (${bagCount})`}
         right={

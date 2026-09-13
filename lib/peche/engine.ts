@@ -185,6 +185,8 @@ export function rollMaterials(zone: number, rarity: number, tree: TreeLevels, rn
   if (rng() < 0.3) out.bois = qty(1);
   if (zone >= 2 && rng() < 0.2) out.metal = qty(0.5);
   if (rng() < 0.03 * (rarity + 1)) out.ecaille = Math.max(1, Math.round(boost));
+  // Every solo catch brings something, so the link between fishing and gear is obvious.
+  if (!Object.keys(out).length) out.fil = qty(1);
   return out;
 }
 

@@ -441,7 +441,7 @@ export function reel(userId: string, castId: string, quality: Quality) {
 }
 
 export function autoFish(userId: string, mode: FishingMode = 'solo') {
-  return mutate<{ catches: Catch[]; nextAt?: number; jackpot?: number }>(userId, (row) => {
+  return mutate<{ catches: (Catch & { materials: Materials })[]; nextAt?: number; jackpot?: number }>(userId, (row) => {
     const now = Date.now();
     const interval = autoInterval(row.gear, row.tree, row.effects, now);
     if (!Number.isFinite(interval)) return fail(400, 'Il te faut une canne auto.');
@@ -456,12 +456,12 @@ export function autoFish(userId: string, mode: FishingMode = 'solo') {
     const eff = autoEfficiency(row.gear, row.tree);
     const mods = modsFor(row, now, mode);
     const acc = startAcc(row);
-    const catches: Catch[] = [];
+    const catches: (Catch & { materials: Materials })[] = [];
     for (let i = 0; i < n; i++) {
       const c = rollCatch(row.zone, row.gear, row.tree, row.maree, mods);
       const value = c.value * eff;
-      land(row, c, value, acc, false, mode);
-      catches.push({ ...c, value });
+      const materials = land(row, c, value, acc, false, mode);
+      catches.push({ ...c, value, materials });
     }
     return {
       patch: { ...accPatch(row, acc), last_auto_at: new Date(last + n * interval * 1000).toISOString() },
