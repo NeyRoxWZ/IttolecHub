@@ -49,7 +49,7 @@ export default function ChestOpening({
 
   const current = chests[index];
   const cosmetic = current ? COSMETIC_BY_ID.get(current.cosmeticId) : undefined;
-  const tier = current ? TIER[current.rarity] : TIER[0];
+  const tier = (current && TIER[current.rarity]) || TIER[0];
 
   const start = async (count: number) => {
     if (busy) return;
@@ -57,7 +57,7 @@ export default function ChestOpening({
     const r = await onOpen(count);
     setBusy(false);
     if (!r) return;
-    setChests(r.chests); setIndex(0); setRemoved(0); setPhase('locked'); setRecap(false);
+    setChests(r.chests); setIndex(0); setRemoved(0); setJolt(0); setPhase('locked'); setRecap(false);
     sfx.crateOpen(); vibrate(HAPTIC.MEDIUM);
   };
 
@@ -82,7 +82,7 @@ export default function ChestOpening({
   };
 
   const nextChest = () => {
-    if (index + 1 < chests.length) { setIndex(index + 1); setRemoved(0); setPhase('locked'); sfx.click(); }
+    if (index + 1 < chests.length) { setIndex(index + 1); setRemoved(0); setJolt(0); setPhase('locked'); sfx.click(); }
     else setRecap(true);
   };
 
@@ -188,7 +188,7 @@ export default function ChestOpening({
                 <ChestArt removed={removed} phase={phase} glow={TIER[Math.min(removed, 3)].color} />
               </div>
               {/* Sparks and the padlock flying off, replayed on each tap */}
-              {jolt > 0 && (
+              {jolt > 0 && removed > 0 && (
                 <div key={`fx${jolt}`} className="pointer-events-none absolute left-1/2 top-[64%]">
                   {Array.from({ length: 14 }, (_, i) => {
                     const a = (i / 14) * Math.PI * 2;
@@ -200,7 +200,7 @@ export default function ChestOpening({
                   <svg className="co-lockoff absolute -left-5 -top-6" width="40" height="44" viewBox="0 0 40 44"
                     style={{ ['--lx' as string]: `${jolt % 2 ? 120 : -120}px`, ['--lr' as string]: `${jolt % 2 ? 300 : -300}deg` }}>
                     <path d="M10 18 v-8 a10 10 0 0 1 20 0 v8" fill="none" stroke="#05061A" strokeWidth="6" />
-                    <rect x="4" y="16" width="32" height="26" rx="7" fill={TIER[Math.min(removed - 1, 3)].color} stroke="#05061A" strokeWidth="5" />
+                    <rect x="4" y="16" width="32" height="26" rx="7" fill={TIER[Math.max(0, Math.min(removed - 1, 3))].color} stroke="#05061A" strokeWidth="5" />
                   </svg>
                 </div>
               )}

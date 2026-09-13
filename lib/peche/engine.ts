@@ -4,7 +4,7 @@
  */
 
 import {
-  COSMETICS, PACK_ODDS, RARITIES, SHOP_ITEMS, VARIANTS, WEATHER, ZONES, getSpecies, speciesOfZone,
+  BOSSES, COSMETICS, PACK_ODDS, PASS_TIERS, RARITIES, RARITY_POINTS, SHOP_ITEMS, VARIANTS, VARIANT_POINTS, WEATHER, ZONES, getSpecies, speciesOfZone,
   type Cosmetic, type EffectId, type GearId, type MaterialId, type MissionType, type RarityIndex,
   type ShopItem, type Species, type TreeId, type Variant, type WeatherId,
 } from './data';
@@ -383,4 +383,53 @@ export const CHEST_DAYS = 7;
 export function chestReward(day: number, boat: number): { coins: number; packs: number } {
   const units = [80, 120, 180, 260, 360, 480, 900][Math.max(0, Math.min(CHEST_DAYS, day) - 1)];
   return { coins: Math.ceil(zoneBase(boat) * units), packs: day >= CHEST_DAYS ? 2 : 0 };
+}
+
+/* ---- V3: points, pass, boss, jackpot, shoals ---- */
+
+export function catchPoints(rarity: number, variant: string): number {
+  return (RARITY_POINTS[rarity] ?? 1) * (VARIANT_POINTS[variant] ?? 1);
+}
+
+export function monthKey(d = new Date()): string {
+  return d.toISOString().slice(0, 7);
+}
+
+/** Points needed for one pass tier, a little more each tier. */
+export function passTierCost(tier: number): number {
+  return 60 + tier * 6;
+}
+
+export function passLevel(xp: number): { tier: number; into: number; needed: number } {
+  let tier = 0;
+  let left = xp;
+  while (tier < PASS_TIERS && left >= passTierCost(tier + 1)) { left -= passTierCost(tier + 1); tier++; }
+  return { tier, into: left, needed: tier >= PASS_TIERS ? 0 : passTierCost(tier + 1) };
+}
+
+export function passReward(tier: number, boat: number): { coins: number; packs: number; perles: number } {
+  return {
+    coins: Math.ceil(zoneBase(boat) * (40 + tier * 6)),
+    packs: tier === PASS_TIERS ? 3 : tier % 5 === 0 ? 1 : 0,
+    perles: tier % 10 === 0 ? 3 : 0,
+  };
+}
+
+export function bossFor(week = weekKey()): { name: string; maxHp: number } {
+  return { name: BOSSES[hash(`boss:${week}`) % BOSSES.length], maxHp: 20_000 };
+}
+
+export function bossReward(boat: number): { coins: number; packs: number; perles: number } {
+  return { coins: Math.ceil(zoneBase(boat) * 800), packs: 2, perles: 2 };
+}
+
+/** Share of every sale that feeds the golden-fish jackpot, in "zone base" units. */
+export const JACKPOT_RATE = 0.02;
+
+export const SHOAL_SLOT_MS = 10 * 60 * 1000;
+
+/** A shoal passes through one hand-made spot at a time: catches there are worth ×2. */
+export function shoalAt(now = Date.now()): { zone: number; endsAt: number; mult: number } {
+  const slot = Math.floor(now / SHOAL_SLOT_MS);
+  return { zone: hash(`shoal:${slot}`) % ZONES.length, endsAt: (slot + 1) * SHOAL_SLOT_MS, mult: 2 };
 }

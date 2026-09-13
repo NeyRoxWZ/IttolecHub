@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { isOwner } from '@/lib/owner';
 import {
-  autoFish, buyItem, buyPack, buyTree, cast, claimChest, claimMission, deliverOrder, equip, openPack,
-  prestige, reel, sell, stateFor, travel, upgrade,
+  autoFish, buyItem, buyPack, buyTree, cast, claimAchievement, claimBoss, claimChest, claimMission, claimPassTier,
+  communityFor, deliverOrder, equip, openPack, playerCard, prestige, reel, seeRecap, sell, stateFor, travel, upgrade,
 } from '@/lib/peche/server';
 import type { CosmeticSlot, GearId, TreeId } from '@/lib/peche/data';
 
@@ -15,13 +15,26 @@ function gate(userId: string | null | undefined) {
   return null;
 }
 
+const noStore = { headers: { 'Cache-Control': 'no-store' } };
+
 export async function GET(request: Request) {
-  const userId = new URL(request.url).searchParams.get('user_id');
+  const params = new URL(request.url).searchParams;
+  const userId = params.get('user_id');
   const blocked = gate(userId);
   if (blocked) return blocked;
+
+  if (params.get('view') === 'community') return NextResponse.json({ community: await communityFor(userId!) }, noStore);
+
+  const card = params.get('card');
+  if (card) {
+    const data = await playerCard(card);
+    if (!data) return NextResponse.json({ error: 'Pêcheur introuvable' }, { status: 404 });
+    return NextResponse.json({ card: data }, noStore);
+  }
+
   const state = await stateFor(userId!);
   if (!state) return NextResponse.json({ error: 'Joueur introuvable' }, { status: 404 });
-  return NextResponse.json({ state }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json({ state }, noStore);
 }
 
 export async function POST(request: Request) {
@@ -48,6 +61,10 @@ export async function POST(request: Request) {
       case 'buy_pack': out = await buyPack(userId); break;
       case 'open_pack': out = await openPack(userId, Number(body?.count) || 1); break;
       case 'equip': out = await equip(userId, String(body?.slot) as CosmeticSlot, body?.cosmetic_id ? String(body.cosmetic_id) : null); break;
+      case 'achievement': out = await claimAchievement(userId, String(body?.id || '')); break;
+      case 'pass': out = await claimPassTier(userId, Number(body?.tier)); break;
+      case 'recap_seen': out = await seeRecap(userId); break;
+      case 'boss': out = await claimBoss(userId); break;
       default: return NextResponse.json({ error: 'Action inconnue' }, { status: 400 });
     }
 

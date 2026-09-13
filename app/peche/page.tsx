@@ -20,7 +20,7 @@ export default function PechePage() {
         {loading ? (
           <div className="h-[520px] rounded-[22px] border-4 border-brand-border bg-brand-card animate-pulse" />
         ) : allowed && user ? (
-          <PecheGame userId={user.id} />
+          <PecheGame userId={user.id} pseudo={user.pseudo} />
         ) : (
           <>
             <div className="flex items-center gap-3 mb-6">

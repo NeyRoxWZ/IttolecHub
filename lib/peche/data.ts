@@ -347,3 +347,50 @@ export const COSMETIC_BY_ID = new Map(COSMETICS.map((c) => [c.id, c]));
 
 /** Chest odds by cosmetic rarity. */
 export const PACK_ODDS = [60, 28, 10, 2];
+
+/* ------------------------------------------------------------------ */
+/* V3: points, achievements, pass, weekly boss                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Leaderboard points per catch. They depend on rarity and variant only — not
+ * on the spot or on Marées — so a new player and a veteran race on equal terms.
+ */
+export const RARITY_POINTS = [1, 3, 10, 40, 200];
+export const VARIANT_POINTS: Record<string, number> = { '': 1, chroma: 3, or: 10 };
+
+export type AchievementMetric =
+  | 'caught' | 'species' | 'maree' | 'bestZone' | 'perfect' | 'legendary' | 'mythic'
+  | 'chroma' | 'or' | 'chests' | 'orders' | 'missions' | 'earned';
+
+export interface Achievement {
+  id: string;
+  label: string;
+  metric: AchievementMetric;
+  target: number;
+  perles: number;
+  packs: number;
+}
+
+const ach = (metric: AchievementMetric, targets: number[], label: (n: number) => string, perles: number[], packs: number[]): Achievement[] =>
+  targets.map((t, i) => ({ id: `${metric}-${t}`, label: label(t), metric, target: t, perles: perles[i] ?? 0, packs: packs[i] ?? 0 }));
+
+export const ACHIEVEMENTS: Achievement[] = [
+  ...ach('caught', [10, 100, 1_000, 10_000, 100_000], (n) => `Attraper ${n.toLocaleString('fr-FR')} poissons`, [1, 2, 4, 8, 16], [0, 1, 1, 2, 3]),
+  ...ach('species', [10, 50, 150, 400, 640], (n) => `Découvrir ${n} espèces`, [1, 3, 6, 12, 30], [1, 1, 2, 3, 5]),
+  ...ach('maree', [1, 5, 10, 25, 50, 100], (n) => `Atteindre la Marée ${n}`, [2, 5, 10, 20, 40, 80], [1, 2, 3, 4, 5, 8]),
+  ...ach('bestZone', [5, 10, 20, 30, 40, 60], (n) => (n >= 40 ? `Descendre à la Profondeur ${n - 39}` : `Pêcher dans le coin n°${n + 1}`), [1, 2, 4, 6, 10, 20], [0, 1, 1, 2, 3, 4]),
+  ...ach('perfect', [10, 100, 1_000], (n) => `Réussir ${n.toLocaleString('fr-FR')} prises parfaites`, [1, 3, 8], [0, 1, 2]),
+  ...ach('legendary', [1, 25, 250], (n) => `Attraper ${n} légendaire${n > 1 ? 's' : ''}`, [1, 4, 10], [1, 1, 2]),
+  ...ach('mythic', [1, 10, 100], (n) => `Attraper ${n} mythique${n > 1 ? 's' : ''}`, [2, 6, 20], [1, 2, 4]),
+  ...ach('chroma', [1, 25], (n) => `Attraper ${n} poisson${n > 1 ? 's' : ''} chromatique${n > 1 ? 's' : ''}`, [1, 6], [1, 2]),
+  ...ach('or', [1, 10], (n) => `Attraper ${n} poisson${n > 1 ? 's' : ''} doré${n > 1 ? 's' : ''}`, [3, 15], [1, 3]),
+  ...ach('chests', [5, 50, 250], (n) => `Ouvrir ${n} coffres au trésor`, [1, 3, 8], [1, 2, 3]),
+  ...ach('orders', [10, 100, 1_000], (n) => `Livrer ${n.toLocaleString('fr-FR')} commandes`, [1, 4, 12], [0, 1, 2]),
+  ...ach('missions', [10, 100, 500], (n) => `Réclamer ${n} missions`, [1, 4, 10], [0, 1, 2]),
+  ...ach('earned', [1e6, 1e9, 1e12, 1e18, 1e30], (n) => `Gagner ${n.toExponential(0).replace('e+', ' × 10^')} ₶ au total`, [1, 3, 6, 12, 25], [0, 1, 1, 2, 3]),
+];
+
+export const PASS_TIERS = 50;
+
+export const BOSSES = ['Léviathan', 'Kraken', 'Mégalodon', 'Serpent de mer', 'Hydre des abysses'];

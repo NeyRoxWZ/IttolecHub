@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Anchor, BookOpen, Coins, Fish, Map as MapIcon, Sparkles, Waves, Wrench, Zap, Lock, Check, X,
-  HelpCircle, ShoppingBag, Target, Gift, CloudRain, Sun, CloudFog, CloudLightning, Moon, Package,
+  HelpCircle, ShoppingBag, Target, Gift, CloudRain, Sun, CloudFog, CloudLightning, Moon, Package, Trophy, Users, Fish as FishShoal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BRAWL } from '@/lib/ui/brawl';
@@ -24,9 +24,14 @@ import ReelGauge from './ReelGauge';
 import ChestOpening from './ChestOpening';
 import PecheGuide, { GUIDE_KEY } from './PecheGuide';
 import CosmeticIcon from './CosmeticIcon';
+import CommunityPanel from './CommunityPanel';
+import PassPanel from './PassPanel';
+import PlayerCardModal from './PlayerCardModal';
+import WeekRecap from './WeekRecap';
+import { usePresence } from './usePresence';
 
 type Phase = 'idle' | 'waiting' | 'reeling' | 'landed' | 'lost';
-type Tab = 'peche' | 'quetes' | 'boutique' | 'materiel' | 'carte' | 'dex' | 'marees';
+type Tab = 'peche' | 'quetes' | 'boutique' | 'pass' | 'commu' | 'materiel' | 'carte' | 'dex' | 'marees';
 type Api = (action: string, extra?: Record<string, unknown>) => Promise<any>;
 
 interface Landed {
@@ -38,6 +43,8 @@ const TABS: { id: Tab; label: string; icon: typeof Fish }[] = [
   { id: 'peche', label: 'Pêche', icon: Fish },
   { id: 'quetes', label: 'Quêtes', icon: Target },
   { id: 'boutique', label: 'Boutique', icon: ShoppingBag },
+  { id: 'pass', label: 'Pass', icon: Trophy },
+  { id: 'commu', label: 'Commu', icon: Users },
   { id: 'materiel', label: 'Matériel', icon: Wrench },
   { id: 'carte', label: 'Carte', icon: MapIcon },
   { id: 'dex', label: 'Poissodex', icon: BookOpen },
@@ -57,7 +64,7 @@ function mmss(ms: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-export default function PecheGame({ userId }: { userId: string }) {
+export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: string }) {
   const [state, setState] = useState<PecheState | null>(null);
   const [tab, setTab] = useState<Tab>('peche');
   const [phase, setPhase] = useState<Phase>('idle');
@@ -70,6 +77,7 @@ export default function PecheGame({ userId }: { userId: string }) {
   const [autoFeed, setAutoFeed] = useState<{ key: number; speciesId: string; rarity: number; value: number; variant: string }[]>([]);
   const [guide, setGuide] = useState(false);
   const [opening, setOpening] = useState(false);
+  const [cardId, setCardId] = useState<string | null>(null);
   const stateRef = useRef<PecheState | null>(null);
   stateRef.current = state;
 
@@ -126,6 +134,7 @@ export default function PecheGame({ userId }: { userId: string }) {
     setCastInfo(null);
     if (!r || !r.caught) { setPhase('lost'); sfx.lose(); vibrate(HAPTIC.ERROR); return; }
     const c = r.caught;
+    if (r.jackpot) { sfx.jackpot(); toast.success(`JACKPOT DU POISSON DORÉ : +${fmtBig(r.jackpot)} ₶ !`, { duration: 8000 }); }
     setLanded({ ...c, isNew: !before.has(c.speciesId) });
     setPhase('landed');
     if (c.rarity >= 3 || c.variant) { sfx.bigWin(); vibrate(HAPTIC.SUCCESS); } else { sfx.win(); vibrate(HAPTIC.SOFT); }
@@ -147,6 +156,7 @@ export default function PecheGame({ userId }: { userId: string }) {
       const r = await api('auto', { silent: true });
       inFlight = false;
       if (r?.nextAt) setAutoNextAt(r.nextAt);
+      if (r?.jackpot) { sfx.jackpot(); toast.success(`JACKPOT DU POISSON DORÉ : +${fmtBig(r.jackpot)} ₶ !`, { duration: 8000 }); }
       if (r?.catches?.length) {
         sfx.coin();
         const items = r.catches.map((c: { speciesId: string; rarity: number; value: number; variant: string }) => ({ key: Date.now() + n++, ...c }));
@@ -164,6 +174,9 @@ export default function PecheGame({ userId }: { userId: string }) {
     return () => { stop = true; clearInterval(id); setAutoNextAt(null); };
   }, [auto, hasAuto, autoInterval, api]);
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const port = usePresence(state ? { userId, pseudo, zone: state.zone, maree: state.maree } : null);
+
   if (!state) return <div className="h-[520px] rounded-[22px] border-4 border-brand-border bg-brand-card animate-pulse" />;
 
   const zone = zoneInfo(state.zone);
@@ -172,10 +185,15 @@ export default function PecheGame({ userId }: { userId: string }) {
   const questsReady = (state.chest.claimedToday ? 0 : 1)
     + [...state.missions.daily, ...state.missions.weekly].filter((m) => !m.claimed && m.progress >= m.target).length
     + state.orders.filter((o) => o.have >= o.count).length;
+  const passReady = state.pass.tiers.filter((t) => t.tier <= state.pass.tier && !state.pass.claimed.includes(t.tier)).length
+    + state.achievements.filter((a) => !a.claimed && a.progress >= a.target).length;
+  const shoalHere = state.shoal.zone === state.zone;
 
   return (
     <div>
       {guide && <PecheGuide onClose={() => setGuide(false)} />}
+      {!guide && state.recap && <WeekRecap recap={state.recap} onClose={() => { void api('recap_seen', { silent: true }); }} />}
+      {cardId && <PlayerCardModal viewerId={userId} targetId={cardId} onClose={() => setCardId(null)} />}
       {opening && (
         <ChestOpening
           packsLeft={state.packs}
@@ -233,6 +251,11 @@ export default function PecheGame({ userId }: { userId: string }) {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_440px] gap-4 lg:h-[700px]">
         <section className={cn(BRAWL.panel, 'relative overflow-hidden h-[480px] lg:h-full flex flex-col')}>
           <Scene zoneId={state.zone} phase={phase} weather={state.weather.id} equipped={state.equipped} />
+          {shoalHere && (
+            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex items-center gap-1.5 rounded-xl border-[3px] border-brand-border bg-accent-info text-white px-3 py-1 font-display shadow-[inset_0_-3px_0_#2F5BD0,0_3px_0_#05061A]" style={{ bottom: auto ? 140 : 96 }}>
+              <FishShoal className="h-4 w-4" /> Banc de poissons ici : prises ×{state.shoal.mult}
+            </div>
+          )}
           {/* Boosts float over the scene: showing them never changes the page's size. */}
           <div className="absolute top-3 left-3 right-3 z-20 pointer-events-none"><ActiveEffects effects={state.effects} /></div>
           {auto && hasAuto && <AutoProgress nextAt={autoNextAt} interval={autoInterval} />}
@@ -289,7 +312,7 @@ export default function PecheGame({ userId }: { userId: string }) {
         </section>
 
         <section className={cn(BRAWL.panel, 'p-4 flex flex-col gap-3 h-[640px] lg:h-full min-h-0')}>
-          <div className="grid grid-cols-4 sm:grid-cols-7 lg:grid-cols-4 gap-1 rounded-[18px] border-[3px] border-brand-border bg-brand-bg p-1">
+          <div className="grid grid-cols-5 gap-1 rounded-[18px] border-[3px] border-brand-border bg-brand-bg p-1">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -304,6 +327,12 @@ export default function PecheGame({ userId }: { userId: string }) {
                 {t.id === 'quetes' && questsReady > 0 && (
                   <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white text-[11px] flex items-center justify-center">{questsReady}</span>
                 )}
+                {t.id === 'pass' && passReady > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white text-[11px] flex items-center justify-center">{passReady}</span>
+                )}
+                {t.id === 'commu' && port.length > 1 && (
+                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-success border-2 border-brand-border text-brand-bg text-[11px] flex items-center justify-center">{port.length}</span>
+                )}
                 {t.id === 'boutique' && state.packs > 0 && (
                   <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-primary border-2 border-brand-border text-brand-bg text-[11px] flex items-center justify-center">{state.packs}</span>
                 )}
@@ -315,6 +344,8 @@ export default function PecheGame({ userId }: { userId: string }) {
             {tab === 'peche' && <PechePanel state={state} api={api} autoFeed={autoFeed} />}
             {tab === 'quetes' && <QuestsPanel state={state} api={api} />}
             {tab === 'boutique' && <ShopPanel state={state} api={api} onOpen={() => setOpening(true)} />}
+            {tab === 'pass' && <PassPanel state={state} api={api} />}
+            {tab === 'commu' && <CommunityPanel userId={userId} api={api} port={port} onOpenCard={setCardId} />}
             {tab === 'materiel' && <GearPanel state={state} api={api} />}
             {tab === 'carte' && <MapPanel state={state} api={api} />}
             {tab === 'dex' && <DexPanel state={state} />}
@@ -827,7 +858,7 @@ function MapPanel({ state, api }: { state: PecheState; api: Api }) {
                   <span className="h-11 w-14 shrink-0 rounded-xl border-[3px] border-brand-border" style={{ background: `linear-gradient(${z.sky} 0 35%, ${z.top} 35%, ${z.bottom})` }} />
                   <div className="min-w-0 flex-1">
                     <div className="font-display text-lg leading-tight">{z.name}</div>
-                    <div className={cn('text-xs font-bold', here ? 'text-brand-bg/80' : 'text-tx-secondary')}>{caught}/{list.length} espèces</div>
+                    <div className={cn('text-xs font-bold', here ? 'text-brand-bg/80' : 'text-tx-secondary')}>{caught}/{list.length} espèces{state.shoal.zone === z.id ? ' · banc ×2' : ''}</div>
                   </div>
                   {here ? <Anchor className="h-5 w-5" /> : open ? null : (
                     <span className="flex items-center gap-1 text-xs font-black text-tx-secondary"><Lock className="h-4 w-4" /> Bateau {z.id}</span>
