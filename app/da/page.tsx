@@ -1,8 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import {
+  ArrowLeft, Award, Backpack, Crown, Radio, ShoppingBag, Swords, Target, Trophy, Users, Zap,
+} from 'lucide-react';
+import { CASINO_GAMES } from '@/lib/casino/games';
 
 type Variant = 'console' | 'brawl' | 'hud' | 'flyer';
+type Screen = 'home' | 'casino';
 type GameId = 'clicker' | 'casino' | 'krash';
 
 const VARIANTS: { id: Variant; name: string; pitch: string }[] = [
@@ -313,34 +318,300 @@ function FlyerDirection() {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* The casino hub, same content as /casino: header status, four things */
+/* to collect, ten destinations, the current event, twenty games.       */
+
+const CLAIMS = [
+  { label: 'Bonus du jour', hint: '250 à 10 000 ₶', ready: true, wait: '' },
+  { label: 'Roue gratuite', hint: 'jusqu’à 10 000 ₶', ready: true, wait: '' },
+  { label: 'Coffre 7 jours', hint: 'case 4/7', ready: false, wait: '3 j d’affilée' },
+  { label: 'Cashback', hint: '+320 ₶', ready: false, wait: 'dans 5h12' },
+];
+
+const DESTS = [
+  { label: 'Missions', hint: '7/10 faites', icon: Target, pending: 2 },
+  { label: 'Frenly Pass', hint: 'palier 12/100', icon: Crown, pending: 1 },
+  { label: 'Inventaire', hint: 'objets & cosmétiques', icon: Backpack, pending: 0 },
+  { label: 'Boutique', hint: '5 objets · 5h12', icon: ShoppingBag, pending: 0 },
+  { label: 'Cagnotte', hint: 'misez et partagez', icon: Users, pending: 0 },
+  { label: 'Défi du jour', hint: 'mêmes tirages pour tous', icon: Zap, pending: 0 },
+  { label: 'Entre potes', hint: 'duels, cadeaux, chat', icon: Swords, pending: 0 },
+  { label: 'En direct', hint: 'tous les gains et pertes', icon: Radio, pending: 0 },
+  { label: 'Succès', hint: '115 à débloquer', icon: Award, pending: 0 },
+  { label: 'Classement', hint: 'saison en cours', icon: Trophy, pending: 0 },
+];
+
+const shortName = (name: string) => name.replace(/^Frenly /, '');
+
+function ConsoleCasino() {
+  return (
+    <div className="da-console">
+      <aside className="c-nav">
+        <Logo className="c-logo" />
+        <nav className="c-links">
+          {['Accueil', 'Casino', 'Multijoueur', 'Classements', 'Boutique', 'Profil'].map((l) => (
+            <a key={l} className={l === 'Casino' ? 'is-on' : undefined}>{l}</a>
+          ))}
+        </nav>
+      </aside>
+      <div className="c-main cc-main">
+        <header className="cc-top">
+          <div>
+            <div className="c-kicker">Prestige 1 · Magnat</div>
+            <div className="c-crumb">Casino</div>
+          </div>
+          <div className="cc-stats">
+            <div className="cc-stat"><small>Cagnotte</small><b className="cc-gold">1 284 500 ₶</b></div>
+            <div className="cc-stat"><small>Niveau 24</small><div className="c-bar"><i style={{ width: '60%' }} /></div></div>
+            <div className="cc-stat"><small>Prestige · 38 %</small><div className="c-bar"><i style={{ width: '38%' }} /></div></div>
+            <div className="cc-stat"><small>Série</small><b>4 victoires</b></div>
+            <span className="c-coins">48 320 ₶</span>
+          </div>
+        </header>
+
+        <section className="cc-claims">
+          {CLAIMS.map((c) => (
+            <button key={c.label} className={c.ready ? 'cc-claim is-ready' : 'cc-claim'}>
+              <b>{c.label}</b>
+              <small>{c.ready ? c.hint : c.wait}</small>
+            </button>
+          ))}
+        </section>
+
+        <div className="cc-event">
+          <span className="c-kicker">Événement</span>
+          Happy hour : gains x1,5 sur les machines à sous
+          <small>encore 42 min</small>
+        </div>
+
+        <div className="cc-body">
+          <section>
+            <h2 className="c-h2">20 jeux</h2>
+            <div className="cc-games">
+              {CASINO_GAMES.map((g, i) => {
+                const Icon = g.icon;
+                return (
+                  <a key={g.slug} className={i === 3 ? 'cc-game is-focus' : 'cc-game'}>
+                    <span className="cc-icon"><Icon /></span>
+                    <b>{shortName(g.name)}</b>
+                    <small>{g.short}</small>
+                    <em>Redistribution {g.rtp}</em>
+                  </a>
+                );
+              })}
+            </div>
+          </section>
+          <aside className="c-today cc-dests">
+            <h2 className="c-h2">Aller à</h2>
+            {DESTS.map((d) => {
+              const Icon = d.icon;
+              return (
+                <a key={d.label} className="cc-dest">
+                  <Icon />
+                  <div><b>{d.label}</b><small>{d.hint}</small></div>
+                  {d.pending > 0 && <span className="cc-badge">{d.pending}</span>}
+                </a>
+              );
+            })}
+          </aside>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const BRAWL_COLORS = ['#FF4F8B', '#8B3DFF', '#1FB866', '#FF8A1F', '#2F6BFF'];
+
+function BrawlCasino() {
+  return (
+    <div className="da-brawl">
+      <header className="b-top">
+        <button className="b-back" aria-label="Retour"><ArrowLeft /></button>
+        <h1 className="b-stroke bc-title">Casino</h1>
+        <div className="b-res bc-res">
+          <span className="b-pill bc-pad"><i className="bc-gem" />1 284 500</span>
+          <span className="b-level"><span>24</span><span className="bc-xp"><i style={{ width: '60%' }} /></span></span>
+          <span className="b-pill bc-pad"><i className="bc-flame" />4</span>
+          <span className="b-pill"><i className="b-coin" />48 320<b>+</b></span>
+        </div>
+      </header>
+
+      <div className="bc-event">
+        <span className="b-stroke">Happy hour !</span>
+        <span>Gains x1,5 sur les machines à sous · encore 42 min</span>
+      </div>
+
+      <main className="bc-main">
+        <aside className="bc-side">
+          <div className="b-panel">
+            <div className="b-panel-title">À récupérer</div>
+            <div className="bc-claims">
+              {CLAIMS.map((c) => (
+                <button key={c.label} className={c.ready ? 'bc-claim is-ready' : 'bc-claim'}>
+                  <b>{c.label}</b>
+                  <small>{c.ready ? c.hint : c.wait}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="b-panel">
+            <div className="b-panel-title">Aller à</div>
+            <div className="bc-dests">
+              {DESTS.map((d) => {
+                const Icon = d.icon;
+                return (
+                  <a key={d.label} className="bc-dest">
+                    <span className="bc-dest-icon"><Icon />{d.pending > 0 && <em>{d.pending}</em>}</span>
+                    <small>{d.label}</small>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        </aside>
+
+        <div className="bc-games">
+          {CASINO_GAMES.map((g, i) => {
+            const Icon = g.icon;
+            return (
+              <a key={g.slug} className="bc-game" style={{ ['--c' as string]: BRAWL_COLORS[i % BRAWL_COLORS.length] }}>
+                <span className="bc-game-top"><Icon /></span>
+                <b className="b-stroke">{shortName(g.name)}</b>
+                <small>{g.short}</small>
+                <em>{g.rtp}</em>
+              </a>
+            );
+          })}
+        </div>
+      </main>
+
+      <nav className="b-dock">
+        {['Boutique', 'Pass', 'Jouer', 'Classement', 'Profil'].map((l) => (
+          <a key={l} className={l === 'Jouer' ? 'b-dock-main' : undefined}>{l}</a>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+const FLYER_COLORS = ['#E63946', '#1D4ED8', '#111111'];
+
+function FlyerCasino() {
+  return (
+    <div className="da-flyer">
+      <header className="f-top">
+        <Logo className="f-logo" />
+        <nav className="f-tabs">
+          <a>← Accueil</a>
+          <a className="is-on">Casino</a>
+        </nav>
+        <span className="f-ticket">48 320 ₶</span>
+      </header>
+
+      <section className="fc-head">
+        <h1 className="fc-title">Casino</h1>
+        <div className="fc-jackpot"><small>Cagnotte</small><b>1 284 500 ₶</b></div>
+        <dl className="fc-stats">
+          <div><dt>Niveau</dt><dd>24</dd></div>
+          <div><dt>Prestige</dt><dd>1</dd></div>
+          <div><dt>Série</dt><dd>4</dd></div>
+        </dl>
+      </section>
+
+      <div className="fc-event">Happy hour · gains x1,5 sur les machines à sous · encore 42 min</div>
+
+      <div className="fc-body">
+        <aside className="fc-side">
+          <div className="fc-coupons">
+            {CLAIMS.map((c) => (
+              <button key={c.label} className={c.ready ? 'fc-coupon is-ready' : 'fc-coupon'}>
+                <b>{c.label}</b>
+                <span>{c.ready ? c.hint : c.wait}</span>
+              </button>
+            ))}
+          </div>
+          <div className="fc-dests">
+            {DESTS.map((d) => {
+              const Icon = d.icon;
+              return (
+                <a key={d.label} className="fc-dest">
+                  <Icon />{d.label}
+                  {d.pending > 0 && <em>{d.pending}</em>}
+                </a>
+              );
+            })}
+          </div>
+        </aside>
+
+        <div className="fc-games">
+          {CASINO_GAMES.map((g, i) => {
+            const Icon = g.icon;
+            return (
+              <a key={g.slug} className="fc-game">
+                <span className="fc-icon" style={{ background: FLYER_COLORS[i % FLYER_COLORS.length] }}><Icon /></span>
+                <b>{shortName(g.name)}</b>
+                <small>{g.short}</small>
+                <em>{g.rtp}</em>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const VIEWS: Record<Variant, () => JSX.Element> = {
   console: ConsoleDirection, brawl: BrawlDirection, hud: HudDirection, flyer: FlyerDirection,
 };
 
+const CASINO_VIEWS: Partial<Record<Variant, () => JSX.Element>> = {
+  console: ConsoleCasino, brawl: BrawlCasino, flyer: FlyerCasino,
+};
+
 export default function DaPage() {
   const [variant, setVariant] = useState<Variant>('console');
+  const [screen, setScreen] = useState<Screen>('home');
 
   useEffect(() => {
-    const v = new URLSearchParams(window.location.search).get('v') as Variant | null;
-    if (v && v in VIEWS) setVariant(v);
+    const params = new URLSearchParams(window.location.search);
+    const v = params.get('v') as Variant | null;
+    const nextVariant = v && v in VIEWS ? v : 'console';
+    setVariant(nextVariant);
+    if (params.get('s') === 'casino' && CASINO_VIEWS[nextVariant]) setScreen('casino');
   }, []);
 
-  const pick = (v: Variant) => {
+  const go = (v: Variant, s: Screen) => {
+    const nextScreen = s === 'casino' && CASINO_VIEWS[v] ? 'casino' : 'home';
     setVariant(v);
-    window.history.replaceState(null, '', `/da?v=${v}`);
+    setScreen(nextScreen);
+    window.history.replaceState(null, '', `/da?v=${v}${nextScreen === 'casino' ? '&s=casino' : ''}`);
     window.scrollTo({ top: 0 });
   };
 
-  const View = VIEWS[variant];
+  const View = (screen === 'casino' && CASINO_VIEWS[variant]) || VIEWS[variant];
   const current = VARIANTS.find((x) => x.id === variant)!;
 
   return (
     <div className="da-page">
       <div className="da-switch">
-        <div className="da-switch-tabs" role="tablist">
+        <div className="da-switch-tabs" role="tablist" aria-label="Direction">
           {VARIANTS.map((v) => (
-            <button key={v.id} role="tab" aria-selected={v.id === variant} onClick={() => pick(v.id)}>{v.name}</button>
+            <button key={v.id} role="tab" aria-selected={v.id === variant} onClick={() => go(v.id, screen)}>{v.name}</button>
           ))}
+        </div>
+        <div className="da-switch-tabs" role="tablist" aria-label="Écran">
+          <button role="tab" aria-selected={screen === 'home'} onClick={() => go(variant, 'home')}>Accueil</button>
+          <button
+            role="tab"
+            aria-selected={screen === 'casino'}
+            disabled={!CASINO_VIEWS[variant]}
+            title={CASINO_VIEWS[variant] ? undefined : 'Pas de version casino pour cette direction'}
+            onClick={() => go(variant, 'casino')}
+          >
+            Casino
+          </button>
         </div>
         <p>{current.pitch}</p>
         <a href="/" className="da-back">Retour au site</a>
