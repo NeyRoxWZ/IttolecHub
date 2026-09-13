@@ -111,8 +111,14 @@ export function RulesModal({ title, rules, onClose }: { title: string; rules: Ru
           </>
         )}
 
-        <div className="text-xs text-tx-muted">
-          Redistribution moyenne : <span className="font-bold text-tx-secondary">{rules.rtp}</span>
+        <div className="rounded-xl border-2 border-brand-border bg-brand-inner px-3 py-2 text-xs text-tx-secondary leading-relaxed">
+          <span className="font-black text-white">Redistribution moyenne : {rules.rtp}</span>
+          <br />
+          C&apos;est ce que le jeu rend en moyenne sur un très grand nombre de parties : à{' '}
+          {rules.rtp.replace('~', '').split(' ')[0]}, pour 100 ₶ misés au total, environ{' '}
+          {rules.rtp.replace('~', '').split(' ')[0].replace('%', '').split(',')[0]} ₶ reviennent aux joueurs. Sur quelques
+          parties, tu peux gagner bien plus ou tout perdre : ce n&apos;est qu&apos;une moyenne. Plus le chiffre est proche de 100 %,
+          moins le jeu te coûte sur la durée.
         </div>
 
         {/* Identical in every game, so it lives here rather than in 20 RulesSpec. */}

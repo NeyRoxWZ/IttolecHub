@@ -143,15 +143,24 @@ export function rollCatch(
 }
 
 /**
- * How hard the reeling gauge is. Tuned gently: players found the first version
- * over before they could react.
+ * How hard the reeling gauge is. A common fish is gentle; the rarer and the
+ * more valuable the fish, the smaller the zone, the faster it moves and the
+ * quicker the meter drains. Variants count as one tier (chromatic) or two
+ * (golden) harder. The reel and the "Moulinet huilé" boost soften all of it.
  */
-export function gaugeFor(rarity: number, gear: GearLevels, effects?: Effects, now = Date.now()) {
+export function gaugeFor(rarity: number, gear: GearLevels, effects?: Effects, now = Date.now(), variant: Variant = '') {
   const reel = lvl(gear, 'moulinet');
   const oiled = isActive(effects, 'moulinet', now);
+  const tier = rarity + (variant === 'or' ? 2 : variant === 'chroma' ? 1 : 0);
+  const ease = (1 + 0.04 * reel) * (oiled ? 1.35 : 1);
   return {
-    green: Math.max(0.2, Math.min(0.6, 0.42 - 0.035 * rarity + 0.012 * reel + (oiled ? 0.12 : 0))),
-    speed: (0.16 + 0.08 * rarity) * (oiled ? 0.7 : 1),
+    /** Share of the bar that counts as "in the zone". */
+    green: Math.max(0.12, Math.min(0.6, (0.44 - 0.055 * tier) * Math.min(1.6, ease))),
+    /** How hard the fish pulls the zone around. */
+    speed: Math.max(0.08, (0.14 + 0.11 * tier) / ease),
+    /** Meter gained per second in the zone, lost per second outside. */
+    fill: Math.max(0.12, 0.3 - 0.03 * tier),
+    drain: Math.max(0.05, (0.08 + 0.045 * tier) / ease),
   };
 }
 

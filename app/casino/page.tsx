@@ -555,8 +555,12 @@ export default function CasinoHub() {
                     style={{ background: swatch.fill, boxShadow: `inset 0 -6px 0 ${swatch.shade}` }}
                   >
                     <Icon className="h-9 w-9 text-white drop-shadow-[0_3px_0_#05061A] transition-transform group-hover:scale-110" strokeWidth={2.5} />
-                    <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-lg bg-brand-bg border-2 border-brand-border font-display text-[11px] text-white" title="Redistribution">
-                      {game.rtp}
+                    {/* "Rend 94 %": a bare percentage read as a win chance. */}
+                    <span
+                      className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-lg bg-brand-bg border-2 border-brand-border font-display text-[11px] text-white"
+                      title={`Redistribution : en moyenne, ce jeu rend ${game.rtp.replace('%', ' ₶')} pour 100 ₶ misés au total. Ce n'est pas ta chance de gagner.`}
+                    >
+                      Rend {game.rtp.replace('%', ' %')}
                     </span>
                   </div>
                   <div className="px-2 py-2 text-center">

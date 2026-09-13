@@ -271,7 +271,7 @@ export function cast(userId: string) {
     const id = randomUUID();
     return {
       patch: { pending_cast: { ...c, id, at: Date.now() } },
-      result: { id, rarity: c.rarity, ...gaugeFor(c.rarity, row.gear, row.effects) },
+      result: { id, rarity: c.rarity, ...gaugeFor(c.rarity, row.gear, row.effects, Date.now(), c.variant) },
     };
   });
 }
@@ -300,16 +300,19 @@ export function reel(userId: string, castId: string, quality: Quality) {
 }
 
 export function autoFish(userId: string) {
-  return mutate<{ catches: Catch[] }>(userId, (row) => {
+  return mutate<{ catches: Catch[]; nextAt?: number }>(userId, (row) => {
     const now = Date.now();
     const interval = autoInterval(row.gear, row.tree, row.effects, now);
     if (!Number.isFinite(interval)) return fail(400, 'Il te faut une canne auto.');
     const last = row.last_auto_at ? new Date(row.last_auto_at).getTime() : 0;
     if (!last || now - last > AUTO_MAX_GAP_MS) {
-      return { patch: { last_auto_at: new Date(now).toISOString() }, result: { catches: [] } };
+      // Starting (or back after a long absence): count one interval back, so
+      // the first catch lands one interval after switching on, not two.
+      return { patch: { last_auto_at: new Date(now).toISOString() }, result: { catches: [], nextAt: now + interval * 1000 } };
     }
-    const n = Math.min(AUTO_MAX_CATCHES_PER_CALL, Math.floor((now - last) / (interval * 1000)));
-    if (n <= 0) return { patch: {}, result: { catches: [] } };
+    // A little slack: a browser timer firing a few ms early must not skip a catch.
+    const n = Math.min(AUTO_MAX_CATCHES_PER_CALL, Math.floor((now - last + 400) / (interval * 1000)));
+    if (n <= 0) return { patch: {}, result: { catches: [], nextAt: last + interval * 1000 } };
 
     const eff = autoEfficiency(row.gear, row.tree);
     const mods = catchMods(row.effects, now);
@@ -324,7 +327,7 @@ export function autoFish(userId: string) {
     return {
       patch: { ...accPatch(acc), last_auto_at: new Date(last + n * interval * 1000).toISOString() },
       dex: acc.dex,
-      result: { catches },
+      result: { catches, nextAt: last + (n + 1) * interval * 1000 },
     };
   });
 }

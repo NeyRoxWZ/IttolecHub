@@ -61,7 +61,8 @@ export default function PecheGame({ userId }: { userId: string }) {
   const [state, setState] = useState<PecheState | null>(null);
   const [tab, setTab] = useState<Tab>('peche');
   const [phase, setPhase] = useState<Phase>('idle');
-  const [castInfo, setCastInfo] = useState<{ id: string; rarity: number; green: number; speed: number } | null>(null);
+  const [castInfo, setCastInfo] = useState<{ id: string; rarity: number; green: number; speed: number; fill: number; drain: number } | null>(null);
+  const [autoNextAt, setAutoNextAt] = useState<number | null>(null);
   const [landed, setLanded] = useState<Landed | null>(null);
   const [busy, setBusy] = useState(false);
   const [auto, setAuto] = useState(false);
@@ -72,12 +73,15 @@ export default function PecheGame({ userId }: { userId: string }) {
   stateRef.current = state;
 
   const api: Api = useCallback(async (action, extra = {}) => {
+    const { silent, ...payload } = extra as { silent?: boolean };
     const res = await fetch('/api/peche', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, action, ...extra }),
+      body: JSON.stringify({ user_id: userId, action, ...payload }),
     });
     const data = await res.json();
-    if (!res.ok) { toast.error(data.error || 'Erreur'); return null; }
+    // The auto rod polls in the background: a clash with a manual catch just
+    // waits for the next tick instead of flashing an error.
+    if (!res.ok) { if (!silent) toast.error(data.error || 'Erreur'); return null; }
     if (data.state) setState(data.state);
     return data.result;
   }, [userId]);
@@ -135,10 +139,15 @@ export default function PecheGame({ userId }: { userId: string }) {
     if (!auto || !hasAuto) return;
     let stop = false;
     let n = 0;
+    let inFlight = false;
     const tick = async () => {
-      if (stop) return;
-      const r = await api('auto');
+      if (stop || inFlight) return;
+      inFlight = true;
+      const r = await api('auto', { silent: true });
+      inFlight = false;
+      if (r?.nextAt) setAutoNextAt(r.nextAt);
       if (r?.catches?.length) {
+        sfx.coin();
         setAutoFeed((prev) => [
           ...r.catches.map((c: { speciesId: string; rarity: number; value: number; variant: string }) => ({ key: Date.now() + n++, ...c })),
           ...prev,
@@ -146,8 +155,10 @@ export default function PecheGame({ userId }: { userId: string }) {
       }
     };
     void tick();
-    const id = setInterval(tick, Math.max(2000, autoInterval * 1000));
-    return () => { stop = true; clearInterval(id); };
+    // Poll often and let the server decide: the old timer fired on the exact
+    // interval, lost the race by a few ms and only caught every other time.
+    const id = setInterval(tick, 2000);
+    return () => { stop = true; clearInterval(id); setAutoNextAt(null); };
   }, [auto, hasAuto, autoInterval, api]);
 
   if (!state) return <div className="h-[520px] rounded-[22px] border-4 border-brand-border bg-brand-card animate-pulse" />;
@@ -213,18 +224,19 @@ export default function PecheGame({ userId }: { userId: string }) {
         </div>
       </header>
 
-      {/* Fixed slot: boosts appearing or ending must not push the game down. */}
-      <div className="h-9 mb-3"><ActiveEffects effects={state.effects} /></div>
 
       {/* Fixed height: switching tabs must never resize the game. */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_440px] gap-4 lg:h-[700px]">
         <section className={cn(BRAWL.panel, 'relative overflow-hidden h-[480px] lg:h-full flex flex-col')}>
           <Scene zoneId={state.zone} phase={phase} weather={state.weather.id} equipped={state.equipped} />
+          {/* Boosts float over the scene: showing them never changes the page's size. */}
+          <div className="absolute top-3 left-3 right-3 z-20 pointer-events-none"><ActiveEffects effects={state.effects} /></div>
+          {auto && hasAuto && <AutoProgress nextAt={autoNextAt} interval={autoInterval} />}
 
           <div className="relative z-10 flex-1 flex items-center justify-center p-4">
             {phase === 'reeling' && castInfo && (
               <div className="rounded-[22px] border-4 border-brand-border bg-brand-card/95 p-4 shadow-[0_6px_0_#05061A] animate-in zoom-in-95 duration-150">
-                <ReelGauge key={castInfo.id} green={castInfo.green} speed={castInfo.speed} onDone={onReelDone} />
+                <ReelGauge key={castInfo.id} green={castInfo.green} speed={castInfo.speed} fill={castInfo.fill} drain={castInfo.drain} onDone={onReelDone} />
               </div>
             )}
             {phase === 'landed' && landed && (
@@ -295,6 +307,24 @@ export default function PecheGame({ userId }: { userId: string }) {
 
 /* ------------------------------------------------------------------ */
 
+/** A bar under the scene's top edge filling up to the auto rod's next catch. */
+function AutoProgress({ nextAt, interval }: { nextAt: number | null; interval: number }) {
+  const now = useNow(200);
+  const left = nextAt ? Math.max(0, nextAt - now) : interval * 1000;
+  const pct = Math.max(0, Math.min(100, 100 - (left / (interval * 1000)) * 100));
+  return (
+    <div className="absolute bottom-24 left-4 right-4 z-20 pointer-events-none">
+      <div className="flex items-center gap-2 rounded-xl border-[3px] border-brand-border bg-brand-card/90 px-2 py-1">
+        <Zap className="h-4 w-4 text-accent-success shrink-0" />
+        <div className="flex-1 h-3 rounded-full bg-brand-bg border-2 border-brand-border overflow-hidden">
+          <div className="h-full bg-accent-success" style={{ width: `${pct}%`, transition: 'width 200ms linear' }} />
+        </div>
+        <span className="font-display text-sm tabular-nums">{(left / 1000).toFixed(1).replace('.', ',')} s</span>
+      </div>
+    </div>
+  );
+}
+
 function WeatherCountdown({ endsAt }: { endsAt: number }) {
   const now = useNow();
   return <span className="text-sm text-tx-secondary tabular-nums">{mmss(endsAt - now)}</span>;
@@ -306,7 +336,7 @@ function ActiveEffects({ effects }: { effects: Record<string, number | undefined
   const active = Object.entries(effects).filter(([, t]) => Number(t) > now);
   if (!active.length) return null;
   return (
-    <div className="flex gap-2 overflow-x-auto h-9">
+    <div className="flex flex-wrap gap-1.5">
       {active.map(([id, t]) => (
         <span key={id} className="h-9 inline-flex items-center gap-1.5 rounded-xl border-[3px] border-brand-border bg-accent-success text-brand-bg px-2.5 font-display shadow-[inset_0_-3px_0_#1E9A55]">
           <Sparkles className="h-4 w-4" /> {labels[id] || id} · <span className="tabular-nums">{mmss(Number(t) - now)}</span>

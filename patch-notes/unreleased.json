@@ -23,6 +23,14 @@
       "type": "correctif",
       "title": "Textes légaux à jour",
       "details": "Les conditions, la confidentialité et les mentions légales ne parlent plus de Krash."
+    },
+    {
+      "id": "2026-09-13-04",
+      "date": "2026-09-13",
+      "scope": "casino",
+      "type": "amelioration",
+      "title": "Le pourcentage des jeux expliqué",
+      "details": "Les cartes affichent « Rend 94 % » et les règles de chaque jeu expliquent la redistribution : pour 100 ₶ misés au total, environ 94 ₶ reviennent aux joueurs en moyenne. Ce n'est pas la chance de gagner."
     }
   ]
 }

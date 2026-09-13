@@ -14,10 +14,13 @@ const GRACE = 1.5;
  * leaving the zone after the grace period is a perfect catch.
  */
 export default function ReelGauge({
-  green, speed, onDone,
+  green, speed, fill = 0.28, drain = 0.1, onDone,
 }: {
   green: number;
   speed: number;
+  /** Meter gained per second in the zone / lost per second outside: rarer fish drain faster. */
+  fill?: number;
+  drain?: number;
   onDone: (quality: 'perfect' | 'good' | 'fail') => void;
 }) {
   const [, force] = useState(0);
@@ -71,7 +74,7 @@ export default function ReelGauge({
       const inside = Math.abs(st.cursor - st.zone) <= green / 2;
       if (started) {
         if (!inside) st.perfect = false;
-        st.progress += (inside ? 0.28 : -0.1) * dt;
+        st.progress += (inside ? fill : -drain) * dt;
       } else if (inside) {
         st.progress += 0.12 * dt;
       }
@@ -87,7 +90,7 @@ export default function ReelGauge({
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [green, speed]);
+  }, [green, speed, fill, drain]);
 
   const st = s.current;
   const inside = Math.abs(st.cursor - st.zone) <= green / 2;
