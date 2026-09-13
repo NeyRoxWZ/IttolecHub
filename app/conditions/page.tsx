@@ -11,7 +11,7 @@ export default function ConditionsPage() {
       intro={
         <p>
           Ces conditions encadrent l&apos;utilisation d&apos;ItollecHub, un site de mini-jeux gratuits : jeux
-          multijoueur, jeux solo, casino et bourse Krash en monnaie virtuelle. En jouant, tu les acceptes. L&apos;éditeur et son contact figurent dans les <a href="/mentions-legales" className="underline">mentions légales</a>.
+          multijoueur, jeux solo et casino en monnaie virtuelle. En jouant, tu les acceptes. L&apos;éditeur et son contact figurent dans les <a href="/mentions-legales" className="underline">mentions légales</a>.
         </p>
       }
       sections={[
@@ -65,23 +65,6 @@ export default function ConditionsPage() {
               <p>
                 Si le jeu, sur ce site ou ailleurs, prend trop de place dans ta vie, Joueurs Info Service répond
                 gratuitement et anonymement au <b>09 74 75 13 13</b>.
-              </p>
-            </>
-          ),
-        },
-        {
-          title: 'Krash, une bourse fictive',
-          body: (
-            <>
-              <p>
-                Krash simule une bourse avec des FrenlyCoins séparés de ceux du casino, tout aussi fictifs.
-                Ce n&apos;est pas un conseil en investissement et rien n&apos;y reflète de vrais marchés.
-              </p>
-              <p>
-                Les entreprises portent des <b>noms parodiques inventés</b> et n&apos;ont aucun lien avec des
-                sociétés réelles. Les news, y compris celles qui citent des pays, sont <b>entièrement
-                fictives</b> et générées par le jeu : elles ne rapportent aucun fait réel et ne visent
-                personne.
               </p>
             </>
           ),

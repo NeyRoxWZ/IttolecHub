@@ -34,7 +34,7 @@ const SOLO_GAMES: {
   },
 ];
 
-const latestRelease = (releases as { releases: { version: string; title?: string }[] }).releases[0];
+const latestRelease = (releases as { releases: { version: string; title?: string; entries?: { title: string }[] }[] }).releases[0];
 
 /** The shared chunky button: bright fill, black outline, pressed-in bottom edge. */
 const BTN = 'inline-flex items-center justify-center gap-2 rounded-xl border-[3px] border-brand-border font-display tracking-wide transition-transform active:translate-y-[3px] disabled:opacity-50 disabled:cursor-not-allowed';
@@ -353,25 +353,41 @@ export default function Home() {
                   })}
                 </div>
 
-                <aside className="flex flex-col gap-5">
-                  <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-4 shadow-brutal">
+                <aside className="flex flex-col">
+                  {/* Takes the whole column: the latest version, summed up. */}
+                  <div className="flex-1 flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] p-5 shadow-[0_8px_0_#05061A]">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-accent-primary" />
-                      <div className="font-display text-2xl">Nouveautés</div>
+                      <span className="h-10 w-10 rounded-xl border-[3px] border-brand-border bg-accent-primary flex items-center justify-center shadow-[inset_0_-3px_0_#D98E00]">
+                        <Sparkles className="h-5 w-5 text-brand-bg" />
+                      </span>
+                      <div className="font-display text-3xl leading-none">Nouveautés</div>
                     </div>
-                    <p className="mt-2 text-sm font-bold text-tx-secondary">
-                      {latestRelease ? `Version ${latestRelease.version}${latestRelease.title ? ` · ${latestRelease.title}` : ''}` : 'Toutes les mises à jour du site.'}
-                    </p>
-                    <Link href="/patch-notes" className={cn(BTN_DARK, 'mt-3 w-full h-11 text-lg')}>
-                      Voir les patch notes <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-                  <div className="flex-1 flex flex-col bg-accent-secondary border-4 border-brand-border rounded-[22px] p-4 shadow-[inset_0_-6px_0_#C92D63,0_8px_0_#05061A]">
-                    <div className="font-display text-2xl text-stroke-sm">Entre potes ?</div>
-                    <p className="mt-1 text-sm font-black text-white">10 mini-jeux multijoueurs, une salle, un code.</p>
-                    <button type="button" onClick={() => handleSetMode('multiplayer')} className={cn(BTN_YELLOW, 'mt-auto w-full h-14 text-xl')}>
-                      Multijoueur
-                    </button>
+                    {latestRelease ? (
+                      <>
+                        <div className="mt-3 w-fit px-2.5 py-0.5 rounded-lg border-2 border-brand-border bg-accent-info text-white font-display text-base">
+                          Version {latestRelease.version}
+                        </div>
+                        {latestRelease.title && <p className="mt-2 font-display text-xl leading-tight">{latestRelease.title}</p>}
+                        <ul className="mt-3 space-y-1.5">
+                          {(latestRelease.entries || []).slice(0, 6).map((e, i) => (
+                            <li key={i} className="flex gap-2 items-start text-sm font-bold text-tx-secondary leading-snug">
+                              <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-brand-border bg-accent-primary" />
+                              <span>{e.title}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {(latestRelease.entries?.length || 0) > 6 && (
+                          <p className="mt-2 text-xs font-black text-tx-secondary">et {latestRelease.entries!.length - 6} autres changements</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="mt-2 text-sm font-bold text-tx-secondary">Toutes les mises à jour du site.</p>
+                    )}
+                    <div className="mt-auto pt-4">
+                      <Link href="/patch-notes" className={cn(BTN_YELLOW, 'w-full h-12 text-lg')}>
+                        Voir les patch notes <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </div>
                   </div>
                 </aside>
               </div>

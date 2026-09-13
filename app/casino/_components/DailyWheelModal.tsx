@@ -19,7 +19,9 @@ const SEGMENT_COLORS = ['#2B3170', '#FF4F8B', '#2B3170', '#3B6BFF', '#2B3170', '
 const SEGMENTS: WheelSegment[] = [...WHEEL_OF_FORTUNE_SEGMENTS, ...WHEEL_OF_FORTUNE_SEGMENTS].map((v, i) => ({
   label: v >= 1000 ? `${v / 1000}k` : String(v),
   color: SEGMENT_COLORS[i % SEGMENT_COLORS.length],
-  textColor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] === '#FFC61A' ? '#0E1030' : '#fff',
+  // White with the black outline on every wedge: dark text inside a dark
+  // outline turned the yellow "10k" into an unreadable blob.
+  textColor: '#fff',
 }));
 
 interface Props {

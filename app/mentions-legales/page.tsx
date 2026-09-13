@@ -65,8 +65,7 @@ export default function MentionsLegalesPage() {
           body: (
             <p>
               Le code, le design et les textes du site appartiennent à leur éditeur. Les contenus de tiers affichés
-              dans certains jeux restent la propriété de leurs ayants droit (voir les Conditions). Les entreprises
-              de Krash portent des noms parodiques inventés et n&apos;ont aucun lien avec les sociétés réelles.
+              dans certains jeux restent la propriété de leurs ayants droit (voir les Conditions).
             </p>
           ),
         },

@@ -31,7 +31,7 @@ export default function ConfidentialitePage() {
           body: (
             <ul>
               <li><b>Ton compte</b> : ton pseudo et une empreinte chiffrée de ta passphrase — jamais la passphrase elle-même. Si tu te connectes avec Discord : ton identifiant, ton nom et ton avatar Discord.</li>
-              <li><b>Tes parties</b> : sauvegardes des jeux solo ; casino (mises, gains, solde, inventaire, cosmétiques, succès, missions, pass) ; Krash (portefeuille, positions, paris flash, historique du solde, objets, cosmétiques, pass).</li>
+              <li><b>Tes parties</b> : sauvegardes des jeux solo ; casino (mises, gains, solde, inventaire, cosmétiques, succès, missions, pass).</li>
               <li><b>Ce que tu fais avec les autres</b> : messages du chat, cadeaux envoyés et reçus, duels, cagnottes de groupe, parrainage, réactions.</li>
               <li><b>Les notifications</b>, seulement si tu les actives : l&apos;adresse d&apos;envoi fournie par ton navigateur.</li>
               <li><b>Ta dernière connexion</b>.</li>
@@ -53,7 +53,7 @@ export default function ConfidentialitePage() {
           body: (
             <ul>
               <li>ton pseudo, ton titre et ton emblème équipés ;</li>
-              <li>ta place dans les classements, ta fiche joueur et ta courbe de solde (casino et Krash) ;</li>
+              <li>ta place dans les classements, ta fiche joueur et ta courbe de solde ;</li>
               <li>tes gros gains dans le fil en direct ;</li>
               <li>tes messages dans le chat et tes réactions ;</li>
               <li>tes duels ouverts et le classement du défi du jour.</li>

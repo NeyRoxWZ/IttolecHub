@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { isOwner } from '@/lib/owner';
-import { autoFish, buyTree, cast, prestige, reel, sell, stateFor, travel, upgrade } from '@/lib/peche/server';
-import type { GearId, TreeId } from '@/lib/peche/data';
+import {
+  autoFish, buyItem, buyPack, buyTree, cast, claimChest, claimMission, deliverOrder, equip, openPack,
+  prestige, reel, sell, stateFor, travel, upgrade,
+} from '@/lib/peche/server';
+import type { CosmeticSlot, GearId, TreeId } from '@/lib/peche/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +41,13 @@ export async function POST(request: Request) {
       case 'travel': out = await travel(userId, Number(body?.zone)); break;
       case 'prestige': out = await prestige(userId); break;
       case 'tree': out = await buyTree(userId, String(body?.node) as TreeId); break;
+      case 'chest': out = await claimChest(userId); break;
+      case 'mission': out = await claimMission(userId, body?.scope === 'weekly' ? 'weekly' : 'daily', Number(body?.index)); break;
+      case 'deliver': out = await deliverOrder(userId, String(body?.order_id || '')); break;
+      case 'buy_item': out = await buyItem(userId, String(body?.item || '')); break;
+      case 'buy_pack': out = await buyPack(userId); break;
+      case 'open_pack': out = await openPack(userId); break;
+      case 'equip': out = await equip(userId, String(body?.slot) as CosmeticSlot, body?.cosmetic_id ? String(body.cosmetic_id) : null); break;
       default: return NextResponse.json({ error: 'Action inconnue' }, { status: 400 });
     }
 
