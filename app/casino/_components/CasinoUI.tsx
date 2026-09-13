@@ -504,7 +504,7 @@ export function ResultBanner({
   nearMiss?: ReactNode;
 }) {
   return (
-    <div className="h-14 flex items-center justify-center">
+    <div data-result-slot className="h-14 flex items-center justify-center">
       {state !== 'idle' && (
         <div
           className={cn(
@@ -685,10 +685,10 @@ export function GameShell({
     // page scroll instead of clipping the game off the bottom. On narrow
     // screens the columns stack and the page scrolls, but nothing ever
     // scrolls *inside* the game.
-    <main className="lg:[@media(min-height:700px)]:h-[100dvh] lg:[@media(min-height:700px)]:overflow-hidden bg-transparent text-tx-base p-3 sm:p-4 flex flex-col">
+    <main className="lg:[@media(min-height:700px)]:h-[100dvh] lg:[@media(min-height:700px)]:overflow-hidden bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-3 sm:pb-5 flex flex-col">
       {showRules && <RulesModal title={title} rules={rules} onClose={() => setShowRules(false)} />}
 
-      <div className="max-w-[1500px] w-full mx-auto flex flex-col flex-1 min-h-0">
+      <div className="max-w-7xl w-full mx-auto flex flex-col flex-1 min-h-0">
         <header className="flex items-center justify-between gap-3 mb-3 flex-wrap shrink-0">
           <div className="flex items-center gap-3">
             {back ? (
@@ -752,7 +752,7 @@ export function GameShell({
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-3 sm:gap-4 flex-1 min-h-0">
           <div
             className={cn(
-              'relative overflow-hidden bg-brand-card border-4 border-brand-border rounded-[24px]',
+              'relative overflow-hidden bg-brand-card border-4 border-brand-border rounded-[22px]',
               'p-3 sm:p-6 flex flex-col items-center justify-center',
               'min-h-[46vh] sm:min-h-[380px] lg:min-h-0',
               border?.animated && 'animate-pulse-border'
@@ -773,7 +773,7 @@ export function GameShell({
             {cosmetics.lose_fx && <LoseFlash params={cosmetics.lose_fx.params} />}
             <StageFit filter={skin ? skinFilter(skin) : undefined}>{stage}</StageFit>
           </div>
-          <div className={cn(BRAWL.panel, 'rounded-[24px] p-4 sm:p-5 flex flex-col gap-4 min-h-0')}>
+          <div className={cn(BRAWL.panel, 'rounded-[22px] p-4 sm:p-5 flex flex-col gap-4 min-h-0')}>
             <ActiveEffectsBar />
             {streak !== undefined && <StreakMeter streak={streak} />}
             {panel}
@@ -813,6 +813,9 @@ function StageFit({ children, filter }: { children: ReactNode; filter?: string }
   const boxRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [topPad, setTopPad] = useState(0);
+  const scaleRef = useRef(1);
+  const topPadRef = useRef(0);
 
   useEffect(() => {
     const box = boxRef.current;
@@ -820,14 +823,38 @@ function StageFit({ children, filter }: { children: ReactNode; filter?: string }
     if (!box || !inner) return;
 
     const measure = () => {
-      const height = inner.offsetHeight;
-      if (height === 0) return;
+      // Every game keeps an empty slot under the scene for the result banner,
+      // so the stage never jumps when it appears. Centred as is, that slot
+      // pushed the game to the top of the card. The same space is mirrored
+      // above, so the game itself sits in the middle.
+      let reserved = 0;
+      const slot = inner.querySelector<HTMLElement>('[data-result-slot]');
+      const prev = slot?.previousElementSibling as HTMLElement | null | undefined;
+      if (slot && prev) {
+        const s = scaleRef.current || 1;
+        const innerBottom = inner.getBoundingClientRect().bottom;
+        const slotRect = slot.getBoundingClientRect();
+        // Only when the banner really is the last thing on the stage.
+        if (innerBottom - slotRect.bottom < 4 * s) {
+          reserved = Math.max(0, Math.round((innerBottom - prev.getBoundingClientRect().bottom) / s));
+        }
+      }
+      // offsetHeight already includes the padding set last time: swap it for
+      // the fresh value rather than counting it twice.
+      const height = inner.offsetHeight - topPadRef.current + reserved;
+      if (Math.abs(topPadRef.current - reserved) > 1) {
+        topPadRef.current = reserved;
+        setTopPad(reserved);
+      }
+      if (height <= 0) return;
 
       const byWidth = box.clientWidth / STAGE_DESIGN_WIDTH;
       const byHeight = box.clientHeight / height;
       // Fills the card, but never so large that a stage overshoots its own
       // proportions or so small that the labels stop being readable.
-      setScale(Math.max(0.5, Math.min(1.8, Math.min(byWidth, byHeight))));
+      const next = Math.max(0.5, Math.min(1.8, Math.min(byWidth, byHeight)));
+      scaleRef.current = next;
+      setScale(next);
     };
 
     measure();
@@ -844,6 +871,7 @@ function StageFit({ children, filter }: { children: ReactNode; filter?: string }
         className="flex flex-col items-center justify-center"
         style={{
           width: STAGE_DESIGN_WIDTH,
+          paddingTop: topPad,
           filter,
           transform: `scale(${scale})`,
           transformOrigin: 'center',

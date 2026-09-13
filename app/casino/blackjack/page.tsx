@@ -293,7 +293,7 @@ export default function BlackjackPage() {
 
       {/* Felt table */}
       <div
-        className="w-full rounded-[28px] border-4 border-brand-border p-6 flex flex-col gap-7"
+        className="w-full rounded-[22px] border-4 border-brand-border p-6 flex flex-col gap-7"
         style={{
           background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.07) 0 18px, transparent 18px 36px), #169A55',
           boxShadow: 'inset 0 -8px 0 #0F7A42, 0 6px 0 #05061A',

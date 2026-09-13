@@ -168,19 +168,19 @@ export default function CasinoShop() {
   };
 
   return (
-    <main className="bg-transparent text-tx-base p-3 sm:p-4 flex flex-col min-h-[100dvh]">
+    <main className="bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10 flex flex-col min-h-[100dvh]">
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
       {openings && <CrateOpeningModal openings={openings} onClose={() => setOpenings(null)} />}
 
-      <div className="max-w-6xl w-full mx-auto flex flex-col flex-1 min-h-0">
+      <div className="max-w-7xl w-full mx-auto flex flex-col flex-1 min-h-0">
         <header className="flex items-center justify-between gap-3 mb-3 shrink-0 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
             <Link
               href="/casino"
               prefetch
-              className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[2px] transition-transform focus:outline-none"
+              className="h-12 w-12 shrink-0 inline-flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-6 w-6" strokeWidth={3} />
             </Link>
             <div className="min-w-0">
               <h1 className="font-display text-3xl sm:text-4xl leading-none">Boutique</h1>

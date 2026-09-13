@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase/client';
 import { PRESTIGE_THRESHOLD, getPrestigeTitle } from '@/lib/casino/meta';
 import { CountUp, LevelBar } from './_components/CasinoUI';
 import MissionsModal, { useMissions } from './_components/MissionsModal';
+import { useCommunity, timeLeft } from './_components/CommunityQuest';
 import FeedTicker from './_components/FeedTicker';
 import JackpotModal from './_components/JackpotModal';
 import OnboardingModal from './_components/OnboardingModal';
@@ -156,7 +157,22 @@ export default function CasinoHub() {
   const recap = useRecap();
   const [dailyResetIn, setDailyResetIn] = useState(() => secondsUntilRotation());
   const [passResetIn, setPassResetIn] = useState(() => secondsUntilReset());
-  const { missions, reload: reloadMissions, claimable } = useMissions();
+  const { missions, reload: reloadMissions, claimable: missionsClaimable } = useMissions();
+  const { state: community } = useCommunity();
+  // The shared goal's reward only lasts until the next goal starts, so it
+  // counts as something to collect and is announced once per visit.
+  const communityClaimable = community?.completed && community.you && !community.you.claimed && community.you.reward > 0 ? 1 : 0;
+  const claimable = missionsClaimable + communityClaimable;
+  useEffect(() => {
+    if (!communityClaimable || !community) return;
+    const key = `itollec_community_nudge_${(community as { period?: string }).period ?? ''}`;
+    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch {}
+    toast.success('Objectif commun atteint !', {
+      description: `Récupère ${community.you!.reward.toLocaleString('en-US')} ₶ dans Missions › Commun${community.endsAt ? ` (${timeLeft(community.endsAt)})` : ''}. Après, un nouvel objectif commence et elle est perdue.`,
+      duration: 9000,
+      action: { label: 'Récupérer', onClick: () => setShowMissions(true) },
+    });
+  }, [communityClaimable, community]);
   const [cashback, setCashback] = useState<{ amount: number; available: boolean } | null>(null);
   const [claimingCashback, setClaimingCashback] = useState(false);
 
@@ -346,7 +362,7 @@ export default function CasinoHub() {
   const prestigeProgress = Math.min(100, (balance / PRESTIGE_THRESHOLD) * 100);
 
   return (
-    <main className="lg:[@media(min-height:700px)]:h-[100dvh] lg:[@media(min-height:700px)]:overflow-hidden bg-transparent text-tx-base p-3 sm:p-4 flex flex-col">
+    <main className="lg:[@media(min-height:700px)]:h-[100dvh] lg:[@media(min-height:700px)]:overflow-hidden bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-3 sm:pb-5 flex flex-col">
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
       <FeedTicker />
       {showWheel && <DailyWheelModal onClose={() => setShowWheel(false)} onSpin={claimWheelOfFortune} />}
@@ -372,7 +388,7 @@ export default function CasinoHub() {
 
       {showGuide && <OnboardingModal onClose={closeGuide} />}
 
-      <div className="max-w-6xl lg:max-w-7xl w-full mx-auto flex flex-col flex-1 min-h-0">
+      <div className="max-w-7xl w-full mx-auto flex flex-col flex-1 min-h-0">
         {/* HEADER */}
         <header className="flex items-center justify-between mb-3 gap-2 shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -531,7 +547,7 @@ export default function CasinoHub() {
                   href={`/casino/${game.slug}`}
                   prefetch
                   onClick={() => sfx.click()}
-                  className="group relative h-full min-h-[150px] rounded-[20px] border-4 border-brand-border bg-brand-card overflow-hidden flex flex-col shadow-[0_6px_0_#05061A] transition-transform hover:-translate-y-1 active:translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-accent-primary"
+                  className="group relative h-full min-h-[150px] rounded-2xl border-4 border-brand-border bg-brand-card overflow-hidden flex flex-col shadow-[0_6px_0_#05061A] transition-transform hover:-translate-y-1 active:translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-accent-primary"
                 >
                   {/* Coloured top with the game's icon: the card's cover. */}
                   <div

@@ -67,6 +67,8 @@ export async function advanceCommunity(
 export interface CommunityState {
   quest: CommunityQuest;
   period: string;
+  /** When this week's goal ends (next Monday, 00:00 UTC): unclaimed rewards are lost. */
+  endsAt: string;
   progress: number;
   target: number;
   completed: boolean;
@@ -112,9 +114,13 @@ export async function communityState(userId?: string | null): Promise<CommunityS
     }
   }
 
+  const end = new Date(`${period}T00:00:00Z`);
+  end.setUTCDate(end.getUTCDate() + 7);
+
   return {
     quest,
     period,
+    endsAt: end.toISOString(),
     progress,
     target: Number(row?.target || quest.target),
     completed,

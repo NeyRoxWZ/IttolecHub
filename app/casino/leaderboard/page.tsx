@@ -56,16 +56,16 @@ export default function LeaderboardPage() {
   }, [tab]);
 
   return (
-    <main className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6">
+    <main className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
       {opened && <PlayerCard pseudo={opened} onClose={() => setOpened(null)} />}
 
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-7xl mx-auto [&>*]:max-w-3xl">
         <header className="flex items-center gap-4 mb-6">
-          <button onClick={() => router.push('/casino')} className="h-12 w-12 flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[2px] transition-transform">
-            <ArrowLeft className="h-5 w-5" />
+          <button onClick={() => router.push('/casino')} className="h-12 w-12 shrink-0 inline-flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none">
+            <ArrowLeft className="h-6 w-6" strokeWidth={3} />
           </button>
           <div>
-            <h1 className="font-display text-2xl md:text-3xl leading-none">Classement</h1>
+            <h1 className="font-display text-3xl sm:text-4xl leading-none">Classement</h1>
             <p className="text-[11px] text-tx-muted mt-1">Clique sur un joueur pour voir sa courbe.</p>
           </div>
           <CasinoControls className="ml-auto" />

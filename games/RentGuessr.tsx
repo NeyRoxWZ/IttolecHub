@@ -345,7 +345,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
       >
           {currentPhase === 'setup' && (
               <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
-                  <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+                  <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
                       <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
                           <Home className="w-16 h-16 text-accent-primary" />
                       </div>
@@ -382,7 +382,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                   {/* Left: Property Details & Map */}
                   <div className="space-y-4">
                       {/* Photo */}
-                      <div className="relative aspect-video rounded-[28px] overflow-hidden shadow-brutal border-4 border-brand-border group bg-brand-inner">
+                      <div className="relative aspect-video rounded-[22px] overflow-hidden shadow-brutal border-4 border-brand-border group bg-brand-inner">
                           {currentProperty ? (
                               <>
                                   <img 
@@ -474,7 +474,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                   {/* Right: Map & Input */}
                   <div className="flex flex-col gap-6 h-full">
                       {/* Map */}
-                      <div className="flex-1 min-h-[250px] relative rounded-[28px] overflow-hidden shadow-brutal border-4 border-brand-border bg-brand-inner">
+                      <div className="flex-1 min-h-[250px] relative rounded-[22px] overflow-hidden shadow-brutal border-4 border-brand-border bg-brand-inner">
                           {currentProperty && (
                               <LeafletMap 
                                   latitude={currentProperty.latitude} 
@@ -485,7 +485,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                       </div>
 
                       {/* Input Area */}
-                      <div className="p-6 bg-brand-card border-4 border-brand-border rounded-[28px] shadow-brutal">
+                      <div className="p-6 bg-brand-card border-4 border-brand-border rounded-[22px] shadow-brutal">
                           <label className="block text-sm font-black text-tx-secondary mb-4 uppercase tracking-widest">
                               Votre estimation (Loyer Mensuel)
                           </label>
@@ -531,7 +531,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
           {currentPhase === 'round_results' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full w-full p-4">
                   {/* Result Card */}
-                  <div className="flex flex-col items-center justify-center space-y-8 bg-brand-card text-tx-base p-10 rounded-[28px] shadow-brutal border-4 border-brand-border">
+                  <div className="flex flex-col items-center justify-center space-y-8 bg-brand-card text-tx-base p-10 rounded-[22px] shadow-brutal border-4 border-brand-border">
                       <div className="text-center space-y-4">
                           <h3 className="text-xl text-tx-secondary font-black uppercase tracking-widest">Le loyer réel était de</h3>
                           <div className="font-display text-6xl text-accent-success animate-in zoom-in duration-500 bg-brand-inner px-8 py-4 rounded-3xl border-4 border-brand-border shadow-brutal">
@@ -617,7 +617,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
           {/* Podium Phase */}
           {currentPhase === 'podium' && (
               <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                  <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                  <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                       <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                           <Trophy className="w-16 h-16 text-accent-primary" />
                       </div>

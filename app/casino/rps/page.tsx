@@ -103,7 +103,7 @@ export default function RpsPage() {
       <div className="flex items-center justify-center gap-6 sm:gap-10">
         <div className="flex flex-col items-center gap-3">
           <div className={cn(
-            'w-36 h-36 rounded-[28px] border-4 border-brand-border flex items-center justify-center',
+            'w-36 h-36 rounded-[22px] border-4 border-brand-border flex items-center justify-center',
             result?.outcome === 'win' && 'ring-4 ring-accent-primary'
           )}
             style={{
@@ -119,7 +119,7 @@ export default function RpsPage() {
 
         <div className="flex flex-col items-center gap-3">
           <div className={cn(
-            'w-36 h-36 rounded-[28px] border-4 border-brand-border flex items-center justify-center',
+            'w-36 h-36 rounded-[22px] border-4 border-brand-border flex items-center justify-center',
             result?.outcome === 'lose' && 'ring-4 ring-accent-primary'
           )}
             style={{

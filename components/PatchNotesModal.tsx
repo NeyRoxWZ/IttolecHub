@@ -9,11 +9,10 @@ import { RELEASES, formatReleaseDate, scopeOf, type PatchEntry } from '@/lib/pat
  * The games that greet players with their own notes. Plain names rather than
  * filter functions so a server layout can mount the modal.
  */
-export type PatchArea = 'casino' | 'clicker' | 'krash';
+export type PatchArea = 'casino' | 'krash';
 
 const AREAS: Record<PatchArea, { label: string; zone: string; matches: (e: PatchEntry) => boolean }> = {
   casino: { label: 'du casino', zone: 'casino', matches: (e) => scopeOf(e.scope).group === 'casino' },
-  clicker: { label: "d'ItollecClicker", zone: 'solo', matches: (e) => e.scope === 'clicker' },
   krash: { label: 'de Krash', zone: 'solo', matches: (e) => e.scope === 'krash' },
 };
 
@@ -68,7 +67,7 @@ export default function PatchNotesModal({ area }: { area: PatchArea }) {
       onClick={close}
     >
       <div
-        className="w-full max-w-md max-h-[88dvh] flex flex-col bg-brand-card border-4 border-brand-border rounded-[28px] shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200"
+        className="w-full max-w-md max-h-[88dvh] flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

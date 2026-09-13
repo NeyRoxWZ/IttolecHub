@@ -77,7 +77,7 @@ export default function PushPrompt({ reasons = REASONS }: { reasons?: string[] }
       onClick={later}
     >
       <div
-        className="w-full max-w-sm bg-brand-card border-4 border-brand-border rounded-[28px] shadow-[0_8px_0_#05061A] p-6 animate-in zoom-in-95 duration-200"
+        className="w-full max-w-sm bg-brand-card border-4 border-brand-border rounded-[22px] shadow-[0_8px_0_#05061A] p-6 animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

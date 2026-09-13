@@ -918,7 +918,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
         {/* PHASE: SETUP */}
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
-               <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+               <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
                    <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform rotate-3">
                        <PenTool className="w-16 h-16 text-accent-secondary" />
                    </div>
@@ -955,7 +955,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                 {/* TOP: Word Reveal Card */}
                 <div className="flex-shrink-0">
                     {isDrawer && currentPhase === 'playing' && (
-                        <div className="bg-brand-card p-6 rounded-[28px] border-4 border-brand-border shadow-brutal word-reveal-container">
+                        <div className="bg-brand-card p-6 rounded-[22px] border-4 border-brand-border shadow-brutal word-reveal-container">
                             <div className="flex flex-col items-center gap-4">
                                 <div className="word-display w-full">
                                     <div className="bg-brand-inner px-8 py-4 rounded-2xl border-4 border-brand-border w-full shadow-inner">
@@ -991,7 +991,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                         </div>
                     )}
                     {currentPhase === 'round_results' && (
-                        <div className="bg-brand-card px-10 py-6 rounded-[28px] border-4 border-brand-border shadow-brutal flex flex-col items-center justify-center">
+                        <div className="bg-brand-card px-10 py-6 rounded-[22px] border-4 border-brand-border shadow-brutal flex flex-col items-center justify-center">
                             <span className="block text-sm text-tx-secondary font-bold uppercase tracking-widest text-center mb-2">Le mot était</span>
                             <span className="font-display text-4xl text-accent-secondary block text-center">{currentWord?.word}</span>
                         </div>
@@ -999,7 +999,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                 </div>
 
                 {/* MIDDLE: Canvas */}
-                <div className="flex-1 bg-white rounded-[28px] shadow-brutal overflow-hidden relative touch-none border-4 border-brand-border min-h-[300px]">
+                <div className="flex-1 bg-white rounded-[22px] shadow-brutal overflow-hidden relative touch-none border-4 border-brand-border min-h-[300px]">
                     <canvas
                         ref={canvasRef}
                         onMouseDown={startDrawing}
@@ -1085,7 +1085,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
         {/* PHASE: PODIUM */}
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <Trophy className="w-16 h-16 text-accent-secondary" />
                     </div>

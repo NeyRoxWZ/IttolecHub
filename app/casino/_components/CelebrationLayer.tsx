@@ -75,7 +75,7 @@ function TierBanner({ tiers }: { tiers: number[] }) {
 }
 
 function Panel({ event }: { event: Celebration }) {
-  const shell = 'relative w-full max-w-sm rounded-[28px] border-4 border-brand-border bg-brand-card p-8 text-center shadow-[0_8px_0_#05061A] animate-in zoom-in-90 duration-300';
+  const shell = 'relative w-full max-w-sm rounded-[22px] border-4 border-brand-border bg-brand-card p-8 text-center shadow-[0_8px_0_#05061A] animate-in zoom-in-90 duration-300';
 
   if (event.kind === 'jackpot') {
     return (

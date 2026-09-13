@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
-import { BUILDINGS, generateAchievements, generateUpgrades } from '@/lib/itollec-clicker/data';
 import { ACHIEVEMENTS } from '@/lib/casino/meta';
 import { COSMETICS, cosmeticById, GAME_LABELS } from '@/lib/casino/cosmetics';
 
@@ -14,8 +13,6 @@ import { COSMETICS, cosmeticById, GAME_LABELS } from '@/lib/casino/cosmetics';
  */
 
 // Generated once per instance: both lists are built by loops, not stored.
-const CLICKER_ACHIEVEMENTS_TOTAL = generateAchievements().length;
-const CLICKER_UPGRADES_TOTAL = generateUpgrades().length;
 const CASINO_GAMES_TOTAL = 20;
 
 /** Rows that are not a game of their own: meta movements and duels. */
@@ -157,48 +154,13 @@ async function casinoStats(userId: string) {
   };
 }
 
-async function clickerStats(userId: string) {
-  const { data, error } = await supabase.from('game_saves')
-    .select('save_data, updated_at')
-    .eq('user_id', userId).eq('game_slug', 'itollec-clicker')
-    .maybeSingle();
-  if (error) throw error;
-  if (!data?.save_data) return null;
-
-  const s = data.save_data as any;
-  const owned = (s.buildingsOwned || {}) as Record<string, number>;
-
-  const buildings = BUILDINGS
-    .map((b) => ({ id: b.id, name: b.name, owned: Number(owned[b.id] || 0) }))
-    .filter((b) => b.owned > 0);
-
-  return {
-    coins: Number(s.coins || 0),
-    lifetimeProduced: Number(s.lifetimeProduced || 0),
-    totalSpent: Number(s.totalSpent || 0),
-    clicks: Number(s.clickCount || 0),
-    buildingsTotal: buildings.reduce((sum, b) => sum + b.owned, 0),
-    buildingTypes: buildings.length,
-    buildingTypesTotal: BUILDINGS.length,
-    buildings: buildings.sort((a, b) => b.owned - a.owned),
-    achievements: Array.isArray(s.achievementsUnlocked) ? s.achievementsUnlocked.length : 0,
-    achievementsTotal: CLICKER_ACHIEVEMENTS_TOTAL,
-    upgrades: Array.isArray(s.upgradesPurchased) ? s.upgradesPurchased.length : 0,
-    upgradesTotal: CLICKER_UPGRADES_TOTAL,
-    medals: Number(s.prestige?.medals || 0),
-    centJoursLevel: Number(s.prestige?.centJoursLevel || 0),
-    sainteHeleneLevel: Number(s.prestige?.sainteHeleneLevel || 0),
-    lastPlayed: data.updated_at,
-  };
-}
-
 export async function GET(request: Request) {
   try {
     const userId = new URL(request.url).searchParams.get('user_id');
     if (!userId) return NextResponse.json({ error: 'user_id requis' }, { status: 400 });
 
-    const [casino, clicker] = await Promise.all([casinoStats(userId), clickerStats(userId)]);
-    return NextResponse.json({ casino, clicker });
+    const casino = await casinoStats(userId);
+    return NextResponse.json({ casino });
   } catch (err) {
     console.error('Erreur GET stats profil:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

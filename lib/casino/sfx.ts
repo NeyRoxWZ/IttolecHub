@@ -10,17 +10,33 @@ let ctx: AudioContext | null = null;
 let muted = false;
 
 /**
- * The equipped sound pack shifts every tone rather than replacing the
- * samples: pitch, waveform and a touch of gain are enough to make the same
- * cue read as arcade, lounge or orchestral.
+ * The equipped sound pack reshapes every cue. A small pitch and waveform
+ * nudge was all it used to do, and players could not hear any difference, so
+ * each pack now has its own character on top of that:
+ *  - length: notes held longer (lounge, orchestral) or clipped short (arcade)
+ *  - echo: repeats of each note, quieter each time (lounge, space)
+ *  - vibrato: a wobble on the pitch (space, western)
+ *  - layer: a second voice a fifth or an octave above (orchestral, arcade)
+ *  - slide: notes bend down into place (western) or step like a chiptune (retro)
  */
-const PACKS: Record<string, { pitch: number; type?: OscillatorType; gain: number }> = {
-  retro: { pitch: 1, type: 'square', gain: 0.95 },
-  lounge: { pitch: 0.84, type: 'sine', gain: 0.9 },
-  arcade: { pitch: 1.18, type: 'square', gain: 1 },
-  space: { pitch: 0.92, type: 'sine', gain: 1.05 },
-  western: { pitch: 0.9, type: 'triangle', gain: 0.95 },
-  orchestral: { pitch: 1.06, type: 'triangle', gain: 1.1 },
+interface Pack {
+  pitch: number;
+  type: OscillatorType;
+  gain: number;
+  length: number;
+  echo?: { delay: number; repeats: number };
+  vibrato?: { rate: number; depth: number };
+  layer?: { ratio: number; type: OscillatorType; gain: number };
+  slide?: 'down' | 'steps';
+}
+
+const PACKS: Record<string, Pack> = {
+  retro: { pitch: 1, type: 'square', gain: 0.8, length: 0.8, slide: 'steps' },
+  lounge: { pitch: 0.7, type: 'sine', gain: 1.1, length: 2.2, echo: { delay: 0.16, repeats: 2 } },
+  arcade: { pitch: 1.5, type: 'square', gain: 0.75, length: 0.55, layer: { ratio: 2, type: 'square', gain: 0.35 } },
+  space: { pitch: 1.2, type: 'sine', gain: 1.1, length: 1.8, echo: { delay: 0.28, repeats: 3 }, vibrato: { rate: 7, depth: 0.03 } },
+  western: { pitch: 0.8, type: 'sawtooth', gain: 0.7, length: 1.3, slide: 'down', vibrato: { rate: 5, depth: 0.015 } },
+  orchestral: { pitch: 0.9, type: 'triangle', gain: 1.1, length: 1.9, layer: { ratio: 1.5, type: 'sine', gain: 0.55 } },
 };
 
 function pack() {
@@ -61,6 +77,51 @@ interface ToneOptions {
   sweepTo?: number;
 }
 
+/** One oscillator note with its envelope; the building block of every cue. */
+function voice(
+  c: AudioContext,
+  { freq, duration, type, gain, start, sweepTo, p }: {
+    freq: number; duration: number; type: OscillatorType; gain: number; start: number; sweepTo?: number; p: Pack | null;
+  },
+) {
+  const osc = c.createOscillator();
+  const env = c.createGain();
+
+  osc.type = type;
+  if (p?.slide === 'down' && sweepTo === undefined) {
+    // A twang: start a little sharp and bend down onto the note.
+    osc.frequency.setValueAtTime(freq * 1.25, start);
+    osc.frequency.exponentialRampToValueAtTime(freq, start + Math.min(0.08, duration * 0.5));
+  } else if (p?.slide === 'steps' && sweepTo !== undefined) {
+    // Chiptune: the sweep jumps in four hard steps instead of gliding.
+    for (let i = 0; i < 4; i++) {
+      osc.frequency.setValueAtTime(freq + ((sweepTo - freq) * i) / 3, start + (duration * i) / 4);
+    }
+  } else {
+    osc.frequency.setValueAtTime(freq, start);
+    if (sweepTo !== undefined) osc.frequency.exponentialRampToValueAtTime(Math.max(1, sweepTo), start + duration);
+  }
+
+  if (p?.vibrato) {
+    const lfo = c.createOscillator();
+    const depth = c.createGain();
+    lfo.frequency.value = p.vibrato.rate;
+    depth.gain.value = freq * p.vibrato.depth;
+    lfo.connect(depth).connect(osc.frequency);
+    lfo.start(start);
+    lfo.stop(start + duration + 0.05);
+  }
+
+  // Quick attack, smooth decay — avoids the click you get from hard cutoffs.
+  env.gain.setValueAtTime(0.0001, start);
+  env.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), start + 0.012);
+  env.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+  osc.connect(env).connect(c.destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.02);
+}
+
 function tone({ freq, duration = 0.12, type = 'sine', gain = 0.15, delay = 0, sweepTo }: ToneOptions) {
   const c = getCtx();
   if (!c) return;
@@ -69,26 +130,48 @@ function tone({ freq, duration = 0.12, type = 'sine', gain = 0.15, delay = 0, sw
   if (p) {
     freq *= p.pitch;
     if (sweepTo !== undefined) sweepTo *= p.pitch;
-    if (p.type) type = p.type;
+    type = p.type;
     gain *= p.gain;
+    duration *= p.length;
   }
 
   const start = c.currentTime + delay;
-  const osc = c.createOscillator();
-  const env = c.createGain();
+  voice(c, { freq, duration, type, gain, start, sweepTo, p });
 
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, start);
-  if (sweepTo !== undefined) osc.frequency.exponentialRampToValueAtTime(Math.max(1, sweepTo), start + duration);
+  if (p?.layer) {
+    voice(c, {
+      freq: freq * p.layer.ratio,
+      duration,
+      type: p.layer.type,
+      gain: gain * p.layer.gain,
+      start,
+      sweepTo: sweepTo !== undefined ? sweepTo * p.layer.ratio : undefined,
+      p,
+    });
+  }
 
-  // Quick attack, smooth decay — avoids the click you get from hard cutoffs.
-  env.gain.setValueAtTime(0.0001, start);
-  env.gain.exponentialRampToValueAtTime(gain, start + 0.012);
-  env.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  if (p?.echo) {
+    for (let i = 1; i <= p.echo.repeats; i++) {
+      voice(c, { freq, duration, type, gain: gain * Math.pow(0.4, i), start: start + p.echo.delay * i, sweepTo, p });
+    }
+  }
+}
 
-  osc.connect(env).connect(c.destination);
-  osc.start(start);
-  osc.stop(start + duration + 0.02);
+/** Plays a short phrase in a pack, for the "listen" button on sound cosmetics. */
+export function previewPack(key: string) {
+  const c = getCtx();
+  const p = PACKS[key];
+  if (!c || !p) return;
+  const t0 = c.currentTime + 0.02;
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+    const freq = f * p.pitch;
+    const duration = 0.2 * p.length;
+    const gain = 0.12 * p.gain;
+    const start = t0 + i * 0.1;
+    voice(c, { freq, duration, type: p.type, gain, start, p });
+    if (p.layer) voice(c, { freq: freq * p.layer.ratio, duration, type: p.layer.type, gain: gain * p.layer.gain, start, p });
+    if (p.echo) for (let e = 1; e <= p.echo.repeats; e++) voice(c, { freq, duration, type: p.type, gain: gain * Math.pow(0.4, e), start: start + p.echo.delay * e, p });
+  });
 }
 
 function noise(duration = 0.2, gain = 0.12) {

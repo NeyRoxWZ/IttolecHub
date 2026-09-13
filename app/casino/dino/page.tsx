@@ -56,9 +56,14 @@ const JUMP_LEAD_PX = SPEED * TIME_TO_PEAK;           // distance to start the ju
  * screen, so a player who could see themselves alive and pressed "encaisser"
  * got a loss — and on a safe draw was paid for a step not yet reached. It also
  * sent the future to the browser early enough to read it and cash out just
- * before every death. The margin past the jump lead covers the round trip.
+ * before every death.
+ *
+ * It is asked ~1.2 s before take-off: with a shorter margin a slow round trip
+ * answered after the dino had already jumped "blind", so it sailed over an
+ * obstacle the server had busted. Cashing out stays locked while pending, so
+ * asking early leaks nothing.
  */
-const COMMIT_PX = JUMP_LEAD_PX + SPEED * 0.35;
+const COMMIT_PX = JUMP_LEAD_PX + SPEED * 1.2;
 const OBSTACLE_KINDS = [ArtCactus, ArtRock, ArtFire, ArtCactus, ArtRock, ArtVolcano];
 
 type Phase = 'idle' | 'running' | 'dead' | 'cashed';
@@ -121,24 +126,31 @@ export default function DinoPage() {
           body: JSON.stringify({ user_id: user.id, round_id: roundIdRef.current, payload: {} }),
         });
         const data = await res.json();
-        if (!res.ok) { ob.outcome = 'safe'; return; }
+        // Never pretend a failed draw was safe: the run would carry on on
+        // screen and the cash-out would then come back as a loss.
+        if (!res.ok) { (ob as any).error = data.error || 'La course a été interrompue.'; ob.outcome = 'dead'; return; }
         ob.outcome = data.safe ? 'safe' : 'dead';
         (ob as any).serverMultiplier = data.multiplier;
         (ob as any).progression = data.progression;
       } catch {
-        ob.outcome = 'safe';
+        (ob as any).error = 'Connexion perdue pendant la course.';
+        ob.outcome = 'dead';
       }
     } else {
       ob.outcome = stepOutcome(CONFIG) ? 'safe' : 'dead';
     }
   }, [user]);
 
-  const endRun = (dead: boolean, progression?: any) => {
+  const endRun = (dead: boolean, progression?: any, error?: string) => {
     stopLoop();
     setPendingBoth(false);
     phaseRef.current = 'dead';
     setPhase('dead');
-    if (dead) {
+    if (error) {
+      vibrate(HAPTIC.ERROR);
+      toast.error(error);
+      void refresh();
+    } else if (dead) {
       vibrate(HAPTIC.ERROR); sfx.bust();
       toast.error('Impact ! La course s’arrête là.');
       if (progression) announceProgression(progression);
@@ -153,8 +165,10 @@ export default function DinoPage() {
     // An obstacle has reached the dino before the server has drawn it: hold
     // the whole world still rather than invent an outcome the server has not
     // decided. Only happens on a slow round trip.
+    // The hold starts at take-off distance, not at contact: the jump itself
+    // must wait for the answer, or the dino clears an obstacle it lost to.
     const waiting = obstaclesRef.current.some(
-      (o) => o.committed && !o.passed && o.outcome === null && o.x + OBSTACLE_W / 2 <= DINO_X
+      (o) => o.committed && !o.passed && !o.jumped && o.outcome === null && o.x + OBSTACLE_W / 2 - DINO_X <= JUMP_LEAD_PX
     );
     if (waiting) { rafRef.current = requestAnimationFrame(loop); return; }
 
@@ -196,10 +210,9 @@ export default function DinoPage() {
         void resolveObstacle(ob);
       }
 
-      // Take off exactly one "time to peak" before contact. If the server
-      // hasn't answered yet (rare — we ask ~3s ahead), jump anyway: a missed
-      // jump on a safe obstacle looks far worse than jumping into a hit.
-      if (!ob.jumped && obCenter - DINO_X <= JUMP_LEAD_PX && ob.outcome !== 'dead' && dinoYRef.current === 0) {
+      // Take off exactly one "time to peak" before contact, and only on an
+      // obstacle the server has cleared (the hold above guarantees an answer).
+      if (!ob.jumped && obCenter - DINO_X <= JUMP_LEAD_PX && ob.outcome === 'safe' && dinoYRef.current === 0) {
         ob.jumped = true;
         dinoVRef.current = JUMP_V0;
         sfx.step(Math.min(8, ob.index));
@@ -215,7 +228,7 @@ export default function DinoPage() {
         if (ob.outcome === null) continue;
         ob.passed = true;
         if (ob.outcome === 'dead') {
-          endRun(true, (ob as any).progression);
+          endRun(true, (ob as any).progression, (ob as any).error);
           setObstacleTick((t) => t + 1);
           return;
         }
@@ -386,7 +399,7 @@ export default function DinoPage() {
       {/* The running world */}
       <div
         ref={worldRef}
-        className="relative w-full rounded-[24px] border-4 border-brand-border overflow-hidden select-none shadow-[0_6px_0_#05061A]"
+        className="relative w-full rounded-[22px] border-4 border-brand-border overflow-hidden select-none shadow-[0_6px_0_#05061A]"
         style={{ height: WORLD_H, background: 'linear-gradient(180deg, #5B8CFF 0%, #9DBBFF 100%)' }}
       >
         {/* distant hills */}

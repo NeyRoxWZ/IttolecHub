@@ -1,11 +1,10 @@
 /**
- * Cover art for a solo game, drawn from its own world: the clicker's target
- * and pointer, the casino's three sevens, Krash's rising curve.
+ * Cover art for a solo game, drawn from its own world: the casino's three
+ * sevens, Krash's rising curve.
  */
-export type CoverGame = 'clicker' | 'casino' | 'krash';
+export type CoverGame = 'casino' | 'krash';
 
 const PALETTES: Record<CoverGame, { bg: string; a: string; b: string }> = {
-  clicker: { bg: '#1FB866', a: '#FFFFFF', b: '#0E1030' },
   casino: { bg: '#8B3DFF', a: '#FFC61A', b: '#FF4F8B' },
   krash: { bg: '#FF4F8B', a: '#FFFFFF', b: '#FFC61A' },
 };
@@ -18,14 +17,6 @@ export default function GameCover({ game, className }: { game: CoverGame; classN
     <svg viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice" className={className} role="img" aria-hidden="true">
       <rect width="300" height="200" fill={bg} />
       <path d="M-20 200 L120 -20 L160 -20 L20 200 Z" fill="#FFFFFF" fillOpacity="0.08" />
-      {game === 'clicker' && (
-        <>
-          <circle cx="190" cy="100" r="78" fill={a} />
-          <circle cx="190" cy="100" r="52" fill={b} />
-          <circle cx="190" cy="100" r="26" fill={a} />
-          <polygon points="112,52 112,150 136,128 153,166 170,158 153,121 186,121" fill="#FFFFFF" stroke={INK} strokeWidth="7" strokeLinejoin="round" />
-        </>
-      )}
       {game === 'casino' && (
         <>
           {[40, 120, 200].map((x) => (

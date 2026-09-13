@@ -23,7 +23,9 @@ export function ToasterProvider() {
           toast:
             'group w-full flex items-center gap-3 rounded-2xl border-[3px] border-[#05061A] bg-[#1E2358] text-white px-4 py-3 shadow-[inset_0_-5px_0_#151942,0_5px_0_#05061A] font-display text-lg leading-tight',
           title: 'font-display text-lg leading-tight',
-          description: 'font-body text-sm font-black leading-snug mt-0.5 opacity-85',
+          // Sonner paints descriptions light grey even unstyled: follow the
+          // toast's own text colour instead, or it vanishes on green/yellow.
+          description: 'font-body text-sm font-black leading-snug mt-0.5 !text-current opacity-90',
           icon: 'shrink-0 [&>svg]:h-6 [&>svg]:w-6',
           success: '!bg-[#33D17A] !text-[#0E1030] !shadow-[inset_0_-5px_0_#1E9A55,0_5px_0_#05061A]',
           error: '!bg-[#FF4F8B] !text-white !shadow-[inset_0_-5px_0_#C92D63,0_5px_0_#05061A]',

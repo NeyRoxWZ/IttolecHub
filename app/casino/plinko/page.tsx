@@ -94,7 +94,7 @@ export default function PlinkoPage() {
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
 
       <div
-        className="relative rounded-[24px] border-4 border-brand-border p-3"
+        className="relative rounded-[22px] border-4 border-brand-border p-3"
         style={{
           background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 16px, transparent 16px 32px), #0E1030',
           boxShadow: 'inset 0 -8px 0 #070920, 0 6px 0 #05061A',

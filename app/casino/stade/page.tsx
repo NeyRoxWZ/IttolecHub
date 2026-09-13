@@ -103,7 +103,7 @@ export default function StadePage() {
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
 
       <div
-        className="relative w-full rounded-[24px] border-4 border-brand-border p-6 overflow-hidden"
+        className="relative w-full rounded-[22px] border-4 border-brand-border p-6 overflow-hidden"
         style={{
           background: 'repeating-linear-gradient(90deg, #169A55 0 46px, #1BAE60 46px 92px)',
           boxShadow: 'inset 0 -8px 0 #0F7A42, 0 6px 0 #05061A',

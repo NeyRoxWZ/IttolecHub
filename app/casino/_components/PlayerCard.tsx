@@ -94,7 +94,7 @@ export default function PlayerCard({ pseudo, onClose }: { pseudo: string; onClos
   return (
     <div className="fixed inset-0 z-[220] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
       <div
-        className="w-full max-w-3xl max-h-[92dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200"
+        className="w-full max-w-3xl max-h-[92dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 mb-4">

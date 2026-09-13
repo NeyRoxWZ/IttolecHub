@@ -426,7 +426,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
             {/* SETUP PHASE */}
             {currentPhase === 'setup' && (
                 <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg p-4 mx-auto mt-12">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
                         <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
                             <Search className="w-16 h-16 text-accent-primary" />
                         </div>
@@ -555,7 +555,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
             {/* ROUND RESULTS PHASE */}
             {currentPhase === 'round_results' && (
                 <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-2xl p-4 mx-auto mt-12">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col w-full">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col w-full">
                         <h2 className="font-display text-3xl text-tx-base text-center mb-8">Résultats de la manche</h2>
                         
                         <div className="space-y-3">
@@ -595,7 +595,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
             {/* PODIUM PHASE */}
             {currentPhase === 'podium' && (
                 <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in mx-auto mt-12">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                         <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                             <Trophy className="w-16 h-16 text-accent-primary" />
                         </div>

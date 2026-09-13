@@ -346,7 +346,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
         {/* PHASE: SETUP */}
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
-               <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+               <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
                    <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
                        <DollarSign className="w-16 h-16 text-accent-success" />
                    </div>
@@ -381,7 +381,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
             <div key={`${game.current_round}-${currentPhase}`} className="flex flex-col items-center w-full max-w-4xl gap-6 pt-4 px-4 animate-in fade-in duration-300">
                 
                 {/* MOVIE CARD */}
-                <div className="flex flex-col md:flex-row bg-brand-card rounded-[28px] overflow-hidden shadow-brutal border-4 border-brand-border w-full p-4 gap-6">
+                <div className="flex flex-col md:flex-row bg-brand-card rounded-[22px] overflow-hidden shadow-brutal border-4 border-brand-border w-full p-4 gap-6">
                     {/* Poster */}
                     <div className="w-full md:w-1/3 aspect-[2/3] relative bg-brand-inner rounded-2xl overflow-hidden border-4 border-brand-border shadow-inner">
                         {currentMovie.poster_path ? (
@@ -487,7 +487,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
         {/* PHASE: PODIUM */}
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <Trophy className="w-16 h-16 text-accent-success" />
                     </div>

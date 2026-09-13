@@ -46,15 +46,15 @@ export default function PotesPage() {
   const [tab, setTab] = useState<Tab>('duels');
 
   return (
-    <main className="min-h-screen bg-transparent text-tx-base pb-[env(safe-area-inset-bottom)]">
-      <div className="max-w-3xl mx-auto p-4 space-y-4">
+    <main className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
+      <div className="max-w-7xl mx-auto space-y-4 [&>*]:max-w-3xl">
         <div className="flex items-center gap-3">
           <Link
             href="/casino"
             aria-label="Retour au casino"
-            className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[2px] flex items-center justify-center focus:outline-none"
+            className="h-12 w-12 shrink-0 inline-flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-6 w-6" strokeWidth={3} />
           </Link>
           <div className="min-w-0">
             <h1 className="font-display text-3xl sm:text-4xl leading-none">Entre potes</h1>

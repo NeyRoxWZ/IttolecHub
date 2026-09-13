@@ -130,7 +130,7 @@ export default function BonneteauPage() {
           without an explicit one they overflowed above it and the status line
           ended up printed across them. */}
       <div
-        className="relative rounded-[24px] border-4 border-brand-border px-4"
+        className="relative rounded-[22px] border-4 border-brand-border px-4"
         style={{
           width: SLOT_W * BONNETEAU_CUPS + 32,
           height: 252,

@@ -49,7 +49,7 @@ export default function CrateOpeningModal({
 
   return (
     <div className="fixed inset-0 z-[210] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-3xl bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200">
+      <div className="w-full max-w-3xl bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2 min-w-0">
             <span className="h-12 w-12 shrink-0 rounded-2xl border-[3px] border-brand-border bg-accent-primary flex items-center justify-center shadow-[inset_0_-4px_0_#D98E00]"><Package className="h-6 w-6 text-brand-bg" strokeWidth={2.5} /></span>
@@ -131,7 +131,7 @@ function Recap({ openings, onClose }: { openings: CrateOpening[]; onClose: () =>
 
   return (
     <div className="fixed inset-0 z-[210] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-2xl max-h-[90dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200">
+      <div className="w-full max-w-2xl max-h-[90dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200">
         <div className="text-center mb-5">
           <span className="mx-auto mb-3 h-14 w-14 rounded-2xl border-[3px] border-brand-border bg-accent-success flex items-center justify-center shadow-[inset_0_-5px_0_#1E9A55]"><Check className="h-8 w-8 text-brand-bg" strokeWidth={3} /></span>
           <h2 className="font-display text-4xl leading-none">

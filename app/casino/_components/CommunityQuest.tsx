@@ -11,8 +11,21 @@ import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { supabase } from '@/lib/supabase/client';
 import type { CommunityQuest as Quest } from '@/lib/casino/community';
 
+/** "3 j 4 h", "5 h 12 min", "8 min" until the given moment. */
+export function timeLeft(iso: string): string {
+  const ms = Math.max(0, new Date(iso).getTime() - Date.now());
+  const min = Math.floor(ms / 60_000);
+  const d = Math.floor(min / 1440);
+  const h = Math.floor((min % 1440) / 60);
+  if (d > 0) return `encore ${d} j ${h} h`;
+  if (h > 0) return `encore ${h} h ${min % 60} min`;
+  return `encore ${Math.max(1, min)} min`;
+}
+
 interface State {
   quest: Quest;
+  period?: string;
+  endsAt?: string;
   progress: number;
   target: number;
   completed: boolean;
@@ -167,13 +180,20 @@ export default function CommunityQuestPanel() {
       </p>
 
       {canClaim && (
-        <button
-          onClick={claim}
-          disabled={busy}
-          className="mt-3 w-full h-10 rounded-xl border-[3px] border-accent-success bg-accent-success text-brand-bg font-display text-[11px] hover:brightness-110 disabled:opacity-50 focus:outline-none"
-        >
-          {busy ? '···' : `RÉCLAMER ${state.you!.reward.toLocaleString('en-US')} ₶`}
-        </button>
+        <div className="mt-3 rounded-xl border-[3px] border-brand-border bg-accent-primary text-brand-bg p-2.5 shadow-[inset_0_-4px_0_#D98E00]">
+          <div className="font-display text-lg leading-tight">Ta récompense t&apos;attend !</div>
+          <p className="text-[13px] font-bold leading-snug mt-0.5">
+            Récupère-la avant la fin de la semaine{state.endsAt ? <> (<b className="tabular-nums">{timeLeft(state.endsAt)}</b>)</> : null} :
+            {' '}dès qu&apos;un nouvel objectif commence, elle est perdue.
+          </p>
+          <button
+            onClick={claim}
+            disabled={busy}
+            className="mt-2 w-full h-11 rounded-xl border-[3px] border-brand-border bg-accent-success text-brand-bg font-display text-lg shadow-[inset_0_-4px_0_#1E9A55,0_3px_0_#05061A] active:translate-y-[3px] transition-transform disabled:opacity-50 focus:outline-none"
+          >
+            {busy ? '···' : `Récupérer ${state.you!.reward.toLocaleString('en-US')} ₶`}
+          </button>
+        </div>
       )}
     </div>
   );

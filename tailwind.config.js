@@ -41,11 +41,19 @@ module.exports = {
           muted: 'rgba(194,201,240,0.68)',
         },
       },
+      // One radius scale for the whole site:
+      //  md   10px  chips, small badges
+      //  lg   14px  buttons, inputs, small tiles (same as xl on purpose)
+      //  xl   14px
+      //  2xl  18px  tiles and cards inside a panel
+      //  3xl  22px  panels, modals (arbitrary 24–36px values are folded into this)
       borderRadius: {
-        xl: '20px',
-        lg: '12px',
-        md: '8px',
-        sm: '4px',
+        '3xl': '22px',
+        '2xl': '18px',
+        xl: '14px',
+        lg: '14px',
+        md: '10px',
+        sm: '6px',
         full: '9999px',
       },
       fontFamily: {

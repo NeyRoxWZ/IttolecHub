@@ -210,7 +210,7 @@ export default function GrattagePage() {
 
       {/* Ticket */}
       <div
-        className="relative w-full max-w-[360px] rounded-[24px] border-4 border-brand-border p-4 select-none"
+        className="relative w-full max-w-[360px] rounded-[22px] border-4 border-brand-border p-4 select-none"
         style={{
           background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.08) 0 14px, transparent 14px 28px), #8B3DFF',
           boxShadow: 'inset 0 -8px 0 #6526C9, 0 6px 0 #05061A',

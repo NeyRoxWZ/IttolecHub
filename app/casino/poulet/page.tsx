@@ -237,7 +237,7 @@ export default function PouletPage() {
       </div>
 
       {/* The road — every lane fits on screen, nothing scrolls */}
-      <div className="w-full rounded-[24px] border-4 border-brand-border overflow-hidden shadow-[0_6px_0_#05061A]">
+      <div className="w-full rounded-[22px] border-4 border-brand-border overflow-hidden shadow-[0_6px_0_#05061A]">
         <div className="flex" style={{ height: 300 }}>
           {/* Start kerb */}
           <div className="w-12 shrink-0 flex flex-col items-center justify-end pb-4 border-r-4 border-brand-border" style={{ background: 'repeating-linear-gradient(180deg, #FFFFFF 0 20px, #FF3B5C 20px 40px)' }}>

@@ -2,16 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Dices, Crown, ChevronDown } from 'lucide-react';
+import { Dices, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatShortNumber } from '@/lib/itollec-clicker/format';
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 const pct = (x: number) => `${Math.round(x * 100)} %`;
 const signed = (n: number) => `${n > 0 ? '+' : ''}${fmt(n)} ₶`;
-
-/** Clicker numbers outgrow Intl's compact notation; the game's formatter names them. */
-const big = (n: number) => (Math.abs(n) < 1_000_000 ? fmt(n) : formatShortNumber(n));
 
 /**
  * Every figure is the same small tile, so a block reads as one even grid
@@ -36,16 +32,16 @@ function Block({ title, icon: Icon, href, children }: {
   title: string; icon: any; href: string; children: React.ReactNode;
 }) {
   return (
-    <section className="bg-brand-card border-4 border-brand-border rounded-[28px] p-4 sm:p-5 shadow-brutal">
+    <section className="bg-brand-card border-4 border-brand-border rounded-[22px] p-4 sm:p-5 shadow-brutal">
       <div className="flex items-center justify-between gap-3 mb-3">
         <h3 className="font-display text-lg flex items-center gap-2">
           <Icon className="h-4 w-4 text-accent-primary" /> {title}
         </h3>
         <Link
           href={href}
-          className="h-8 px-3 rounded-lg border-[3px] border-brand-border bg-brand-inner font-display text-[10px] flex items-center hover:bg-[#333A80] transition-colors"
+          className="h-9 px-3 rounded-xl border-[3px] border-brand-border bg-accent-primary text-brand-bg font-display text-base flex items-center shadow-[inset_0_-4px_0_#D98E00,0_3px_0_#05061A] active:translate-y-[3px] transition-transform"
         >
-          JOUER
+          Jouer
         </Link>
       </div>
       {children}
@@ -56,7 +52,7 @@ function Block({ title, icon: Icon, href, children }: {
 const GRID = 'grid grid-cols-2 sm:grid-cols-4 gap-2';
 
 export default function ProfileStats({ userId }: { userId: string }) {
-  const [data, setData] = useState<{ casino: any; clicker: any } | null>(null);
+  const [data, setData] = useState<{ casino: any } | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -69,9 +65,9 @@ export default function ProfileStats({ userId }: { userId: string }) {
   }, [userId]);
 
   if (failed) return <p className="text-sm text-tx-secondary">Impossible de charger les statistiques.</p>;
-  if (!data) return <div className="h-40 rounded-[28px] border-4 border-brand-border bg-brand-inner animate-pulse" />;
+  if (!data) return <div className="h-40 rounded-[22px] border-4 border-brand-border bg-brand-inner animate-pulse" />;
 
-  const { casino: c, clicker: k } = data;
+  const { casino: c } = data;
 
   return (
     <div className="space-y-4">
@@ -121,23 +117,6 @@ export default function ProfileStats({ userId }: { userId: string }) {
               </details>
             )}
           </>
-        )}
-      </Block>
-
-      <Block title="ItollecClicker" icon={Crown} href="/itollec-clicker">
-        {!k ? (
-          <p className="text-sm text-tx-secondary">Aucune sauvegarde en ligne. Joue une partie connecté pour qu&apos;elle apparaisse ici.</p>
-        ) : (
-          <div className={GRID}>
-            <Tile label="Livres Tournois" value={`${big(k.coins)} ₶`} />
-            <Tile label="Produit au total" value={`${big(k.lifetimeProduced)} ₶`} />
-            <Tile label="Clics" value={big(k.clicks)} />
-            <Tile label="Médailles" value={fmt(k.medals)} />
-            <Tile label="Bâtiments" value={fmt(k.buildingsTotal)} />
-            <Tile label="Types débloqués" value={`${k.buildingTypes} / ${k.buildingTypesTotal}`} />
-            <Tile label="Succès" value={`${k.achievements} / ${k.achievementsTotal}`} />
-            <Tile label="Améliorations" value={`${k.upgrades} / ${k.upgradesTotal}`} />
-          </div>
         )}
       </Block>
     </div>

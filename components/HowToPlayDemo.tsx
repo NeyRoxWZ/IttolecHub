@@ -200,7 +200,8 @@ export default function HowToPlayDemo({ className }: { className?: string }) {
         })}
       </div>
 
-      <div className="mt-4 relative flex-1 min-h-[230px] rounded-2xl bg-brand-inner border-[3px] border-brand-border overflow-hidden flex items-center justify-center p-4 shadow-[inset_0_4px_0_#0B0E2A]">
+      {/* Fixed size: the card must not grow or shrink between steps. */}
+      <div className="mt-4 relative h-[250px] shrink-0 rounded-2xl bg-brand-inner border-[3px] border-brand-border overflow-hidden flex items-center justify-center p-4 shadow-[inset_0_4px_0_#0B0E2A]">
         <div key={step} className="w-full h-full flex items-center justify-center">
           {step === 0 && <CreateRoom />}
           {step === 1 && <PickGame />}
@@ -212,8 +213,8 @@ export default function HowToPlayDemo({ className }: { className?: string }) {
         <div key={step} className="htp-progress h-full bg-accent-success" style={{ animationDuration: `${STEP_MS}ms` }} />
       </div>
 
-      <div className="mt-3">
-        <div className="font-display text-2xl leading-tight">
+      <div className="mt-3 h-[88px] shrink-0 overflow-hidden">
+        <div className="font-display text-2xl leading-tight truncate">
           <span className="text-accent-primary">{step + 1}.</span> {current.title}
         </div>
         <p className="text-sm font-bold text-tx-secondary">{current.text}</p>

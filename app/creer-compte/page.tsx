@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { generatePassphrase } from '@/lib/words';
-import { Copy, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Copy, RefreshCw, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import ConsentBox, { DISCORD_CONSENT_KEY } from '@/components/ConsentBox';
@@ -63,20 +63,21 @@ export default function CreerComptePage() {
   };
 
   return (
-    <main className="min-h-screen bg-transparent px-6 pt-8 pb-12 flex items-start justify-center">
-      <div className="w-full max-w-5xl mx-auto">
-        <div className="flex items-center justify-center mb-8">
+    <main className="min-h-screen bg-transparent px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
+      <div className="w-full max-w-7xl mx-auto">
+        <div className="flex items-center mb-6">
           <Link
             href="/"
-            className="h-11 px-4 rounded-xl border-[3px] font-display text-lg border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px] transition-transform flex items-center justify-center"
+            aria-label="Retour"
+            className="h-12 w-12 shrink-0 inline-flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none"
           >
-            Retour
+            <ArrowLeft className="h-6 w-6" strokeWidth={3} />
           </Link>
         </div>
 
-        <div className="max-w-xl mx-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal">
+        <div className="max-w-xl mx-auto bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-brutal">
           <div className="flex items-center justify-between h-12">
-            <h1 className="font-display text-2xl md:text-3xl leading-none">Créer un compte</h1>
+            <h1 className="font-display text-3xl sm:text-4xl leading-none">Créer un compte</h1>
             <div className="shrink-0 rounded-lg border-[3px] border-brand-border bg-brand-inner p-2">
               <span className="font-display text-tx-base">ID</span>
             </div>
@@ -144,7 +145,7 @@ export default function CreerComptePage() {
         </form>
       ) : (
         <div className="mt-6 space-y-6">
-          <div className="bg-brand-inner border-4 border-brand-border rounded-[24px] p-6 shadow-brutal relative overflow-hidden">
+          <div className="bg-brand-inner border-4 border-brand-border rounded-[22px] p-6 shadow-brutal relative overflow-hidden">
             <div className="absolute inset-0 bg-red-500/5" />
             <div className="relative z-10">
               <div className="flex items-center justify-center gap-2 mb-3">

@@ -205,20 +205,20 @@ export default function FrenlyPassPage() {
   const pct = state.needed > 0 ? Math.min(100, (state.intoTier / state.needed) * 100) : 100;
 
   return (
-    <main className="bg-transparent text-tx-base p-3 sm:p-4 flex flex-col min-h-[100dvh]">
+    <main className="bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10 flex flex-col min-h-[100dvh]">
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
       {detail && <TierDetail entry={detail} owned={owned} onClose={() => setDetail(null)} />}
       {justWon && <JustWon cosmetic={justWon} onClose={() => setJustWon(null)} />}
 
-      <div className="max-w-6xl w-full mx-auto flex flex-col flex-1 min-h-0">
+      <div className="max-w-7xl w-full mx-auto flex flex-col flex-1 min-h-0">
         <header className="flex items-center justify-between gap-3 mb-3 flex-wrap shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <Link
               href="/casino"
               prefetch
-              className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[2px] transition-transform focus:outline-none"
+              className="h-12 w-12 shrink-0 inline-flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-6 w-6" strokeWidth={3} />
               </Link>
             <div className="min-w-0">
               <h1 className="font-display text-3xl sm:text-4xl leading-none">Frenly Pass</h1>
@@ -377,7 +377,7 @@ function TierCell({
   return (
     <div
       className={cn(
-        'relative h-[186px] w-full rounded-[20px] border-4 border-brand-border p-2.5 flex flex-col items-center justify-start gap-1.5 transition-all',
+        'relative h-[186px] w-full rounded-2xl border-4 border-brand-border p-2.5 flex flex-col items-center justify-start gap-1.5 transition-all',
         claimed ? 'bg-[#1B4A3A] shadow-[inset_0_-5px_0_#12352A]'
           : canClaim ? 'bg-[#4A3F1E] shadow-[inset_0_-5px_0_#332B12,0_0_0_3px_#FFC61A]'
           : reached ? 'bg-brand-card shadow-[inset_0_-5px_0_#151942]'
@@ -425,7 +425,7 @@ function JustWon({ cosmetic, onClose }: { cosmetic: Cosmetic; onClose: () => voi
   return (
     <div className="fixed inset-0 z-[215] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
       <div
-        className="w-full max-w-xs bg-brand-card border-4 rounded-[28px] p-6 text-center shadow-brutal animate-in zoom-in-95 duration-200"
+        className="w-full max-w-xs bg-brand-card border-4 rounded-[22px] p-6 text-center shadow-brutal animate-in zoom-in-95 duration-200"
         style={{ borderColor: RARITY_COLOR[cosmetic.rarity] }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -466,7 +466,7 @@ function TierDetail({
 
   return (
     <div className="fixed inset-0 z-[200] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
-      <div className="w-full max-w-sm bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-sm bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-brutal animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <div className="text-[10px] font-black uppercase tracking-widest text-tx-muted">

@@ -985,7 +985,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   if (showPseudoModal) {
       return (
           <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4">
-              <div className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in fade-in zoom-in duration-300">
+              <div className="w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-brutal animate-in fade-in zoom-in duration-300">
                   <div className="flex justify-center mb-6">
                       <div className="bg-brand-inner border-[3px] border-brand-border p-4 rounded-xl">
                           <Users className="w-12 h-12 text-tx-base" />
@@ -1063,8 +1063,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           </button>
 
           <div className="flex flex-col items-center justify-center gap-10 animate-in fade-in zoom-in duration-300">
-              <div className="relative inline-flex items-center justify-center bg-white p-[12px] border-4 border-brand-border rounded-[24px] shadow-brutal">
-                  <div className="rounded-[12px] overflow-hidden" ref={qrRef} />
+              <div className="relative inline-flex items-center justify-center bg-white p-[12px] border-4 border-brand-border rounded-[22px] shadow-brutal">
+                  <div className="rounded-md overflow-hidden" ref={qrRef} />
               </div>
 
               <div className="w-full max-w-md space-y-3">
@@ -1098,15 +1098,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6 font-sans flex flex-col animate-in fade-in duration-300">
-        <div className="relative z-10 w-full max-w-6xl mx-auto flex-1 flex flex-col">
+      <div className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10 font-sans flex flex-col animate-in fade-in duration-300">
+        <div className="relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <div className="h-12 w-40 rounded-xl bg-brand-inner border-[3px] border-brand-border animate-pulse" />
             <div className="h-12 w-32 rounded-xl bg-brand-inner border-[3px] border-brand-border animate-pulse" />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 flex-1 min-h-0">
             <div className="lg:col-span-8 flex flex-col gap-6 min-h-0">
-              <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal flex flex-col">
+              <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-brutal flex flex-col">
                 <div className="h-8 w-48 rounded-lg bg-brand-inner animate-pulse mb-6" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {Array.from({ length: 6 }).map((_, i) => (
@@ -1116,7 +1116,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               </div>
             </div>
             <div className="lg:col-span-4 h-full flex flex-col">
-              <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-6 h-[400px] lg:h-full flex flex-col shadow-brutal">
+              <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-6 h-[400px] lg:h-full flex flex-col shadow-brutal">
                 <div className="h-8 w-32 rounded-lg bg-brand-inner animate-pulse mb-6" />
                 <div className="space-y-3">
                   {Array.from({ length: 3 }).map((_, i) => (
@@ -1132,8 +1132,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-tx-base p-4 sm:p-6 font-sans selection:bg-tx-base/30 flex flex-col">
-      <div className="relative z-10 w-full max-w-6xl mx-auto flex-1 flex flex-col">
+    <div className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10 font-sans selection:bg-tx-base/30 flex flex-col">
+      <div className="relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col">
         
         {/* Header */}
         <header className="flex items-center justify-between mb-8">

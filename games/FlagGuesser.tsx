@@ -374,7 +374,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
         {/* PHASE: SETUP */}
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
-               <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+               <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
                    <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform rotate-3">
                        <Globe className="w-16 h-16 text-[#06B6D4]" />
                        <Flag className="w-8 h-8 text-accent-secondary absolute -bottom-2 -right-2" />
@@ -410,7 +410,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
             <div key={`${game.current_round}-${currentPhase}`} className="flex flex-col items-center w-full max-w-2xl gap-6 pt-4 p-4 animate-in fade-in duration-300">
                 
                 {/* FLAG IMAGE */}
-                <div className="relative w-full aspect-[16/9] md:aspect-[2/1] bg-brand-inner rounded-[28px] overflow-hidden shadow-brutal border-4 border-brand-border p-4">
+                <div className="relative w-full aspect-[16/9] md:aspect-[2/1] bg-brand-inner rounded-[22px] overflow-hidden shadow-brutal border-4 border-brand-border p-4">
                     <Image 
                         src={currentFlag.flagUrl} 
                         alt="Flag" 
@@ -421,7 +421,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                     
                     {/* OVERLAY RESULT */}
                     {currentPhase === 'round_results' && (
-                        <div className="absolute inset-0 bg-brand-bg/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in z-10 border-4 border-brand-border rounded-[28px] m-1">
+                        <div className="absolute inset-0 bg-brand-bg/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in z-10 border-4 border-brand-border rounded-[22px] m-1">
                             <h3 className="font-display text-4xl text-tx-base mb-2 text-center">{currentFlag.name}</h3>
                             <p className="text-tx-secondary font-bold text-lg font-mono uppercase tracking-widest bg-brand-inner px-4 py-1 rounded-lg border-[3px] border-brand-border">{currentFlag.code}</p>
                         </div>
@@ -517,7 +517,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
         {/* PHASE: PODIUM */}
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <Trophy className="w-16 h-16 text-[#06B6D4]" />
                     </div>

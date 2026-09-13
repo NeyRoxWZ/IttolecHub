@@ -114,7 +114,7 @@ export default function SpotlightTutorial(props: Props) {
     <div className="fixed inset-0 z-[99999]">
       {spot ? (
         <div
-          className="absolute rounded-[28px] border-4 border-accent-primary pointer-events-none"
+          className="absolute rounded-[22px] border-4 border-accent-primary pointer-events-none"
           style={{
             top: Math.max(8, spot.top - 8),
             left: Math.max(8, spot.left - 8),
@@ -129,7 +129,7 @@ export default function SpotlightTutorial(props: Props) {
 
       <div
         ref={cardRef}
-        className="absolute left-1/2 -translate-x-1/2 w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[32px] p-6 shadow-[0_8px_0_#05061A]"
+        className="absolute left-1/2 -translate-x-1/2 w-full max-w-md bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-[0_8px_0_#05061A]"
         style={{ top: cardTop }}
         role="dialog"
         aria-modal="true"

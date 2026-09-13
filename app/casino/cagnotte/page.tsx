@@ -146,14 +146,14 @@ export default function CagnottePage() {
   }
 
   return (
-    <main className="min-h-screen bg-transparent text-tx-base pb-[env(safe-area-inset-bottom)]">
+    <main className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
       {showRules && (
         <div
           className="fixed inset-0 z-[220] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
           onClick={() => setShowRules(false)}
         >
           <div
-            className="w-full max-w-md max-h-[92dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal animate-in zoom-in-95 duration-200"
+            className="w-full max-w-md max-h-[92dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-brutal animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 mb-4">
@@ -200,16 +200,16 @@ export default function CagnottePage() {
         </div>
       )}
 
-      <div className="max-w-3xl mx-auto p-4 space-y-4">
+      <div className="max-w-7xl mx-auto space-y-4 [&>*]:max-w-3xl">
         <div className="flex items-center gap-3">
           <Link
             href="/casino"
-            className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-brand-inner flex items-center justify-center focus:outline-none"
+            className="h-12 w-12 shrink-0 inline-flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-6 w-6" strokeWidth={3} />
           </Link>
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-2xl leading-none">Cagnotte de groupe</h1>
+            <h1 className="font-display text-3xl sm:text-4xl leading-none">Cagnotte de groupe</h1>
             <p className="text-[11px] text-tx-muted mt-1">
               Vous misez ensemble, vous jouez avec la cagnotte, vous partagez ce qu&apos;il en reste.
             </p>

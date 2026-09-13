@@ -38,6 +38,78 @@
       "scope": "casino",
       "type": "amelioration",
       "title": "Boutique, pass et Entre potes redessinés"
+    },
+    {
+      "id": "2026-09-13-06",
+      "date": "2026-09-13",
+      "scope": "dino",
+      "type": "correctif",
+      "title": "Le dino ne saute plus au-dessus d'un obstacle perdu",
+      "details": "Le résultat de chaque obstacle est connu avant le saut : fini les courses où le dino passe l'obstacle mais la partie est perdue."
+    },
+    {
+      "id": "2026-09-13-07",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "correctif",
+      "title": "Notifications lisibles",
+      "details": "Le texte des notifications vertes et jaunes n'est plus gris clair sur fond coloré."
+    },
+    {
+      "id": "2026-09-13-08",
+      "date": "2026-09-13",
+      "scope": "casino",
+      "type": "amelioration",
+      "title": "Rappel de la récompense de l'objectif commun",
+      "details": "Quand l'objectif est atteint, un message t'invite à récupérer ta récompense et indique le temps restant : au début d'un nouvel objectif, elle est perdue."
+    },
+    {
+      "id": "2026-09-13-09",
+      "date": "2026-09-13",
+      "scope": "casino",
+      "type": "amelioration",
+      "title": "Packs sonores vraiment différents",
+      "details": "Chaque pack change maintenant le son de tout le casino (écho, vibrato, notes tenues ou courtes) et peut s'écouter depuis l'inventaire."
+    },
+    {
+      "id": "2026-09-13-10",
+      "date": "2026-09-13",
+      "scope": "casino",
+      "type": "amelioration",
+      "title": "Bouton Équiper refait",
+      "details": "Plus grand et lisible, à l'ouverture des caisses comme dans l'inventaire."
+    },
+    {
+      "id": "2026-09-13-11",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Mise en page identique sur toutes les pages",
+      "details": "Mêmes marges partout, bouton retour toujours au même endroit, arrondis harmonisés."
+    },
+    {
+      "id": "2026-09-13-12",
+      "date": "2026-09-13",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Comment jouer garde la même taille",
+      "details": "La carte animée de l'accueil ne change plus de taille d'une étape à l'autre."
+    },
+    {
+      "id": "2026-09-13-13",
+      "date": "2026-09-13",
+      "scope": "clicker",
+      "type": "retrait",
+      "title": "ItollecClicker retiré",
+      "details": "Le jeu n'est plus disponible : seul le casino reste en solo pour l'instant."
+    },
+    {
+      "id": "2026-09-13-14",
+      "date": "2026-09-13",
+      "scope": "casino",
+      "type": "correctif",
+      "title": "Jeux centrés dans leur carte",
+      "details": "La roue et les autres jeux ne sont plus collés en haut de la scène : la place du bandeau de résultat est équilibrée au-dessus et en dessous."
     }
   ]
 }

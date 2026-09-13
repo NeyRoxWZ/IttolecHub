@@ -299,7 +299,7 @@ export default function RocketPage() {
       `}</style>
 
       <div
-        className="relative w-full rounded-[24px] border-4 border-brand-border overflow-hidden"
+        className="relative w-full rounded-[22px] border-4 border-brand-border overflow-hidden"
         style={{
           background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.035) 0 18px, transparent 18px 36px), linear-gradient(180deg, #1B2056 0%, #0E1030 100%)',
           boxShadow: 'inset 0 -8px 0 #070920, 0 6px 0 #05061A',

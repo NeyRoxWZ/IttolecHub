@@ -21,7 +21,7 @@ La liste fait foi dans `patch-notes/scopes.json`. En résumé :
 - `site` — accueil, profil, comptes, pages générales
 - `casino` — le casino dans son ensemble (pass, boutique, missions, cagnotte, entre potes…)
 - un jeu du casino : `slots`, `blackjack`, `wheel`, `rocket`, `mines`, `plinko`, `hilo`, `grattage`, `poulet`, `tower`, `keno`, `caisses`, `coinflip`, `dino`, `chevaux`, `bonneteau`, `stade`, `baccarat`, `rps`, `craps`
-- `clicker` — ItollecClicker
+- `clicker` — ItollecClicker (jeu retiré : scope gardé seulement pour l'historique des patch notes)
 - `krash` — Krash, le jeu de bourse (marchés, news, placements, classement)
 - multijoueur : `budgetguessr`, `drawguessr`, `flagguessr`, `infiltre`, `jaugeguessr`, `logoguessr`, `pokeguessr`, `rentguessr`, `undercover`, `wikiracing`
 

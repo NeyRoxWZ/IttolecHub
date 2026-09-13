@@ -205,7 +205,7 @@ export default function TowerPage() {
       </div>
 
       <div
-        className="w-full max-w-[460px] rounded-[24px] border-4 border-brand-border p-3 flex flex-col-reverse gap-2"
+        className="w-full max-w-[460px] rounded-[22px] border-4 border-brand-border p-3 flex flex-col-reverse gap-2"
         style={{
           background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 16px, transparent 16px 32px), #0E1030',
           boxShadow: 'inset 0 -8px 0 #070920, 0 6px 0 #05061A',

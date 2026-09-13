@@ -16,23 +16,23 @@ export default function LegalPage({
   sections: LegalSection[];
 }) {
   return (
-    <main className="min-h-screen bg-transparent text-tx-base px-4 sm:px-6 pt-4 md:pt-6 pb-12">
-      <div className="max-w-3xl mx-auto">
+    <main className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
+      <div className="max-w-7xl mx-auto [&>*]:max-w-3xl">
         <div className="flex items-center gap-3 mb-6">
           <Link
             href="/"
             aria-label="Accueil"
-            className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base transition-colors"
+            className="h-12 w-12 shrink-0 inline-flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-6 w-6" strokeWidth={3} />
           </Link>
           <div>
-            <h1 className="font-display text-3xl leading-none">{title}</h1>
+            <h1 className="font-display text-3xl sm:text-4xl leading-none">{title}</h1>
             <p className="text-[11px] text-tx-muted mt-1">Dernière mise à jour : {updated}</p>
           </div>
         </div>
 
-        <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-5 sm:p-8 shadow-brutal">
+        <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-5 sm:p-8 shadow-brutal">
           <div className="text-sm text-tx-secondary leading-relaxed">{intro}</div>
 
           <div className="mt-6 space-y-6">

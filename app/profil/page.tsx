@@ -6,9 +6,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 import { generatePassphrase } from '@/lib/words';
-import {
-  LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check,
-} from 'lucide-react';
+import { ArrowLeft, LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check, } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import ProfileStats from './ProfileStats';
@@ -95,15 +93,16 @@ export default function ProfilPage() {
   };
 
   return (
-    <main className="min-h-screen bg-transparent px-6 pt-4 md:pt-6 pb-12">
-      <div className="w-full max-w-5xl mx-auto">
-        <div className="w-full max-w-5xl mx-auto flex items-center justify-between gap-4 mb-6">
+    <main className="min-h-screen bg-transparent px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
+      <div className="w-full max-w-7xl mx-auto">
+        <div className="w-full flex items-center justify-between gap-4 mb-6">
           <div className="flex-1 flex items-center">
             <Link
               href="/"
-              className="h-11 px-4 rounded-xl border-[3px] font-display text-lg border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A] active:translate-y-[3px] transition-transform flex items-center justify-center"
+              aria-label="Accueil"
+              className="h-12 w-12 shrink-0 inline-flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none"
             >
-              Accueil
+              <ArrowLeft className="h-6 w-6" strokeWidth={3} />
             </Link>
           </div>
 
@@ -111,7 +110,7 @@ export default function ProfilPage() {
             <button
               type="button"
               onClick={logout}
-              className="h-11 px-4 rounded-lg border-[3px] border-red-500/40 bg-brand-inner text-red-400 hover:text-red-300 hover:border-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 font-display"
+              className="h-12 px-4 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A] hover:bg-[#333A80] active:translate-y-[3px] transition-transform flex items-center justify-center gap-2 font-display text-lg"
               title="Se déconnecter"
             >
               <LogOut className="h-5 w-5" />
@@ -120,7 +119,7 @@ export default function ProfilPage() {
           </div>
         </div>
 
-        <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-6 shadow-brutal">
+        <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-brutal">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             <div className="shrink-0">
               {user.avatar_url ? (

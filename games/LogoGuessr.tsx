@@ -581,7 +581,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           {/* Setup Phase */}
           {currentPhase === 'setup' && (
               <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
-                  <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
+                  <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
                       <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform rotate-3">
                           <Image className="w-16 h-16 text-accent-secondary" />
                       </div>
@@ -616,7 +616,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           {currentPhase === 'playing' && (
               <div key={game.current_round} className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto gap-8 p-4 animate-in fade-in duration-300">
                   {/* Logo Display */}
-                  <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-brand-inner rounded-[28px] shadow-brutal flex items-center justify-center p-4 border-4 border-brand-border overflow-hidden min-h-[16rem]">
+                  <div className="relative w-64 h-64 sm:w-80 sm:h-80 bg-brand-inner rounded-[22px] shadow-brutal flex items-center justify-center p-4 border-4 border-brand-border overflow-hidden min-h-[16rem]">
                       {currentLogo && !logoError ? (
                           <div className="relative w-full h-full flex items-center justify-center">
                               {difficulty === 'hard' ? (
@@ -700,7 +700,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           {/* Round Results Phase */}
           {currentPhase === 'round_results' && (
               <div className="flex flex-col items-center justify-center h-full w-full gap-8 animate-in zoom-in p-4">
-                  <div className="w-48 h-48 bg-white rounded-[28px] shadow-brutal flex items-center justify-center p-4 border-4 border-accent-success overflow-hidden transform rotate-2">
+                  <div className="w-48 h-48 bg-white rounded-[22px] shadow-brutal flex items-center justify-center p-4 border-4 border-accent-success overflow-hidden transform rotate-2">
                       {currentLogo && !logoError ? (
                           <img 
                               src={currentLogoUrl || getLogoUrl(currentLogo.domain)} 
@@ -756,7 +756,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           {/* Podium Phase */}
           {currentPhase === 'podium' && (
               <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                  <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                  <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                       <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                           <Trophy className="w-16 h-16 text-accent-secondary" />
                       </div>

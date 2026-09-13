@@ -48,7 +48,7 @@ export default function DeleteAccount({ user }: { user: User }) {
 
   return (
     <>
-      <div className="mt-10 rounded-[24px] border-4 border-red-500/40 bg-brand-card p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="mt-10 rounded-[22px] border-4 border-red-500/40 bg-brand-card p-5 flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1">
           <div className="font-display text-red-400">Supprimer mon compte</div>
           <p className="text-sm text-tx-secondary mt-1">
@@ -66,7 +66,7 @@ export default function DeleteAccount({ user }: { user: User }) {
 
       {open && (
         <div className="fixed inset-0 z-[300] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => !busy && setOpen(false)}>
-          <div className="w-full max-w-md bg-brand-card border-4 border-red-500/60 rounded-[28px] p-6 shadow-brutal" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md bg-brand-card border-4 border-red-500/60 rounded-[22px] p-6 shadow-brutal" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3 mb-3">
               <h2 className="font-display text-xl text-red-400">Supprimer le compte {user.pseudo} ?</h2>
               <button onClick={() => setOpen(false)} aria-label="Fermer" className="h-9 w-9 shrink-0 rounded-lg border-[3px] border-brand-border bg-brand-inner flex items-center justify-center">

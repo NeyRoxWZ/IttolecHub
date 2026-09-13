@@ -17,11 +17,6 @@ import releases from '@/patch-notes/releases.json';
 
 const SOLO_GAMES: { id: CoverGame; name: string; tag: string; tagClass: string; description: string; href: string }[] = [
   {
-    id: 'clicker', name: 'ItollecClicker', tag: 'Idle', tagClass: 'bg-accent-success text-brand-bg',
-    description: 'Clique pour gagner des ₶, achète des bâtiments et empile les bonus pour produire toujours plus.',
-    href: '/itollec-clicker',
-  },
-  {
     id: 'casino', name: 'Casino', tag: '20 jeux', tagClass: 'bg-accent-primary text-brand-bg',
     description: 'Mise tes FrenlyCoins sur 20 mini-jeux, avec pass, coffre, missions et cagnotte. Monnaie fictive.',
     href: '/casino',
@@ -249,7 +244,7 @@ export default function Home() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[9999] md:hidden">
           <button type="button" onClick={() => setMobileMenuOpen(false)} className="absolute inset-0 bg-black/70" aria-label="Fermer" />
-          <div className="absolute top-3 left-3 right-3 bg-brand-card border-4 border-brand-border rounded-[28px] p-5 shadow-brutal max-h-[calc(100vh-24px)] overflow-y-auto space-y-3">
+          <div className="absolute top-3 left-3 right-3 bg-brand-card border-4 border-brand-border rounded-[22px] p-5 shadow-brutal max-h-[calc(100vh-24px)] overflow-y-auto space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="font-display text-3xl text-stroke">Menu</div>
               <button type="button" onClick={() => setMobileMenuOpen(false)} className={cn(BTN_DARK, 'h-11 w-11')} aria-label="Fermer">
@@ -298,16 +293,16 @@ export default function Home() {
 
               {/* Stretch, so the side column ends exactly where the game cards end. */}
               <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-stretch">
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className="grid gap-5">
                   {SOLO_GAMES.map((g) => (
                     <article
                       key={g.id}
-                      className="relative flex flex-col bg-brand-card border-4 border-brand-border rounded-[24px] overflow-hidden shadow-[0_8px_0_#05061A]"
+                      className="relative flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] overflow-hidden shadow-[0_8px_0_#05061A]"
                     >
                       <span className={cn('absolute top-3 left-[-4px] z-10 px-3 py-1 font-display text-base border-[3px] border-brand-border rounded-r-xl', g.tagClass)}>
                         {g.tag}
                       </span>
-                      <GameCover game={g.id} className="block w-full aspect-[4/3] border-b-4 border-brand-border" />
+                      <GameCover game={g.id} className="block w-full aspect-[16/9] max-h-[300px] border-b-4 border-brand-border" />
                       <div className="flex-1 flex flex-col gap-3 p-4">
                         <h2 className="font-display text-3xl leading-none text-stroke">{g.name}</h2>
                         <p className="text-sm font-bold text-tx-secondary leading-relaxed">{g.description}</p>
@@ -355,7 +350,7 @@ export default function Home() {
 
               {/* Two cards side by side, same height, tops and bottoms aligned. */}
               <div className="grid gap-6 lg:grid-cols-2 items-stretch">
-                <div className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[24px] p-5 md:p-6 shadow-[0_8px_0_#05061A]">
+                <div className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] p-5 md:p-6 shadow-[0_8px_0_#05061A]">
                   <div className="font-display text-2xl mb-4">{activeTab === 'create' ? 'Créer une salle' : 'Rejoindre une salle'}</div>
                   <div className="flex gap-1 p-1.5 rounded-[22px] bg-brand-bg border-[3px] border-brand-border">
                     {(['create', 'join'] as const).map((t) => (
@@ -405,7 +400,7 @@ export default function Home() {
                   </form>
                 </div>
 
-                <div className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[24px] p-5 md:p-6 shadow-[0_8px_0_#05061A]">
+                <div className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] p-5 md:p-6 shadow-[0_8px_0_#05061A]">
                   <div className="font-display text-2xl mb-4">Comment jouer</div>
                   <HowToPlayDemo className="flex-1" />
                 </div>

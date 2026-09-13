@@ -361,7 +361,7 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[250] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-lg max-h-[92dvh] flex flex-col bg-brand-card border-4 border-brand-border rounded-[28px] shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200">
+      <div className="w-full max-w-lg max-h-[92dvh] flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200">
         <div className="flex items-start justify-between gap-4 p-6 pb-4">
           <div className="flex items-center gap-3 min-w-0">
             <span className="h-14 w-14 shrink-0 rounded-2xl border-[3px] border-brand-border bg-accent-primary flex items-center justify-center shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A]">

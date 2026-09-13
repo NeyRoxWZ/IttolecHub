@@ -190,7 +190,7 @@ export default function SlotsPage() {
 
       {/* The cabinet: a raised pink frame with a row of bulbs on top. */}
       <div
-        className="relative rounded-[32px] border-4 border-brand-border p-6 pt-9"
+        className="relative rounded-[22px] border-4 border-brand-border p-6 pt-9"
         style={{ background: '#FF4F8B', boxShadow: 'inset 0 -10px 0 #C92D63, inset 0 8px 0 #FF86B0, 0 8px 0 #05061A' }}
       >
         <div className="absolute top-2.5 left-0 right-0 flex justify-center gap-3" aria-hidden="true">

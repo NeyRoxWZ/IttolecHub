@@ -108,7 +108,7 @@ export default function ChevauxPage() {
       {confetti > 0 && <Confetti trigger={confetti} intensity="huge" />}
 
       <div
-        className="w-full rounded-[24px] border-4 border-brand-border p-3 space-y-2"
+        className="w-full rounded-[22px] border-4 border-brand-border p-3 space-y-2"
         style={{ background: '#169A55', boxShadow: 'inset 0 -8px 0 #0F7A42, 0 6px 0 #05061A' }}
       >
         {HORSES.map((h, i) => {

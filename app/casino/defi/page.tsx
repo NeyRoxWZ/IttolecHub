@@ -65,8 +65,8 @@ export default function DefiPage() {
 
   if (!state) {
     return (
-      <main className="min-h-screen bg-transparent p-4">
-        <div className="max-w-2xl mx-auto h-64 rounded-2xl border-[3px] border-brand-border bg-brand-inner animate-pulse" />
+      <main className="min-h-screen bg-transparent px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
+        <div className="max-w-3xl h-64 rounded-2xl border-[3px] border-brand-border bg-brand-inner animate-pulse" />
       </main>
     );
   }
@@ -77,17 +77,17 @@ export default function DefiPage() {
   const betValue = Number(bet.replace(/\D/g, '')) || 0;
 
   return (
-    <main className="min-h-screen bg-transparent text-tx-base pb-[env(safe-area-inset-bottom)]">
-      <div className="max-w-2xl mx-auto p-4 space-y-4">
+    <main className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
+      <div className="max-w-7xl mx-auto space-y-4 [&>*]:max-w-3xl">
         <div className="flex items-center gap-3">
           <Link
             href="/casino"
-            className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-brand-inner flex items-center justify-center focus:outline-none"
+            className="h-12 w-12 shrink-0 inline-flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A] active:translate-y-[3px] transition-transform focus:outline-none"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-6 w-6" strokeWidth={3} />
           </Link>
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-2xl leading-none">Défi du jour</h1>
+            <h1 className="font-display text-3xl sm:text-4xl leading-none">Défi du jour</h1>
             <p className="text-[11px] text-tx-muted mt-1 flex items-center gap-1">
               <Clock className="h-3 w-3" /> nouveau dans {countdown(left)}
             </p>

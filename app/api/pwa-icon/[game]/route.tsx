@@ -11,7 +11,6 @@ export const runtime = 'edge';
  */
 const GAMES: Record<string, { word: string; accent: string; glyph: string }> = {
   casino: { word: 'CASINO', accent: '#FFD000', glyph: '777' },
-  clicker: { word: 'CLICKER', accent: '#00FF94', glyph: '+1' },
   krash: { word: 'KRASH', accent: '#FF4D6D', glyph: '↗↘' },
 };
 

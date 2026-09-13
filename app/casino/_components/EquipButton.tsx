@@ -54,22 +54,25 @@ export default function EquipButton({
     }
   };
 
+  const icon = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
+
   return (
     <button
       onClick={equip}
       disabled={state !== 'idle'}
       className={cn(
-        'rounded-lg border-[3px] font-black tracking-widest flex items-center justify-center gap-1.5 focus:outline-none transition-colors',
-        size === 'sm' ? 'h-7 px-2 text-[9px]' : 'h-9 px-3 text-[10px]',
+        'inline-flex items-center justify-center gap-1.5 rounded-xl border-[3px] border-brand-border font-display leading-none',
+        'transition-transform focus:outline-none active:translate-y-[3px] disabled:active:translate-y-0',
+        size === 'sm' ? 'h-9 px-2.5 text-base' : 'h-11 px-4 text-lg',
         state === 'done'
-          ? 'border-accent-success bg-accent-success/15 text-accent-success'
-          : 'border-accent-primary bg-accent-primary text-brand-bg hover:brightness-110 disabled:opacity-60',
+          ? 'bg-accent-success text-brand-bg shadow-[inset_0_-4px_0_#1E9A55]'
+          : 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00,0_3px_0_#05061A] hover:brightness-105 disabled:opacity-70',
         className
       )}
     >
       {state === 'done'
-        ? <><Check className={size === 'sm' ? 'h-3 w-3' : 'h-3.5 w-3.5'} /> ÉQUIPÉ</>
-        : <><Wand2 className={size === 'sm' ? 'h-3 w-3' : 'h-3.5 w-3.5'} /> {state === 'busy' ? '···' : 'ÉQUIPER'}</>}
+        ? <><Check className={icon} strokeWidth={3} /> Équipé</>
+        : <><Wand2 className={icon} /> {state === 'busy' ? '···' : 'Équiper'}</>}
     </button>
   );
 }

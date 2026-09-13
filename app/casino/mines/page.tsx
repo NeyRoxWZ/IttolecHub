@@ -217,7 +217,7 @@ export default function MinesPage() {
       </div>
 
       <div
-        className={cn('grid grid-cols-5 gap-2.5 p-4 rounded-[24px] border-4 border-brand-border', phase === 'busted' && 'animate-[mineShake_400ms_ease-out]')}
+        className={cn('grid grid-cols-5 gap-2.5 p-4 rounded-[22px] border-4 border-brand-border', phase === 'busted' && 'animate-[mineShake_400ms_ease-out]')}
         style={{
           background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 16px, transparent 16px 32px), #0E1030',
           boxShadow: 'inset 0 -8px 0 #070920, 0 6px 0 #05061A',

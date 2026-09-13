@@ -779,7 +779,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in">
                {players.length < 3 ? (
-                 <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center">
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center">
                      <div className="bg-brand-inner border-[3px] border-brand-border p-4 rounded-xl mb-4">
                          <User className="w-12 h-12 text-tx-secondary animate-pulse" />
                      </div>
@@ -787,7 +787,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                      <p className="text-tx-secondary mt-2 font-bold">{players.length} / 3 minimum</p>
                  </div>
                ) : (
-                 <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full max-w-md">
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center w-full max-w-md">
                     <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
                         <User className="w-16 h-16 text-accent-primary" />
                     </div>
@@ -815,7 +815,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {currentPhase === 'roles' && (
             myRole ? (
                 <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full shadow-brutal relative overflow-hidden">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full shadow-brutal relative overflow-hidden">
                         {amIReady && (
                             <div className="absolute inset-0 bg-brand-bg/90 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in">
                                 <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl shadow-brutal mb-4">
@@ -942,7 +942,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                 
                                 return (
                                     <div key={pid} className={cn(
-                                        "flex flex-col bg-brand-card border-4 rounded-[24px] overflow-hidden h-[400px] md:h-[450px] relative w-full md:w-[31%] lg:w-[23%] shadow-brutal transition-all",
+                                        "flex flex-col bg-brand-card border-4 rounded-[22px] overflow-hidden h-[400px] md:h-[450px] relative w-full md:w-[31%] lg:w-[23%] shadow-brutal transition-all",
                                         isSpeaking ? "border-accent-primary" : "border-brand-border"
                                     )}>
                                         {/* Sticky Header */}
@@ -1069,7 +1069,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {/* PHASE: MR WHITE GUESS */}
         {currentPhase === 'mrwhite_guess' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <AlertTriangle className="w-16 h-16 text-accent-primary animate-pulse" />
                     </div>
@@ -1103,7 +1103,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
         {/* PHASE: RESULTS */}
         {currentPhase === 'results' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <Crown className="w-16 h-16 text-accent-primary" />
                     </div>

@@ -437,7 +437,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
         {/* SETUP */}
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full max-w-lg text-center">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center w-full max-w-lg text-center">
                     <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-6">
                         <Zap className="w-16 h-16 text-[#FFC61A]" />
                     </div>
@@ -569,7 +569,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
         {/* PODIUM */}
         {currentPhase === 'podium' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <Trophy className="w-16 h-16 text-[#FFC61A]" />
                     </div>

@@ -673,7 +673,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         {currentPhase === 'setup' && (
             <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in">
                {players.length < 4 ? (
-                 <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center">
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center">
                      <div className="bg-brand-inner border-[3px] border-brand-border p-4 rounded-xl mb-4">
                          <User className="w-12 h-12 text-tx-secondary animate-pulse" />
                      </div>
@@ -681,7 +681,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                      <p className="text-tx-secondary mt-2 font-bold">{players.length} / 4 minimum</p>
                  </div>
                ) : (
-                 <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 shadow-brutal flex flex-col items-center w-full max-w-md">
+                 <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center w-full max-w-md">
                     <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
                         <User className="w-16 h-16 text-accent-primary" />
                     </div>
@@ -709,7 +709,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         {currentPhase === 'roles' && (
             myRole ? (
                 <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg p-4">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full shadow-brutal relative overflow-hidden">
+                    <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full shadow-brutal relative overflow-hidden">
                         {amIReady && (
                             <div className="absolute inset-0 bg-brand-bg/90 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in">
                                 <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl shadow-brutal mb-4">
@@ -1012,7 +1012,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                 const hasVotedForThis = votesForThisPlayer.some((v: any) => v.voter_id === playerId);
                                 
                                 return (
-                                    <div key={pid} className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[24px] overflow-hidden h-[300px] relative w-full md:w-[31%] lg:w-[23%] shadow-brutal">
+                                    <div key={pid} className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] overflow-hidden h-[300px] relative w-full md:w-[31%] lg:w-[23%] shadow-brutal">
                                         <div className="p-4 text-center border-b-4 border-brand-border bg-brand-inner">
                                             <div className="font-display text-xl text-tx-base">{p?.name}</div>
                                             {pid === finderId && currentPhase === 'voting_finder' && (
@@ -1066,7 +1066,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         {/* PHASE: RESULTS */}
         {currentPhase === 'results' && (
             <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[28px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
+                <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
                     <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
                         <Crown className="w-16 h-16 text-accent-primary" />
                     </div>
