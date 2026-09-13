@@ -1,0 +1,18 @@
+{
+  "id": "/peche",
+  "name": "Frenly Pêche",
+  "short_name": "Pêche",
+  "description": "Frenly Pêche, le jeu de pêche d'IttolecHub.",
+  "start_url": "/peche?source=pwa",
+  "scope": "/peche",
+  "display": "standalone",
+  "background_color": "#13131A",
+  "theme_color": "#13131A",
+  "orientation": "any",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "/api/pwa-icon/peche?size=192", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/api/pwa-icon/peche?size=512", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/api/pwa-icon/peche?size=512", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

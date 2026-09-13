@@ -9,7 +9,7 @@ import {
   Crown, Skull, Radio, Palette, Medal, Ship, User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { BRAWL } from '@/lib/ui/brawl';
+import { BRAWL, BRAWL_SWATCHES } from '@/lib/ui/brawl';
 import { sfx } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import {
@@ -224,12 +224,15 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
       )}
 
       <header className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
           <Link href="/?mode=solo" aria-label="Retour" className={cn(BRAWL.pink, 'h-12 w-12 shrink-0')}>
             <ArrowLeft className="h-6 w-6" strokeWidth={3} />
           </Link>
           <div className="min-w-0">
-            <h1 className="font-display text-3xl sm:text-4xl leading-none">Frenly Pêche</h1>
+            <h1 className="font-display text-2xl sm:text-4xl leading-none flex items-center gap-2">
+              Frenly Pêche
+              <span title="Le jeu est en bêta : l’équilibrage peut encore changer." className="rounded-lg border-[3px] border-brand-border bg-accent-info px-2 py-0.5 text-sm text-white shadow-[inset_0_-3px_0_#2F5BD0]">BÊTA</span>
+            </h1>
             <p className="text-sm font-bold text-tx-secondary mt-0.5">{zone.region} · {zone.name}</p>
           </div>
           <div className="flex gap-1 rounded-[22px] border-[3px] border-brand-border bg-brand-bg p-1.5" role="radiogroup" aria-label="Mode de pêche">
@@ -239,7 +242,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
             ] as const).map((m) => (
               <button key={m.id} role="radio" aria-checked={mode === m.id} onClick={() => switchMode(m.id)}
                 title={m.id === 'solo' ? 'Solo : tes prises donnent des matériaux pour améliorer ton matériel.' : 'Port public : pas de matériaux, mais chaque prise vaut ×1,5 et tu pêches avec les autres joueurs.'}
-                className={cn('h-10 px-3 rounded-[13px] flex items-center gap-1.5 font-display leading-none transition-transform active:translate-y-[2px]',
+                className={cn('h-10 px-2 sm:px-3 rounded-[13px] flex items-center gap-1.5 font-display leading-none transition-transform active:translate-y-[2px]',
                   mode === m.id ? (m.id === 'public' ? 'bg-accent-info text-white shadow-[inset_0_-4px_0_#2F5BD0]' : 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00]') : 'text-tx-secondary hover:text-white')}>
                 <m.icon className="h-5 w-5" />
                 <span className="flex flex-col items-start"><span className="text-base">{m.label}</span><span className="text-[10px] opacity-80">{m.hint}</span></span>
@@ -282,7 +285,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
 
       {/* Fixed height: switching tabs must never resize the game. */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_440px] gap-4 lg:h-[700px]">
-        <section className={cn(BRAWL.panel, 'relative overflow-hidden h-[480px] lg:h-full flex flex-col')}>
+        <section className={cn(BRAWL.panel, 'relative overflow-hidden h-[440px] sm:h-[480px] lg:h-full flex flex-col')}>
           <FishingScene
             zoneId={state.zone} phase={phase} weather={state.weather.id} equipped={state.equipped}
             others={mode === 'public' ? port.filter((p) => p.mode === 'public' && p.zone === state.zone && p.userId !== userId) : []}
@@ -335,7 +338,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
           </div>
 
           <div className="relative z-10 p-4 pt-0 flex gap-2">
-            <button onClick={castLine} disabled={busy || phase === 'waiting' || phase === 'reeling'} className={cn(BRAWL.yellow, 'flex-1 h-16 text-2xl rounded-2xl')}>
+            <button onClick={castLine} disabled={busy || phase === 'waiting' || phase === 'reeling'} className={cn(BRAWL.yellow, 'flex-1 h-16 text-xl sm:text-2xl rounded-2xl')}>
               <Fish className="h-7 w-7" /> {phase === 'landed' || phase === 'lost' ? 'Relancer' : 'Lancer la ligne'}
             </button>
             <button
@@ -350,35 +353,35 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
         </section>
 
         <section className={cn(BRAWL.panel, 'p-4 flex flex-col gap-3 h-[640px] lg:h-full min-h-0')}>
-          <div className="grid grid-cols-8 gap-1 rounded-[18px] border-[3px] border-brand-border bg-brand-bg p-1 shrink-0">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => { sfx.click(); setTab(t.id); }}
-                className={cn(
-                  'relative h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 font-display text-[10px] leading-none transition-transform active:translate-y-[2px]',
-                  tab === t.id ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00]' : 'text-tx-secondary hover:text-white hover:bg-[#2B3170]'
-                )}
-              >
-                <t.icon className="h-[18px] w-[18px]" />
-                <span className="truncate max-w-full px-0.5">{t.label}</span>
-                {t.id === 'quetes' && questsReady > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white text-[11px] flex items-center justify-center">{questsReady}</span>
-                )}
-                {t.id === 'pass' && passClaimable > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white text-[11px] flex items-center justify-center">{passClaimable}</span>
-                )}
-                {t.id === 'succes' && achClaimable > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white text-[11px] flex items-center justify-center">{achClaimable}</span>
-                )}
-                {t.id === 'port' && port.length > 1 && (
-                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-success border-2 border-brand-border text-brand-bg text-[11px] flex items-center justify-center">{port.length}</span>
-                )}
-                {t.id === 'boutique' && state.packs > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-accent-primary border-2 border-brand-border text-brand-bg text-[11px] flex items-center justify-center">{state.packs}</span>
-                )}
-              </button>
-            ))}
+          <div className="shrink-0 rounded-[18px] border-[3px] border-brand-border bg-brand-inner p-2.5">
+            <div className="font-display text-lg leading-none sm:mb-2">Aller à</div>
+            {/* Phones: one row that scrolls sideways. From sm up: two rows of eight. */}
+            <div className="flex gap-1 overflow-x-auto pt-2 pb-1 -mx-1 px-1 sm:grid sm:grid-cols-8 sm:gap-x-1 sm:gap-y-2 sm:overflow-visible sm:pb-0">
+              {TABS.map((t, i) => {
+                const swatch = BRAWL_SWATCHES[i % BRAWL_SWATCHES.length];
+                const on = tab === t.id;
+                const badge = t.id === 'quetes' ? questsReady
+                  : t.id === 'pass' ? passClaimable
+                  : t.id === 'succes' ? achClaimable
+                  : t.id === 'boutique' ? state.packs
+                  : t.id === 'port' && port.length > 1 ? port.length : 0;
+                return (
+                  <button key={t.id} onClick={() => { sfx.click(); setTab(t.id); }} aria-current={on ? 'page' : undefined}
+                    className="group flex flex-col items-center gap-1 text-center focus:outline-none min-w-0 shrink-0 w-[62px] sm:w-auto">
+                    <span
+                      className={cn(BRAWL.iconTile, 'h-10 w-10 text-white transition-transform group-hover:-translate-y-0.5 group-active:translate-y-[2px]', on && 'ring-[3px] ring-accent-primary ring-offset-2 ring-offset-brand-inner -translate-y-0.5')}
+                      style={{ background: swatch.fill, boxShadow: `inset 0 -4px 0 ${swatch.shade}, 0 3px 0 #05061A` }}
+                    >
+                      <t.icon className="h-5 w-5" strokeWidth={2.5} />
+                      {badge > 0 && (
+                        <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-accent-secondary border-2 border-brand-border text-white font-display text-[11px] flex items-center justify-center">{badge}</span>
+                      )}
+                    </span>
+                    <span className={cn('text-[10px] font-black leading-tight line-clamp-1 max-w-full', on ? 'text-accent-primary' : 'text-tx-secondary group-hover:text-white')}>{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto pr-1">

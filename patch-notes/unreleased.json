@@ -1,36 +1,3 @@
 {
-  "entries": [
-    {
-      "id": "2026-09-13-01",
-      "date": "2026-09-13",
-      "scope": "wheel",
-      "type": "correctif",
-      "title": "Roue du jour lisible",
-      "details": "Le « 10k » de la case jaune n'est plus illisible."
-    },
-    {
-      "id": "2026-09-13-02",
-      "date": "2026-09-13",
-      "scope": "site",
-      "type": "amelioration",
-      "title": "Nouveautés en grand dans Solo",
-      "details": "La carte Nouveautés prend toute la colonne et résume la dernière version. La carte « Entre potes ? » est retirée."
-    },
-    {
-      "id": "2026-09-13-03",
-      "date": "2026-09-13",
-      "scope": "site",
-      "type": "correctif",
-      "title": "Textes légaux à jour",
-      "details": "Les conditions, la confidentialité et les mentions légales ne parlent plus de Krash."
-    },
-    {
-      "id": "2026-09-13-04",
-      "date": "2026-09-13",
-      "scope": "casino",
-      "type": "amelioration",
-      "title": "Le pourcentage des jeux expliqué",
-      "details": "Les cartes affichent « Rend 94 % » et les règles de chaque jeu expliquent la redistribution : pour 100 ₶ misés au total, environ 94 ₶ reviennent aux joueurs en moyenne. Ce n'est pas la chance de gagner."
-    }
-  ]
+  "entries": []
 }

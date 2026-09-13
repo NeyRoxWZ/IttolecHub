@@ -1,6 +1,109 @@
 {
   "releases": [
     {
+      "version": "1.2.0",
+      "date": "2026-09-13",
+      "title": "Frenly Pêche en bêta",
+      "entries": [
+        {
+          "id": "2026-09-13-01",
+          "date": "2026-09-13",
+          "scope": "wheel",
+          "type": "correctif",
+          "title": "Roue du jour lisible",
+          "details": "Le « 10k » de la case jaune n'est plus illisible."
+        },
+        {
+          "id": "2026-09-13-02",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Nouveautés en grand dans Solo",
+          "details": "La carte Nouveautés prend toute la colonne et résume la dernière version. La carte « Entre potes ? » est retirée."
+        },
+        {
+          "id": "2026-09-13-03",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "correctif",
+          "title": "Textes légaux à jour",
+          "details": "Les conditions, la confidentialité et les mentions légales ne parlent plus de Krash."
+        },
+        {
+          "id": "2026-09-13-04",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "amelioration",
+          "title": "Le pourcentage des jeux expliqué",
+          "details": "Les cartes affichent « Rend 94 % » et les règles de chaque jeu expliquent la redistribution : pour 100 ₶ misés au total, environ 94 ₶ reviennent aux joueurs en moyenne. Ce n'est pas la chance de gagner."
+        },
+        {
+          "id": "2026-09-13-05",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "nouveau",
+          "title": "Frenly Pêche arrive en bêta",
+          "details": "Nouveau jeu solo : pêche des centaines d’espèces dans 40 coins de pêche et des profondeurs sans fin. Améliore ton matériel, pose une canne automatique et enchaîne les Marées pour recommencer plus fort."
+        },
+        {
+          "id": "2026-09-13-06",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "nouveau",
+          "title": "Solo ou port public",
+          "details": "En solo, tes prises donnent des matériaux pour ton matériel. Au port public, tu pêches avec les autres joueurs et chaque prise vaut 1,5 fois plus."
+        },
+        {
+          "id": "2026-09-13-07",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "nouveau",
+          "title": "Coffres au trésor et cosmétiques",
+          "details": "Ouvre des coffres à cadenas (plusieurs d’un coup) pour gagner flotteurs, cannes, chapeaux, pontons, décors et effets. Coffre quotidien sur 7 jours."
+        },
+        {
+          "id": "2026-09-13-08",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "nouveau",
+          "title": "Aquarium personnalisé",
+          "details": "Choisis jusqu’à 8 poissons de ton Poissodex et décore ton aquarium. Tout le monde le voit sur ta fiche."
+        },
+        {
+          "id": "2026-09-13-09",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "nouveau",
+          "title": "Pass gratuit et premium",
+          "details": "Chaque prise fait avancer le pass du mois. La voie premium donne des cosmétiques exclusifs."
+        },
+        {
+          "id": "2026-09-13-10",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "nouveau",
+          "title": "Monstre, jackpot et classement",
+          "details": "Attaquez ensemble le monstre de la semaine, tentez le jackpot commun et comparez-vous au classement hebdo. Les belles prises s’affichent en direct."
+        },
+        {
+          "id": "2026-09-13-11",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "nouveau",
+          "title": "Quêtes, commandes de la criée et succès",
+          "details": "Missions du jour, commandes à livrer, météo qui change les prises et 49 succès à débloquer."
+        },
+        {
+          "id": "2026-09-13-12",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "nouveau",
+          "title": "Frenly Pêche sur ton téléphone",
+          "details": "Le jeu s’adapte aux petits écrans et s’installe comme une appli depuis ton navigateur (Ajouter à l’écran d’accueil)."
+        }
+      ]
+    },
+    {
       "version": "1.1.0",
       "date": "2026-09-13",
       "title": "Guides, objectifs communs et Frenly Pêche en approche",

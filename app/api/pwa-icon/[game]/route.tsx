@@ -11,6 +11,7 @@ export const runtime = 'edge';
  */
 const GAMES: Record<string, { word: string; accent: string; glyph: string }> = {
   casino: { word: 'CASINO', accent: '#FFD000', glyph: '777' },
+  peche: { word: 'PÊCHE', accent: '#3CC3D6', glyph: '><>' },
 };
 
 export function GET(req: Request, { params }: { params: { game: string } }) {

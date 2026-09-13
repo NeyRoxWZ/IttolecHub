@@ -27,10 +27,9 @@ const SOLO_GAMES: {
     href: '/casino',
   },
   {
-    id: 'peche', name: 'Frenly Pêche', tag: 'Bientôt', tagClass: 'bg-accent-info text-white',
+    id: 'peche', name: 'Frenly Pêche', tag: 'Bêta', tagClass: 'bg-accent-info text-white',
     description: 'Pêche des centaines d’espèces, améliore ton matériel et enchaîne les Marées pour aller toujours plus loin.',
     href: '/peche',
-    building: true,
   },
 ];
 

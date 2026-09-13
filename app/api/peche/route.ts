@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { isOwner } from '@/lib/owner';
 import {
   autoFish, buyItem, buyPack, buyPassPremium, buyTree, cast, claimAchievement, claimBoss, claimChest, claimMission, claimPassTier,
   communityFor, deliverOrder, setAquarium, equip, openPack, playerCard, prestige, reel, seeRecap, sell, stateFor, travel, upgrade,
@@ -8,10 +7,9 @@ import type { CosmeticSlot, GearId, TreeId } from '@/lib/peche/data';
 
 export const dynamic = 'force-dynamic';
 
-/** Under construction: only the owner's account may play. */
+/** Open to every signed-in player (beta). */
 function gate(userId: string | null | undefined) {
   if (!userId) return NextResponse.json({ error: 'user_id requis' }, { status: 400 });
-  if (!isOwner(userId)) return NextResponse.json({ error: 'Frenly Pêche est en construction.' }, { status: 403 });
   return null;
 }
 
