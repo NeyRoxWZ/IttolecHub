@@ -166,16 +166,6 @@ select.bg-brand-inner:focus {
   background-clip: padding-box;
 }
 
-/* Krash packs several scrolling lists side by side: thin bars there, so a
-   list's scrollbar does not read as a line between panels. */
-[data-krash] * {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
-}
-[data-krash] ::-webkit-scrollbar { width: 4px; height: 4px; }
-[data-krash] ::-webkit-scrollbar-track { background: transparent; border: 0; }
-[data-krash] ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.25); border: 0; }
-
 /* WIKIRACING STYLES */
 .wiki-content {
   font-family: 'Inter', sans-serif;

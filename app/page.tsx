@@ -12,16 +12,26 @@ import { supabase } from '@/lib/supabase/client';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import GameCover, { type CoverGame } from '@/components/GameCover';
 import HowToPlayDemo from '@/components/HowToPlayDemo';
+import { isOwner } from '@/lib/owner';
 import releases from '@/patch-notes/releases.json';
 
 
-const SOLO_GAMES: { id: CoverGame; name: string; tag: string; tagClass: string; description: string; href: string }[] = [
+const SOLO_GAMES: {
+  id: CoverGame; name: string; tag: string; tagClass: string; description: string; href: string;
+  /** Shown to everyone under a "en construction" tape, playable by the owner only. */
+  building?: boolean;
+}[] = [
   {
     id: 'casino', name: 'Casino', tag: '20 jeux', tagClass: 'bg-accent-primary text-brand-bg',
     description: 'Mise tes FrenlyCoins sur 20 mini-jeux, avec pass, coffre, missions et cagnotte. Monnaie fictive.',
     href: '/casino',
   },
-  // Krash is not listed while it is being reworked: still reachable at /krash.
+  {
+    id: 'peche', name: 'Frenly Pêche', tag: 'Bientôt', tagClass: 'bg-accent-info text-white',
+    description: 'Pêche des centaines d’espèces, améliore ton matériel et enchaîne les Marées pour aller toujours plus loin.',
+    href: '/peche',
+    building: true,
+  },
 ];
 
 const latestRelease = (releases as { releases: { version: string; title?: string }[] }).releases[0];
@@ -293,8 +303,10 @@ export default function Home() {
 
               {/* Stretch, so the side column ends exactly where the game cards end. */}
               <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-stretch">
-                <div className="grid gap-5">
-                  {SOLO_GAMES.map((g) => (
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {SOLO_GAMES.map((g) => {
+                    const locked = !!g.building && !isOwner(user?.id);
+                    return (
                     <article
                       key={g.id}
                       className="relative flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] overflow-hidden shadow-[0_8px_0_#05061A]"
@@ -302,20 +314,43 @@ export default function Home() {
                       <span className={cn('absolute top-3 left-[-4px] z-10 px-3 py-1 font-display text-base border-[3px] border-brand-border rounded-r-xl', g.tagClass)}>
                         {g.tag}
                       </span>
-                      <GameCover game={g.id} className="block w-full aspect-[16/9] max-h-[300px] border-b-4 border-brand-border" />
+                      <div className="relative overflow-hidden border-b-4 border-brand-border">
+                        <GameCover game={g.id} className={cn('block w-full aspect-[16/9]', locked && 'grayscale-[40%]')} />
+                        {g.building && (
+                          // Two crossing strips of warning tape across the cover.
+                          <div aria-hidden className="absolute inset-0 pointer-events-none">
+                            {[-18, 18].map((deg) => (
+                              <div
+                                key={deg}
+                                className="absolute left-1/2 top-1/2 w-[150%] h-10 -translate-x-1/2 -translate-y-1/2 border-y-[3px] border-brand-border flex items-center justify-center shadow-[0_4px_0_rgba(5,6,26,0.5)]"
+                                style={{
+                                  transform: `translate(-50%, -50%) rotate(${deg}deg)`,
+                                  background: 'repeating-linear-gradient(135deg, #FFC61A 0 22px, #05061A 22px 44px)',
+                                }}
+                              />
+                            ))}
+                            {/* The label sits above both strips, where they cross. */}
+                            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 px-3 py-1 rounded-xl bg-[#FFC61A] border-[3px] border-brand-border font-display text-xl sm:text-2xl text-brand-bg whitespace-nowrap shadow-[inset_0_-4px_0_#D98E00,0_4px_0_#05061A]">
+                              En construction
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <div className="flex-1 flex flex-col gap-3 p-4">
                         <h2 className="font-display text-3xl leading-none text-stroke">{g.name}</h2>
                         <p className="text-sm font-bold text-tx-secondary leading-relaxed">{g.description}</p>
                         <button
                           type="button"
+                          disabled={locked}
                           onClick={() => window.location.assign(g.href)}
-                          className={cn(BTN_YELLOW, 'mt-auto w-full h-14 text-2xl')}
+                          className={cn(locked ? BTN_DARK : BTN_YELLOW, 'mt-auto w-full h-14 text-2xl')}
                         >
-                          Jouer
+                          {locked ? 'En construction' : 'Jouer'}
                         </button>
                       </div>
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <aside className="flex flex-col gap-5">

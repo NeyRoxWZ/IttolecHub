@@ -52,7 +52,7 @@ export default function DeleteAccount({ user }: { user: User }) {
         <div className="flex-1">
           <div className="font-display text-red-400">Supprimer mon compte</div>
           <p className="text-sm text-tx-secondary mt-1">
-            Efface ton compte et toutes tes données : sauvegardes, casino, Krash, messages, cadeaux. C&apos;est définitif.
+            Efface ton compte et toutes tes données : sauvegardes, casino, messages, cadeaux. C&apos;est définitif.
           </p>
         </div>
         <button
@@ -74,7 +74,7 @@ export default function DeleteAccount({ user }: { user: User }) {
               </button>
             </div>
             <p className="text-sm text-tx-secondary leading-relaxed">
-              Tout disparaît tout de suite et ne pourra pas être récupéré : progression, FrenlyCoins du casino et de Krash, cosmétiques, pass, classements, messages.
+              Tout disparaît tout de suite et ne pourra pas être récupéré : progression, FrenlyCoins de chaque jeu, cosmétiques, pass, classements, messages.
             </p>
 
             {!user.is_discord && (

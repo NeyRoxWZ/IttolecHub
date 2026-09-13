@@ -1,6 +1,188 @@
 {
   "releases": [
     {
+      "version": "1.1.0",
+      "date": "2026-09-13",
+      "title": "Guides, objectifs communs et Frenly Pêche en approche",
+      "entries": [
+        {
+          "id": "2026-09-13-01",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Salon multijoueur redessiné",
+          "details": "Choix du jeu en cartes colorées, liste des joueurs avec avatars, gros bouton pour lancer la partie."
+        },
+        {
+          "id": "2026-09-13-02",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Jeux multijoueur à la nouvelle direction artistique",
+          "details": "Barre du haut, chrono, vote pour revenir au salon et réactions refaits dans le nouveau style."
+        },
+        {
+          "id": "2026-09-13-03",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Notifications redessinées",
+          "details": "Les petites alertes en bas de l'écran prennent la couleur de ce qui se passe : vert pour un gain, rose pour une erreur."
+        },
+        {
+          "id": "2026-09-13-04",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "amelioration",
+          "title": "Fenêtres du casino redessinées",
+          "details": "Missions, roue du jour, ouverture de caisses, cadeaux, coffre, jackpot et prestige passent au nouveau style."
+        },
+        {
+          "id": "2026-09-13-05",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "amelioration",
+          "title": "Boutique, pass et Entre potes redessinés"
+        },
+        {
+          "id": "2026-09-13-06",
+          "date": "2026-09-13",
+          "scope": "dino",
+          "type": "correctif",
+          "title": "Le dino ne saute plus au-dessus d'un obstacle perdu",
+          "details": "Le résultat de chaque obstacle est connu avant le saut : fini les courses où le dino passe l'obstacle mais la partie est perdue."
+        },
+        {
+          "id": "2026-09-13-07",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "correctif",
+          "title": "Notifications lisibles",
+          "details": "Le texte des notifications vertes et jaunes n'est plus gris clair sur fond coloré."
+        },
+        {
+          "id": "2026-09-13-08",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "amelioration",
+          "title": "Rappel de la récompense de l'objectif commun",
+          "details": "Quand l'objectif est atteint, un message t'invite à récupérer ta récompense et indique le temps restant : au début d'un nouvel objectif, elle est perdue."
+        },
+        {
+          "id": "2026-09-13-09",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "amelioration",
+          "title": "Packs sonores vraiment différents",
+          "details": "Chaque pack change maintenant le son de tout le casino (écho, vibrato, notes tenues ou courtes) et peut s'écouter depuis l'inventaire."
+        },
+        {
+          "id": "2026-09-13-10",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "amelioration",
+          "title": "Bouton Équiper refait",
+          "details": "Plus grand et lisible, à l'ouverture des caisses comme dans l'inventaire."
+        },
+        {
+          "id": "2026-09-13-11",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Mise en page identique sur toutes les pages",
+          "details": "Mêmes marges partout, bouton retour toujours au même endroit, arrondis harmonisés."
+        },
+        {
+          "id": "2026-09-13-12",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Comment jouer garde la même taille",
+          "details": "La carte animée de l'accueil ne change plus de taille d'une étape à l'autre."
+        },
+        {
+          "id": "2026-09-13-13",
+          "date": "2026-09-13",
+          "scope": "clicker",
+          "type": "retrait",
+          "title": "ItollecClicker retiré",
+          "details": "Le jeu n'est plus disponible : seul le casino reste en solo pour l'instant."
+        },
+        {
+          "id": "2026-09-13-14",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "correctif",
+          "title": "Jeux centrés dans leur carte",
+          "details": "La roue et les autres jeux ne sont plus collés en haut de la scène : la place du bandeau de résultat est équilibrée au-dessus et en dessous."
+        },
+        {
+          "id": "2026-09-13-15",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "correctif",
+          "title": "Plus de double récap à l'ouverture d'une caisse",
+          "details": "Une seule caisse ouverte : la pièce reste affichée avec son bouton, sans second récap. Équiper une pièce la marque équipée partout dans la fenêtre."
+        },
+        {
+          "id": "2026-09-13-16",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "amelioration",
+          "title": "Heure du prochain objectif commun",
+          "details": "Le panneau indique quand l'objectif se termine et quand le suivant commence, même après avoir récupéré ta récompense."
+        },
+        {
+          "id": "2026-09-13-17",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "nouveau",
+          "title": "Objectifs communs variés",
+          "details": "Réagir dans En direct, discuter, offrir des cadeaux, jouer des duels, réclamer des missions, ouvrir le coffre, tourner la roue du jour, décrocher des gains à ×10, jouer à un jeu précis, le défi du jour ou le pass. Jamais le même type deux semaines de suite."
+        },
+        {
+          "id": "2026-09-13-18",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Pages en pleine largeur",
+          "details": "Classement, En direct, Entre potes et pages légales utilisent toute la largeur, en deux colonnes sur ordinateur."
+        },
+        {
+          "id": "2026-09-13-19",
+          "date": "2026-09-13",
+          "scope": "casino",
+          "type": "correctif",
+          "title": "Le bouton Suivant des guides ne bouge plus",
+          "details": "Les fenêtres de guide gardent la même taille à chaque étape : le texte défile à l'intérieur et les boutons restent à la même place."
+        },
+        {
+          "id": "2026-09-13-20",
+          "date": "2026-09-13",
+          "scope": "krash",
+          "type": "retrait",
+          "title": "Krash retiré",
+          "details": "Le jeu de bourse n'est plus disponible."
+        },
+        {
+          "id": "2026-09-13-21",
+          "date": "2026-09-13",
+          "scope": "peche",
+          "type": "nouveau",
+          "title": "Frenly Pêche arrive bientôt",
+          "details": "Un nouveau jeu solo de pêche est en construction : sa carte est déjà visible dans Solo."
+        },
+        {
+          "id": "2026-09-13-22",
+          "date": "2026-09-13",
+          "scope": "site",
+          "type": "amelioration",
+          "title": "Dessin du casino redessiné",
+          "details": "La machine à sous de la carte Casino est centrée et le levier ne déborde plus sur les chiffres."
+        }
+      ]
+    },
+    {
       "version": "1.0.1",
       "date": "2026-09-13",
       "title": "Nouvelle direction artistique",

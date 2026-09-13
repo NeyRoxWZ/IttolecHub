@@ -186,10 +186,6 @@ export async function pushMorning(now = new Date()): Promise<{ pass: number; rec
     wants.set(s.user_id, w);
   }
 
-  // Krash players hear about their own chest and missions in the same message.
-  const { data: krashWallets } = await supabase.from('krash_wallets').select('user_id');
-  const krashPlayers = new Set((krashWallets || []).map((k) => k.user_id));
-
   const firstOfMonth = now.getUTCDate() === 1;
   const monday = now.getUTCDay() === 1;
   const month = now.toLocaleDateString('fr-FR', { month: 'long', timeZone: 'UTC' });
@@ -211,10 +207,8 @@ export async function pushMorning(now = new Date()): Promise<{ pass: number; rec
       });
     } else if (w.daily) {
       counts.daily += await pushToUser(userId, 'daily', {
-        title: krashPlayers.has(userId) ? 'Nouvelle journée au casino et sur Krash' : 'Nouvelle journée au casino',
-        body: krashPlayers.has(userId)
-          ? 'Coffres, missions et défi du jour sont remis à zéro, des deux côtés.'
-          : 'Coffre, missions et défi du jour sont remis à zéro.',
+        title: 'Nouvelle journée au casino',
+        body: 'Coffre, missions et défi du jour sont remis à zéro.',
         url: '/casino',
         tag: 'daily',
       });
