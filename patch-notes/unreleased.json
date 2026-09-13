@@ -175,6 +175,38 @@
       "type": "nouveau",
       "title": "Recherche d'actifs",
       "details": "Cherche une entreprise, une crypto ou une matière première dans tous les marchés à la fois ; un clic t'y emmène."
+    },
+    {
+      "id": "2026-09-13-01",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Boutique et caisses Krash",
+      "details": "Cinq objets par jour pensés pour le trading (zéro frais, remboursement de perte, parachute contre la liquidation, bonus de profit, XP double…) et quatre caisses de cosmétiques."
+    },
+    {
+      "id": "2026-09-13-02",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Inventaire et cosmétiques Krash",
+      "details": "Plus de 200 cosmétiques : couleurs de courbe, fonds, contours, titres, effets de gain, packs sonores et emblèmes. Tout s'équipe dans l'inventaire, avec recherche et filtres."
+    },
+    {
+      "id": "2026-09-13-03",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Pass Krash premium",
+      "details": "Le pass passe à 100 paliers par mois comme au casino, avec une voie gratuite et une voie premium à 4 000 ₶ qui double les récompenses."
+    },
+    {
+      "id": "2026-09-13-04",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "nouveau",
+      "title": "Guide et fiche joueur",
+      "details": "Un guide en dix étapes à la première visite, et la courbe de ton solde Krash en cliquant sur ton solde ou sur un joueur du classement."
     }
   ]
 }

@@ -8,6 +8,9 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { isMuted, setMuted, sfx } from '@/lib/casino/sfx';
 import { useKrashWallet } from '../_lib/useKrashWallet';
+import { useKrashLoadout } from '../_lib/useKrashLoadout';
+import KrashCosmeticPreview from './KrashCosmeticPreview';
+import KrashPlayerCard from './KrashPlayerCard';
 
 function SoundToggle() {
   const [muted, setMutedState] = useState(false);
@@ -34,8 +37,8 @@ function SoundToggle() {
 
 /**
  * Header shared by every Krash page, laid out like the casino's: back
- * button, title, sound and balance. The market page is the hub (its rail
- * leads everywhere); every other page is one step away from it.
+ * button, title, sound, emblem and balance. The balance opens the player's own
+ * card with their curve, as in the casino.
  */
 export default function KrashShell({
   title, children, wide = false,
@@ -43,10 +46,13 @@ export default function KrashShell({
   const pathname = usePathname();
   const { user, loading } = useAuth();
   const wallet = useKrashWallet();
+  const { cosmetics } = useKrashLoadout();
+  const [card, setCard] = useState(false);
   const isHub = pathname === '/krash';
 
   return (
-    <main className="min-h-screen bg-brand-bg text-tx-base px-3 sm:px-5 pt-3 md:pt-5 pb-12 2xl:pb-4">
+    <main data-krash className="min-h-screen bg-brand-bg text-tx-base px-3 sm:px-5 pt-3 md:pt-5 pb-12 2xl:pb-4">
+      {card && user && <KrashPlayerCard pseudo={user.pseudo} onClose={() => setCard(false)} />}
       <div className={cn('mx-auto', wide ? 'max-w-[1600px]' : 'max-w-5xl')}>
         <header className="flex flex-wrap items-center gap-3 mb-4">
           <Link
@@ -64,15 +70,18 @@ export default function KrashShell({
 
           <div className="ml-auto flex items-center gap-2">
             <SoundToggle />
-            <div
-              className="h-11 px-4 rounded-xl border-2 border-rose-400/60 bg-brand-inner flex items-center gap-2"
-              title="Portefeuille Krash, séparé du casino"
+            <button
+              onClick={() => { if (user) { sfx.click(); setCard(true); } }}
+              className="h-11 pl-2 pr-4 rounded-xl border-2 border-rose-400/60 bg-brand-inner flex items-center gap-2 hover:border-rose-300 transition-colors"
+              title="Ma fiche et ma courbe Krash"
             >
-              <span className="text-[10px] font-black uppercase tracking-widest text-tx-muted">Krash</span>
+              {cosmetics.emblem
+                ? <KrashCosmeticPreview cosmetic={cosmetics.emblem} size={30} className="border" />
+                : <span className="text-[10px] font-black uppercase tracking-widest text-tx-muted pl-2">Krash</span>}
               <span className="font-display font-black tabular-nums text-accent-primary">
                 {wallet.loaded ? wallet.balance.toLocaleString('fr-FR') : '…'} ₶
               </span>
-            </div>
+            </button>
           </div>
         </header>
 

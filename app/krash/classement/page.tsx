@@ -6,8 +6,10 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { sfx } from '@/lib/casino/sfx';
-import { COSMETICS } from '@/lib/krash/progression';
+import { krashCosmeticById } from '@/lib/krash/cosmetics';
 import KrashShell from '../_components/KrashShell';
+import KrashCosmeticPreview from '../_components/KrashCosmeticPreview';
+import KrashPlayerCard from '../_components/KrashPlayerCard';
 
 type Tab = 'realized_pnl' | 'best_trade' | 'volume';
 
@@ -21,6 +23,7 @@ interface Row {
   user_id: string;
   pseudo: string;
   title: string | null;
+  emblem: string | null;
   value: number;
   trades: number;
   wins: number;
@@ -28,10 +31,12 @@ interface Row {
 
 const MEDAL = ['text-accent-primary', 'text-tx-base', 'text-accent-secondary'];
 
+/** The Krash leaderboard; a row opens that player's card and curve. */
 export default function KrashLeaderboard() {
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>('realized_pnl');
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [opened, setOpened] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,16 +49,17 @@ export default function KrashLeaderboard() {
         .order(tab, { ascending: false })
         .limit(50);
       const list = (data || []) as any[];
-      // Titles live with the progression, not the stats.
-      const { data: titles } = list.length
-        ? await supabase.from('krash_progress').select('user_id, title').in('user_id', list.map((r) => r.user_id))
-        : { data: [] as { user_id: string; title: string | null }[] };
-      const titleOf = new Map((titles || []).map((t) => [t.user_id, t.title]));
+      const { data: loadouts } = list.length
+        ? await supabase.from('krash_loadout').select('user_id, slot, cosmetic_id').in('user_id', list.map((r) => r.user_id)).in('slot', ['title', 'emblem'])
+        : { data: [] as { user_id: string; slot: string; cosmetic_id: string }[] };
+      const worn = new Map<string, Record<string, string>>();
+      for (const l of loadouts || []) worn.set(l.user_id, { ...(worn.get(l.user_id) ?? {}), [l.slot]: l.cosmetic_id });
       if (cancelled) return;
       setRows(list.map((r) => ({
         user_id: r.user_id,
         pseudo: r.users?.pseudo ?? '???',
-        title: titleOf.get(r.user_id) ?? null,
+        title: worn.get(r.user_id)?.title ?? null,
+        emblem: worn.get(r.user_id)?.emblem ?? null,
         value: Number(r[tab]),
         trades: r.trades,
         wins: r.wins,
@@ -66,6 +72,7 @@ export default function KrashLeaderboard() {
 
   return (
     <KrashShell title="Classement">
+      {opened && <KrashPlayerCard pseudo={opened} onClose={() => setOpened(null)} />}
       <div className="max-w-2xl mx-auto">
         <div className="grid grid-cols-3 gap-2 mb-2">
           {TABS.map((t) => (
@@ -81,7 +88,7 @@ export default function KrashLeaderboard() {
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-tx-muted mb-5">{current.hint}</p>
+        <p className="text-[11px] text-tx-muted mb-5">{current.hint} Clique sur un joueur pour voir sa courbe.</p>
 
         {rows === null ? (
           <p className="text-tx-muted text-center py-10">Chargement…</p>
@@ -95,21 +102,24 @@ export default function KrashLeaderboard() {
             {rows.map((r, i) => {
               const me = r.user_id === user?.id;
               const signed = tab === 'realized_pnl';
-              const title = r.title ? COSMETICS[r.title]?.label : null;
+              const title = r.title ? krashCosmeticById(r.title) : undefined;
+              const emblem = r.emblem ? krashCosmeticById(r.emblem) : undefined;
               return (
-                <div
+                <button
                   key={r.user_id}
+                  onClick={() => { sfx.click(); setOpened(r.pseudo); }}
                   className={cn(
-                    'flex items-center gap-3 p-3 rounded-xl border-2 shadow-brutal',
+                    'w-full text-left flex items-center gap-3 p-3 rounded-xl border-2 shadow-brutal transition-all hover:-translate-y-0.5',
                     me ? 'border-rose-400 bg-rose-400/10' : i < 3 ? 'border-accent-primary/60 bg-brand-card' : 'border-brand-border bg-brand-card'
                   )}
                 >
                   <div className="w-8 flex justify-center shrink-0">
                     {i < 3 ? <Medal className={cn('h-5 w-5', MEDAL[i])} /> : <span className="font-display font-black text-tx-secondary">{i + 1}</span>}
                   </div>
+                  {emblem && <KrashCosmeticPreview cosmetic={emblem} size={34} />}
                   <div className="min-w-0 flex-1">
                     <div className="font-bold truncate">{r.pseudo}{me && <span className="text-rose-300"> · toi</span>}</div>
-                    {title && <div className="text-[10px] font-black uppercase tracking-widest text-fuchsia-300 truncate">{title}</div>}
+                    {title && <div className="text-[10px] font-black uppercase tracking-widest truncate" style={{ color: title.params.color }}>{title.params.title}</div>}
                     <div className="text-[11px] text-tx-muted">
                       {r.trades} trade{r.trades > 1 ? 's' : ''} · {Math.round((r.wins / Math.max(1, r.trades)) * 100)} % gagnants
                     </div>
@@ -120,7 +130,7 @@ export default function KrashLeaderboard() {
                   )}>
                     {signed && r.value > 0 ? '+' : ''}{r.value.toLocaleString('fr-FR')} ₶
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

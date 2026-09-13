@@ -18,8 +18,8 @@ import TradePanel from './_components/TradePanel';
 import PositionCard from './_components/PositionCard';
 import { serverNow, useKrashMarket, type MarketAsset } from './_lib/useKrashMarket';
 import { useKrashPositions } from './_lib/useKrashPositions';
-import { useKrashProgression } from './_lib/useKrashProgression';
-import { CHART_SKINS } from '@/lib/krash/progression';
+import { useKrashLoadout } from './_lib/useKrashLoadout';
+import KrashOnboarding, { ONBOARDING_KEY } from './_components/KrashOnboarding';
 
 type Range = '15m' | '1h' | '6h';
 const RANGE_SECONDS: Record<Range, number> = { '15m': 900, '1h': 3600, '6h': 21600 };
@@ -90,8 +90,11 @@ const INTRO_KEY = 'krash_intro_seen';
 export default function KrashMarketPage() {
   const wallet = useKrashWallet();
   const positions = useKrashPositions();
-  const { progression } = useKrashProgression();
-  const chartColors = CHART_SKINS[progression?.cosmetics.chartSkin ?? "classic"] ?? CHART_SKINS.classic;
+  const { cosmetics } = useKrashLoadout();
+  const chartColors = cosmetics.chart?.params.up && cosmetics.chart.params.down
+    ? { up: cosmetics.chart.params.up, down: cosmetics.chart.params.down }
+    : undefined;
+  const [guide, setGuide] = useState(false);
 
   const [market, setMarket] = useState<MarketId>('frx');
   const [selected, setSelected] = useState<Record<MarketId, string>>({
@@ -105,7 +108,8 @@ export default function KrashMarketPage() {
       const saved = JSON.parse(localStorage.getItem('krash_view') || 'null');
       if (saved?.market && MARKET_ORDER.includes(saved.market)) setMarket(saved.market);
       if (saved?.selected) setSelected((s) => ({ ...s, ...saved.selected }));
-      if (!localStorage.getItem(INTRO_KEY)) setIntro(true);
+      // The full guide replaces the short intro card on a first visit.
+      if (!localStorage.getItem(ONBOARDING_KEY)) setGuide(true);
     } catch {}
   }, []);
 
@@ -192,6 +196,7 @@ export default function KrashMarketPage() {
   return (
     <KrashShell wide badge={positions.open.length}>
       <div className="2xl:h-[calc(100dvh-96px)] 2xl:flex 2xl:flex-col">
+      {guide && <KrashOnboarding onClose={() => { setGuide(false); try { localStorage.setItem(ONBOARDING_KEY, '1'); } catch {} }} />}
       {intro && (
         <div className="relative mb-4 bg-brand-card border-4 border-rose-400/70 rounded-[24px] p-4 pr-12 shadow-brutal">
           <button

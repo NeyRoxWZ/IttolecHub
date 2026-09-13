@@ -104,6 +104,7 @@ export function useKrashPositions() {
 
   const announce = (pnl: number, stake: number, label: string) => {
     if (pnl >= stake) {
+      window.dispatchEvent(new Event('krash:bigwin'));
       sfx.jackpot();
       toast.success(`${label} : +${fmt(pnl)} ₶`, { description: 'Gros coup !', duration: 6000 });
     } else if (pnl >= stake * 0.2) {

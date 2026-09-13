@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import PatchNotesModal from '@/components/PatchNotesModal';
 import PushPrompt from '@/app/casino/_components/PushPrompt';
+import KrashSkin from './_components/KrashSkin';
 
 export const metadata: Metadata = {
   title: 'Krash — IttolecHub',
@@ -21,6 +22,7 @@ const KRASH_REASONS = [
 export default function KrashLayout({ children }: { children: ReactNode }) {
   return (
     <>
+      <KrashSkin />
       {children}
       <PushPrompt reasons={KRASH_REASONS} />
       <PatchNotesModal area="krash" />

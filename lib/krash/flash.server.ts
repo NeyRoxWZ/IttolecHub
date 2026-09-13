@@ -1,9 +1,8 @@
 import { supabase } from '@/lib/supabase/server';
 import { FLASH, flashMultiplier } from './assets';
 import { newsById, priceAt } from './engine.server';
-import { KRASH_XP } from './progression';
-import { addXp } from './progression.server';
-import { krashBalance } from './trade.server';
+import { KRASH_PASS_XP } from './pass';
+import { advancePass, consumeEffect, krashBalanceOf, loadEffects, walletMove } from './meta.server';
 
 /**
  * Flash bets on fresh headlines. The verdict is the target's price a minute
@@ -32,15 +31,17 @@ export async function placeFlash(
   const hint = news.hints[input.hint];
   if (!hint) return { ok: false, status: 400, error: 'Cible invalide' };
 
-  const balance = await krashBalance(userId);
+  const [balance, effects] = await Promise.all([krashBalanceOf(userId), loadEffects(userId)]);
   if (balance === null) return { ok: false, status: 404, error: 'Portefeuille introuvable' };
   const maxStake = Math.floor(balance * FLASH.maxStakePct);
   if (input.stake > maxStake) return { ok: false, status: 400, error: `Mise max : ${maxStake} ₶` };
 
-  const { data: debited } = await supabase.rpc('krash_wallet_apply', { p_user: userId, p_delta: -input.stake });
-  if (debited === null || debited === undefined) return { ok: false, status: 400, error: 'Solde insuffisant' };
+  const debited = await walletMove(userId, -input.stake, 'pari flash', { news: news.id });
+  if (debited === null) return { ok: false, status: 400, error: 'Solde insuffisant' };
 
-  const multiplier = flashMultiplier(hint.up, input.side, news.certainty);
+  const boost = effects.flash_boost?.magnitude ?? 0;
+  const multiplier = Math.round(flashMultiplier(hint.up, input.side, news.certainty) * (1 + boost) * 100) / 100;
+
   const { data: bet, error } = await supabase.from('krash_flash_bets').insert({
     user_id: userId,
     news_id: news.id,
@@ -55,10 +56,11 @@ export async function placeFlash(
   }).select().single();
 
   if (error || !bet) {
-    await supabase.rpc('krash_wallet_apply', { p_user: userId, p_delta: input.stake });
+    await walletMove(userId, input.stake, 'remboursement', { reason: 'pari flash en double' });
     return { ok: false, status: 409, error: 'Tu as déjà parié sur cette news' };
   }
-  return { ok: true, bet, balance: Number(debited) };
+  if (boost > 0) await consumeEffect(userId, effects, 'flash_boost');
+  return { ok: true, bet, balance: debited };
 }
 
 /** Settles every bet whose minute is up. */
@@ -80,8 +82,8 @@ async function settleDue(userId: string) {
     if (!updated) continue;
 
     await Promise.all([
-      payout > 0 ? supabase.rpc('krash_wallet_apply', { p_user: userId, p_delta: payout }) : Promise.resolve(),
-      addXp(userId, won ? KRASH_XP.win : 5),
+      payout > 0 ? walletMove(userId, payout, 'pari flash gagné', { news: bet.news_id }) : Promise.resolve(null),
+      advancePass(userId, KRASH_PASS_XP.flash, 'trade'),
     ]);
     settled.push({ ...updated, move: after / before - 1 });
   }
@@ -93,7 +95,7 @@ export async function loadFlash(userId: string) {
   const [{ data: bets }, balance] = await Promise.all([
     supabase.from('krash_flash_bets').select('*').eq('user_id', userId)
       .order('created_at', { ascending: false }).limit(15),
-    krashBalance(userId),
+    krashBalanceOf(userId),
   ]);
   return { bets: bets || [], settledNow, balance };
 }

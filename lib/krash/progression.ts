@@ -1,94 +1,10 @@
 /**
- * Krash progression rules, shared by the server (which pays) and the page
- * (which shows progress). Everything here is separate from the casino's
- * chest, missions and pass.
+ * The Krash chest and daily missions, shared by the server (which pays) and
+ * the page (which shows progress). The pass, cosmetics and shop live in
+ * pass.ts, cosmetics.ts and shop.ts.
  */
 
-/* ------------------------------------------------------------------ */
-/* Experience                                                           */
-/* ------------------------------------------------------------------ */
-
-export const KRASH_XP = {
-  /** Any trade that ends, win or loss: playing moves the pass. */
-  trade: 10,
-  /** On top, for a trade closed in profit. */
-  win: 10,
-  mission: 60,
-  chest: 30,
-};
-
-/** The pass runs by calendar month (UTC). */
-export function krashPeriodKey(date = new Date()): string {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
-export function krashPeriodEnd(date = new Date()): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
-}
-
-/* ------------------------------------------------------------------ */
-/* Cosmetics                                                            */
-/* ------------------------------------------------------------------ */
-
-export type CosmeticKind = 'title' | 'skin';
-
-export interface Cosmetic {
-  id: string;
-  kind: CosmeticKind;
-  label: string;
-  description: string;
-}
-
-export const COSMETICS: Record<string, Cosmetic> = {
-  'title-stagiaire': { id: 'title-stagiaire', kind: 'title', label: 'Stagiaire de la corbeille', description: 'Titre affiché au classement.' },
-  'skin-neon': { id: 'skin-neon', kind: 'skin', label: 'Courbe néon', description: 'Cyan quand ça monte, magenta quand ça baisse.' },
-  'title-trader': { id: 'title-trader', kind: 'title', label: 'Trader fou', description: 'Titre affiché au classement.' },
-  'skin-or': { id: 'skin-or', kind: 'skin', label: 'Courbe dorée', description: 'Une courbe en or massif.' },
-  'skin-matrix': { id: 'skin-matrix', kind: 'skin', label: 'Courbe Matrix', description: 'Vert terminal, pour les initiés.' },
-  'title-loup': { id: 'title-loup', kind: 'title', label: 'Loup de la Bourse', description: 'Le titre du dernier palier.' },
-};
-
-/** Chart colours per skin: rising, falling. */
-export const CHART_SKINS: Record<string, { up: string; down: string; label: string }> = {
-  classic: { up: '#00FF94', down: '#FF4D6D', label: 'Classique' },
-  'skin-neon': { up: '#22d3ee', down: '#e879f9', label: 'Néon' },
-  'skin-or': { up: '#FFD000', down: '#d97706', label: 'Or' },
-  'skin-matrix': { up: '#4ade80', down: '#15803d', label: 'Matrix' },
-};
-
-/* ------------------------------------------------------------------ */
-/* Pass Krash                                                           */
-/* ------------------------------------------------------------------ */
-
-export const PASS_TIERS = 30;
-export const XP_PER_TIER = 150;
-
-export interface TierReward {
-  coins?: number;
-  item?: string;
-}
-
-const TIER_ITEMS: Record<number, string> = {
-  5: 'title-stagiaire',
-  10: 'skin-neon',
-  15: 'title-trader',
-  20: 'skin-or',
-  25: 'skin-matrix',
-  30: 'title-loup',
-};
-
-export function tierReward(tier: number): TierReward {
-  const item = TIER_ITEMS[tier];
-  return item ? { item, coins: 250 } : { coins: 100 + tier * 20 };
-}
-
-export function xpForTier(tier: number): number {
-  return tier * XP_PER_TIER;
-}
-
-export function tierFromXp(xp: number): number {
-  return Math.min(PASS_TIERS, Math.floor(xp / XP_PER_TIER));
-}
+export { KRASH_PASS_XP as KRASH_XP } from './pass';
 
 /* ------------------------------------------------------------------ */
 /* Daily chest                                                          */
