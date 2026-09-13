@@ -207,6 +207,30 @@
       "type": "nouveau",
       "title": "Guide et fiche joueur",
       "details": "Un guide en dix étapes à la première visite, et la courbe de ton solde Krash en cliquant sur ton solde ou sur un joueur du classement."
+    },
+    {
+      "id": "2026-09-13-05",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "correctif",
+      "title": "La grille du site revient derrière Krash",
+      "details": "Les pages Krash avaient un fond uni qui cachait le quadrillage présent partout ailleurs sur le site."
+    },
+    {
+      "id": "2026-09-13-06",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "correctif",
+      "title": "Pari flash accepté jusqu'à la dernière seconde",
+      "details": "Le chrono se basait sur la dernière mise à jour du marché, en retard de quelques secondes : un pari posé avant la fin pouvait être refusé. Il suit maintenant l'horloge du serveur, avec une marge pour le trajet du clic."
+    },
+    {
+      "id": "2026-09-13-07",
+      "date": "2026-09-13",
+      "scope": "krash",
+      "type": "correctif",
+      "title": "L'effet des nouvelles news n'est plus coupé",
+      "details": "Le contour qui signale une news fraîche était rogné par le bord de la liste."
     }
   ]
 }

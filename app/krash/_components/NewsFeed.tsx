@@ -8,6 +8,7 @@ import { CATEGORIES, CERTAINTY, type KrashNews, type NewsCategory, type Certaint
 import { FLASH, flashMultiplier, type MarketId } from '@/lib/krash/assets';
 import { useKrashFlash, type FlashBet } from '../_lib/useKrashFlash';
 import { useKrashWallet } from '../_lib/useKrashWallet';
+import { serverNow } from '../_lib/useKrashMarket';
 
 function ago(seconds: number): string {
   if (seconds < 45) return 'à l’instant';
@@ -153,11 +154,14 @@ export default function NewsFeed({
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const flash = useKrashFlash();
 
-  // The feed only refreshes every tick; a local clock keeps the countdowns smooth.
+  // Countdowns run on the server's clock, not on the feed's last tick, which
+  // lags a few seconds behind: a bet placed on the last visible second used to
+  // reach the server already too late.
   const [clock, setClock] = useState(now);
-  useEffect(() => setClock(now), [now]);
   useEffect(() => {
-    const id = setInterval(() => setClock((c) => c + 1), 1000);
+    const tick = () => setClock(serverNow());
+    tick();
+    const id = setInterval(tick, 500);
     return () => clearInterval(id);
   }, []);
 
@@ -248,10 +252,10 @@ export default function NewsFeed({
                     ? 'border-rose-500 bg-rose-500/15'
                     : 'border-accent-success bg-accent-success/10'
                   : 'border-brand-border bg-brand-inner',
-                fresh.has(n.id) && 'ring-2 ring-rose-400 animate-in slide-in-from-top-2 fade-in duration-500'
+                fresh.has(n.id) && 'ring-2 ring-inset ring-rose-400 animate-in fade-in duration-500'
               )}
             >
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-black uppercase tracking-widest">
                 {big ? (
                   <span className={n.event === 'krach' ? 'text-rose-400' : 'text-accent-success'}>
                     {n.event === 'krach' ? '▼ Krach' : '▲ Bull run'}
@@ -265,7 +269,7 @@ export default function NewsFeed({
                 <span className="text-tx-muted">· {CERTAINTY[n.certainty].label}</span>
                 {relevant && !big && <span className="text-accent-primary">· Ton marché</span>}
                 {fresh.has(n.id) && <span className="text-rose-400">· Nouveau</span>}
-                <span className="ml-auto text-tx-muted normal-case tracking-normal font-bold">{ago(clock - n.at)}</span>
+                <span className="ml-auto whitespace-nowrap text-tx-muted normal-case tracking-normal font-bold">{ago(clock - n.at)}</span>
               </div>
               <p className={cn('leading-snug mt-1', big ? 'font-display font-black text-base' : 'text-[13px] font-bold')}>{n.text}</p>
               <div className="flex flex-wrap gap-1 mt-1.5">

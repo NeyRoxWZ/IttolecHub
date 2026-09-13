@@ -286,6 +286,8 @@ export function dividendFor(
 export const FLASH = {
   /** Seconds after publication during which a bet is accepted. */
   window: 25,
+  /** Extra seconds the server allows for the click to travel. */
+  grace: 3,
   /** The verdict compares the price at publication with this many seconds later. */
   horizon: 60,
   edge: 0.9,

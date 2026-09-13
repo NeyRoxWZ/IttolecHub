@@ -51,7 +51,7 @@ export default function KrashShell({
   const isHub = pathname === '/krash';
 
   return (
-    <main data-krash className="min-h-screen bg-brand-bg text-tx-base px-3 sm:px-5 pt-3 md:pt-5 pb-12 2xl:pb-4">
+    <main data-krash className="min-h-screen bg-transparent text-tx-base px-3 sm:px-5 pt-3 md:pt-5 pb-12 2xl:pb-4">
       {card && user && <KrashPlayerCard pseudo={user.pseudo} onClose={() => setCard(false)} />}
       <div className={cn('mx-auto', wide ? 'max-w-[1600px]' : 'max-w-5xl')}>
         <header className="flex flex-wrap items-center gap-3 mb-4">

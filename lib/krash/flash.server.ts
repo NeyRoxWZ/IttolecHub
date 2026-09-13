@@ -26,7 +26,7 @@ export async function placeFlash(
   const news = newsById(input.newsId);
   const now = Date.now() / 1000;
   if (!news || news.at > now) return { ok: false, status: 404, error: 'News introuvable' };
-  if (now - news.at > FLASH.window) return { ok: false, status: 400, error: 'Trop tard pour parier sur cette news' };
+  if (now - news.at > FLASH.window + FLASH.grace) return { ok: false, status: 400, error: 'Trop tard pour parier sur cette news' };
 
   const hint = news.hints[input.hint];
   if (!hint) return { ok: false, status: 400, error: 'Cible invalide' };
