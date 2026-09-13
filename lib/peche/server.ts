@@ -520,21 +520,29 @@ export function buyPack(userId: string) {
   });
 }
 
-export function openPack(userId: string) {
+/** Opens up to 20 chests at once; the rarity decides how many padlocks hold. */
+export function openPack(userId: string, count = 1) {
   return mutate(userId, (row) => {
+    const n = Math.max(1, Math.min(20, Math.floor(count) || 1, row.packs || 0));
     if ((row.packs || 0) <= 0) return fail(400, 'Aucun coffre à ouvrir.');
-    const cosmetic = rollCosmetic();
-    const owned = row.cosmetics || [];
-    const duplicate = owned.includes(cosmetic.id);
+    const owned = new Set(row.cosmetics || []);
     // A duplicate turns into coins: a third of a chest's price.
-    const refund = duplicate ? Math.ceil(packPrice(boatOf(row)) / 3) : 0;
+    const refundEach = Math.ceil(packPrice(boatOf(row)) / 3);
+    let refund = 0;
+    const chests = [];
+    for (let i = 0; i < n; i++) {
+      const cosmetic = rollCosmetic();
+      const duplicate = owned.has(cosmetic.id);
+      if (duplicate) refund += refundEach; else owned.add(cosmetic.id);
+      chests.push({ cosmeticId: cosmetic.id, rarity: cosmetic.rarity, duplicate, refund: duplicate ? refundEach : 0 });
+    }
     return {
       patch: {
-        packs: row.packs - 1,
-        cosmetics: duplicate ? owned : [...owned, cosmetic.id],
+        packs: row.packs - n,
+        cosmetics: Array.from(owned),
         balance: row.balance + refund, run_earned: row.run_earned + refund, lifetime_earned: row.lifetime_earned + refund,
       },
-      result: { cosmeticId: cosmetic.id, duplicate, refund },
+      result: { chests },
     };
   });
 }

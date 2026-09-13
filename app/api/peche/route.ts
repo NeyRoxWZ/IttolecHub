@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       case 'deliver': out = await deliverOrder(userId, String(body?.order_id || '')); break;
       case 'buy_item': out = await buyItem(userId, String(body?.item || '')); break;
       case 'buy_pack': out = await buyPack(userId); break;
-      case 'open_pack': out = await openPack(userId); break;
+      case 'open_pack': out = await openPack(userId, Number(body?.count) || 1); break;
       case 'equip': out = await equip(userId, String(body?.slot) as CosmeticSlot, body?.cosmetic_id ? String(body.cosmetic_id) : null); break;
       default: return NextResponse.json({ error: 'Action inconnue' }, { status: 400 });
     }

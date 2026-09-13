@@ -21,7 +21,7 @@ import { fmtBig, fmtKg } from '@/lib/peche/format';
 import type { PecheState } from '@/lib/peche/server';
 import FishIcon from './FishIcon';
 import ReelGauge from './ReelGauge';
-import PackOpening from './PackOpening';
+import ChestOpening from './ChestOpening';
 import PecheGuide, { GUIDE_KEY } from './PecheGuide';
 import CosmeticIcon from './CosmeticIcon';
 
@@ -163,9 +163,9 @@ export default function PecheGame({ userId }: { userId: string }) {
     <div>
       {guide && <PecheGuide onClose={() => setGuide(false)} />}
       {opening && (
-        <PackOpening
+        <ChestOpening
           packsLeft={state.packs}
-          onOpen={() => api('open_pack')}
+          onOpen={(count) => api('open_pack', { count })}
           onEquip={async (id) => { const c = COSMETIC_BY_ID.get(id); if (c && await api('equip', { slot: c.slot, cosmetic_id: id })) toast.success(`${c.name} équipé`); }}
           onClose={() => setOpening(false)}
         />
@@ -213,10 +213,12 @@ export default function PecheGame({ userId }: { userId: string }) {
         </div>
       </header>
 
-      <ActiveEffects effects={state.effects} />
+      {/* Fixed slot: boosts appearing or ending must not push the game down. */}
+      <div className="h-9 mb-3"><ActiveEffects effects={state.effects} /></div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_440px] gap-4">
-        <section className={cn(BRAWL.panel, 'relative overflow-hidden min-h-[480px] flex flex-col')}>
+      {/* Fixed height: switching tabs must never resize the game. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_440px] gap-4 lg:h-[700px]">
+        <section className={cn(BRAWL.panel, 'relative overflow-hidden h-[480px] lg:h-full flex flex-col')}>
           <Scene zoneId={state.zone} phase={phase} weather={state.weather.id} equipped={state.equipped} />
 
           <div className="relative z-10 flex-1 flex items-center justify-center p-4">
@@ -253,7 +255,7 @@ export default function PecheGame({ userId }: { userId: string }) {
           </div>
         </section>
 
-        <section className={cn(BRAWL.panel, 'p-4 flex flex-col gap-3 min-h-0')}>
+        <section className={cn(BRAWL.panel, 'p-4 flex flex-col gap-3 h-[640px] lg:h-full min-h-0')}>
           <div className="grid grid-cols-4 sm:grid-cols-7 lg:grid-cols-4 gap-1 rounded-[18px] border-[3px] border-brand-border bg-brand-bg p-1">
             {TABS.map((t) => (
               <button
@@ -276,7 +278,7 @@ export default function PecheGame({ userId }: { userId: string }) {
             ))}
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1 lg:max-h-[560px]">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
             {tab === 'peche' && <PechePanel state={state} api={api} autoFeed={autoFeed} />}
             {tab === 'quetes' && <QuestsPanel state={state} api={api} />}
             {tab === 'boutique' && <ShopPanel state={state} api={api} onOpen={() => setOpening(true)} />}
@@ -304,7 +306,7 @@ function ActiveEffects({ effects }: { effects: Record<string, number | undefined
   const active = Object.entries(effects).filter(([, t]) => Number(t) > now);
   if (!active.length) return null;
   return (
-    <div className="flex flex-wrap gap-2 mb-3">
+    <div className="flex gap-2 overflow-x-auto h-9">
       {active.map(([id, t]) => (
         <span key={id} className="h-9 inline-flex items-center gap-1.5 rounded-xl border-[3px] border-brand-border bg-accent-success text-brand-bg px-2.5 font-display shadow-[inset_0_-3px_0_#1E9A55]">
           <Sparkles className="h-4 w-4" /> {labels[id] || id} · <span className="tabular-nums">{mmss(Number(t) - now)}</span>
