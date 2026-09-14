@@ -11,7 +11,8 @@ const nextConfig = {
       {
         source: '/ads.txt',
         destination: 'https://srv.adstxtmanager.com/19390/itollechub.com',
-        permanent: true,
+        // 301 as in Ezoic's docs: Next's default permanent redirect is 308, which ads.txt checkers do not follow.
+        statusCode: 301,
       },
     ];
   },
