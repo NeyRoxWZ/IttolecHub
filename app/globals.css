@@ -641,3 +641,10 @@ html body #ez-cookie-dialog-wrapper #secondary-links {
     text-align: center !important;
   }
 }
+
+/* Ezoic justifies the text: on narrow screens that opens wide gaps between words. */
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog p,
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog li {
+  text-align: left !important;
+  hyphens: auto;
+}
