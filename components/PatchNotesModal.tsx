@@ -13,7 +13,7 @@ export type PatchArea = 'casino' | 'peche';
 
 const AREAS: Record<PatchArea, { label: string; zone: string; matches: (e: PatchEntry) => boolean }> = {
   casino: { label: 'du casino', zone: 'casino', matches: (e) => scopeOf(e.scope).group === 'casino' },
-  peche: { label: 'du jeu Pêche', zone: 'solo', matches: (e) => e.scope === 'peche' },
+  peche: { label: 'du jeu Pêche', zone: 'peche', matches: (e) => e.scope === 'peche' },
 };
 
 /** How many change titles are listed before "et N autres". */

@@ -23,7 +23,8 @@ La liste fait foi dans `patch-notes/scopes.json`. En résumé :
 - un jeu du casino : `slots`, `blackjack`, `wheel`, `rocket`, `mines`, `plinko`, `hilo`, `grattage`, `poulet`, `tower`, `keno`, `caisses`, `coinflip`, `dino`, `chevaux`, `bonneteau`, `stade`, `baccarat`, `rps`, `craps`
 - `clicker` — ItollecClicker (jeu retiré : scope gardé seulement pour l'historique des patch notes)
 - `krash` — Krash (jeu retiré : scope gardé seulement pour l'historique des patch notes)
-- `peche` — Pêche (bêta, ouvert à tous)
+- `peche` — Pêche (bêta, ouvert à tous), catégorie à part
+- `solo` — ce qui touche tous les jeux solo à la fois
 - multijoueur : `budgetguessr`, `drawguessr`, `flagguessr`, `infiltre`, `jaugeguessr`, `logoguessr`, `pokeguessr`, `rentguessr`, `undercover`, `wikiracing`
 
 Un nouveau jeu doit être ajouté à `patch-notes/scopes.json` avant d'y attacher des notes.

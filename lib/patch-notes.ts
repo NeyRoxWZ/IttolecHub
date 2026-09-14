@@ -12,7 +12,7 @@ import releasesFile from '@/patch-notes/releases.json';
 export const CHANGE_TYPES = ['nouveau', 'amelioration', 'equilibrage', 'correctif', 'retrait'] as const;
 export type ChangeType = (typeof CHANGE_TYPES)[number];
 
-export type ScopeGroup = 'site' | 'casino' | 'solo' | 'multi';
+export type ScopeGroup = 'site' | 'casino' | 'peche' | 'solo' | 'multi';
 
 export interface ScopeDef {
   id: string;
@@ -57,11 +57,12 @@ export const TYPE_META: Record<ChangeType, { label: string; dot: string }> = {
   retrait: { label: 'Retiré', dot: 'bg-tx-muted' },
 };
 
-export const GROUP_ORDER: ScopeGroup[] = ['site', 'casino', 'solo', 'multi'];
+export const GROUP_ORDER: ScopeGroup[] = ['site', 'casino', 'peche', 'solo', 'multi'];
 
 export const GROUP_META: Record<ScopeGroup, { label: string; bar: string; active: string }> = {
   site: { label: 'Site', bar: 'bg-tx-muted', active: 'border-tx-base text-tx-base' },
   casino: { label: 'Casino', bar: 'bg-accent-primary', active: 'border-accent-primary text-accent-primary' },
+  peche: { label: 'Pêche', bar: 'bg-cyan-400', active: 'border-cyan-400 text-cyan-300' },
   solo: { label: 'Solo', bar: 'bg-accent-success', active: 'border-accent-success text-accent-success' },
   multi: { label: 'Multijoueur', bar: 'bg-sky-400', active: 'border-sky-400 text-sky-300' },
 };

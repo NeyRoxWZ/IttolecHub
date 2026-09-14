@@ -24,9 +24,11 @@
     { "id": "rps", "label": "Pierre-Feuille-Ciseaux", "group": "casino" },
     { "id": "craps", "label": "Frenly Craps", "group": "casino" },
 
+    { "id": "peche", "label": "Pêche", "group": "peche" },
+
+    { "id": "solo", "label": "Jeux solo", "group": "solo" },
     { "id": "clicker", "label": "ItollecClicker", "group": "solo" },
     { "id": "krash", "label": "Krash", "group": "solo" },
-    { "id": "peche", "label": "Pêche", "group": "solo" },
 
     { "id": "budgetguessr", "label": "BudgetGuessr", "group": "multi" },
     { "id": "drawguessr", "label": "DrawGuessr", "group": "multi" },
