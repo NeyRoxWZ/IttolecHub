@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -8,7 +8,16 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export default function ConnexionPage() {
+// Reading the URL (?next=) needs a Suspense boundary for the page to prerender.
+export default function ConnexionPageWrapper() {
+  return (
+    <Suspense fallback={null}>
+      <ConnexionPage />
+    </Suspense>
+  );
+}
+
+function ConnexionPage() {
   const [pseudo, setPseudo] = useState('');
   const [passphrase, setPassphrase] = useState('');
   const [loading, setLoading] = useState(false);

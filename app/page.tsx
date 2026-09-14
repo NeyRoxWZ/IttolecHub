@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -42,7 +42,16 @@ const BTN_YELLOW = `${BTN} bg-accent-primary text-brand-bg shadow-[inset_0_-5px_
 const BTN_DARK = `${BTN} bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A]`;
 const BTN_PINK = `${BTN} bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A]`;
 
-export default function Home() {
+// Reading the URL (?mode=) needs a Suspense boundary for the page to prerender.
+export default function HomePage() {
+  return (
+    <Suspense fallback={null}>
+      <Home />
+    </Suspense>
+  );
+}
+
+function Home() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<'multiplayer' | 'solo'>('multiplayer');
