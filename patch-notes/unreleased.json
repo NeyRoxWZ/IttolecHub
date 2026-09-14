@@ -1,28 +1,3 @@
 {
-  "entries": [
-    {
-      "id": "2026-09-14-01",
-      "date": "2026-09-14",
-      "scope": "site",
-      "type": "nouveau",
-      "title": "Badge OG",
-      "details": "Les membres de la première heure ont leur pseudo en or animé et un badge OG partout sur le site. Ils peuvent l’afficher ou le masquer depuis leur profil."
-    },
-    {
-      "id": "2026-09-14-02",
-      "date": "2026-09-14",
-      "scope": "site",
-      "type": "amelioration",
-      "title": "Statistiques de Pêche dans le profil",
-      "details": "Le profil montre aussi tes chiffres de Pêche : poissons pêchés, Poissodex, plus rare et plus lourd poisson, Marées, coffres, succès et cosmétiques."
-    },
-    {
-      "id": "2026-09-14-03",
-      "date": "2026-09-14",
-      "scope": "peche",
-      "type": "amelioration",
-      "title": "Chaque poisson a sa propre forme",
-      "details": "Requins, raies, anguilles, espadons, baudroies, hippocampes, poissons plats… Chaque espèce a maintenant sa silhouette, ses nageoires et ses motifs, et plus seulement sa couleur. Les silhouettes du Poissodex aussi."
-    }
-  ]
+  "entries": []
 }
