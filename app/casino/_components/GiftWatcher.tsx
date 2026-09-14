@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { supabase } from '@/lib/supabase/client';
 
+import OgName from '@/components/OgName';
 const SEEN_KEY = 'itollec_casino_last_gift';
 
 interface IncomingGift {
@@ -117,7 +118,7 @@ export default function GiftWatcher() {
 
         <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted">Cadeau reçu</div>
         <div className="font-display text-2xl mt-2 text-stroke-sm">
-          {current.pseudo} t&apos;a envoyé
+          <OgName name={current.pseudo} /> t&apos;a envoyé
         </div>
         <div className="font-display text-6xl leading-none text-accent-success tabular-nums mt-2 [-webkit-text-stroke:6px_#05061A] [paint-order:stroke_fill] [text-shadow:0_5px_0_#05061A]">
           +{Math.round(current.amount).toLocaleString('en-US')} ₶

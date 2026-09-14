@@ -16,6 +16,7 @@ import { isOwner } from '@/lib/owner';
 import releases from '@/patch-notes/releases.json';
 
 
+import OgName from '@/components/OgName';
 const SOLO_GAMES: {
   id: CoverGame; name: string; tag: string; tagClass: string; description: string; href: string;
   /** Shown to everyone under a "en construction" tape, playable by the owner only. */
@@ -231,7 +232,7 @@ export default function Home() {
                   <span className="h-8 w-8 rounded-xl bg-accent-secondary text-white font-display text-lg flex items-center justify-center shadow-[inset_0_-3px_0_#C92D63]">
                     {user.pseudo[0]?.toUpperCase()}
                   </span>
-                  {user.pseudo}
+                  <OgName name={user.pseudo} />
                 </button>
                 <button type="button" onClick={logout} className={cn(BTN_PINK, 'h-12 w-12')} title="Se déconnecter" aria-label="Se déconnecter">
                   <LogOut className="h-5 w-5" />

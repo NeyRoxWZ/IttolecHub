@@ -12,6 +12,7 @@ import { CheckCircle, Trophy, Send, Loader2, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import OgName from '@/components/OgName';
 
 const BRANDFETCH_CLIENT_ID = '1idE9skP3OyDrucd4OC';
 
@@ -738,7 +739,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                                   <div key={p.player_id} className="flex items-center justify-between bg-accent-success/10 p-4 rounded-2xl border-4 border-accent-success shadow-sm">
                                       <div className="flex items-center gap-4">
                                           <div className="font-display text-xl text-accent-success">#{index + 1}</div>
-                                          <div className="font-display text-lg text-tx-base">{playerInfo?.name}</div>
+                                          <div className="font-display text-lg text-tx-base"><OgName name={playerInfo?.name} /></div>
                                       </div>
                                       <div className="font-bold font-mono text-accent-success bg-brand-inner px-3 py-1 rounded-md border-[3px] border-accent-success/50">
                                           {(p.find_time_ms / 1000).toFixed(2)}s
@@ -784,7 +785,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                                       </span>
                                       
                                       <div className="flex flex-col text-left">
-                                          <span className="text-xl font-display">{p.name}</span>
+                                          <span className="text-xl font-display"><OgName name={p.name} /></span>
                                           <span className={cn(
                                               "text-xs font-bold uppercase tracking-widest",
                                               i === 0 ? "text-brand-bg/80" : "text-tx-secondary"

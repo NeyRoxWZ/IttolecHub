@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase/client';
 import { GAME_LABELS } from '@/lib/casino/cosmetics';
 import PlayerCard from '../_components/PlayerCard';
 import CasinoControls from '../_components/CasinoControls';
+import OgName from '@/components/OgName';
 
 interface LiveRow {
   id: number;
@@ -188,7 +189,7 @@ export default function LivePage() {
                     onClick={() => { sfx.click(); setOpened(r.pseudo); }}
                     className="font-black text-sm truncate max-w-[120px] hover:text-accent-primary focus:outline-none"
                   >
-                    {r.pseudo}
+                    <OgName name={r.pseudo} />
                   </button>
                   <span className="text-[11px] text-tx-muted shrink-0">sur</span>
                   <span className="text-[11px] font-bold text-tx-secondary truncate">

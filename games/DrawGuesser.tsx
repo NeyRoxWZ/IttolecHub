@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import OgName from '@/components/OgName';
 
 interface DrawGuesserProps {
   roomCode: string;
@@ -1113,7 +1114,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                                     </span>
                                     
                                     <div className="flex flex-col text-left">
-                                        <span className="text-xl font-display">{p.name}</span>
+                                        <span className="text-xl font-display"><OgName name={p.name} /></span>
                                         <span className={cn(
                                             "text-xs font-bold uppercase tracking-widest",
                                             i === 0 ? "text-brand-bg/80" : "text-tx-secondary"

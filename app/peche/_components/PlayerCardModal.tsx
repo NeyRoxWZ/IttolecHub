@@ -7,6 +7,7 @@ import { BRAWL } from '@/lib/ui/brawl';
 import { COSMETIC_BY_ID, COSMETIC_SLOTS, RARITIES, getSpecies, mareeBadge, mareeTitle, zoneInfo, type CosmeticSlot } from '@/lib/peche/data';
 import { fmtBig, fmtKg } from '@/lib/peche/format';
 import FishIcon from './FishIcon';
+import OgName from '@/components/OgName';
 import CosmeticIcon from './CosmeticIcon';
 import AquariumView from './AquariumView';
 
@@ -35,7 +36,7 @@ export default function PlayerCardModal({ viewerId, targetId, onClose }: { viewe
       <div className="w-full max-w-lg h-[min(620px,92dvh)] flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 p-5 pb-3 shrink-0">
           <div className="min-w-0">
-            <div className="font-display text-3xl leading-none truncate">{card?.pseudo || '···'}</div>
+            <div className="font-display text-3xl leading-none truncate">{card?.pseudo ? <OgName name={card.pseudo} /> : '···'}</div>
             {card && badge && (
               <span className="mt-2 inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl border-[3px] border-brand-border font-display" style={{ background: badge.fill, color: badge.text }}>
                 <Waves className="h-4 w-4" /> Marée {card.maree} · {mareeTitle(card.maree)}

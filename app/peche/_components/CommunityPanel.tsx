@@ -10,6 +10,7 @@ import { RARITIES, VARIANTS, getSpecies, mareeBadge, zoneInfo } from '@/lib/pech
 import { fmtBig, fmtKg } from '@/lib/peche/format';
 import FishIcon from './FishIcon';
 import type { PortPlayer } from './usePort';
+import OgName from '@/components/OgName';
 
 interface Community {
   weekly: { userId: string; pseudo: string; points: number; maree: number }[];
@@ -71,7 +72,7 @@ export default function CommunityPanel({
             return (
               <button key={p.userId} onClick={() => onOpenCard(p.userId)} className={cn('w-full flex items-center gap-2 rounded-xl border-2 border-brand-border px-2.5 py-2 text-left', p.userId === userId ? 'bg-[#3A3A20]' : 'bg-brand-card hover:bg-[#2B3170]')}>
                 <span className="h-3 w-3 rounded-full bg-accent-success border-2 border-brand-border" />
-                <span className="flex-1 min-w-0 truncate font-display text-lg">{p.pseudo}</span>
+                <span className="flex-1 min-w-0 truncate font-display text-lg"><OgName name={p.pseudo} /></span>
                 <span className={cn('px-1.5 rounded-md border-2 border-brand-border text-xs font-black', p.mode === 'public' ? 'bg-accent-info text-white' : 'bg-brand-bg text-tx-secondary')}>{p.mode === 'public' ? 'Port public' : 'Solo'}</span>
                 <span className="text-xs font-bold text-tx-secondary">{zoneInfo(p.zone).name}</span>
                 <span className="px-1.5 rounded-md border-2 border-brand-border text-xs font-black" style={{ background: b.fill, color: b.text }}>M{p.maree}</span>
@@ -162,7 +163,7 @@ export default function CommunityPanel({
               <button key={r.userId} onClick={() => onOpenCard(r.userId)}
                 className={cn('w-full flex items-center gap-2 rounded-xl border-2 border-brand-border px-2.5 py-2 text-left', r.userId === userId ? 'bg-[#3A3A20]' : 'bg-brand-card hover:bg-[#2B3170]')}>
                 <span className={cn('w-7 font-display text-lg', i < 3 ? 'text-accent-primary' : 'text-tx-secondary')}>{i + 1}</span>
-                <span className="flex-1 min-w-0 truncate font-display text-lg">{r.pseudo}</span>
+                <span className="flex-1 min-w-0 truncate font-display text-lg"><OgName name={r.pseudo} /></span>
                 <span className="px-1.5 rounded-md border-2 border-brand-border text-xs font-black" style={{ background: b.fill, color: b.text }}>M{r.maree}</span>
                 <span className="font-display tabular-nums">{board === 'weekly' ? `${fmtBig((r as { points: number }).points)} pts` : `${fmtBig((r as { earned: number }).earned)} ₶`}</span>
               </button>

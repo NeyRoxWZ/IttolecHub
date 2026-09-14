@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import OgName from '@/components/OgName';
 
 interface FlagGuesserProps {
   roomCode: string;
@@ -495,7 +496,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                             return (
                                 <div key={p.id} className="flex items-center justify-between p-4 mb-2 last:mb-0 bg-brand-inner border-[3px] border-brand-border rounded-xl">
                                     <div className="flex items-center gap-4">
-                                        <div className="font-display text-lg text-tx-base">{p.name}</div>
+                                        <div className="font-display text-lg text-tx-base"><OgName name={p.name} /></div>
                                         {answered && (
                                             isCorrect 
                                             ? <CheckCircle className="w-6 h-6 text-accent-success" />
@@ -545,7 +546,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                                     </span>
                                     
                                     <div className="flex flex-col text-left">
-                                        <span className="text-xl font-display">{p.name}</span>
+                                        <span className="text-xl font-display"><OgName name={p.name} /></span>
                                         <span className={cn(
                                             "text-xs font-bold uppercase tracking-widest",
                                             i === 0 ? "text-brand-bg/80" : "text-tx-secondary"

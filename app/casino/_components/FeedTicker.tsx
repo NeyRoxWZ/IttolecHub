@@ -5,6 +5,7 @@ import { Radio } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
+import OgName from '@/components/OgName';
 interface FeedEntry {
   id: string;
   pseudo: string;
@@ -92,7 +93,7 @@ export default function FeedTicker() {
         </div>
 
         <div className="flex items-baseline gap-1.5 text-[11px] leading-tight">
-          <span className="font-black truncate max-w-[110px]">{entry.pseudo}</span>
+          <span className="font-black truncate max-w-[110px]"><OgName name={entry.pseudo} /></span>
           <span className="text-tx-muted">sur</span>
           <span className="font-bold text-tx-secondary truncate">{GAME_NAMES[entry.game_slug] || entry.game_slug}</span>
         </div>

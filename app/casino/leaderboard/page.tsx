@@ -11,6 +11,7 @@ import { sfx } from '@/lib/casino/sfx';
 import PlayerCard from '../_components/PlayerCard';
 import CasinoControls from '../_components/CasinoControls';
 
+import OgName from '@/components/OgName';
 type Tab = 'alltime' | 'season';
 
 interface Row {
@@ -108,7 +109,7 @@ export default function LeaderboardPage() {
                     {i < 3 ? <Medal className={cn('w-5 h-5', RANK_COLOR[i])} /> : <span className="font-display text-tx-secondary">{i + 1}</span>}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="font-bold truncate">{r.pseudo}</div>
+                    <div className="font-bold truncate"><OgName name={r.pseudo} /></div>
                     {prestigeTitle && <div className="text-[10px] font-black uppercase tracking-widest text-accent-primary">{prestigeTitle}</div>}
                   </div>
                   <div className="font-display tabular-nums shrink-0">{r.value.toLocaleString('en-US')} ₶</div>

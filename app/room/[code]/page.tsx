@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { BRAWL, BRAWL_SWATCHES } from '@/lib/ui/brawl';
 
+import OgName from '@/components/OgName';
 interface Player {
   id: string;
   name: string;
@@ -1435,7 +1436,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                 </div>
                                 <div className="flex flex-col truncate">
                                     <span className="font-display text-lg leading-tight text-white truncate">
-                                        {player.name}
+                                        <OgName name={player.name} />
                                     </span>
                                     {player.isHost && (
                                         <span className="self-start mt-0.5 text-[11px] font-black bg-accent-primary text-brand-bg border-[3px] border-brand-border px-1.5 rounded-md">

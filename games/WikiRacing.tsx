@@ -10,6 +10,7 @@ import { Trophy, Clock, Loader2, ArrowRight, Target, Link as LinkIcon, Search, C
 import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import OgName from '@/components/OgName';
 
 export default function WikiRacing({ params }: { params: { code: string } }) {
     const roomCode = params.code;
@@ -568,7 +569,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                                         "flex items-center justify-between p-4 rounded-xl border-[3px] border-brand-border",
                                         isDnf ? "bg-brand-bg opacity-70" : "bg-brand-inner"
                                     )}>
-                                        <span className="font-display text-lg text-tx-base">{p.name}</span>
+                                        <span className="font-display text-lg text-tx-base"><OgName name={p.name} /></span>
                                         {isDnf ? (
                                             <span className="text-accent-secondary font-bold uppercase tracking-widest text-sm">Temps écoulé</span>
                                         ) : (
@@ -622,7 +623,7 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
                                         </span>
                                         
                                         <div className="flex flex-col text-left">
-                                            <span className="text-xl font-display">{p.name}</span>
+                                            <span className="text-xl font-display"><OgName name={p.name} /></span>
                                         </div>
                                     </div>
                                     <span className={cn(

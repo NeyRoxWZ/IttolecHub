@@ -14,6 +14,7 @@ import { Euro, TrendingUp, TrendingDown, Clock, MapPin, Home, Bed, Layout, Build
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import OgName from '@/components/OgName';
 
 const LeafletMap = dynamic(() => import('@/components/LeafletMap'), { 
     ssr: false, 
@@ -590,7 +591,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                                               {playerInfo?.name.charAt(0).toUpperCase()}
                                           </div>
                                           <div>
-                                              <div className="font-display text-lg text-tx-base">{playerInfo?.name}</div>
+                                              <div className="font-display text-lg text-tx-base"><OgName name={playerInfo?.name} /></div>
                                               <div className="text-sm font-bold text-tx-secondary flex items-center gap-2">
                                                   {guess} €
                                                   <span className={cn(
@@ -651,7 +652,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                                       </span>
                                       
                                       <div className="flex flex-col text-left">
-                                          <span className="text-xl font-display">{p.name}</span>
+                                          <span className="text-xl font-display"><OgName name={p.name} /></span>
                                           <span className={cn(
                                               "text-xs font-bold uppercase tracking-widest",
                                               i === 0 ? "text-brand-bg/80" : "text-tx-secondary"

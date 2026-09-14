@@ -17,6 +17,7 @@ import {
 } from '@/lib/casino/syndicate';
 import Arena from './Arena';
 
+import OgName from '@/components/OgName';
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 
 interface State {
@@ -357,7 +358,7 @@ export default function CagnottePage() {
                 {state?.members.map((m: any) => (
                   <div key={m.user_id} className="flex items-center gap-2 text-sm">
                     <span className="flex-1 min-w-0 truncate font-bold">
-                      {m.pseudo}
+                      <OgName name={m.pseudo} />
                       {m.user_id === syn.host_id && (
                         <span className="ml-1.5 text-[9px] font-black uppercase text-accent-primary">hôte</span>
                       )}
