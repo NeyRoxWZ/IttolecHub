@@ -55,6 +55,30 @@
       "type": "amelioration",
       "title": "Publicité et cookies",
       "details": "Le site est désormais financé par la publicité (Ezoic). La politique de confidentialité et les mentions légales expliquent les cookies publicitaires et comment les accepter ou les refuser. Aucune pub sur le casino."
+    },
+    {
+      "id": "2026-09-14-08",
+      "date": "2026-09-14",
+      "scope": "peche",
+      "type": "equilibrage",
+      "title": "Progression de la Pêche rééquilibrée",
+      "details": "Les spots rapportent beaucoup moins d'écart d'argent, le bateau coûte un peu plus à chaque niveau et la canne auto est plus lente : pêcher à la main reste le meilleur. Les Marées arrivent plus souvent, chacune un peu plus loin. Chaque joueur a été replacé là où l'aurait mené sa pêche avec ces règles, sans rien perdre de sa collection."
+    },
+    {
+      "id": "2026-09-14-09",
+      "date": "2026-09-14",
+      "scope": "site",
+      "type": "correctif",
+      "title": "Salons multijoueur protégés",
+      "details": "Seul l'hôte peut changer les règles, lancer ou fermer une partie, et personne ne peut plus jouer ou voter à la place d'un autre. Trop d'essais de connexion ratés bloquent un moment le compte visé."
+    },
+    {
+      "id": "2026-09-14-10",
+      "date": "2026-09-14",
+      "scope": "peche",
+      "type": "correctif",
+      "title": "Jauge de ferrage anti-triche",
+      "details": "La qualité d'une prise est maintenant vérifiée par le serveur : impossible de forcer une prise parfaite."
     }
   ]
 }
