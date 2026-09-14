@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "main": ".open-next/worker.js",
+  "main": "custom-worker.ts",
   "name": "itollechub",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
@@ -16,5 +16,11 @@
   ],
   "observability": {
     "enabled": true
-  }
+  },
+  // The two daily push sweeps that were Vercel crons (UTC).
+  "triggers": {
+    "crons": ["0 7 * * *", "0 19 * * *"]
+  },
+  "workers_dev": true,
+  "preview_urls": false
 }
