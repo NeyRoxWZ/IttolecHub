@@ -15,6 +15,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import OgName from '@/components/OgName';
+import { roomDb } from '@/lib/supabase/roomClient';
 
 const LeafletMap = dynamic(() => import('@/components/LeafletMap'), { 
     ssr: false, 
@@ -155,11 +156,11 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                   guess_time_ms: 0
               }));
               
-              await supabase.from('rent_players').delete().eq('room_id', roomId);
-              await supabase.from('rent_players').insert(playerInserts);
+              await roomDb.from('rent_players').delete().eq('room_id', roomId);
+              await roomDb.from('rent_players').insert(playerInserts);
 
               // Create Game Entry
-              await supabase.from('rent_games').upsert({
+              await roomDb.from('rent_games').upsert({
                   room_id: roomId,
                   phase: 'playing',
                   current_round: 1,
@@ -170,17 +171,17 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                   created_at: new Date().toISOString()
               }, { onConflict: 'room_id' });
               
-              await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
+              await roomDb.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
           } else {
               // Next Round
-              await supabase.from('rent_players').update({
+              await roomDb.from('rent_players').update({
                   has_guessed: false,
                   last_guess: null,
                   guess_diff_percent: null,
                   guess_time_ms: 0
               }).eq('room_id', roomId);
               
-              await supabase.from('rent_games').update({
+              await roomDb.from('rent_games').update({
                   phase: 'playing',
                   current_property: nextProperty,
                   timer_start_at: new Date().toISOString(),
@@ -235,15 +236,15 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
       });
       
       for (const update of updates) {
-          await supabase.from('rent_players').update({
+          await roomDb.from('rent_players').update({
               score: update.score,
               guess_diff_percent: update.guess_diff_percent
           }).match({ room_id: roomId, player_id: update.player_id });
           
-          await supabase.from('players').update({ score: update.score }).eq('id', update.player_id);
+          await roomDb.from('players').update({ score: update.score }).eq('id', update.player_id);
       }
       
-      await supabase.from('rent_games').update({
+      await roomDb.from('rent_games').update({
           phase: 'round_results'
       }).eq('room_id', roomId);
       
@@ -251,7 +252,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
           setTimeout(() => startRound(), 4000);
       } else {
           setTimeout(() => {
-              supabase.from('rent_games').update({ phase: 'podium' }).eq('room_id', roomId);
+              roomDb.from('rent_games').update({ phase: 'podium' }).eq('room_id', roomId);
           }, 4000);
       }
   };
@@ -262,7 +263,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
     
     const timeout = setTimeout(async () => {
       if (currentRound >= totalRounds) {
-        await supabase.from('rent_games').update({ phase: 'podium' }).eq('room_id', roomId);
+        await roomDb.from('rent_games').update({ phase: 'podium' }).eq('room_id', roomId);
       }
     }, 8000);
     
@@ -306,7 +307,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
       const start = timerStartAt ? new Date(timerStartAt).getTime() : now;
       const timeTaken = now - start;
       
-      await supabase.from('rent_players').update({
+      await roomDb.from('rent_players').update({
           has_guessed: true,
           last_guess: guess,
           guess_time_ms: timeTaken
@@ -317,9 +318,9 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
       if (!isHost || !roomId) return;
       
       // Cleanup
-      await supabase.from('rent_games').delete().eq('room_id', roomId);
-      await supabase.from('rent_players').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('rent_games').delete().eq('room_id', roomId);
+      await roomDb.from('rent_players').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
       
       if (broadcast) await broadcast('return_to_lobby', {});
       router.push(`/room/${roomCode}?return=true`);
@@ -327,9 +328,9 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
 
   const cleanupForVote = async () => {
       if (!isHost || !roomId) return;
-      await supabase.from('rent_games').delete().eq('room_id', roomId);
-      await supabase.from('rent_players').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('rent_games').delete().eq('room_id', roomId);
+      await roomDb.from('rent_players').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
   };
 
   // --- RENDER ---

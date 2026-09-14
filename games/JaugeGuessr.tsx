@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 
 import OgName from '@/components/OgName';
+import { roomDb } from '@/lib/supabase/roomClient';
 export default function JaugeGuessr({ params }: { params: { code: string } }) {
     const roomCode = params.code;
     const router = useRouter();
@@ -163,7 +164,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
 
             const initialGuider = players[0]?.id;
             
-            await supabase.from('game_sessions').upsert({
+            await roomDb.from('game_sessions').upsert({
                 room_id: roomId,
                 status: 'round_active',
                 current_round: 1,
@@ -181,8 +182,8 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                 }
             }, { onConflict: 'room_id' });
 
-            await supabase.from('game_moves').delete().eq('room_id', roomId);
-            await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
+            await roomDb.from('game_moves').delete().eq('room_id', roomId);
+            await roomDb.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
         } catch (e) {
             console.error(e);
             toast.error("Erreur au démarrage de la partie");
@@ -220,8 +221,8 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
             const nextGuiderIndex = (currentGuiderIndex + 1) % players.length;
             const nextGuiderId = players[nextGuiderIndex]?.id;
 
-            await supabase.from('game_moves').delete().eq('room_id', roomId);
-            await supabase.from('game_sessions').update({
+            await roomDb.from('game_moves').delete().eq('room_id', roomId);
+            await roomDb.from('game_sessions').update({
                 current_round: nextRoundNum,
                 round_data: {
                     ...roundData,
@@ -239,8 +240,8 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
 
     const returnToLobby = async () => {
         if (!isHost || !roomCode) return;
-        await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
-        await supabase.from('game_sessions').delete().eq('room_id', roomId);
+        await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+        await roomDb.from('game_sessions').delete().eq('room_id', roomId);
         router.push(`/room/${roomCode}?return=true`);
     };
 

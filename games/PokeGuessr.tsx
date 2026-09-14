@@ -14,6 +14,7 @@ import Fuse from 'fuse.js';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import VoteToLobby from './components/VoteToLobby';
 import OgName from '@/components/OgName';
+import { roomDb } from '@/lib/supabase/roomClient';
 
 interface PokeGuessrProps {
   roomCode: string;
@@ -134,7 +135,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
 
               if (timeIsUp || allAnswered) {
                   // Move to Results
-                  await supabase.from('poke_games').update({
+                  await roomDb.from('poke_games').update({
                       phase: 'round_results',
                       timer_start_at: null
                   }).eq('room_id', roomId);
@@ -220,11 +221,11 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
           }));
           
           // Clean old data
-          await supabase.from('poke_players').delete().eq('room_id', roomId);
-          await supabase.from('poke_players').insert(playerInserts);
+          await roomDb.from('poke_players').delete().eq('room_id', roomId);
+          await roomDb.from('poke_players').insert(playerInserts);
 
           // Update Game
-          await supabase.from('poke_games').upsert({
+          await roomDb.from('poke_games').upsert({
               room_id: roomId,
               phase: 'playing',
               current_round: 1,
@@ -238,7 +239,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
               created_at: new Date().toISOString()
           }, { onConflict: 'room_id' });
 
-          await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
+          await roomDb.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
           toast.dismiss();
           toast.success("Un Pokémon sauvage apparaît !");
 
@@ -257,7 +258,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
 
       if (queue.length === 0 || currentRoundVal >= totalRounds) {
           // Game Over -> Podium
-          await supabase.from('poke_games').update({
+          await roomDb.from('poke_games').update({
               phase: 'podium'
           }).eq('room_id', roomId);
           return;
@@ -273,7 +274,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
         const pokemon = await res.json();
 
         // Reset players guess state
-        await supabase.from('poke_players').update({
+        await roomDb.from('poke_players').update({
             has_guessed: false,
             guess_rank: 0,
             guess_time_ms: 0,
@@ -282,7 +283,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
         }).eq('room_id', roomId);
 
         // Start next round
-        await supabase.from('poke_games').update({
+        await roomDb.from('poke_games').update({
             phase: 'playing',
             current_round: currentRoundVal + 1,
             current_pokemon: pokemon,
@@ -292,7 +293,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
       } catch (e) {
         console.error("Next round error", e);
         // Force podium if error
-        await supabase.from('poke_games').update({ phase: 'podium' }).eq('room_id', roomId);
+        await roomDb.from('poke_games').update({ phase: 'podium' }).eq('room_id', roomId);
       }
   };
 
@@ -357,7 +358,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
       const myPlayer = players.find(p => p.id === playerId);
       const currentScore = myPlayer?.score || 0;
 
-      await supabase.from('poke_players').update({
+      await roomDb.from('poke_players').update({
           has_guessed: true,
           last_guess: userAnswer,
           is_correct: isCorrectGuess,
@@ -367,7 +368,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
       
       if (isCorrectGuess) {
           // Update Global Score
-          await supabase.from('players').update({ score: currentScore + points }).eq('id', playerId);
+          await roomDb.from('players').update({ score: currentScore + points }).eq('id', playerId);
           setScoreEarned(points);
       }
 
@@ -387,9 +388,9 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
       if (!isHost || !roomId) return;
       
       // Cleanup
-      await supabase.from('poke_games').delete().eq('room_id', roomId);
-      await supabase.from('poke_players').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('poke_games').delete().eq('room_id', roomId);
+      await roomDb.from('poke_players').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
       
       if (broadcast) await broadcast('return_to_lobby', {});
       router.push(`/room/${roomCode}?return=true`);
@@ -397,9 +398,9 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
 
   const cleanupForVote = async () => {
       if (!isHost || !roomId) return;
-      await supabase.from('poke_games').delete().eq('room_id', roomId);
-      await supabase.from('poke_players').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('poke_games').delete().eq('room_id', roomId);
+      await roomDb.from('poke_players').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
   };
 
   // --- RENDER HELPERS ---

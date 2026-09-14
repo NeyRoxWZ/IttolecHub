@@ -16,6 +16,7 @@ import { vibrate, HAPTIC } from '@/lib/haptic';
 import { BRAWL, BRAWL_SWATCHES } from '@/lib/ui/brawl';
 
 import OgName from '@/components/OgName';
+import { roomDb } from '@/lib/supabase/roomClient';
 interface Player {
   id: string;
   name: string;
@@ -373,7 +374,7 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
       vibrate(HAPTIC.SOFT);
       
       if (roomId) {
-          await supabase.from('rooms').update({
+          await roomDb.from('rooms').update({
               settings: { ...gameSettings, isPrivate: newState }
           }).eq('id', roomId);
       }
@@ -431,7 +432,7 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
           
           if (isHostParam) {
               // Create room if it doesn't exist and we are host
-              const { data: newRoom, error: createError } = await supabase
+              const { data: newRoom, error: createError } = await roomDb
                   .from('rooms')
                   .insert({
                       code: params.code,
@@ -509,7 +510,7 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
           // Si la room n'a pas de host ou si le host_id correspond au nom (legacy), ce joueur devient host
           const shouldBeHost = !room.host_id || room.host_id === storedName; 
           
-          const { data: newPlayer, error: createError } = await supabase
+          const { data: newPlayer, error: createError } = await roomDb
             .from('players')
             .insert({
               room_id: room.id,
@@ -526,16 +527,18 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
             
             // Si c'est le host, on met à jour la room pour lier le host_id au player UUID si ce n'est pas déjà fait
             if (shouldBeHost && room.host_id !== newPlayer.id) {
-               await supabase.from('rooms').update({ host_id: newPlayer.id }).eq('id', room.id);
+               await roomDb.from('rooms').update({ host_id: newPlayer.id }).eq('id', room.id);
             }
           }
         } else {
+           // A returning player takes their seat token back before writing anything.
+           await roomDb.claim(room.id, { playerId: existingPlayer.id });
            // Si le joueur existe, on vérifie s'il est host selon la room
            // Par sécurité, si room.host_id correspond à ce joueur, on s'assure que is_host est true
            if (room.host_id === existingPlayer.id || room.host_id === existingPlayer.name) {
                isCurrentHost = true;
                if (!existingPlayer.is_host) {
-                   await supabase.from('players').update({ is_host: true }).eq('id', existingPlayer.id);
+                   await roomDb.from('players').update({ is_host: true }).eq('id', existingPlayer.id);
                }
            } else if (existingPlayer.is_host) {
                // Fallback: Player marked as host in players table but maybe not synced to room table
@@ -598,7 +601,7 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
     // 1. Heartbeat (every 30s)
     const sendHeartbeat = async () => {
         if (currentPayloadId) {
-            await supabase.from('players').update({ last_seen_at: new Date().toISOString() }).eq('id', currentPayloadId);
+            await roomDb.from('players').update({ last_seen_at: new Date().toISOString() }).eq('id', currentPayloadId);
         }
     };
     sendHeartbeat();
@@ -609,13 +612,13 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
         if (isHostRef.current) {
             // Host cleans up inactive players (> 5 min)
             const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-            await supabase.from('players').delete().eq('room_id', roomId).lt('last_seen_at', fiveMinAgo);
+            await roomDb.from('players').delete().eq('room_id', roomId).lt('last_seen_at', fiveMinAgo);
             
             // Si le host est le seul restant et qu'il est inactif ? Le host envoie des heartbeats.
             // Mais on peut revérifier le compte total de joueurs
             const { count } = await supabase.from('players').select('*', { count: 'exact', head: true }).eq('room_id', roomId);
             if (count === 0) {
-                await supabase.from('rooms').delete().eq('id', roomId);
+                await roomDb.from('rooms').delete().eq('id', roomId);
             }
         } else {
             // Clients check if Host is inactive
@@ -625,7 +628,7 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
                 // If host inactive > 5m30s
                 if (Date.now() - lastSeen > 330000) {
                      // Supprimer la room si l'hôte a disparu
-                     await supabase.from('rooms').delete().eq('id', roomId);
+                     await roomDb.from('rooms').delete().eq('id', roomId);
                 }
             }
         }
@@ -779,7 +782,7 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
           
           isUpdatingSettingsRef.current = true;
           
-          const { error } = await supabase.from('rooms').update({
+          const { error } = await roomDb.from('rooms').update({
               game_type: selectedGameId,
               settings: { ...gameSettings, isPrivate: isPrivateMode } // Ensure not undefined
           }).eq('id', roomId);
@@ -875,7 +878,7 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
         round_data: { phase: 'setup', startTime: Date.now() } 
     };
 
-    const { error: sessionError } = await supabase
+    const { error: sessionError } = await roomDb
         .from('game_sessions')
         .upsert(sessionPayload, { onConflict: 'room_id' });
 
@@ -885,7 +888,7 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
     }
 
     // 2. Update Room status
-    await supabase.from('rooms').update({
+    await roomDb.from('rooms').update({
         status: 'in_game',
         game_type: selectedGameId,
         settings: gameSettings
@@ -935,10 +938,10 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
     
     // Update room settings FIRST so the kicked player gets the real-time update
     setGameSettings(newSettings);
-    await supabase.from('rooms').update({ settings: newSettings }).eq('id', roomId);
+    await roomDb.from('rooms').update({ settings: newSettings }).eq('id', roomId);
     
     // Then delete player from DB
-    await supabase.from('players').delete().eq('id', playerIdToKick);
+    await roomDb.from('players').delete().eq('id', playerIdToKick);
     
     toast.success(`${playerName} a été exclu.`);
   };
@@ -947,18 +950,18 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
     vibrate(HAPTIC.SOFT);
     // Supprimer le joueur de la DB
     if (roomId && playerName) {
-        await supabase.from('players').delete().match({ room_id: roomId, name: playerName });
+        await roomDb.from('players').delete().match({ room_id: roomId, name: playerName });
 
         // Check remaining players; if we were the host, hand off host to
         // someone else immediately instead of leaving the room headless
         // until the 5-minute inactivity check kicks in.
         const { data: remaining } = await supabase.from('players').select('*').eq('room_id', roomId);
         if (!remaining || remaining.length === 0) {
-            await supabase.from('rooms').delete().eq('id', roomId);
+            await roomDb.from('rooms').delete().eq('id', roomId);
         } else if (isHost) {
             const nextHost = remaining[0];
-            await supabase.from('players').update({ is_host: true }).eq('id', nextHost.id);
-            await supabase.from('rooms').update({ host_id: nextHost.id }).eq('id', roomId);
+            await roomDb.from('players').update({ is_host: true }).eq('id', nextHost.id);
+            await roomDb.from('rooms').update({ host_id: nextHost.id }).eq('id', roomId);
         }
     }
     sessionStorage.removeItem('playerName');

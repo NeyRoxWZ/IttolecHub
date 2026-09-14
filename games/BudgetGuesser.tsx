@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase/client';
 
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import OgName from '@/components/OgName';
+import { roomDb } from '@/lib/supabase/roomClient';
 
 interface BudgetGuesserProps {
   roomCode: string;
@@ -148,11 +149,11 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                   }).filter(Boolean);
 
                   if (updates.length > 0) {
-                      await supabase.from('budget_players').upsert(updates);
+                      await roomDb.from('budget_players').upsert(updates);
                   }
 
                   // Move to Results
-                  await supabase.from('budget_games').update({
+                  await roomDb.from('budget_games').update({
                       phase: 'round_results',
                       timer_start_at: null
                   }).eq('room_id', roomId);
@@ -209,11 +210,11 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
               guess_diff_percent: 0
           }));
           
-          await supabase.from('budget_players').delete().eq('room_id', roomId);
-          await supabase.from('budget_players').insert(playerInserts);
+          await roomDb.from('budget_players').delete().eq('room_id', roomId);
+          await roomDb.from('budget_players').insert(playerInserts);
 
           // Update Game
-          await supabase.from('budget_games').upsert({
+          await roomDb.from('budget_games').upsert({
               room_id: roomId,
               phase: 'playing',
               current_round: 1,
@@ -224,7 +225,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
               created_at: new Date().toISOString()
           }, { onConflict: 'room_id' });
 
-          await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
+          await roomDb.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
           toast.dismiss();
           toast.success("Action !");
 
@@ -242,7 +243,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
 
       if (queue.length === 0 || currentRound >= totalRounds) {
           // Game Over -> Podium
-          await supabase.from('budget_games').update({
+          await roomDb.from('budget_games').update({
               phase: 'podium'
           }).eq('room_id', roomId);
           return;
@@ -257,7 +258,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
       };
 
       // Reset players guess state
-      await supabase.from('budget_players').update({
+      await roomDb.from('budget_players').update({
           has_guessed: false,
           last_guess: 0,
           guess_time_ms: 0,
@@ -265,7 +266,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
       }).eq('room_id', roomId);
 
       // Start next round
-      await supabase.from('budget_games').update({
+      await roomDb.from('budget_games').update({
           phase: 'playing',
           current_round: currentRound + 1,
           current_movie: gamePayload,
@@ -289,7 +290,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
       toast.success("Budget estimé !");
 
       // Update DB
-      await supabase.from('budget_players').update({
+      await roomDb.from('budget_players').update({
           has_guessed: true,
           last_guess: guess,
           guess_time_ms: timeTaken
@@ -299,9 +300,9 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
   const returnToLobby = async () => {
       if (!isHost || !roomId) return;
       
-      await supabase.from('budget_games').delete().eq('room_id', roomId);
-      await supabase.from('budget_players').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('budget_games').delete().eq('room_id', roomId);
+      await roomDb.from('budget_players').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
       
       if (broadcast) await broadcast('return_to_lobby', {});
       router.push(`/room/${roomCode}?return=true`);
@@ -309,9 +310,9 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
 
   const cleanupForVote = async () => {
       if (!isHost || !roomId) return;
-      await supabase.from('budget_games').delete().eq('room_id', roomId);
-      await supabase.from('budget_players').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('budget_games').delete().eq('room_id', roomId);
+      await roomDb.from('budget_players').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
   };
 
   // --- RENDER ---

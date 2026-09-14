@@ -65,6 +65,29 @@ export async function readSession(token?: string | null): Promise<string | null>
   }
 }
 
+/** A signed, expiring token for any small payload (e.g. a seat in a multiplayer room). */
+export async function signPayload(payload: Record<string, unknown>, maxAgeSeconds: number): Promise<string> {
+  const body = toB64url(enc.encode(JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + maxAgeSeconds })));
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', await hmacKey(), enc.encode(body)));
+  return `${body}.${toB64url(sig)}`;
+}
+
+/** The payload of a token from signPayload, or null when missing, forged or expired. */
+export async function readPayload<T extends Record<string, unknown>>(token?: string | null): Promise<T | null> {
+  if (!token) return null;
+  const [body, sig] = token.split('.');
+  if (!body || !sig) return null;
+  try {
+    const ok = await crypto.subtle.verify('HMAC', await hmacKey(), fromB64url(sig) as BufferSource, enc.encode(body));
+    if (!ok) return null;
+    const data = JSON.parse(dec.decode(fromB64url(body)));
+    if (typeof data?.exp !== 'number' || data.exp < Math.floor(Date.now() / 1000)) return null;
+    return data as T;
+  } catch {
+    return null;
+  }
+}
+
 function cookieValue(request: Request, name: string): string | null {
   const header = request.headers.get('cookie');
   if (!header) return null;

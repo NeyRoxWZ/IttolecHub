@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase/client';
 
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import OgName from '@/components/OgName';
+import { roomDb } from '@/lib/supabase/roomClient';
 
 interface DrawGuesserProps {
   roomCode: string;
@@ -422,7 +423,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
   // Save strokes to Supabase
   const saveStrokesToSupabase = async (newStrokes: Stroke[]) => {
       if (!roomId || !isDrawer || !currentRoundId) return;
-      await supabase.from('draw_strokes').upsert({
+      await roomDb.from('draw_strokes').upsert({
           room_id: roomId,
           round_id: currentRoundId,
           round: currentRound,
@@ -583,11 +584,11 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
                   if (drawerPoints > 0) {
                       // Fetch current score
                       const { data: dData } = await supabase.from('draw_players').select('score').eq('room_id', roomId).eq('player_id', currentDrawerId).single();
-                      await supabase.from('draw_players').update({ score: (dData?.score || 0) + drawerPoints }).eq('room_id', roomId).eq('player_id', currentDrawerId);
+                      await roomDb.from('draw_players').update({ score: (dData?.score || 0) + drawerPoints }).eq('room_id', roomId).eq('player_id', currentDrawerId);
                   }
 
                   // Move to Results
-                  await supabase.from('draw_games').update({
+                  await roomDb.from('draw_games').update({
                       phase: 'round_results',
                       timer_start_at: null
                   }).eq('room_id', roomId);
@@ -642,14 +643,14 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
               guess_time_ms: 0
           }));
           
-          await supabase.from('draw_players').delete().eq('room_id', roomId);
-          await supabase.from('draw_players').insert(playerInserts);
+          await roomDb.from('draw_players').delete().eq('room_id', roomId);
+          await roomDb.from('draw_players').insert(playerInserts);
           
           // Clear old strokes
-          await supabase.from('draw_strokes').delete().eq('room_id', roomId);
+          await roomDb.from('draw_strokes').delete().eq('room_id', roomId);
 
           // Update Game with round_id
-          await supabase.from('draw_games').upsert({
+          await roomDb.from('draw_games').upsert({
               room_id: roomId,
               phase: 'playing',
               current_round: 1,
@@ -663,7 +664,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
               created_at: new Date().toISOString()
           }, { onConflict: 'room_id' });
 
-          await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
+          await roomDb.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
           setRoundId(roundId);
           
           // Broadcast new round
@@ -686,7 +687,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
 
       if (queue.length === 0 || currentRoundNum >= totalRounds) {
           // Game Over -> Podium
-          await supabase.from('draw_games').update({
+          await roomDb.from('draw_games').update({
               phase: 'podium'
           }).eq('room_id', roomId);
           return;
@@ -704,17 +705,17 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       const nextDrawerId = players[nextIndex].id;
 
       // Reset players guess state
-      await supabase.from('draw_players').update({
+      await roomDb.from('draw_players').update({
           has_guessed: false,
           guess_rank: 0,
           guess_time_ms: 0
       }).eq('room_id', roomId);
       
       // Clear old strokes for this room
-      await supabase.from('draw_strokes').delete().eq('room_id', roomId);
+      await roomDb.from('draw_strokes').delete().eq('room_id', roomId);
 
       // Start next round with new round_id
-      await supabase.from('draw_games').update({
+      await roomDb.from('draw_games').update({
           phase: 'playing',
           current_round: currentRoundNum + 1,
           round_id: newRoundId,
@@ -790,7 +791,7 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
 
               // Update DB
               const { data: pData } = await supabase.from('draw_players').select('score').eq('room_id', roomId).eq('player_id', playerId).single();
-              await supabase.from('draw_players').update({
+              await roomDb.from('draw_players').update({
                   score: (pData?.score || 0) + points,
                   has_guessed: true,
                   guess_rank: rank,
@@ -820,18 +821,18 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
 
   const returnToLobby = async () => {
       if (!isHost || !roomId) return;
-      await supabase.from('draw_games').delete().eq('room_id', roomId);
-      await supabase.from('draw_players').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('draw_games').delete().eq('room_id', roomId);
+      await roomDb.from('draw_players').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
       if (broadcast) await broadcast('return_to_lobby', {});
       router.push(`/room/${roomCode}?return=true`);
   };
 
   const cleanupForVote = async () => {
       if (!isHost || !roomId) return;
-      await supabase.from('draw_games').delete().eq('room_id', roomId);
-      await supabase.from('draw_players').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('draw_games').delete().eq('room_id', roomId);
+      await roomDb.from('draw_players').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
   };
 
   // --- UTILS ---

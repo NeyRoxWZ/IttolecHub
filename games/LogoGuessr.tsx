@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import OgName from '@/components/OgName';
+import { roomDb } from '@/lib/supabase/roomClient';
 
 const BRANDFETCH_CLIENT_ID = '1idE9skP3OyDrucd4OC';
 
@@ -418,7 +419,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
       const myPlayer = players.find(p => p.id === playerId);
       const currentScore = myPlayer?.score || 0;
       
-      await supabase.from('logo_players').update({
+      await roomDb.from('logo_players').update({
           has_found: true,
           score: currentScore + points,
           find_time_ms: timeTaken,
@@ -426,7 +427,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
       }).match({ room_id: roomId, player_id: playerId });
       
       // Also update main players table for global sync
-      await supabase.from('players').update({ score: currentScore + points }).eq('id', playerId);
+      await roomDb.from('players').update({ score: currentScore + points }).eq('id', playerId);
   };
 
   // --- HOST LOGIC ---
@@ -464,11 +465,11 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                   find_time_ms: 0
               }));
 
-              await supabase.from('logo_players').delete().eq('room_id', roomId);
-              await supabase.from('logo_players').insert(playerInserts);
+              await roomDb.from('logo_players').delete().eq('room_id', roomId);
+              await roomDb.from('logo_players').insert(playerInserts);
 
               // Create Game Entry
-              await supabase.from('logo_games').upsert({
+              await roomDb.from('logo_games').upsert({
                   room_id: roomId,
                   phase: 'playing',
                   current_round: 1,
@@ -482,20 +483,20 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
                   created_at: new Date().toISOString()
               }, { onConflict: 'room_id' });
               
-              await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
+              await roomDb.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
           } else {
               // Next Round - use queue
               const queue = game.queue || [];
               const nextLogoFromQueue = queue[0];
               const newQueue = queue.slice(1);
               
-              await supabase.from('logo_players').update({
+              await roomDb.from('logo_players').update({
                   has_found: false,
                   find_time_ms: 0,
                   last_guess: null
               }).eq('room_id', roomId);
               
-              await supabase.from('logo_games').update({
+              await roomDb.from('logo_games').update({
                   phase: 'playing',
                   current_logo: nextLogoFromQueue,
                   queue: newQueue,
@@ -514,7 +515,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
   const endRound = async () => {
       if (!isHost || !roomId) return;
       
-      await supabase.from('logo_games').update({
+      await roomDb.from('logo_games').update({
           phase: 'round_results'
       }).eq('room_id', roomId);
       
@@ -522,7 +523,7 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
           setTimeout(() => startRound(), 3000);
       } else {
           setTimeout(async () => {
-              await supabase.from('logo_games').update({ phase: 'podium' }).eq('room_id', roomId);
+              await roomDb.from('logo_games').update({ phase: 'podium' }).eq('room_id', roomId);
           }, 3000);
       }
   };
@@ -552,9 +553,9 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
       if (!isHost || !roomId) return;
       
       // Cleanup
-      await supabase.from('logo_games').delete().eq('room_id', roomId);
-      await supabase.from('logo_players').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('logo_games').delete().eq('room_id', roomId);
+      await roomDb.from('logo_players').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
       
       if (broadcast) await broadcast('return_to_lobby', {});
       router.push(`/room/${roomCode}?return=true`);
@@ -562,9 +563,9 @@ export default function LogoGuessr({ roomCode }: LogoGuessrProps) {
 
   const cleanupForVote = async () => {
       if (!isHost || !roomId) return;
-      await supabase.from('logo_games').delete().eq('room_id', roomId);
-      await supabase.from('logo_players').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('logo_games').delete().eq('room_id', roomId);
+      await roomDb.from('logo_players').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
   };
 
   // --- RENDER ---

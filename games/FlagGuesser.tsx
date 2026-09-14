@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import OgName from '@/components/OgName';
+import { roomDb } from '@/lib/supabase/roomClient';
 
 interface FlagGuesserProps {
   roomCode: string;
@@ -130,7 +131,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
 
               if (allAnswered || timeIsUp) {
                   // Move to Results
-                  await supabase.from('flag_games').update({
+                  await roomDb.from('flag_games').update({
                       phase: 'round_results',
                       timer_start_at: null // Stop timer
                   }).eq('room_id', roomId);
@@ -178,11 +179,11 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
               answer_time_ms: 0
           }));
           
-          await supabase.from('flag_players').delete().eq('room_id', roomId);
-          await supabase.from('flag_players').insert(playerInserts);
+          await roomDb.from('flag_players').delete().eq('room_id', roomId);
+          await roomDb.from('flag_players').insert(playerInserts);
 
           // Update Game
-          await supabase.from('flag_games').upsert({
+          await roomDb.from('flag_games').upsert({
               room_id: roomId,
               phase: 'playing',
               current_round: 1,
@@ -196,7 +197,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
               created_at: new Date().toISOString()
           }, { onConflict: 'room_id' });
 
-          await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
+          await roomDb.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
           toast.dismiss();
           toast.success("C'est parti !");
 
@@ -214,7 +215,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
 
       if (queue.length === 0) {
           // Game Over -> Podium
-          await supabase.from('flag_games').update({
+          await roomDb.from('flag_games').update({
               phase: 'podium'
           }).eq('room_id', roomId);
           return;
@@ -224,14 +225,14 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
       const nextQueue = queue.slice(1);
 
       // Reset players answered state
-      await supabase.from('flag_players').update({
+      await roomDb.from('flag_players').update({
           has_answered: false,
           last_answer: null,
           answer_time_ms: 0
       }).eq('room_id', roomId);
 
       // Start next round
-      await supabase.from('flag_games').update({
+      await roomDb.from('flag_games').update({
           phase: 'playing',
           current_round: currentRound + 1,
           current_flag: nextFlag,
@@ -306,7 +307,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
       const { data: pData } = await supabase.from('flag_players').select('score').eq('room_id', roomId).eq('player_id', playerId).single();
       const currentScore = pData?.score || 0;
 
-      await supabase.from('flag_players').update({
+      await roomDb.from('flag_players').update({
           score: currentScore + score,
           has_answered: true,
           last_answer: answer,
@@ -318,9 +319,9 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
       if (!isHost || !roomId) return;
       
       // Cleanup
-      await supabase.from('flag_games').delete().eq('room_id', roomId);
-      await supabase.from('flag_players').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('flag_games').delete().eq('room_id', roomId);
+      await roomDb.from('flag_players').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
       
       if (broadcast) await broadcast('return_to_lobby', {});
       router.push(`/room/${roomCode}?return=true`);
@@ -328,9 +329,9 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
 
   const cleanupForVote = async () => {
       if (!isHost || !roomId) return;
-      await supabase.from('flag_games').delete().eq('room_id', roomId);
-      await supabase.from('flag_players').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('flag_games').delete().eq('room_id', roomId);
+      await roomDb.from('flag_players').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
   };
 
   // --- UTILS ---

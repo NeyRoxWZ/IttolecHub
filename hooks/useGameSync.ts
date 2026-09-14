@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useGameRoom } from './useGameRoom';
 import { useServerTime } from './useServerTime';
 import { toast } from 'sonner';
+import { roomDb } from '@/lib/supabase/roomClient';
 
 export interface Player {
   id: string;
@@ -88,9 +89,12 @@ export function useGameSync(roomCode: string, gameType: string) {
         if (data) player = data;
       }
 
+      // A returning player takes their seat token back before writing anything.
+      if (player) await roomDb.claim(roomData.id, { playerId: player.id });
+
       // C. Create new
       if (!player) {
-        const { data: newPlayer } = await supabase
+        const { data: newPlayer } = await roomDb
           .from('players')
           .insert({
             room_id: roomData.id,
@@ -105,8 +109,8 @@ export function useGameSync(roomCode: string, gameType: string) {
           sessionStorage.setItem('playerId', newPlayer.id);
           // If room has no host, claim it
           if (!roomData.host_id) {
-             await supabase.from('rooms').update({ host_id: newPlayer.id }).eq('id', roomData.id);
-             await supabase.from('players').update({ is_host: true }).eq('id', newPlayer.id);
+             await roomDb.from('rooms').update({ host_id: newPlayer.id }).eq('id', roomData.id);
+             await roomDb.from('players').update({ is_host: true }).eq('id', newPlayer.id);
              setIsHost(true);
           }
         }
@@ -118,14 +122,14 @@ export function useGameSync(roomCode: string, gameType: string) {
         
         // Sync host status if mismatch
         if (player.is_host && roomData.host_id !== player.id) {
-            await supabase.from('rooms').update({ host_id: player.id }).eq('id', roomData.id);
+            await roomDb.from('rooms').update({ host_id: player.id }).eq('id', roomData.id);
         }
 
         // Initialize session if host and missing
         if (player.is_host) {
              const { data: existingSession } = await supabase.from('game_sessions').select('*').eq('room_id', roomData.id).maybeSingle();
              if (!existingSession) {
-                 await supabase.from('game_sessions').insert({
+                 await roomDb.from('game_sessions').insert({
                     room_id: roomData.id,
                     status: 'waiting'
                  });
@@ -141,7 +145,7 @@ export function useGameSync(roomCode: string, gameType: string) {
   useEffect(() => {
     if (!playerId) return;
     const sendHeartbeat = async () => {
-        await supabase.from('players').update({ last_seen_at: new Date().toISOString() }).eq('id', playerId);
+        await roomDb.from('players').update({ last_seen_at: new Date().toISOString() }).eq('id', playerId);
     };
     sendHeartbeat();
     const interval = setInterval(sendHeartbeat, 30000);
@@ -153,7 +157,7 @@ export function useGameSync(roomCode: string, gameType: string) {
     if (!isHost || !roomId) return;
     const cleanup = async () => {
         const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-        await supabase.from('players').delete().eq('room_id', roomId).lt('last_seen_at', twoMinAgo);
+        await roomDb.from('players').delete().eq('room_id', roomId).lt('last_seen_at', twoMinAgo);
     };
     const interval = setInterval(cleanup, 60000);
     return () => clearInterval(interval);
@@ -168,7 +172,7 @@ export function useGameSync(roomCode: string, gameType: string) {
           const lastSeen = new Date(host.last_seen_at).getTime();
           if (Date.now() - lastSeen > 150000) {
              if (roomStatus !== 'closed') {
-                 await supabase.from('rooms').update({ status: 'closed' }).eq('id', roomId);
+                 await roomDb.from('rooms').update({ status: 'closed' }).eq('id', roomId);
              }
           }
        }
@@ -181,7 +185,7 @@ export function useGameSync(roomCode: string, gameType: string) {
   // Actions
   const updateSettings = async (newSettings: any) => {
     if (!roomId || !isHost) return;
-    const { error } = await supabase.from('rooms').update({ settings: newSettings }).eq('id', roomId);
+    const { error } = await roomDb.from('rooms').update({ settings: newSettings }).eq('id', roomId);
     if (error) {
       console.error('Error updating settings:', error);
       toast.error("Impossible de sauvegarder les réglages. Vérifiez votre connexion.");
@@ -200,7 +204,7 @@ export function useGameSync(roomCode: string, gameType: string) {
     };
 
     // Use upsert to ensure session exists and handle race conditions
-    const { error: sessionError } = await supabase
+    const { error: sessionError } = await roomDb
         .from('game_sessions')
         .upsert(sessionPayload, { onConflict: 'room_id' });
 
@@ -211,7 +215,7 @@ export function useGameSync(roomCode: string, gameType: string) {
     }
 
     const roomPayload = { status: 'in_game' };
-    const { error: roomError } = await supabase.from('rooms').update(roomPayload).eq('id', roomId);
+    const { error: roomError } = await roomDb.from('rooms').update(roomPayload).eq('id', roomId);
     if (roomError) {
       console.error('ERREUR SUPABASE (startGame room):', roomError);
       toast.error("Impossible de lancer la partie. Réessayez.");
@@ -221,24 +225,24 @@ export function useGameSync(roomCode: string, gameType: string) {
   const submitAnswer = async (answer: any) => {
     if (!roomId || !playerId || !gameState) return;
     const newAnswers = { ...gameState.answers, [playerId]: { answer, time: Date.now() } };
-    const { error } = await supabase.from('game_sessions').update({ answers: newAnswers }).eq('room_id', roomId);
+    const { error } = await roomDb.from('game_sessions').update({ answers: newAnswers }).eq('room_id', roomId);
     if (error) toast.error("Votre réponse n'a pas été envoyée. Réessayez.");
   };
 
   const setPlayerReady = async (isReady: boolean) => {
     if (!playerId) return;
-    const { error } = await supabase.from('players').update({ is_ready: isReady }).eq('id', playerId);
+    const { error } = await roomDb.from('players').update({ is_ready: isReady }).eq('id', playerId);
     if (error) toast.error("Impossible de mettre à jour votre statut. Réessayez.");
   };
 
   const resetAllPlayersReady = async () => {
     if (!roomId || !isHost) return;
-    await supabase.from('players').update({ is_ready: false }).eq('room_id', roomId);
+    await roomDb.from('players').update({ is_ready: false }).eq('room_id', roomId);
   };
 
   const sendMove = async (actionType: string, payload: any) => {
     if (!roomId || !playerId) return;
-    const { error } = await supabase.from('game_moves').insert({
+    const { error } = await roomDb.from('game_moves').insert({
         room_id: roomId,
         player_id: playerId,
         action_type: actionType,
@@ -252,10 +256,10 @@ export function useGameSync(roomCode: string, gameType: string) {
     if (!roomId || !isHost || !gameState) return;
     const nextRound = gameState.current_round + 1;
     if (nextRound > gameState.total_rounds) {
-        await supabase.from('rooms').update({ status: 'finished' }).eq('id', roomId);
-        await supabase.from('game_sessions').update({ status: 'game_over' }).eq('room_id', roomId);
+        await roomDb.from('rooms').update({ status: 'finished' }).eq('id', roomId);
+        await roomDb.from('game_sessions').update({ status: 'game_over' }).eq('room_id', roomId);
     } else {
-        await supabase.from('game_sessions').update({
+        await roomDb.from('game_sessions').update({
             current_round: nextRound,
             answers: {},
             status: 'round_active',
@@ -266,17 +270,17 @@ export function useGameSync(roomCode: string, gameType: string) {
 
   const updateRoundData = async (data: any) => {
     if (!roomId || !isHost) return;
-    await supabase.from('game_sessions').update({ round_data: data }).eq('room_id', roomId);
+    await roomDb.from('game_sessions').update({ round_data: data }).eq('room_id', roomId);
   };
 
   const setGameStatus = async (status: GameState['status']) => {
     if (!roomId || !isHost) return;
-    await supabase.from('game_sessions').update({ status }).eq('room_id', roomId);
+    await roomDb.from('game_sessions').update({ status }).eq('room_id', roomId);
   };
 
   const updatePlayerScore = async (playerId: string, score: number) => {
     if (!roomId || !isHost) return;
-    await supabase.from('players').update({ score }).eq('id', playerId);
+    await roomDb.from('players').update({ score }).eq('id', playerId);
   };
 
   // Helper to get synced time left

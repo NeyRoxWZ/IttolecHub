@@ -14,6 +14,7 @@ import VoteToLobby from './components/VoteToLobby';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 
 import OgName from '@/components/OgName';
+import { roomDb } from '@/lib/supabase/roomClient';
 type Role = 'MASTER' | 'INFILTRE' | 'CITIZEN';
 type Phase = 'setup' | 'roles' | 'playing' | 'voting_finder' | 'voting_infiltre' | 'results';
 type AnswerType = 'OUI' | 'NON' | 'NE_SAIS_PAS';
@@ -181,7 +182,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         if (currentPhase === 'roles') {
              const allReady = alivePlayers.every(id => readyPlayersFromTable.includes(id));
              if (allReady && alivePlayers.length > 0) { 
-                 await supabase.from('infiltre_games').update({
+                 await roomDb.from('infiltre_games').update({
                      phase: 'playing',
                      timer_start_at: new Date().toISOString(),
                      timer_duration_seconds: guessTime
@@ -204,7 +205,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
              if (now > timerStart + duration + 1000) {
                  // Time up! Everyone loses? Or Infiltrator wins?
                  // "Si le mot n'est pas trouvé → tout le monde perd"
-                 await supabase.from('infiltre_games').update({
+                 await roomDb.from('infiltre_games').update({
                      phase: 'results',
                      winner: 'NONE' // Everyone loses
                  }).eq('room_id', roomId);
@@ -264,7 +265,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
         // Find Master ID
         const newMasterId = Object.keys(newRoles).find(id => newRoles[id] === 'MASTER');
 
-        const { error: gameError } = await supabase.from('infiltre_games').upsert({
+        const { error: gameError } = await roomDb.from('infiltre_games').upsert({
             room_id: roomId,
             round_id: String(currentRoundNumber || 1),
             phase: 'roles',
@@ -287,18 +288,18 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
             is_alive: true
         }));
         
-        await supabase.from('infiltre_players').delete().eq('room_id', roomId);
-        const { error: playersError } = await supabase.from('infiltre_players').insert(playerInserts);
+        await roomDb.from('infiltre_players').delete().eq('room_id', roomId);
+        const { error: playersError } = await roomDb.from('infiltre_players').insert(playerInserts);
 
         if (playersError) console.error("PLAYERS ERROR", playersError);
 
-        await supabase.from('infiltre_questions').delete().eq('room_id', roomId);
-        await supabase.from('infiltre_votes').delete().eq('room_id', roomId);
+        await roomDb.from('infiltre_questions').delete().eq('room_id', roomId);
+        await roomDb.from('infiltre_votes').delete().eq('room_id', roomId);
 
         // Ensure room status is in_game so players are redirected if they are in lobby
-        await supabase.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
+        await roomDb.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
 
-        await supabase.from('game_sessions').update({
+        await roomDb.from('game_sessions').update({
             current_round: 1,
             round_data: {
                 phase: 'roles',
@@ -362,7 +363,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
       // But we can't do server side logic easily here without Edge Function.
       // Workaround: Master client detects it when receiving the question.
       
-      await supabase.from('infiltre_questions').insert({
+      await roomDb.from('infiltre_questions').insert({
           room_id: roomId,
           player_id: playerId,
           text: questionText,
@@ -375,7 +376,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
   const answerQuestion = async (questionId: string, answer: AnswerType) => {
       if (!isMaster || !roomId) return;
-      await supabase.from('infiltre_questions').update({
+      await roomDb.from('infiltre_questions').update({
           answer: answer
       }).eq('id', questionId);
   };
@@ -387,7 +388,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
       setConfirmingWinnerId(null);
       
       // Move to Voting Phase 1
-      await supabase.from('infiltre_games').update({
+      await roomDb.from('infiltre_games').update({
           phase: 'voting_finder',
           finder_id: finderId,
           timer_start_at: new Date().toISOString(),
@@ -412,14 +413,14 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
       const myVote = votes.find((v: any) => v.voter_id === playerId && v.vote_phase === votePhase);
       if (myVote) {
           // Update existing vote
-          await supabase.from('infiltre_votes').update({
+          await roomDb.from('infiltre_votes').update({
               target_id: targetId
           }).eq('id', myVote.id);
           vibrate(HAPTIC.MEDIUM);
           toast.success('Vote modifié');
       } else {
           // Insert new vote
-          await supabase.from('infiltre_votes').insert({
+          await roomDb.from('infiltre_votes').insert({
               room_id: roomId,
               voter_id: playerId,
               target_id: targetId,
@@ -531,7 +532,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                    // Puisque le Finder n'était pas l'Infiltré (ou n'a pas été condamné), c'est l'Infiltré qui gagne direct.
                    await finishGame('INFILTRE');
               } else {
-                  await supabase.from('infiltre_games').update({
+                  await roomDb.from('infiltre_games').update({
                       phase: 'voting_infiltre',
                       timer_start_at: new Date().toISOString(),
                       timer_duration_seconds: voteTime
@@ -556,7 +557,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
   const finishGame = async (winner: string) => {
       if (!roomId) return;
-      await supabase.from('infiltre_games').update({
+      await roomDb.from('infiltre_games').update({
           phase: 'results',
           winner: winner
       }).eq('room_id', roomId);
@@ -574,10 +575,10 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
       
       if (nextRoundNum > rounds) {
           // Return to lobby
-          await supabase.from('infiltre_games').delete().eq('room_id', roomId);
-          await supabase.from('infiltre_players').delete().eq('room_id', roomId);
-          await supabase.from('infiltre_questions').delete().eq('room_id', roomId);
-          await supabase.from('infiltre_votes').delete().eq('room_id', roomId);
+          await roomDb.from('infiltre_games').delete().eq('room_id', roomId);
+          await roomDb.from('infiltre_players').delete().eq('room_id', roomId);
+          await roomDb.from('infiltre_questions').delete().eq('room_id', roomId);
+          await roomDb.from('infiltre_votes').delete().eq('room_id', roomId);
           
           await updateRoundData({
               phase: 'setup',
@@ -585,7 +586,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
               notification: { id: Date.now().toString(), message: "Retour au salon...", type: 'info' }
           });
           
-          await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+          await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
 
           // Broadcast return to lobby
           if (broadcast) await broadcast('return_to_lobby', {});
@@ -604,7 +605,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
           const { newRoles } = assignRoles(players);
           const newMasterId = Object.keys(newRoles).find(id => newRoles[id] === 'MASTER');
 
-          await supabase.from('infiltre_games').update({
+          await roomDb.from('infiltre_games').update({
               phase: 'roles',
               secret_word: data.secretWord,
               category: data.category,
@@ -616,8 +617,8 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
           }).eq('room_id', roomId);
 
           // Clear previous questions and votes
-          await supabase.from('infiltre_questions').delete().eq('room_id', roomId);
-          await supabase.from('infiltre_votes').delete().eq('room_id', roomId);
+          await roomDb.from('infiltre_questions').delete().eq('room_id', roomId);
+          await roomDb.from('infiltre_votes').delete().eq('room_id', roomId);
           
           const playerInserts = players.map(p => ({
               room_id: roomId,
@@ -626,10 +627,10 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
               role: newRoles[p.id],
               is_alive: true
           }));
-          await supabase.from('infiltre_players').delete().eq('room_id', roomId);
-          await supabase.from('infiltre_players').insert(playerInserts);
+          await roomDb.from('infiltre_players').delete().eq('room_id', roomId);
+          await roomDb.from('infiltre_players').insert(playerInserts);
           
-          await supabase.from('game_sessions').update({
+          await roomDb.from('game_sessions').update({
               current_round: nextRoundNum,
               round_data: {
                   ...(gameState?.round_data || {}),
@@ -644,11 +645,11 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
   const cleanupForVote = async () => {
       if (!isHost || !roomId) return;
-      await supabase.from('infiltre_games').delete().eq('room_id', roomId);
-      await supabase.from('infiltre_players').delete().eq('room_id', roomId);
-      await supabase.from('infiltre_questions').delete().eq('room_id', roomId);
-      await supabase.from('infiltre_votes').delete().eq('room_id', roomId);
-      await supabase.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
+      await roomDb.from('infiltre_games').delete().eq('room_id', roomId);
+      await roomDb.from('infiltre_players').delete().eq('room_id', roomId);
+      await roomDb.from('infiltre_questions').delete().eq('room_id', roomId);
+      await roomDb.from('infiltre_votes').delete().eq('room_id', roomId);
+      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
   };
 
   // --- CLIENT ACTIONS ---
