@@ -47,6 +47,14 @@
       "type": "nouveau",
       "title": "Badge Fondateur",
       "details": "Le fondateur d'IttolecHub a son pseudo en diamant scintillant et un badge FD en cristal, partout sur le site."
+    },
+    {
+      "id": "2026-09-14-07",
+      "date": "2026-09-14",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Publicité et cookies",
+      "details": "Le site est désormais financé par la publicité (Ezoic). La politique de confidentialité et les mentions légales expliquent les cookies publicitaires et comment les accepter ou les refuser. Aucune pub sur le casino."
     }
   ]
 }

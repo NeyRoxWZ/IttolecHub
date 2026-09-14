@@ -9,11 +9,12 @@ export default function ConfidentialitePage() {
   return (
     <LegalPage
       title="Confidentialité"
-      updated="13 septembre 2026"
+      updated="14 septembre 2026"
       intro={
         <p>
           Ce que le site enregistre sur toi, pourquoi, et qui peut le voir. En bref : le strict nécessaire pour
-          faire tourner les jeux, <b>aucune publicité, aucun outil de suivi, rien de revendu</b>.
+          faire tourner les jeux, de la <b>publicité pour financer le site</b> (cookies publicitaires seulement
+          avec ton accord), <b>rien de revendu</b>.
         </p>
       }
       sections={[
@@ -45,6 +46,7 @@ export default function ConfidentialitePage() {
               <li><b>Faire fonctionner les jeux</b> (compte, progression, classements, fonctions à plusieurs) : nécessaire à la fourniture du service que tu utilises, selon les Conditions (art. 6.1.b du RGPD).</li>
               <li><b>Repérer la triche et les abus, modérer le chat</b> : intérêt légitime à garder le site juste et sûr (art. 6.1.f).</li>
               <li><b>Envoyer des notifications</b> : ton consentement, donné dans ton navigateur et retirable à tout moment (art. 6.1.a).</li>
+              <li><b>Afficher, mesurer et personnaliser la publicité</b> : ton consentement pour les cookies et traceurs publicitaires, donné et retirable dans la fenêtre « Confidentialité et Transparence » (art. 6.1.a).</li>
             </ul>
           ),
         },
@@ -68,9 +70,10 @@ export default function ConfidentialitePage() {
             <p>
               Le site garde quelques informations sur ton appareil. Un cookie de session sécurisé, illisible par
               les scripts de la page, te garde connecté. Le stockage local retient le thème, ta dernière salle, tes
-              préférences (son, turbo) et ce que tu as déjà vu (guides, patch notes). Ces données sont strictement nécessaires au fonctionnement du site
-              et ne servent à aucun suivi ; elles ne demandent donc pas de consentement. Les effacer te déconnecte
-              et remet ces préférences à zéro.
+              préférences (son, turbo) et ce que tu as déjà vu (guides, patch notes). Ces éléments-là sont strictement
+              nécessaires et ne demandent pas de consentement. Les cookies publicitaires, eux, ne sont déposés
+              qu&apos;avec ton accord (voir « Publicité »). Effacer les données du site te déconnecte et remet ces
+              préférences à zéro.
             </p>
           ),
         },
@@ -81,17 +84,43 @@ export default function ConfidentialitePage() {
               <li><b>Cloudflare</b> (États-Unis) héberge et diffuse le site ; il voit passer ton adresse IP et les informations techniques de tes requêtes pour les acheminer et protéger le site contre les attaques ;</li>
               <li><b>Supabase</b> héberge la base de données, sur des serveurs situés dans l&apos;Union européenne (Irlande) ;</li>
               <li><b>Discord</b> (États-Unis) intervient si tu choisis de te connecter avec ;</li>
+              <li><b>Ezoic</b> et ses partenaires publicitaires (États-Unis et Union européenne) affichent et mesurent les annonces ;</li>
               <li>le service de notifications de ton navigateur achemine les notifications, si tu les as activées.</li>
             </ul>
+          ),
+        },
+        {
+          title: 'Publicité',
+          body: (
+            <>
+              <p>
+                Le site est financé par la publicité, gérée par <b>Ezoic Inc.</b> (États-Unis) et ses partenaires
+                publicitaires. Pour afficher les annonces, les mesurer et, si tu l&apos;acceptes, les personnaliser,
+                eux et leurs partenaires peuvent déposer des cookies et collecter des données techniques : adresse IP,
+                type d&apos;appareil et de navigateur, langue, identifiants publicitaires, localisation approximative.
+              </p>
+              <p>Aucune annonce n&apos;est affichée sur les pages du casino.</p>
+            </>
+          ),
+        },
+        {
+          title: 'Ton choix sur les cookies publicitaires',
+          body: (
+            <p>
+              À ta première visite, une fenêtre « Confidentialité et Transparence » te permet d&apos;accepter, de
+              refuser ou de choisir finement les cookies non nécessaires, partenaire par partenaire. Tu peux changer
+              d&apos;avis à tout moment depuis cette même fenêtre. Refuser ne t&apos;empêche pas de jouer : tu verras
+              simplement des annonces non personnalisées.
+            </p>
           ),
         },
         {
           title: 'Transferts hors de l’Union européenne',
           body: (
             <p>
-              Cloudflare et Discord sont établis aux États-Unis. Les transferts vers ces prestataires sont encadrés par
-              le cadre de protection des données UE–États-Unis (Data Privacy Framework) auquel ils adhèrent, ou à
-              défaut par les clauses contractuelles types de la Commission européenne.
+              Cloudflare, Discord et Ezoic sont établis aux États-Unis. Les transferts vers ces prestataires sont
+              encadrés par le cadre de protection des données UE–États-Unis (Data Privacy Framework) auquel ils
+              adhèrent, ou à défaut par les clauses contractuelles types de la Commission européenne.
             </p>
           ),
         },
@@ -131,6 +160,21 @@ export default function ConfidentialitePage() {
                 données sont alors effacées immédiatement. Les notifications se coupent à tout moment.
                 Si tu estimes que tes droits ne sont pas respectés, tu peux adresser une réclamation à la CNIL
                 (<a href="https://www.cnil.fr" className="underline" rel="noopener noreferrer" target="_blank">cnil.fr</a>).
+              </p>
+            </>
+          ),
+        },
+        {
+          title: 'Politique de confidentialité d’Ezoic',
+          body: (
+            <>
+              {/* Ezoic fills this placeholder with its own disclosure. */}
+              <span id="ezoic-privacy-policy-embed"></span>
+              <p>
+                Si ce texte ne s&apos;affiche pas, il est consultable ici :{' '}
+                <a href="https://g.ezoic.net/privacy/itollechub.com" className="underline" rel="noopener noreferrer" target="_blank">
+                  g.ezoic.net/privacy/itollechub.com
+                </a>.
               </p>
             </>
           ),

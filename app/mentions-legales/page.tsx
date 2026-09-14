@@ -47,6 +47,10 @@ export default function MentionsLegalesPage() {
                 situés dans l&apos;Union européenne (Irlande) —{' '}
                 <a href="https://supabase.com" className="underline" rel="noopener noreferrer" target="_blank">supabase.com</a>
               </li>
+              <li>
+                <b>Régie publicitaire</b> : Ezoic Inc., États-Unis —{' '}
+                <a href="https://www.ezoic.com" className="underline" rel="noopener noreferrer" target="_blank">ezoic.com</a>
+              </li>
             </ul>
           ),
         },
