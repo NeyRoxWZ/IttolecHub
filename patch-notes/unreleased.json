@@ -15,6 +15,14 @@
       "type": "amelioration",
       "title": "Statistiques de Pêche dans le profil",
       "details": "Le profil montre aussi tes chiffres de Pêche : poissons pêchés, Poissodex, plus rare et plus lourd poisson, Marées, coffres, succès et cosmétiques."
+    },
+    {
+      "id": "2026-09-14-03",
+      "date": "2026-09-14",
+      "scope": "peche",
+      "type": "amelioration",
+      "title": "Chaque poisson a sa propre forme",
+      "details": "Requins, raies, anguilles, espadons, baudroies, hippocampes, poissons plats… Chaque espèce a maintenant sa silhouette, ses nageoires et ses motifs, et plus seulement sa couleur. Les silhouettes du Poissodex aussi."
     }
   ]
 }

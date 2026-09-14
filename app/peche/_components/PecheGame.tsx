@@ -308,7 +308,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
                 <div key={p.key} className="animate-in slide-in-from-right-6 fade-in duration-300 flex items-center gap-2 rounded-xl border-[3px] border-brand-border bg-brand-card/95 pl-1 pr-2.5 py-1 shadow-[0_3px_0_#05061A]"
                   style={{ boxShadow: `inset 4px 0 0 ${RARITIES[p.rarity].color}, 0 3px 0 #05061A` }}
                 >
-                  <FishIcon color={sp.color} rarity={sp.rarity} size={40} variant={p.variant} />
+                  <FishIcon speciesId={sp.id} color={sp.color} rarity={sp.rarity} size={40} variant={p.variant} />
                   <div className="leading-tight">
                     <div className="font-display text-sm">{sp.name}{p.variant ? ` · ${VARIANTS[p.variant as keyof typeof VARIANTS].label}` : ''}</div>
                     <div className="text-xs font-black text-accent-success tabular-nums">+{fmtBig(p.value)} ₶ · auto</div>
@@ -490,7 +490,7 @@ function LandedCard({ landed, effect, onClose }: { landed: Landed; effect?: stri
         {landed.isNew && <span className="px-2.5 py-0.5 rounded-lg border-2 border-brand-border bg-accent-secondary text-white font-display text-sm">Nouvelle espèce !</span>}
         {sp.tide && <span className="px-2.5 py-0.5 rounded-lg border-2 border-brand-border bg-[#9EE7FF] text-brand-bg font-display text-sm">Espèce de marée</span>}
       </div>
-      <div className="flex justify-center my-2"><FishIcon color={sp.color} rarity={sp.rarity} size={130} variant={landed.variant} /></div>
+      <div className="flex justify-center my-2"><FishIcon speciesId={sp.id} color={sp.color} rarity={sp.rarity} size={130} variant={landed.variant} /></div>
       <div className="font-display text-3xl leading-tight">{sp.name}</div>
       <div className="text-sm font-bold text-tx-secondary">{fmtKg(landed.weight)}{landed.quality === 'perfect' ? ' · Prise parfaite ×1,5' : ''}</div>
       <div className="mt-2 font-display text-2xl text-accent-success">+{fmtBig(landed.value)} ₶ <span className="text-sm text-tx-secondary">avant la criée</span></div>
@@ -567,7 +567,7 @@ function PechePanel({ state, api, autoFeed, mode }: { state: PecheState; api: Ap
               if (!sp) return null;
               return (
                 <div key={b.key} className="flex items-center gap-2 rounded-xl border-2 border-brand-border bg-brand-card px-2 py-1">
-                  <FishIcon color={sp.color} rarity={sp.rarity} size={40} variant={b.variant} />
+                  <FishIcon speciesId={sp.id} color={sp.color} rarity={sp.rarity} size={40} variant={b.variant} />
                   <div className="min-w-0 flex-1">
                     <div className="font-display text-base leading-tight truncate">{sp.name}{b.variant ? ` · ${VARIANTS[b.variant].label}` : ''}</div>
                     <div className="text-xs font-black" style={{ color: RARITIES[sp.rarity].color }}>{RARITIES[sp.rarity].label} · ×{b.count}</div>
@@ -587,7 +587,7 @@ function PechePanel({ state, api, autoFeed, mode }: { state: PecheState; api: Ap
             if (!sp) return null;
             return (
               <div key={d.speciesId} className="flex items-center gap-2 rounded-xl border-2 border-brand-border bg-brand-card px-2 py-1">
-                <FishIcon color={sp.color} rarity={sp.rarity} size={36} />
+                <FishIcon speciesId={sp.id} color={sp.color} rarity={sp.rarity} size={36} />
                 <div className="min-w-0 flex-1">
                   <div className="font-display text-base leading-tight truncate">{sp.name}</div>
                   <div className="text-xs font-bold text-tx-secondary">{zoneInfo(sp.zone).name}</div>
@@ -685,7 +685,7 @@ function QuestsPanel({ state, api }: { state: PecheState; api: Api }) {
             if (!sp) return null;
             return (
               <div key={o.id} className="flex items-center gap-2 rounded-xl border-2 border-brand-border bg-brand-card px-2 py-1.5">
-                <FishIcon color={sp.color} rarity={sp.rarity} size={40} />
+                <FishIcon speciesId={sp.id} color={sp.color} rarity={sp.rarity} size={40} />
                 <div className="min-w-0 flex-1">
                   <div className="font-display text-base leading-tight truncate">{o.count} × {sp.name}</div>
                   <div className="text-xs font-bold text-tx-secondary">{zoneInfo(sp.zone).name} · tu en as {o.have}</div>
@@ -897,7 +897,7 @@ function DexPanel({ state }: { state: PecheState }) {
                     const d = known.get(s.id);
                     return (
                       <div key={s.id} title={d ? `${s.name} · record ${fmtKg(d.bestWeight)} · ${d.caught} prises` : s.tide ? 'Espèce de marée' : '???'} className="rounded-xl border-2 border-brand-border bg-brand-card p-1 flex flex-col items-center">
-                        <FishIcon color={s.color} rarity={s.rarity} size={42} unknown={!d} />
+                        <FishIcon speciesId={s.id} color={s.color} rarity={s.rarity} size={42} unknown={!d} />
                         <span className="text-[10px] font-black text-center leading-tight line-clamp-2 min-h-[2.2em]" style={{ color: d ? RARITIES[s.rarity].color : undefined }}>
                           {d ? s.name : s.tide ? 'Marée' : '???'}
                         </span>

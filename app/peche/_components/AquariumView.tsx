@@ -1,6 +1,7 @@
 'use client';
 
 import { COSMETIC_BY_ID, getSpecies, type CosmeticSlot } from '@/lib/peche/data';
+import { FishShape } from './FishIcon';
 
 const INK = '#05061A';
 
@@ -96,17 +97,14 @@ export default function AquariumView({ fish, equipped, className }: { fish: Aqua
           const y = 40 + ((i * 53) % 150);
           const x = 30 + ((i * 97) % 260);
           const d = 90 + ((i * 37) % 90);
-          const fill = f.variant === 'or' ? '#FFC61A' : sp.color;
           const scale = 0.8 + sp.rarity * 0.12;
           return (
             <g key={`${f.speciesId}-${i}`} className="aq-bob" style={{ animationDuration: `${2.4 + (i % 3) * 0.6}s` }}>
               <g transform={`translate(${x} ${y}) scale(${scale})`}>
                 <g className="aq-swim" style={{ animationDuration: `${9 + (i % 4) * 2}s`, animationDelay: `-${i * 1.3}s`, ['--d' as string]: `${d}px` }}>
-                  <path d="M40 14 L 58 2 L 54 14 L 58 26 Z" fill={fill} stroke={INK} strokeWidth="4" strokeLinejoin="round" />
-                  <ellipse cx="22" cy="14" rx="22" ry="13" fill={f.variant === 'chroma' ? '#FF4F8B' : fill} stroke={INK} strokeWidth="4" />
-                  {f.variant === 'chroma' && <ellipse cx="22" cy="14" rx="14" ry="7" fill="#25D0C8" />}
-                  <circle cx="10" cy="11" r="4" fill="#FFFFFF" stroke={INK} strokeWidth="2.5" />
-                  <circle cx="9" cy="11" r="1.6" fill={INK} />
+                  <g transform="scale(0.55)">
+                    <FishShape speciesId={f.speciesId} color={sp.color} rarity={sp.rarity} variant={f.variant} />
+                  </g>
                 </g>
               </g>
             </g>

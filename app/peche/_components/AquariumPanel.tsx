@@ -79,7 +79,7 @@ export default function AquariumPanel({ state, api }: { state: PecheState; api: 
               className={cn('relative h-20 rounded-xl border-[3px] border-brand-border flex flex-col items-center justify-center gap-0.5', editing === i ? 'bg-accent-primary/30' : 'bg-brand-inner hover:bg-[#2B3170]')}>
               {sp ? (
                 <>
-                  <FishIcon color={sp.color} rarity={sp.rarity} size={40} variant={f!.variant} />
+                  <FishIcon speciesId={sp.id} color={sp.color} rarity={sp.rarity} size={40} variant={f!.variant} />
                   <span className="text-[10px] font-black leading-tight line-clamp-1 px-1" style={{ color: RARITIES[sp.rarity].color }}>{sp.name}</span>
                   <span role="button" aria-label="Retirer" onClick={(e) => { e.stopPropagation(); place(i, null); }} className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-accent-secondary border-2 border-brand-border flex items-center justify-center">
                     <X className="h-3 w-3 text-white" strokeWidth={3} />
@@ -101,7 +101,7 @@ export default function AquariumPanel({ state, api }: { state: PecheState; api: 
             <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
               {choices.map(({ d, sp }) => (
                 <div key={d.speciesId} className="flex items-center gap-2 rounded-xl border-2 border-brand-border bg-brand-card px-2 py-1">
-                  <FishIcon color={sp!.color} rarity={sp!.rarity} size={36} />
+                  <FishIcon speciesId={sp!.id} color={sp!.color} rarity={sp!.rarity} size={36} />
                   <span className="flex-1 min-w-0 truncate font-display text-sm" style={{ color: RARITIES[sp!.rarity].color }}>{sp!.name}</span>
                   {(['', ...d.variants] as string[]).map((v) => (
                     <button key={v || 'normal'} onClick={() => place(editing, { speciesId: d.speciesId, variant: v })}

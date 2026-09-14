@@ -95,7 +95,7 @@ export default function PlayerCardModal({ viewerId, targetId, onClose }: { viewe
                       const variant = f.variant;
                       return (
                         <div key={f.speciesId} className="flex flex-col items-center text-center" title={`${sp.name} · record ${fmtKg(f.bestWeight)}`}>
-                          <FishIcon color={sp.color} rarity={sp.rarity} size={56} variant={variant} />
+                          <FishIcon speciesId={sp.id} color={sp.color} rarity={sp.rarity} size={56} variant={variant} />
                           <span className="text-[10px] font-black leading-tight" style={{ color: RARITIES[sp.rarity].color }}>{sp.name}</span>
                           <span className="text-[10px] font-bold text-tx-secondary">{fmtKg(f.bestWeight)}</span>
                         </div>

@@ -184,7 +184,7 @@ export default function CommunityPanel({
         if (!sp) return null;
         return (
           <div key={f.id} className={cn('flex items-center gap-2 rounded-xl border-2 border-brand-border px-2 py-1.5', f.jackpot ? 'bg-[#4A3F1E]' : 'bg-brand-card')}>
-            <FishIcon color={sp.color} rarity={sp.rarity} size={42} variant={f.variant} />
+            <FishIcon speciesId={sp.id} color={sp.color} rarity={sp.rarity} size={42} variant={f.variant} />
             <div className="min-w-0 flex-1 leading-tight">
               <div className="text-sm font-bold truncate">
                 <button onClick={() => onOpenCard(f.userId)} className="font-display hover:text-accent-primary">{f.pseudo}</button>
