@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase/server';
+import { clearSessionCookie } from '@/lib/session';
 
 /**
  * Deletes an account and everything attached to it. Game data goes with the
@@ -57,7 +58,9 @@ export async function POST(request: Request) {
       try { await supabase.auth.admin.deleteUser(authUserId); } catch (err) { console.error('Suppression auth Discord:', err); }
     }
 
-    return NextResponse.json({ ok: true });
+    const res = NextResponse.json({ ok: true });
+    clearSessionCookie(res);
+    return res;
   } catch (err) {
     console.error('Erreur suppression de compte:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

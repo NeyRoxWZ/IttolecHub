@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase/server';
+import { sessionUserId } from '@/lib/session';
 
+/** New six words for the signed-in passphrase account. */
 export async function POST(request: Request) {
   try {
-    const { userId, words } = await request.json();
+    const uid = await sessionUserId(request);
+    if (!uid) return NextResponse.json({ error: 'Connecte-toi pour continuer.' }, { status: 401 });
 
-    if (!userId || !words || words.length !== 6) {
+    const { words } = await request.json();
+    if (!Array.isArray(words) || words.length !== 6) {
       return NextResponse.json({ error: 'Données invalides' }, { status: 400 });
     }
 
@@ -16,7 +20,8 @@ export async function POST(request: Request) {
     const { error } = await supabase
       .from('users')
       .update({ passphrase_hash: hash })
-      .eq('id', userId);
+      .eq('id', uid)
+      .not('passphrase_hash', 'is', null);
 
     if (error) {
       console.error('Erreur Supabase update:', error);

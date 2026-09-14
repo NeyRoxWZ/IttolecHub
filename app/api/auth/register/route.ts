@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase/server';
+import { setSessionCookie } from '@/lib/session';
 
 export async function POST(request: Request) {
   try {
@@ -41,7 +42,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Erreur lors de la création du compte' }, { status: 500 });
     }
 
-    return NextResponse.json({ user: newUser });
+    const res = NextResponse.json({ user: newUser });
+    await setSessionCookie(res, newUser.id);
+    return res;
   } catch (err) {
     console.error('Erreur register:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

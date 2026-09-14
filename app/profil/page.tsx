@@ -45,15 +45,16 @@ export default function ProfilPage() {
     
     setSaving(true);
     try {
-      // Check if pseudo is unique
-      const { data: existing } = await supabase.from('users').select('id').eq('pseudo', newPseudo).maybeSingle();
-      if (existing) {
-        toast.error('Ce pseudo est déjà pris');
+      const res = await fetch('/api/auth/pseudo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pseudo: newPseudo }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        toast.error(data?.error || 'Erreur lors de la mise à jour');
         return;
       }
-
-      const { error } = await supabase.from('users').update({ pseudo: newPseudo }).eq('id', user.id);
-      if (error) throw error;
       
       toast.success('Pseudo mis à jour');
       setEditingPseudo(false);

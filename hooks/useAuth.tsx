@@ -33,81 +33,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [consentTicked, setConsentTicked] = useState(false);
   const router = useRouter();
 
+  // Who is signed in comes from the server's session cookie, never from
+  // anything the browser keeps: the old localStorage id let anyone pose as
+  // anyone. Discord players trade their Supabase token for that cookie.
   const fetchUser = async () => {
     try {
-      // 1. Check if Supabase Auth has a session (Discord)
+      // The old way of remembering a player: dropped, everyone signs in once more.
+      try { localStorage.removeItem('itollec_user_id'); } catch {}
+
+      const me = await fetch('/api/auth/me', { cache: 'no-store' }).then((r) => r.json()).catch(() => null);
+      if (me?.user) {
+        setUser(me.user);
+        setPendingDiscord(false);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        // Find or create in our custom `users` table
-        const discordId = session.user.user_metadata?.provider_id || session.user.id;
-        const discordUsername = session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'Joueur Discord';
-        const avatarUrl = session.user.user_metadata?.avatar_url;
+      if (session?.access_token) {
+        // A new account needs the Conditions accepted first. Coming from
+        // "Créer un compte", the box was ticked there; coming straight from
+        // "Connexion", ask now, before anything is saved.
+        let consented = false;
+        try { consented = sessionStorage.getItem(DISCORD_CONSENT_KEY) === '1'; } catch {}
 
-        let { data: dbUser } = await supabase
-          .from('users')
-          .select('id, pseudo, discord_id, discord_username, avatar_url')
-          .eq('discord_id', discordId)
-          .maybeSingle();
-
-        if (!dbUser) {
-          // A new account needs the Conditions accepted first. Coming from
-          // "Créer un compte", the box was ticked there; coming straight from
-          // "Connexion", ask now, before anything is saved.
-          let consented = false;
-          try { consented = sessionStorage.getItem(DISCORD_CONSENT_KEY) === '1'; } catch {}
-          if (!consented) {
-            setPendingDiscord(true);
-            setLoading(false);
-            return;
-          }
-          try { sessionStorage.removeItem(DISCORD_CONSENT_KEY); } catch {}
-          setPendingDiscord(false);
-
-          // Check if pseudo exists, if so append random digits
-          let pseudo = discordUsername;
-          const { data: existingPseudo } = await supabase.from('users').select('id').eq('pseudo', pseudo).maybeSingle();
-          if (existingPseudo) {
-            pseudo = `${pseudo}${Math.floor(Math.random() * 10000)}`;
-          }
-
-          const { data: newUser, error } = await supabase
-            .from('users')
-            .insert([{
-              pseudo,
-              discord_id: discordId,
-              discord_username: discordUsername,
-              avatar_url: avatarUrl
-            }])
-            .select()
-            .single();
-
-          if (!error && newUser) {
-            dbUser = newUser;
-          }
-        }
-
-        if (dbUser) {
-          setUser({ ...dbUser, is_discord: true });
-          setLoading(false);
+        const res = await fetch('/api/auth/discord', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: session.access_token, consent: consented }),
+        });
+        const data = await res.json().catch(() => null);
+        if (data?.needsConsent) {
+          setPendingDiscord(true);
+          setUser(null);
           return;
         }
-      }
-
-      // 2. Check LocalStorage for Passphrase user
-      const localUserId = localStorage.getItem('itollec_user_id');
-      if (localUserId) {
-        const { data: localUser } = await supabase
-          .from('users')
-          .select('id, pseudo, avatar_url, discord_id')
-          .eq('id', localUserId)
-          .maybeSingle();
-
-        if (localUser) {
-          setUser({ ...localUser, is_discord: !!localUser.discord_id });
-        } else {
-          localStorage.removeItem('itollec_user_id');
+        if (res.ok && data?.user) {
+          try { sessionStorage.removeItem(DISCORD_CONSENT_KEY); } catch {}
+          setPendingDiscord(false);
+          setUser(data.user);
+          return;
         }
+        if (!res.ok) toast.error(data?.error || 'Connexion Discord impossible');
       }
+
+      setUser(null);
     } catch (error) {
       console.error('Error fetching user:', error);
     } finally {
@@ -141,17 +110,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
-    if (user?.is_discord) {
-      await supabase.auth.signOut();
-    }
-    localStorage.removeItem('itollec_user_id');
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null);
+    await supabase.auth.signOut().catch(() => null);
     setUser(null);
     router.push('/');
     toast.success('Déconnecté');
   };
 
+  /** After a passphrase sign-in or sign-up: the server has already set the cookie. */
   const setUserLocally = (newUser: User) => {
-    localStorage.setItem('itollec_user_id', newUser.id);
     setUser({ ...newUser, is_discord: false });
   };
 

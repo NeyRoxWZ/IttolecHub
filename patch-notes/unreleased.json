@@ -15,6 +15,14 @@
       "type": "correctif",
       "title": "Une seule fois chaque espèce dans l’aquarium",
       "details": "Un même poisson ne peut plus être mis plusieurs fois dans ton aquarium."
+    },
+    {
+      "id": "2026-09-14-03",
+      "date": "2026-09-14",
+      "scope": "site",
+      "type": "correctif",
+      "title": "Connexion sécurisée",
+      "details": "Ta connexion est maintenant protégée par une vraie session : personne ne peut plus jouer à ta place. Tout le monde doit se reconnecter une fois, avec ses 6 mots ou avec Discord. Aucune progression n’est perdue."
     }
   ]
 }

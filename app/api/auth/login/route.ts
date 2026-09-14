@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase/server';
+import { setSessionCookie } from '@/lib/session';
 
 export async function POST(request: Request) {
   try {
@@ -35,7 +36,9 @@ export async function POST(request: Request) {
     // Ne pas renvoyer le hash
     const { passphrase_hash, ...safeUser } = user;
 
-    return NextResponse.json({ user: safeUser });
+    const res = NextResponse.json({ user: safeUser });
+    await setSessionCookie(res, user.id);
+    return res;
   } catch (err) {
     console.error('Erreur login:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });
