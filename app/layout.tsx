@@ -3,7 +3,6 @@ import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ToasterProvider } from '@/components/ToasterProvider'
 import { AuthProvider } from '@/hooks/useAuth'
-import Script from 'next/script'
 import EzoicRouteHandler from '@/components/EzoicRouteHandler'
 
 export const metadata: Metadata = {
@@ -48,10 +47,15 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <head>
         {/* Ezoic: consent first (never delayed), then the ads and analytics scripts. */}
-        <Script id="ezoic-cmp" src="https://cmp.gatekeeperconsent.com/min.js" strategy="beforeInteractive" data-cfasync="false" />
-        <Script id="ezoic-cmp-2" src="https://the.gatekeeperconsent.com/cmp.min.js" strategy="beforeInteractive" data-cfasync="false" />
-        <script async src="//www.ezojs.com/ezoic/sa.min.js" />
-        <script async src="//ezoicanalytics.com/analytics.js" />
+        {/* Plain tags, so they are in the HTML Ezoic reads; data-cfasync before src keeps Cloudflare from reordering them. */}
+        {/* Ezoic requires the consent scripts to load synchronously, before the ads script. */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script data-cfasync="false" src="https://cmp.gatekeeperconsent.com/min.js" />
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script data-cfasync="false" src="https://the.gatekeeperconsent.com/cmp.min.js" />
+        {/* defer, not async: React hoists async scripts above everything, ahead of the consent scripts. */}
+        <script defer src="//www.ezojs.com/ezoic/sa.min.js" />
+        <script defer src="//ezoicanalytics.com/analytics.js" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){var t=localStorage.getItem('theme');document.documentElement.classList.toggle('dark',t!=='light');})();`,
