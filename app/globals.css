@@ -326,3 +326,29 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .og-name { animation: none; }
 }
+
+/* The site's outlined titles (h1/h2/h3.font-display) pass their stroke and
+   shadow down to the OG name: on see-through gradient text that stroke spills
+   into a brown smear. So the OG pieces drop the inherited outline, and inside
+   an outlined title the name becomes solid gold with that title's outline. */
+.og-name,
+.og-badge {
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  paint-order: normal;
+}
+:is(h1, h2, h3).font-display .og-name,
+.text-stroke .og-name,
+.text-stroke-sm .og-name {
+  background: none;
+  -webkit-text-fill-color: #FFC61A;
+  color: #FFC61A;
+  -webkit-text-stroke: inherit;
+  paint-order: stroke fill;
+  text-shadow: inherit;
+  animation: none;
+}
+:is(h1, h2, h3).font-display .og-badge {
+  font-size: max(11px, 0.4em);
+  vertical-align: middle;
+}
