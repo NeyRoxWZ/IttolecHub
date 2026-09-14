@@ -482,81 +482,91 @@ body {
   .founder-name, .founder-badge, .founder-badge::after, .founder-wrap::before, .founder-wrap::after { animation: none; }
   .founder-wrap::before, .founder-wrap::after { opacity: 1; }
 }
+
 /* ------------------------------------------------------------------ */
 /* Ezoic consent banner (Gatekeeper), in the site's look               */
 /* ------------------------------------------------------------------ */
-/* Colours, borders, corners and buttons only: Ezoic allows restyling    */
-/* these. Every choice stays visible and readable (no hiding, no         */
-/* shrinking of "refuse"); which buttons exist is set in the Ezoic       */
-/* dashboard, not here.                                                  */
+/* Ezoic's banner CSS loads after ours and themes itself with CSS        */
+/* variables under #ez-cookie-dialog-wrapper, all !important. We set     */
+/* those variables (and the few colours it hard-codes) with a more       */
+/* specific selector. Colours, borders, corners and buttons only: every  */
+/* choice stays visible and readable; which buttons exist is set in the  */
+/* Ezoic dashboard.                                                      */
 
-#ez-cookie-dialog-wrapper {
-  background: rgba(5, 6, 26, 0.72) !important;
-  backdrop-filter: blur(3px);
+html body #ez-cookie-dialog-wrapper {
+  --ez-bg: #1e2358 !important;
+  --ez-accent: #ffc61a !important;
+  --ez-body-color: #e6e9ff !important;
+  --ez-btn-text: #05061a !important;
+  --ez-btn-muted: #2b3170 !important;
+  --ez-btn-muted-hover: #333a80 !important;
+  --ez-border: #05061a !important;
+  --ez-font: 'Nunito', system-ui, sans-serif !important;
+  background-color: rgba(5, 6, 26, 0.72) !important;
 }
 
-#ez-cookie-dialog {
-  background: #1e2358 !important;
-  color: #e6e9ff !important;
+/* The bottom strip becomes a floating card. */
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog.ez_banner,
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog.ez_modal {
+  left: 12px !important;
+  right: 12px !important;
+  bottom: 12px !important;
+  width: auto !important;
+  max-width: 920px !important;
+  margin: 0 auto !important;
   border: 4px solid #05061a !important;
   border-radius: 22px !important;
   box-shadow: 0 8px 0 #05061a, 0 24px 60px rgba(0, 0, 0, 0.45) !important;
-  font-family: 'Nunito', system-ui, sans-serif !important;
 }
 
-#ez-cookie-dialog h2,
-#ez-cookie-dialog h3,
-#ez-cmp-title {
+/* Colours Ezoic writes in full instead of through its variables. */
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog h1,
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog h2,
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog h3,
+html body #ez-cookie-dialog-wrapper #ez-cmp-title {
   color: #ffffff !important;
   font-family: 'Lilita One', 'Nunito', sans-serif !important;
   font-weight: 400 !important;
-  letter-spacing: 0.01em;
 }
-#ez-cmp-title { font-size: 20px !important; }
+html body #ez-cookie-dialog-wrapper #ez-cmp-title { font-size: 20px !important; }
 
-#ez-cookie-dialog p,
-#ez-cookie-dialog li,
-#ez-cookie-dialog label,
-#ez-cookie-dialog span:not(.bar) {
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog p,
+html body #ez-cookie-dialog-wrapper #ez-cookie-details-description,
+html body #ez-cookie-dialog-wrapper #ez-cookie-table th {
   color: #c2c9f0 !important;
 }
 
-#ez-cookie-dialog a,
-#ez-cookie-dialog #ez-vendors {
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog a {
   color: #ffc61a !important;
   font-weight: 800 !important;
   text-decoration: underline !important;
   text-underline-offset: 2px;
 }
-#ez-cookie-dialog .bar { color: #5a6190 !important; }
+html body #ez-cookie-dialog-wrapper #secondary-links .bar { color: #5a6190 !important; }
 
-#ez-cookie-dialog .ez-switch-view-btn,
-#ez-cookie-dialog button {
+/* Buttons: the site's chunky style, accept and refuse the same size. */
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog .ez-switch-view-btn,
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog #ez-ok-cookies {
   font-family: 'Nunito', system-ui, sans-serif !important;
   font-weight: 900 !important;
   font-size: 14px !important;
-  border-radius: 12px !important;
   border: 3px solid #05061a !important;
+  border-radius: 12px !important;
   padding: 10px 16px !important;
-  transition: transform 0.08s;
 }
-#ez-cookie-dialog .ez-switch-view-btn:active,
-#ez-cookie-dialog button:active { transform: translateY(2px); }
-#ez-cookie-dialog button:focus-visible { outline: 3px solid #ffffff !important; outline-offset: 2px; }
-
-/* Accept: the site's yellow button. */
-#ez-accept-all,
-#ez-cookie-dialog .ez-btn-primary {
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog .ez-btn-primary,
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog #ez-ok-cookies {
   background: #ffc61a !important;
   color: #05061a !important;
   box-shadow: inset 0 -4px 0 #d98e00, 0 3px 0 #05061a !important;
 }
-
-/* Refuse and manage: the site's dark buttons, same size and weight, fully readable. */
-#ez-reject-all,
-#ez-manage-settings,
-#ez-cookie-dialog .ez-btn-secondary {
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog .ez-btn-secondary,
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog .ez-btn-ghost {
   background: #2b3170 !important;
   color: #ffffff !important;
   box-shadow: inset 0 -4px 0 #1a1f52, 0 3px 0 #05061a !important;
+}
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog .ez-switch-view-btn:focus-visible {
+  outline: 3px solid #ffffff !important;
+  outline-offset: 2px;
 }
