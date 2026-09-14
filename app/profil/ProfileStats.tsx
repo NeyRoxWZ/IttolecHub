@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Dices, ChevronDown } from 'lucide-react';
+import { Dices, ChevronDown, Fish } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { fmtKg as kg } from '@/lib/peche/format';
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 const pct = (x: number) => `${Math.round(x * 100)} %`;
@@ -52,7 +53,7 @@ function Block({ title, icon: Icon, href, children }: {
 const GRID = 'grid grid-cols-2 sm:grid-cols-4 gap-2';
 
 export default function ProfileStats({ userId }: { userId: string }) {
-  const [data, setData] = useState<{ casino: any } | null>(null);
+  const [data, setData] = useState<{ casino: any; peche: any } | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -67,7 +68,7 @@ export default function ProfileStats({ userId }: { userId: string }) {
   if (failed) return <p className="text-sm text-tx-secondary">Impossible de charger les statistiques.</p>;
   if (!data) return <div className="h-40 rounded-[22px] border-4 border-brand-border bg-brand-inner animate-pulse" />;
 
-  const { casino: c } = data;
+  const { casino: c, peche: pe } = data;
 
   return (
     <div className="space-y-4">
@@ -117,6 +118,31 @@ export default function ProfileStats({ userId }: { userId: string }) {
               </details>
             )}
           </>
+        )}
+      </Block>
+
+      <Block title="Pêche" icon={Fish} href="/peche">
+        {!pe ? (
+          <p className="text-sm text-tx-secondary">Aucune prise pour l&apos;instant.</p>
+        ) : (
+          <div className={GRID}>
+            <Tile label="Solde" value={`${fmt(pe.balance)} ₶`} />
+            <Tile label="Gagné en tout" value={`${fmt(pe.earned)} ₶`} />
+            <Tile label="Poissons pêchés" value={fmt(pe.caught)} />
+            <Tile label="Niveau · Marée" value={`${pe.level} · ${pe.maree}`} />
+            <Tile label="Poissodex" value={`${pe.species} / ${pe.speciesTotal}`} />
+            <Tile label="Plus loin" value={pe.bestZone} />
+            <Tile label="Plus rare" value={pe.rarest ? `${pe.rarest.name} (${pe.rarest.label})` : '—'} />
+            <Tile label="Plus lourd" value={pe.heaviest ? `${pe.heaviest.name} · ${kg(pe.heaviest.weight)}` : '—'} />
+            <Tile label="Poisson préféré" value={pe.favourite ? `${pe.favourite.name} ×${fmt(pe.favourite.caught)}` : '—'} />
+            <Tile label="Prises parfaites" value={fmt(pe.perfect)} />
+            <Tile label="Légendaires · Mythiques" value={`${fmt(pe.legendary)} · ${fmt(pe.mythic)}`} />
+            <Tile label="Chroma et or" value={fmt(pe.variants)} />
+            <Tile label="Coffres ouverts" value={fmt(pe.chests)} />
+            <Tile label="Commandes · Quêtes" value={`${fmt(pe.orders)} · ${fmt(pe.missions)}`} />
+            <Tile label="Succès" value={`${pe.achievements} / ${pe.achievementsTotal}`} />
+            <Tile label="Cosmétiques" value={`${pe.cosmetics} / ${pe.cosmeticsTotal}`} />
+          </div>
         )}
       </Block>
     </div>

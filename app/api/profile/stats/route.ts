@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import { ACHIEVEMENTS } from '@/lib/casino/meta';
 import { COSMETICS, cosmeticById, GAME_LABELS } from '@/lib/casino/cosmetics';
+import {
+  ACHIEVEMENTS as PECHE_ACHIEVEMENTS, COSMETICS as PECHE_COSMETICS, RARITIES, SPECIES, getSpecies, zoneInfo,
+} from '@/lib/peche/data';
+import { levelFromXp } from '@/lib/peche/engine';
 
 /**
  * Everything the profile shows, computed on the server.
@@ -154,13 +158,62 @@ async function casinoStats(userId: string) {
   };
 }
 
+/** Pêche: the player row, its counters and the Poissodex. */
+async function pecheStats(userId: string) {
+  const { data: p, error } = await supabase.from('peche_players').select('*').eq('user_id', userId).maybeSingle();
+  if (error) throw error;
+  if (!p) return null;
+
+  const { data: dex, error: dexError } = await supabase.from('peche_dex').select('species_id, caught, best_weight, variants').eq('user_id', userId);
+  if (dexError) throw dexError;
+
+  const rows = dex || [];
+  const stats = (p.stats || {}) as Record<string, number>;
+  let heaviest: { name: string; weight: number } | null = null;
+  let rarest: { name: string; rarity: number } | null = null;
+  let favourite: { name: string; caught: number } | null = null;
+  for (const d of rows) {
+    const sp = getSpecies(d.species_id);
+    if (!sp) continue;
+    if (!heaviest || Number(d.best_weight) > heaviest.weight) heaviest = { name: sp.name, weight: Number(d.best_weight) };
+    if (!rarest || sp.rarity > rarest.rarity) rarest = { name: sp.name, rarity: sp.rarity };
+    if (!favourite || Number(d.caught) > favourite.caught) favourite = { name: sp.name, caught: Number(d.caught) };
+  }
+  const bestZone = Math.max(p.best_zone || 0, p.zone || 0);
+
+  return {
+    balance: Number(p.balance || 0),
+    earned: Number(p.lifetime_earned || 0),
+    caught: Number(p.total_caught || 0),
+    maree: Number(p.maree || 0),
+    level: levelFromXp(Number(p.xp || 0)).level,
+    bestZone: zoneInfo(bestZone).name,
+    species: rows.length,
+    speciesTotal: SPECIES.length,
+    perfect: Number(stats.perfect || 0),
+    legendary: Number(stats.legendary || 0),
+    mythic: Number(stats.mythic || 0),
+    variants: Number(stats.chroma || 0) + Number(stats.or || 0),
+    chests: Number(stats.chests || 0),
+    orders: Number(stats.orders || 0),
+    missions: Number(stats.missions || 0),
+    achievements: (p.achievements || []).length,
+    achievementsTotal: PECHE_ACHIEVEMENTS.length,
+    cosmetics: (p.cosmetics || []).length,
+    cosmeticsTotal: PECHE_COSMETICS.length,
+    heaviest,
+    rarest: rarest ? { ...rarest, label: RARITIES[rarest.rarity]?.label ?? '' } : null,
+    favourite,
+  };
+}
+
 export async function GET(request: Request) {
   try {
     const userId = new URL(request.url).searchParams.get('user_id');
     if (!userId) return NextResponse.json({ error: 'user_id requis' }, { status: 400 });
 
-    const casino = await casinoStats(userId);
-    return NextResponse.json({ casino });
+    const [casino, peche] = await Promise.all([casinoStats(userId), pecheStats(userId)]);
+    return NextResponse.json({ casino, peche });
   } catch (err) {
     console.error('Erreur GET stats profil:', err);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });

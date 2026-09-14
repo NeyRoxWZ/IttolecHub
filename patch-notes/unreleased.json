@@ -7,6 +7,14 @@
       "type": "nouveau",
       "title": "Badge OG",
       "details": "Les membres de la première heure ont leur pseudo en or animé et un badge OG partout sur le site. Ils peuvent l’afficher ou le masquer depuis leur profil."
+    },
+    {
+      "id": "2026-09-14-02",
+      "date": "2026-09-14",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Statistiques de Pêche dans le profil",
+      "details": "Le profil montre aussi tes chiffres de Pêche : poissons pêchés, Poissodex, plus rare et plus lourd poisson, Marées, coffres, succès et cosmétiques."
     }
   ]
 }
