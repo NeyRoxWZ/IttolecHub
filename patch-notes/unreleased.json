@@ -31,6 +31,14 @@
       "type": "amelioration",
       "title": "Textes légaux à jour",
       "details": "Les mentions légales et la politique de confidentialité indiquent le nouvel hébergeur (Cloudflare), la connexion par cookie sécurisé et ce que les autres joueurs voient de toi à la Pêche."
+    },
+    {
+      "id": "2026-09-14-05",
+      "date": "2026-09-14",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Nouveau logo partout",
+      "details": "L'icône de l'onglet et celle de l'appli installée reprennent le nouveau logo d'IttolecHub."
     }
   ]
 }
