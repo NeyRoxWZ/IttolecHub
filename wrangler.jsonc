@@ -17,6 +17,14 @@
   "observability": {
     "enabled": true
   },
+  // Sign-in attempts: 10 a minute per key (per IP, and per pseudo on login).
+  "ratelimits": [
+    {
+      "name": "AUTH_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 }
+    }
+  ],
   // The two daily push sweeps that were Vercel crons (UTC).
   "triggers": {
     "crons": ["0 7 * * *", "0 19 * * *"]

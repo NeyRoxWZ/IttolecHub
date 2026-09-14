@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase/server';
 import { setSessionCookie } from '@/lib/session';
+import { clientIp, underLimit } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
@@ -9,6 +10,11 @@ export async function POST(request: Request) {
 
     if (!pseudo || !words || words.length !== 6) {
       return NextResponse.json({ error: 'Pseudo et 6 mots requis' }, { status: 400 });
+    }
+
+    // Per IP and per account: slows down anyone trying passphrases in a loop.
+    if (!(await underLimit(`login-ip:${clientIp(request)}`, `login-pseudo:${String(pseudo).toLowerCase()}`))) {
+      return NextResponse.json({ error: 'Trop de tentatives, réessaie dans une minute.' }, { status: 429 });
     }
 
     // Récupérer l'utilisateur

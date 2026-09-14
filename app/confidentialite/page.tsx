@@ -56,7 +56,9 @@ export default function ConfidentialitePage() {
               <li>ta place dans les classements, ta fiche joueur et ta courbe de solde ;</li>
               <li>tes gros gains dans le fil en direct ;</li>
               <li>tes messages dans le chat et tes réactions ;</li>
-              <li>tes duels ouverts et le classement du défi du jour.</li>
+              <li>tes duels ouverts et le classement du défi du jour ;</li>
+              <li>à la Pêche : ta fiche de pêcheur, ton aquarium et tes cosmétiques équipés, ta place dans les classements ;</li>
+              <li>ton badge OG, si tu en as un et que tu choisis de l&apos;afficher.</li>
             </ul>
           ),
         },
@@ -64,9 +66,9 @@ export default function ConfidentialitePage() {
           title: 'Ce qui reste dans ton navigateur',
           body: (
             <p>
-              Le site garde quelques informations dans le stockage local de ton navigateur : ta session de
-              connexion, le thème, ta dernière salle, tes préférences (son, turbo, réglages de trade) et ce que tu
-              as déjà vu (guides, patch notes). Ces données sont strictement nécessaires au fonctionnement du site
+              Le site garde quelques informations sur ton appareil. Un cookie de session sécurisé, illisible par
+              les scripts de la page, te garde connecté. Le stockage local retient le thème, ta dernière salle, tes
+              préférences (son, turbo) et ce que tu as déjà vu (guides, patch notes). Ces données sont strictement nécessaires au fonctionnement du site
               et ne servent à aucun suivi ; elles ne demandent donc pas de consentement. Les effacer te déconnecte
               et remet ces préférences à zéro.
             </p>
@@ -76,7 +78,7 @@ export default function ConfidentialitePage() {
           title: 'Qui y a accès',
           body: (
             <ul>
-              <li><b>Vercel</b> (États-Unis) héberge le site ;</li>
+              <li><b>Cloudflare</b> (États-Unis) héberge et diffuse le site ; il voit passer ton adresse IP et les informations techniques de tes requêtes pour les acheminer et protéger le site contre les attaques ;</li>
               <li><b>Supabase</b> héberge la base de données, sur des serveurs situés dans l&apos;Union européenne (Irlande) ;</li>
               <li><b>Discord</b> (États-Unis) intervient si tu choisis de te connecter avec ;</li>
               <li>le service de notifications de ton navigateur achemine les notifications, si tu les as activées.</li>
@@ -87,7 +89,7 @@ export default function ConfidentialitePage() {
           title: 'Transferts hors de l’Union européenne',
           body: (
             <p>
-              Vercel et Discord sont établis aux États-Unis. Les transferts vers ces prestataires sont encadrés par
+              Cloudflare et Discord sont établis aux États-Unis. Les transferts vers ces prestataires sont encadrés par
               le cadre de protection des données UE–États-Unis (Data Privacy Framework) auquel ils adhèrent, ou à
               défaut par les clauses contractuelles types de la Commission européenne.
             </p>

@@ -39,8 +39,8 @@ export default function MentionsLegalesPage() {
           body: (
             <ul>
               <li>
-                <b>Site</b> : Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis —{' '}
-                <a href="https://vercel.com" className="underline" rel="noopener noreferrer" target="_blank">vercel.com</a>
+                <b>Site</b> : Cloudflare, Inc., 101 Townsend St, San Francisco, CA 94107, États-Unis —{' '}
+                <a href="https://www.cloudflare.com" className="underline" rel="noopener noreferrer" target="_blank">cloudflare.com</a>
               </li>
               <li>
                 <b>Base de données</b> : Supabase Inc., 970 Toa Payoh North #07-04, Singapour 318992 — serveurs
