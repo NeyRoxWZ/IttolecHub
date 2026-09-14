@@ -16,8 +16,8 @@ self.addEventListener('push', (event) => {
   const title = payload.title || 'IttolecHub';
   const options = {
     body: payload.body || '',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
+    icon: '/icons/icon-192x192.png?v=2',
+    badge: '/icons/icon-192x192.png?v=2',
     // Same tag replaces rather than stacks: three reminders about the same
     // chest is how people turn notifications off.
     tag: payload.tag || 'ittolec',
