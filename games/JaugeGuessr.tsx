@@ -10,6 +10,7 @@ import { Eye, EyeOff, Send, Target, Trophy, Clock, Loader2, ArrowRight } from 'l
 import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import OgName from '@/components/OgName';
 
 export default function JaugeGuessr({ params }: { params: { code: string } }) {
     const roomCode = params.code;
@@ -582,7 +583,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                             
                                             return (
                                                 <div key={seeker.id} className="flex items-center justify-between bg-brand-inner p-3 rounded-xl border-2 border-brand-border">
-                                                    <span className="font-bold text-tx-base">{players.find(p => p.id === seeker.id)?.name}</span>
+                                                    <span className="font-bold text-tx-base"><OgName name={players.find(p => p.id === seeker.id)?.name} /></span>
                                                     <span className={cn("font-display font-black text-xl", color)}>+{points}</span>
                                                 </div>
                                             );
@@ -633,7 +634,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
                                         </span>
                                         
                                         <div className="flex flex-col text-left">
-                                            <span className="text-xl font-display font-black">{p.name}</span>
+                                            <span className="text-xl font-display font-black"><OgName name={p.name} /></span>
                                             <span className={cn(
                                                 "text-xs font-bold uppercase tracking-widest",
                                                 i === 0 ? "text-brand-bg/80" : "text-tx-secondary"

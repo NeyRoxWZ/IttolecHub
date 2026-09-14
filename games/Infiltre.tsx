@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import VoteToLobby from './components/VoteToLobby';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import OgName from '@/components/OgName';
 
 type Role = 'MASTER' | 'INFILTRE' | 'CITIZEN';
 type Phase = 'setup' | 'roles' | 'playing' | 'voting_finder' | 'voting_infiltre' | 'results';
@@ -868,7 +869,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                         </div>
                                     )}
                                     <div className="flex justify-between items-start mb-2">
-                                        <span className="font-bold text-[#06B6D4]">{asker?.name}</span>
+                                        <span className="font-bold text-[#06B6D4]"><OgName name={asker?.name} /></span>
                                         <span className="text-xs text-tx-secondary font-bold">{new Date(q.timestamp).toLocaleTimeString()}</span>
                                     </div>
                                     <p className="text-lg text-tx-base mb-4 font-bold">{q.text}</p>
@@ -974,7 +975,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                     className="h-12 px-4 rounded-xl border-2 border-brand-border bg-brand-inner text-accent-primary font-bold hover:border-accent-primary shadow-sm flex items-center"
                                 >
                                     <Crown className="w-4 h-4 mr-2" />
-                                    {p.name}
+                                    <OgName name={p.name} />
                                 </button>
                             ))}
                         </div>
@@ -1014,7 +1015,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                                 return (
                                     <div key={pid} className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[24px] overflow-hidden h-[300px] relative w-full md:w-[31%] lg:w-[23%] shadow-brutal">
                                         <div className="p-4 text-center border-b-4 border-brand-border bg-brand-inner">
-                                            <div className="font-display font-black text-xl text-tx-base">{p?.name}</div>
+                                            <div className="font-display font-black text-xl text-tx-base"><OgName name={p?.name} /></div>
                                             {pid === finderId && currentPhase === 'voting_finder' && (
                                                 <span className="text-[10px] bg-accent-primary text-brand-bg px-2 py-1 rounded-md mt-2 inline-block font-black uppercase tracking-widest shadow-sm">A trouvé le mot</span>
                                             )}
@@ -1078,7 +1079,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
                     <div className="grid gap-3 mt-8 text-left max-h-[300px] overflow-y-auto custom-scrollbar p-4 bg-brand-bg/50 rounded-2xl border-4 border-brand-border shadow-inner">
                         {players.map(p => (
                             <div key={p.id} className="flex justify-between items-center p-4 bg-brand-inner border-2 border-brand-border rounded-xl shadow-sm">
-                                <span className="font-display font-black text-lg text-tx-base">{p.name}</span>
+                                <span className="font-display font-black text-lg text-tx-base"><OgName name={p.name} /></span>
                                 <span className={cn(
                                     "font-black text-sm uppercase tracking-widest px-3 py-1 rounded-md border-2 border-brand-border",
                                     roles[p.id] === 'MASTER' ? 'bg-accent-primary text-brand-bg' : 

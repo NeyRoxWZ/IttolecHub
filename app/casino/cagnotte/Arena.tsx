@@ -10,6 +10,7 @@ import {
   potMode, subscribePotMode, potModeServer,
 } from '@/lib/casino/potMode';
 import { ARENA_GAMES } from '../_components/ArenaGames';
+import OgName from '@/components/OgName';
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 
@@ -157,7 +158,7 @@ export default function Arena({
                   return (
                     <div key={m.user_id} className="flex items-center gap-2 text-sm">
                       <span className="flex-1 min-w-0 truncate font-bold">
-                        {m.pseudo}
+                        <OgName name={m.pseudo} />
                         {m.pseudo === hostPseudo && (
                           <span className="ml-1.5 text-[9px] font-black uppercase text-accent-primary">hôte</span>
                         )}
@@ -187,7 +188,7 @@ export default function Arena({
                 <div className="space-y-1 max-h-56 overflow-y-auto">
                   {[...feed].reverse().map((f: any, i: number) => (
                     <div key={`${f.at}-${i}`} className="flex items-center gap-2 text-[11px]">
-                      <span className="font-bold truncate flex-1 min-w-0">{f.pseudo}</span>
+                      <span className="font-bold truncate flex-1 min-w-0"><OgName name={f.pseudo} /></span>
                       <span className="text-tx-muted truncate shrink-0">{f.game}</span>
                       <span className={cn(
                         'font-display font-black tabular-nums shrink-0 w-20 text-right',

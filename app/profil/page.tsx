@@ -7,11 +7,14 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 import { generatePassphrase } from '@/lib/words';
 import {
-  LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check,
+  LogOut, Edit2, RefreshCw, AlertTriangle, Copy, Check, Eye, EyeOff,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import ProfileStats from './ProfileStats';
+import OgName, { OgBadge } from '@/components/OgName';
+import { useOgProfile } from '@/hooks/useOg';
+import { refreshOg, setOgBadgeVisible } from '@/lib/og';
 import { cn } from '@/lib/utils';
 
 export default function ProfilPage() {
@@ -22,6 +25,8 @@ export default function ProfilPage() {
   const [regenerating, setRegenerating] = useState(false);
   const [newWords, setNewWords] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const og = useOgProfile(user?.pseudo);
+  const [ogSaving, setOgSaving] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -54,10 +59,27 @@ export default function ProfilPage() {
       toast.success('Pseudo mis à jour');
       setEditingPseudo(false);
       refreshUser();
+      // Le badge OG suit le compte : la liste est relue pour qu'il se rattache
+      // tout de suite au nouveau pseudo.
+      if (og) void refreshOg();
     } catch (err) {
       toast.error('Erreur lors de la mise à jour');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const toggleOgBadge = async () => {
+    if (!og) return;
+    const next = !og.visible;
+    setOgSaving(true);
+    try {
+      await setOgBadgeVisible(user.id, next);
+      toast.success(next ? 'Badge OG affiché' : 'Badge OG masqué');
+    } catch (err) {
+      toast.error('Erreur lors de la mise à jour du badge');
+    } finally {
+      setOgSaving(false);
     }
   };
 
@@ -167,7 +189,7 @@ export default function ProfilPage() {
                 ) : (
                   <>
                     <h1 className="font-display text-3xl md:text-4xl font-black tracking-wider uppercase text-center sm:text-left">
-                      {user.pseudo}
+                      <OgName name={user.pseudo} truncate={false} />
                     </h1>
                     <button
                       type="button"
@@ -183,6 +205,41 @@ export default function ProfilPage() {
                   </>
                 )}
               </div>
+
+              {og && (
+                <div className="mt-4 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex-1">
+                      <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">
+                        Distinction
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 font-display font-black tracking-wider uppercase text-tx-base">
+                        <OgBadge />
+                        Membre de la première heure
+                      </div>
+                      <p className="mt-2 text-sm text-tx-secondary font-bold leading-relaxed">
+                        {og.visible
+                          ? 'Ton pseudo s\u2019affiche en or avec le badge OG partout sur le site.'
+                          : 'Ton badge OG est masqué : tu apparais comme tout le monde.'}
+                        {' '}Il reste attaché à ton compte, même si tu changes de pseudo.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleOgBadge}
+                      disabled={ogSaving}
+                      className={cn(
+                        'h-12 px-4 shrink-0 rounded-lg border-2 border-brand-border bg-brand-card text-tx-base font-display font-black tracking-wider uppercase transition-colors flex items-center justify-center gap-2',
+                        'hover:bg-tx-base hover:text-brand-bg hover:border-tx-base',
+                        ogSaving && 'opacity-60 cursor-not-allowed hover:bg-brand-card hover:text-tx-base hover:border-brand-border'
+                      )}
+                    >
+                      {og.visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {og.visible ? 'Masquer' : 'Afficher'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-4 rounded-2xl border-2 border-brand-border bg-brand-inner p-4">
                 <div className="text-xs font-bold tracking-widest uppercase text-tx-secondary">

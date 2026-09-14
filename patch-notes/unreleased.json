@@ -231,6 +231,14 @@
       "type": "correctif",
       "title": "L'effet des nouvelles news n'est plus coupé",
       "details": "Le contour qui signale une news fraîche était rogné par le bord de la liste."
+    },
+    {
+      "id": "2026-09-14-01",
+      "date": "2026-09-14",
+      "scope": "site",
+      "type": "nouveau",
+      "title": "Badge OG",
+      "details": "Les OG du site affichent leur pseudo en or avec un motif et un badge OG, partout : accueil, profil, classements, casino, Krash, salons et parties multijoueurs. Chacun peut l'afficher ou le masquer depuis son profil, et le badge reste attaché au compte même après un changement de pseudo."
     }
   ]
 }

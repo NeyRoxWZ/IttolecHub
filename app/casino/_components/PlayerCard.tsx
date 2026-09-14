@@ -5,6 +5,7 @@ import { X, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getPrestigeTitle } from '@/lib/casino/meta';
 import { GAME_LABELS } from '@/lib/casino/cosmetics';
+import OgName from '@/components/OgName';
 
 interface Point {
   t: string;
@@ -99,7 +100,7 @@ export default function PlayerCard({ pseudo, onClose }: { pseudo: string; onClos
       >
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="min-w-0">
-            <h2 className="font-display text-xl font-black truncate">{pseudo}</h2>
+            <h2 className="font-display text-xl font-black truncate"><OgName name={pseudo} /></h2>
             {title && <span className="text-[10px] font-black uppercase tracking-widest text-accent-primary">{title}</span>}
           </div>
           <button onClick={onClose} className="h-9 w-9 shrink-0 rounded-lg border-2 border-brand-border bg-brand-inner flex items-center justify-center hover:border-tx-base focus:outline-none">

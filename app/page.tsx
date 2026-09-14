@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import OgName from '@/components/OgName';
 
 export const viewport = {
   width: 'device-width',
@@ -308,7 +309,7 @@ export default function Home() {
                   onClick={() => router.push('/profil')}
                   className="h-11 px-4 rounded-lg border-2 border-brand-border bg-brand-inner text-tx-base font-display font-black tracking-wider uppercase hover:bg-tx-base hover:text-brand-bg hover:border-tx-base transition-colors"
                 >
-                  {user.pseudo}
+                  <OgName name={user.pseudo} />
                 </button>
                 <button
                   type="button"

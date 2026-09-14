@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { supabase } from '@/lib/supabase/client';
 import type { CommunityQuest as Quest } from '@/lib/casino/community';
+import OgName from '@/components/OgName';
 
 interface State {
   quest: Quest;
@@ -150,7 +151,7 @@ export default function CommunityQuestPanel() {
             {state.top.slice(0, 5).map((t, i) => (
               <div key={t.pseudo} className="flex items-center gap-2 text-[11px]">
                 <span className="w-4 text-tx-muted font-black">{i + 1}</span>
-                <span className="truncate flex-1">{t.pseudo}</span>
+                <span className="truncate flex-1"><OgName name={t.pseudo} /></span>
                 <span className="font-bold text-tx-secondary tabular-nums">
                   {t.contribution.toLocaleString('en-US')}
                 </span>

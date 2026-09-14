@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X, Gem } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import OgName from '@/components/OgName';
 import {
   JACKPOT_CONTRIBUTION_RATE, JACKPOT_HIT_CHANCE, JACKPOT_SEED,
 } from '@/lib/casino/meta';
@@ -78,7 +79,7 @@ export default function JackpotModal({ amount, onClose }: { amount: number | nul
         <div className="rounded-xl border-2 border-brand-border bg-brand-inner px-3 py-2.5 text-sm">
           {last ? (
             <div className="flex items-center justify-between gap-3">
-              <span className="font-black truncate">{last.pseudo || 'Un joueur'}</span>
+              <span className="font-black truncate">{last.pseudo ? <OgName name={last.pseudo} /> : 'Un joueur'}</span>
               <span className="font-black text-accent-success tabular-nums shrink-0">
                 +{last.amount.toLocaleString('en-US')} ₶
               </span>

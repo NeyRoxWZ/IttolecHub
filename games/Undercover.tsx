@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase/client';
 import VoteToLobby from './components/VoteToLobby';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import OgName from '@/components/OgName';
 
 type Role = 'CIVIL' | 'UNDERCOVER' | 'MR_WHITE';
 type Phase = 'setup' | 'roles' | 'clues' | 'discussion' | 'vote' | 'mrwhite_guess' | 'results' | 'game_over';
@@ -951,7 +952,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                                             isSpeaking ? "bg-accent-primary text-brand-bg" : "bg-brand-inner text-tx-base"
                                         )}>
                                             <div className="font-display font-black text-xl truncate">
-                                                {p?.name}
+                                                <OgName name={p?.name} />
                                             </div>
                                             {isSpeaking && <div className="text-[10px] font-black uppercase tracking-widest animate-pulse mt-1 opacity-80">En train d'écrire...</div>}
                                             
@@ -1115,7 +1116,7 @@ export default function Undercover({ roomCode }: UndercoverProps) {
                     <div className="grid gap-3 mt-8 text-left max-h-[300px] overflow-y-auto custom-scrollbar p-4 bg-brand-bg/50 rounded-2xl border-4 border-brand-border shadow-inner">
                         {players.map(p => (
                             <div key={p.id} className="flex justify-between items-center p-4 bg-brand-inner border-2 border-brand-border rounded-xl shadow-sm">
-                                <span className="font-display font-black text-lg text-tx-base">{p.name}</span>
+                                <span className="font-display font-black text-lg text-tx-base"><OgName name={p.name} /></span>
                                 <span className={cn(
                                     "font-black text-sm uppercase tracking-widest px-3 py-1 rounded-md border-2 border-brand-border",
                                     roles[p.id] === 'CIVIL' ? 'bg-[#06B6D4] text-brand-bg' : 

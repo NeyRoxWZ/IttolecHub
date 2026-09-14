@@ -150,3 +150,95 @@ body {
     font-size: 16px;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Badge OG : pseudo en or à motif + pastille                          */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Le pseudo doré remplace un simple texte à l'intérieur de blocs déjà mis en
+ * page : il hérite donc de la taille et de la graisse autour de lui, et la
+ * pastille se dimensionne en `em` pour suivre.
+ */
+.og-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: baseline;
+}
+
+/* Deux couches : le motif rayé par-dessus le dégradé d'or, les deux découpés
+   à la forme des lettres. */
+.og-name {
+  background-image:
+    repeating-linear-gradient(
+      118deg,
+      rgba(255, 255, 255, 0.5) 0 1px,
+      rgba(255, 255, 255, 0) 1px 6px
+    ),
+    linear-gradient(
+      100deg,
+      #f3b427 0%,
+      #ffe08a 14%,
+      #fff8d8 26%,
+      #f7bd2e 44%,
+      #ffeaa8 60%,
+      #e8a516 78%,
+      #ffd76a 100%
+    );
+  background-size: 240% 100%, 240% 100%;
+  background-repeat: repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.5));
+  animation: og-shine 7s linear infinite;
+}
+
+.og-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  height: 1.55em;
+  padding: 0 0.45em;
+  border: 2px solid #000000;
+  border-radius: 0.5em;
+  box-shadow: 2px 2px 0 #000000;
+  background-image:
+    repeating-linear-gradient(
+      118deg,
+      rgba(255, 255, 255, 0.45) 0 2px,
+      rgba(255, 255, 255, 0) 2px 7px
+    ),
+    linear-gradient(100deg, #b47a08 0%, #ffd76a 20%, #fff8d8 34%, #f0ac00 52%, #ffd76a 78%, #b47a08 100%);
+  background-size: 240% 100%, 240% 100%;
+  color: #2b1c00;
+  font-family: 'Nunito', sans-serif;
+  font-size: clamp(9px, 0.62em, 14px);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: og-shine 7s linear infinite;
+}
+
+@keyframes og-shine {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: -240% 0, -240% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .og-name,
+  .og-badge {
+    animation: none;
+  }
+}

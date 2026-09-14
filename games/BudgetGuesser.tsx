@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import OgName from '@/components/OgName';
 
 interface BudgetGuesserProps {
   roomCode: string;
@@ -467,7 +468,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                                     isWinner ? "bg-accent-success/20 border-accent-success" : "bg-brand-inner"
                                 )}>
                                     <div className="flex flex-col">
-                                        <span className="font-display font-black text-lg text-tx-base">{p.name}</span>
+                                        <span className="font-display font-black text-lg text-tx-base"><OgName name={p.name} /></span>
                                         <span className="text-sm font-bold text-tx-secondary uppercase tracking-widest">Écart: {diff.toFixed(1)}%</span>
                                     </div>
                                     <div className="text-right">
@@ -515,7 +516,7 @@ export default function BudgetGuesser({ roomCode }: BudgetGuesserProps) {
                                     </span>
                                     
                                     <div className="flex flex-col text-left">
-                                        <span className="text-xl font-display font-black">{p.name}</span>
+                                        <span className="text-xl font-display font-black"><OgName name={p.name} /></span>
                                         <span className={cn(
                                             "text-xs font-bold uppercase tracking-widest",
                                             i === 0 ? "text-brand-bg/80" : "text-tx-secondary"

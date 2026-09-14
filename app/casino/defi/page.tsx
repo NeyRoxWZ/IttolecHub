@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { GAME_LABELS } from '@/lib/casino/cosmetics';
 import { secondsUntilNextChallenge } from '@/lib/casino/challenge';
+import OgName from '@/components/OgName';
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 
@@ -232,7 +233,7 @@ export default function DefiPage() {
                   )}>
                     {i + 1}
                   </span>
-                  <span className="flex-1 min-w-0 truncate font-bold">{r.pseudo}</span>
+                  <span className="flex-1 min-w-0 truncate font-bold"><OgName name={r.pseudo} /></span>
                   <span className="text-[10px] text-tx-muted shrink-0">
                     {r.busted ? 'ruiné' : r.finished ? 'fini' : `${r.round}/${state.totalRounds}`}
                   </span>

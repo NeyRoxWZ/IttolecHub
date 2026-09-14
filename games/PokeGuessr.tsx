@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase/client';
 import Fuse from 'fuse.js';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import VoteToLobby from './components/VoteToLobby';
+import OgName from '@/components/OgName';
 
 interface PokeGuessrProps {
   roomCode: string;
@@ -551,7 +552,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                                             {playerInfo?.name.charAt(0).toUpperCase()}
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="font-display font-black text-lg text-tx-base">{playerInfo?.name}</span>
+                                            <span className="font-display font-black text-lg text-tx-base"><OgName name={playerInfo?.name} /></span>
                                             <span className="text-sm font-bold text-tx-secondary uppercase tracking-widest">{p.last_guess || '-'}</span>
                                         </div>
                                     </div>
@@ -597,7 +598,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                                     </span>
                                     
                                     <div className="flex flex-col text-left">
-                                        <span className="text-xl font-display font-black">{p.name}</span>
+                                        <span className="text-xl font-display font-black"><OgName name={p.name} /></span>
                                         <span className={cn(
                                             "text-xs font-bold uppercase tracking-widest",
                                             i === 0 ? "text-brand-bg/80" : "text-tx-secondary"

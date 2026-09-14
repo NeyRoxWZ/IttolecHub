@@ -10,6 +10,7 @@ import { krashCosmeticById } from '@/lib/krash/cosmetics';
 import KrashShell from '../_components/KrashShell';
 import KrashCosmeticPreview from '../_components/KrashCosmeticPreview';
 import KrashPlayerCard from '../_components/KrashPlayerCard';
+import OgName from '@/components/OgName';
 
 type Tab = 'realized_pnl' | 'best_trade' | 'volume';
 
@@ -118,7 +119,7 @@ export default function KrashLeaderboard() {
                   </div>
                   {emblem && <KrashCosmeticPreview cosmetic={emblem} size={34} />}
                   <div className="min-w-0 flex-1">
-                    <div className="font-bold truncate">{r.pseudo}{me && <span className="text-rose-300"> · toi</span>}</div>
+                    <div className="font-bold truncate"><OgName name={r.pseudo} />{me && <span className="text-rose-300"> · toi</span>}</div>
                     {title && <div className="text-[10px] font-black uppercase tracking-widest truncate" style={{ color: title.params.color }}>{title.params.title}</div>}
                     <div className="text-[11px] text-tx-muted">
                       {r.trades} trade{r.trades > 1 ? 's' : ''} · {Math.round((r.wins / Math.max(1, r.trades)) * 100)} % gagnants

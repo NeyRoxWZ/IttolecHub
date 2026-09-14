@@ -5,6 +5,7 @@ import { TrendingDown, TrendingUp, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { krashCosmeticById } from '@/lib/krash/cosmetics';
 import KrashCosmeticPreview from './KrashCosmeticPreview';
+import OgName from '@/components/OgName';
 
 interface Point { t: string; balance: number; amount: number; kind: string }
 
@@ -85,7 +86,7 @@ export default function KrashPlayerCard({ pseudo, onClose }: { pseudo: string; o
           <div className="flex items-center gap-3 min-w-0">
             {emblem && <KrashCosmeticPreview cosmetic={emblem} size={44} />}
             <div className="min-w-0">
-              <h2 className="font-display text-xl font-black truncate">{pseudo}</h2>
+              <h2 className="font-display text-xl font-black truncate"><OgName name={pseudo} /></h2>
               {title && <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: title.params.color }}>{title.params.title}</span>}
             </div>
           </div>

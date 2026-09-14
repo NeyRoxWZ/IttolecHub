@@ -12,6 +12,7 @@ import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { supabase } from '@/lib/supabase/client';
+import OgName from '@/components/OgName';
 import {
   GIFT_MIN, GIFT_DAILY_LIMIT, giftCoinCost, GIFT_COIN_FEE,
 } from '@/lib/casino/social';
@@ -236,7 +237,7 @@ function Duels({ user, balance, setBalance, refresh }: any) {
             {state.open.map((d: any) => (
               <div key={d.id} className="flex items-center gap-2 rounded-xl border-2 border-brand-border bg-brand-inner p-2.5">
                 <div className="min-w-0 flex-1 leading-tight">
-                  <div className="font-display font-black text-[12px] truncate">{d.challenger_pseudo}</div>
+                  <div className="font-display font-black text-[12px] truncate"><OgName name={d.challenger_pseudo} /></div>
                   <div className="text-[10px] text-tx-muted">{d.game_slug} · {fmt(Number(d.amount))} ₶</div>
                 </div>
                 <button
@@ -309,7 +310,7 @@ function DuelRow({ duel, me, busy, onPlay, onCancel, onCopy, copied }: any) {
         <div className="flex items-center gap-3 mt-2 text-[11px] font-bold tabular-nums">
           <span>Toi <b className="font-display">{mine !== null ? `×${Number(mine).toFixed(2)}` : '···'}</b></span>
           <span className="text-tx-muted">vs</span>
-          <span>{foe} <b className="font-display">{theirs !== null ? `×${Number(theirs).toFixed(2)}` : '···'}</b></span>
+          <span>{foe && <OgName name={foe} />} <b className="font-display">{theirs !== null ? `×${Number(theirs).toFixed(2)}` : '···'}</b></span>
           {done && (
             <span className={cn('ml-auto font-display font-black', draw ? 'text-tx-muted' : won ? 'text-accent-success' : 'text-accent-secondary')}>
               {draw ? 'ÉGALITÉ' : won ? `+${fmt(Number(duel.amount))} ₶` : `−${fmt(Number(duel.amount))} ₶`}
@@ -415,7 +416,7 @@ function GiftList({ title, rows, kind }: { title: string; rows: any[]; kind: 're
       <div className="space-y-1.5">
         {rows.map((g, i) => (
           <div key={i} className="flex items-center gap-2 text-[12px]">
-            <span className="flex-1 min-w-0 truncate font-bold">{g.pseudo}</span>
+            <span className="flex-1 min-w-0 truncate font-bold"><OgName name={g.pseudo} /></span>
             {g.message && <span className="text-tx-muted truncate max-w-[40%]">« {g.message} »</span>}
             <span className={cn('font-display font-black tabular-nums shrink-0', kind === 'received' ? 'text-accent-success' : 'text-tx-secondary')}>
               {kind === 'received' ? '+' : '−'}{fmt(kind === 'received' ? g.amount : g.cost)} ₶
@@ -524,7 +525,7 @@ function Parrainage({ user, refresh }: any) {
               return (
                 <div key={i}>
                   <div className="flex items-center justify-between text-[11px] font-bold">
-                    <span className="truncate">{f.pseudo}</span>
+                    <span className="truncate"><OgName name={f.pseudo} /></span>
                     <span className={cn('tabular-nums', f.paid ? 'text-accent-success' : 'text-tx-muted')}>
                       {f.paid ? 'payé' : `${pct}%`}
                     </span>
@@ -592,7 +593,7 @@ function Chat({ user }: any) {
         {messages.length === 0 && <p className="text-[11px] text-tx-muted">Personne n&apos;a encore parlé.</p>}
         {messages.map((m) => (
           <div key={m.id} className={cn('text-[12px]', m.user_id === user?.id && 'text-right')}>
-            <span className="font-display font-black text-accent-primary">{m.pseudo}</span>
+            <span className="font-display font-black text-accent-primary"><OgName name={m.pseudo} /></span>
             <span className="text-tx-muted"> · </span>
             <span className="text-tx-secondary break-words">{m.body}</span>
           </div>

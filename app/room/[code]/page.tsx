@@ -13,6 +13,7 @@ import QRCodeStyling from 'qr-code-styling';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/Dialog';
 import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
+import OgName from '@/components/OgName';
 
 interface Player {
   id: string;
@@ -1435,7 +1436,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                                         "font-bold truncate",
                                         player.isHost ? "text-tx-base" : "text-tx-secondary group-hover:text-tx-base"
                                     )}>
-                                        {player.name}
+                                        <OgName name={player.name} />
                                     </span>
                                     {player.isHost && (
                                         <span className="text-[10px] uppercase tracking-widest font-black text-tx-base opacity-70">
