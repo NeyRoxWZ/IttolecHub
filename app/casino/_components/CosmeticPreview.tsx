@@ -1,4 +1,5 @@
 'use client';
+import type { JSX } from 'react';
 
 import { cn } from '@/lib/utils';
 import type { Cosmetic, CosmeticParams } from '@/lib/casino/cosmetics';

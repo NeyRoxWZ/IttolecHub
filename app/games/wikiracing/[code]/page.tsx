@@ -1,5 +1,6 @@
 import WikiRacing from '@/games/WikiRacing';
 
-export default function WikiRacingPage({ params }: { params: { code: string } }) {
-  return <WikiRacing params={params} />;
+export default async function WikiRacingPage({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params;
+  return <WikiRacing params={{ code }} />;
 }

@@ -3,7 +3,8 @@ import { getActiveRound, updateRoundState, bustRound } from '@/lib/casino/roundE
 import { LADDER_CONFIGS, multiplierAtStep, stepOutcome } from '@/lib/casino/ladder';
 import { multiplierAfterReveals, MINES_TOTAL_CELLS } from '@/lib/casino/mines';
 
-export async function POST(request: Request, { params }: { params: { game: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ game: string }> }) {
+  const params = await context.params;
   try {
     const body = await request.json();
     const userId: string = body?.user_id;

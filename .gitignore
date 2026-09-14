@@ -6,3 +6,6 @@ node_modules
 .env*.local
 
 .vercel
+.open-next
+.dev.vars
+.wrangler

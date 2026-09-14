@@ -1,14 +1,17 @@
 'use client';
 
+import { use } from 'react';
+
 import Undercover from '@/games/Undercover';
 
 export default function UndercoverPage({
   params,
   searchParams,
 }: {
-  params: { code: string };
-  searchParams: { [key: string]: string };
+  params: Promise<{ code: string }>;
+  searchParams: Promise<{ [key: string]: string }>;
 }) {
-  return <Undercover roomCode={params.code} />;
+  const { code } = use(params);
+  return <Undercover roomCode={code} />;
 }
 

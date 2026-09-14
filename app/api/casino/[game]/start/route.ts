@@ -3,7 +3,8 @@ import { startRound } from '@/lib/casino/roundEngine.server';
 import { LADDER_CONFIGS } from '@/lib/casino/ladder';
 import { generateMinePositions, MINES_MIN_COUNT, MINES_MAX_COUNT } from '@/lib/casino/mines';
 
-export async function POST(request: Request, { params }: { params: { game: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ game: string }> }) {
+  const params = await context.params;
   try {
     const body = await request.json();
     const userId: string = body?.user_id;

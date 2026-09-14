@@ -1,5 +1,6 @@
 import RentGuessr from '@/games/RentGuessr';
 
-export default function Page({ params }: { params: { code: string } }) {
-  return <RentGuessr roomCode={params.code} />;
+export default async function Page({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params;
+  return <RentGuessr roomCode={code} />;
 }

@@ -1,13 +1,16 @@
 'use client';
 
+import { use } from 'react';
+
 import FlagGuesser from '@/games/FlagGuesser';
 
 export default function FlagGuesserPage({ 
   params, 
   searchParams 
 }: { 
-  params: { code: string },
-  searchParams: { [key: string]: string }
+  params: Promise<{ code: string }>,
+  searchParams: Promise<{ [key: string]: string }>
 }) {
-  return <FlagGuesser roomCode={params.code} />;
+  const { code } = use(params);
+  return <FlagGuesser roomCode={code} />;
 }

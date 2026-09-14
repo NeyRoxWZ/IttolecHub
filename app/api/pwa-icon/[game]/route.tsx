@@ -1,7 +1,5 @@
 import { ImageResponse } from 'next/og';
 
-export const runtime = 'edge';
-
 /**
  * Home-screen icons for the per-game apps, in the site's look: a bright game
  * colour, thick navy outlines and a pressed-in shade, the same artwork as the
@@ -49,7 +47,8 @@ const GAMES: Record<string, { bg: string; shade: string; art: string }> = {
   },
 };
 
-export function GET(req: Request, { params }: { params: { game: string } }) {
+export async function GET(req: Request, context: { params: Promise<{ game: string }> }) {
+  const params = await context.params;
   const game = GAMES[params.game];
   if (!game) return new Response('Not found', { status: 404 });
 

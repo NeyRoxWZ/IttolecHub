@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { use, useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
@@ -289,7 +289,9 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
   },
 ];
 
-export default function RoomPage({ params }: { params: { code: string } }) {
+export default function RoomPage({ params: paramsPromise }: { params: Promise<{ code: string }> }) {
+  // Next 15 hands dynamic params over as a promise.
+  const params = use(paramsPromise);
   const router = useRouter();
   const [players, setPlayers] = useState<Player[]>([]);
   const [playerName, setPlayerName] = useState('');
@@ -332,7 +334,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       const qrCode = new QRCodeStyling({
         width: 320,
         height: 320,
-        data: `https://itollechub.vercel.app/room/${params.code}?source=qrcode`,
+        data: `${window.location.origin}/room/${params.code}?source=qrcode`,
         image: "/logo-site.png",
         imageOptions: {
           hideBackgroundDots: true,
@@ -1072,11 +1074,11 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                   <p className="text-sm font-bold text-tx-secondary text-center uppercase tracking-widest">Lien de partage</p>
                   <div className="flex items-center gap-3 bg-brand-card border-4 border-brand-border rounded-2xl p-2 shadow-brutal">
                       <span className="flex-1 text-sm text-tx-secondary truncate font-mono px-3">
-                          {typeof window !== 'undefined' ? `https://itollechub.vercel.app/room/${params.code}?source=link` : ''}
+                          {typeof window !== 'undefined' ? `${window.location.origin}/room/${params.code}?source=link` : ''}
                       </span>
                       <button 
                           onClick={() => {
-                              navigator.clipboard.writeText(`https://itollechub.vercel.app/room/${params.code}?source=link`);
+                              navigator.clipboard.writeText(`${window.location.origin}/room/${params.code}?source=link`);
                               toast.success('Lien copié !');
                           }}
                           className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border-[3px] border-brand-border bg-brand-inner text-tx-base hover:bg-[#333A80] transition-colors"

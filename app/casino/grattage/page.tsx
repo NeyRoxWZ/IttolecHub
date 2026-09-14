@@ -1,4 +1,5 @@
 'use client';
+import type { JSX } from 'react';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';

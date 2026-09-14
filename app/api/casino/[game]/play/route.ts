@@ -18,7 +18,8 @@ import { verifyCard } from '@/lib/casino/signCard.server';
 // Single shared route for every "one bet, one instant reveal" casino game
 // (coinflip, rps, bonneteau, ...). Multi-step games (mines, tower, rocket)
 // need their own stateful routes and don't go through here.
-export async function POST(request: Request, { params }: { params: { game: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ game: string }> }) {
+  const params = await context.params;
   try {
     const body = await request.json();
     const userId: string = body?.user_id;

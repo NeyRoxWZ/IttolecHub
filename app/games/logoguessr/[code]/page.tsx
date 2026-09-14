@@ -1,5 +1,6 @@
 import LogoGuessr from '@/games/LogoGuessr';
 
-export default function Page({ params }: { params: { code: string } }) {
-  return <LogoGuessr roomCode={params.code} />;
+export default async function Page({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params;
+  return <LogoGuessr roomCode={code} />;
 }

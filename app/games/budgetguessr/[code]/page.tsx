@@ -1,5 +1,6 @@
 import BudgetGuesser from '@/games/BudgetGuesser';
 
-export default function Page({ params }: { params: { code: string } }) {
-  return <BudgetGuesser roomCode={params.code} />;
+export default async function Page({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params;
+  return <BudgetGuesser roomCode={code} />;
 }

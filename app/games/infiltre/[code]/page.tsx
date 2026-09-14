@@ -1,14 +1,17 @@
 'use client';
 
+import { use } from 'react';
+
 import Infiltre from '@/games/Infiltre';
 
 export default function InfiltrePage({
   params,
   searchParams,
 }: {
-  params: { code: string };
-  searchParams: { [key: string]: string };
+  params: Promise<{ code: string }>;
+  searchParams: Promise<{ [key: string]: string }>;
 }) {
-  return <Infiltre roomCode={params.code} />;
+  const { code } = use(params);
+  return <Infiltre roomCode={code} />;
 }
 

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getActiveRound, cashoutRound } from '@/lib/casino/roundEngine.server';
 
-export async function POST(request: Request, { params }: { params: { game: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ game: string }> }) {
+  const params = await context.params;
   try {
     const body = await request.json();
     const userId: string = body?.user_id;

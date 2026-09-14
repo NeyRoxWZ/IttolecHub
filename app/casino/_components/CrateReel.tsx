@@ -46,7 +46,7 @@ export default function CrateReel({
 
   // The strip: decoys, then the real reward, then a few more so the marker
   // never sits at the very end of the track.
-  const cellsRef = useRef<Cell[]>();
+  const cellsRef = useRef<Cell[] | undefined>(undefined);
   if (!cellsRef.current) {
     const pool = CRATE_COSMETICS;
     const cells: Cell[] = [];

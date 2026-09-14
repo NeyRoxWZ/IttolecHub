@@ -1,5 +1,6 @@
 import DrawGuesser from '@/games/DrawGuesser';
 
-export default function Page({ params }: { params: { code: string } }) {
-  return <DrawGuesser roomCode={params.code} />;
+export default async function Page({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params;
+  return <DrawGuesser roomCode={code} />;
 }

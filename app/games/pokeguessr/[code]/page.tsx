@@ -1,5 +1,6 @@
 import PokeGuessr from '@/games/PokeGuessr';
 
-export default function Page({ params }: { params: { code: string } }) {
-  return <PokeGuessr roomCode={params.code} />;
+export default async function Page({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params;
+  return <PokeGuessr roomCode={code} />;
 }
