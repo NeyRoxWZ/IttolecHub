@@ -22,5 +22,9 @@
     "crons": ["0 7 * * *", "0 19 * * *"]
   },
   "workers_dev": true,
-  "preview_urls": false
+  "preview_urls": false,
+  // The site's own domain, served straight by this Worker.
+  "routes": [
+    { "pattern": "itollechub.com", "custom_domain": true }
+  ]
 }
