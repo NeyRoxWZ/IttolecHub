@@ -44,9 +44,13 @@ export function weekKey(d = new Date()): string {
 
 /* ---- values ---- */
 
-/** Base price of a common, average-weight fish in a spot. */
+/**
+ * Base price of a common, average-weight fish in a spot. Each spot pays about
+ * half as much again as the previous one (it used to be seven times, which let
+ * a player reach ten Marées and 10^16 coins in an afternoon).
+ */
 export function zoneBase(zone: number): number {
-  return 5 * Math.pow(7, zone);
+  return 10 * Math.pow(1.55, zone);
 }
 
 export function isActive(effects: Effects | undefined, id: EffectId, now = Date.now()): boolean {
@@ -55,7 +59,7 @@ export function isActive(effects: Effects | undefined, id: EffectId, now = Date.
 
 /** Multiplier on every sale: prestige tree, Marées done, "Criée VIP". */
 export function saleMultiplier(tree: TreeLevels, maree: number, effects?: Effects, now = Date.now()): number {
-  return (1 + 0.25 * lvl(tree, 'vente')) * (1 + 0.5 * maree) * (isActive(effects, 'criee', now) ? 2 : 1);
+  return (1 + 0.1 * lvl(tree, 'vente')) * (1 + 0.2 * maree) * (isActive(effects, 'criee', now) ? 2 : 1);
 }
 
 /* ---- weather ---- */
@@ -137,7 +141,7 @@ export function rollCatch(
   const variant: Variant = v < 0.001 * mods.variants ? 'or' : v < 0.006 * mods.variants ? 'chroma' : '';
 
   const avg = (species.minKg + species.maxKg) / 2;
-  const value = zoneBase(zone) * RARITIES[rarity].mult * (weight / avg) * (1 + 0.12 * rod) * VARIANTS[variant].mult * mods.value;
+  const value = zoneBase(zone) * RARITIES[rarity].mult * (weight / avg) * (1 + 0.08 * rod) * VARIANTS[variant].mult * mods.value;
 
   return { speciesId: species.id, rarity, weight, variant, value };
 }
@@ -208,7 +212,8 @@ export function gearCost(gear: GearId, level: number): Cost {
       };
     case 'bateau':
       return {
-        coins: 1500 * Math.pow(9, L),
+        // Grows faster than a spot's value (x1.9 vs x1.55): each new spot takes a few more catches than the last.
+        coins: 600 * Math.pow(1.9, L),
         mats: {
           bois: Math.ceil(10 * Math.pow(1.6, Math.min(L, 40))),
           ...(L >= 2 ? { metal: Math.ceil(4 * Math.pow(1.6, Math.min(L - 2, 40))) } : {}),
@@ -233,13 +238,14 @@ export function maxGearLevel(gear: GearId): number {
 export function autoInterval(gear: GearLevels, tree: TreeLevels, effects?: Effects, now = Date.now()): number {
   const L = lvl(gear, 'auto');
   if (L <= 0) return Infinity;
-  const base = Math.max(2, (14 * Math.pow(0.9, L - 1)) / (1 + 0.1 * lvl(tree, 'auto')));
-  return isActive(effects, 'turbo', now) ? Math.max(1, base / 2) : base;
+  // The auto rod helps, but playing by hand must stay clearly better.
+  const base = Math.max(4, (18 * Math.pow(0.93, L - 1)) / (1 + 0.08 * lvl(tree, 'auto')));
+  return isActive(effects, 'turbo', now) ? Math.max(2, base / 2) : base;
 }
 
 export function autoEfficiency(gear: GearLevels, tree: TreeLevels): number {
   const L = lvl(gear, 'auto');
-  return Math.min(0.85, 0.35 + 0.03 * L + 0.03 * lvl(tree, 'auto'));
+  return Math.min(0.6, 0.25 + 0.02 * L + 0.02 * lvl(tree, 'auto'));
 }
 
 export const AUTO_MAX_CATCHES_PER_CALL = 20;
@@ -247,14 +253,24 @@ export const AUTO_MAX_GAP_MS = 10 * 60 * 1000;
 
 /* ---- Marées ---- */
 
-export function mareeThreshold(maree: number): number {
-  return 1e6 * Math.pow(8, maree);
+/**
+ * What a run must earn before the next Marée: about 800 average catches' worth
+ * at the spot this Marée asks to reach (spot 4 for the first, two further for
+ * each one after). Marées come often, each one a little deeper.
+ */
+export function mareeTargetZone(maree: number): number {
+  return 4 + 2 * maree;
 }
 
+export function mareeThreshold(maree: number): number {
+  return Math.ceil(800 * zoneBase(mareeTargetZone(maree)));
+}
+
+/** Pearls for a Marée: steady, with at most double for overshooting the target. */
 export function perlesFor(maree: number, runEarned: number): number {
   const t = mareeThreshold(maree);
   if (runEarned < t) return 0;
-  return Math.floor(5 * (maree + 1) * Math.sqrt(runEarned / t));
+  return Math.floor((3 + maree) * Math.min(2, Math.sqrt(runEarned / t)));
 }
 
 export function treeCost(node: TreeId, level: number): number {

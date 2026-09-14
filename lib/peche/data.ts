@@ -201,9 +201,9 @@ export const GEAR: Record<GearId, { label: string; hint: string }> = {
 export type TreeId = 'vente' | 'chance' | 'auto' | 'materiaux' | 'depart';
 
 export const TREE: Record<TreeId, { label: string; hint: (lvl: number) => string; max?: number }> = {
-  vente: { label: 'Criée généreuse', hint: (l) => `Ventes +${l * 25} %` },
+  vente: { label: 'Criée généreuse', hint: (l) => `Ventes +${l * 10} %` },
   chance: { label: 'Œil du pêcheur', hint: (l) => `Chance de rareté +${l * 6} %` },
-  auto: { label: 'Canne infatigable', hint: (l) => `Canne auto +${l * 10} % plus rapide et rentable` },
+  auto: { label: 'Canne infatigable', hint: (l) => `Canne auto +${l * 8} % plus rapide, +${l * 2} % de rendement` },
   materiaux: { label: 'Récupérateur', hint: (l) => `Matériaux +${l * 20} %` },
   depart: { label: 'Bon départ', hint: (l) => `Chaque Marée repart avec le bateau niveau ${l}` },
 };
