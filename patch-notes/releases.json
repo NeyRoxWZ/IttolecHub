@@ -6,6 +6,14 @@
       "title": "Site sécurisé et Pêche rééquilibrée",
       "entries": [
         {
+          "id": "2026-09-14-11",
+          "date": "2026-09-14",
+          "scope": "site",
+          "type": "nouveau",
+          "title": "Nouvelle adresse : itollechub.com",
+          "details": "Le site a déménagé sur itollechub.com, plus rapide et mieux protégé. L’ancienne adresse te redirige automatiquement. Pense à mettre à jour tes favoris et, si tu as installé l’appli, à la réinstaller depuis la nouvelle adresse."
+        },
+        {
           "id": "2026-09-14-01",
           "date": "2026-09-14",
           "scope": "site",
