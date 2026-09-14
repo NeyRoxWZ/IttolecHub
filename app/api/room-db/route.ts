@@ -112,7 +112,6 @@ export async function POST(request: Request) {
   }
 
   const base = supabase.from(table);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let q: any;
   if (op === 'insert') q = base.insert(values as Row | Row[]);
   else if (op === 'upsert') {
