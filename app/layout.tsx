@@ -3,6 +3,8 @@ import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ToasterProvider } from '@/components/ToasterProvider'
 import { AuthProvider } from '@/hooks/useAuth'
+import Script from 'next/script'
+import EzoicRouteHandler from '@/components/EzoicRouteHandler'
 
 export const metadata: Metadata = {
   title: 'IttolecHub',
@@ -45,6 +47,11 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
+        {/* Ezoic: consent first (never delayed), then the ads and analytics scripts. */}
+        <Script id="ezoic-cmp" src="https://cmp.gatekeeperconsent.com/min.js" strategy="beforeInteractive" data-cfasync="false" />
+        <Script id="ezoic-cmp-2" src="https://the.gatekeeperconsent.com/cmp.min.js" strategy="beforeInteractive" data-cfasync="false" />
+        <script async src="//www.ezojs.com/ezoic/sa.min.js" />
+        <script async src="//ezoicanalytics.com/analytics.js" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){var t=localStorage.getItem('theme');document.documentElement.classList.toggle('dark',t!=='light');})();`,
@@ -52,6 +59,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-brand-bg text-tx-base font-body antialiased">
+        <EzoicRouteHandler />
         <AuthProvider>
           <ThemeProvider>
             {children}

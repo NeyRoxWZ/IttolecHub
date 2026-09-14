@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-
-/** Seconds at the start where the fish holds still and nothing drains. */
-const GRACE = 1.5;
+import {
+  REEL_DT, REEL_GRACE, REEL_MAX_STEPS, isInside, newReel, stepReel,
+  type ReelParams, type ReelResult,
+} from '@/lib/peche/reel';
 
 /**
  * The reeling mini-game. A green zone follows the fish up and down the bar;
@@ -12,26 +13,34 @@ const GRACE = 1.5;
  * it sink. Staying in the zone fills the catch meter, leaving it drains it —
  * slowly: the first version was over before players could react. Never
  * leaving the zone after the grace period is a perfect catch.
+ *
+ * The simulation itself lives in lib/peche/reel.ts and runs in fixed steps
+ * from the server's seed. This component draws it and records on which steps
+ * the player pressed or released; the server replays those and decides.
  */
 export default function ReelGauge({
-  green, speed, fill = 0.28, drain = 0.1, onDone,
+  green, speed, fill = 0.28, drain = 0.1, seed, onDone,
 }: {
   green: number;
   speed: number;
   /** Meter gained per second in the zone / lost per second outside: rarer fish drain faster. */
   fill?: number;
   drain?: number;
-  onDone: (quality: 'perfect' | 'good' | 'fail') => void;
+  /** From the server's cast: the fish moves the same way here and in its replay. */
+  seed: number;
+  onDone: (quality: ReelResult, input: { toggles: number[]; steps: number }) => void;
 }) {
   const [, force] = useState(0);
-  const s = useRef({
-    cursor: 0.5, vel: 0, zone: 0.5, zoneVel: 0, target: 0.5,
-    progress: 0.4, perfect: true, t: 0, holding: false, done: false,
-  });
+  const params = useRef<ReelParams>({ green, speed, fill, drain, seed });
+  const s = useRef(newReel(params.current));
+  const holding = useRef(false);
+  const lastHold = useRef(false);
+  const toggles = useRef<number[]>([]);
+  const finished = useRef(false);
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
 
-  const setHold = useCallback((v: boolean) => { s.current.holding = v; }, []);
+  const setHold = useCallback((v: boolean) => { holding.current = v; }, []);
 
   // Hold anywhere on the page, not just on the narrow bar: clicking or
   // touching outside it used to do nothing, so only the space bar worked.
@@ -63,38 +72,25 @@ export default function ReelGauge({
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
+    let acc = 0;
     const loop = (now: number) => {
       const st = s.current;
-      if (st.done) return;
-      const dt = Math.min(0.05, (now - last) / 1000);
+      if (finished.current) return;
+      // Real time accumulates; the simulation advances in fixed steps (at most a quarter second at once).
+      acc += Math.min(0.25, (now - last) / 1000);
       last = now;
-      st.t += dt;
-      const started = st.t > GRACE;
-
-      if (started) {
-        if (Math.random() < dt * (0.5 + speed * 2)) st.target = 0.15 + Math.random() * 0.7;
-        st.zoneVel += (st.target - st.zone) * dt * 5 * speed;
-        st.zoneVel *= 0.9;
-        st.zone = Math.max(green / 2, Math.min(1 - green / 2, st.zone + st.zoneVel * dt * 3));
+      while (acc >= REEL_DT && !st.done && st.step < REEL_MAX_STEPS) {
+        if (holding.current !== lastHold.current) {
+          lastHold.current = holding.current;
+          toggles.current.push(st.step);
+        }
+        stepReel(st, params.current, lastHold.current);
+        acc -= REEL_DT;
       }
 
-      st.vel += (st.holding ? 1.6 : -1.3) * dt;
-      st.vel = Math.max(-0.8, Math.min(0.8, st.vel));
-      st.cursor += st.vel * dt;
-      if (st.cursor < 0) { st.cursor = 0; st.vel = 0; }
-      if (st.cursor > 1) { st.cursor = 1; st.vel = 0; }
-
-      const inside = Math.abs(st.cursor - st.zone) <= green / 2;
-      if (started) {
-        if (!inside) st.perfect = false;
-        st.progress += (inside ? fill : -drain) * dt;
-      } else if (inside) {
-        st.progress += 0.12 * dt;
-      }
-
-      if (st.progress >= 1 || st.progress <= 0 || st.t > 25) {
-        st.done = true;
-        doneRef.current(st.progress >= 1 ? (st.perfect ? 'perfect' : 'good') : 'fail');
+      if (st.done && st.result) {
+        finished.current = true;
+        doneRef.current(st.result, { toggles: toggles.current.slice(), steps: st.step });
         force((n) => n + 1);
         return;
       }
@@ -103,10 +99,10 @@ export default function ReelGauge({
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [green, speed, fill, drain]);
+  }, []);
 
   const st = s.current;
-  const inside = Math.abs(st.cursor - st.zone) <= green / 2;
+  const inside = isInside(st, params.current);
 
   return (
     <div className="flex items-stretch gap-3 select-none touch-none">
@@ -128,7 +124,7 @@ export default function ReelGauge({
       </div>
 
       <div className="flex flex-col justify-center gap-2 max-w-[160px]">
-        <div className="font-display text-2xl leading-tight">{st.t < GRACE ? 'Prépare-toi…' : 'Ça mord !'}</div>
+        <div className="font-display text-2xl leading-tight">{st.t < REEL_GRACE ? 'Prépare-toi…' : 'Ça mord !'}</div>
         <p className="text-sm font-bold text-tx-secondary leading-snug">
           Maintiens le clic n’importe où (ou le doigt, ou espace) pour faire monter le curseur jaune dans la zone verte. Relâche pour descendre.
         </p>

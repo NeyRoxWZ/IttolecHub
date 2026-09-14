@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     let out;
     switch (body?.action) {
       case 'cast': out = await cast(userId, body?.mode === 'public' ? 'public' : 'solo'); break;
-      case 'reel': out = await reel(userId, String(body?.cast_id || ''), body?.quality === 'perfect' ? 'perfect' : body?.quality === 'good' ? 'good' : 'fail'); break;
+      case 'reel': out = await reel(userId, String(body?.cast_id || ''), body?.toggles, Number(body?.steps)); break;
       case 'auto': out = await autoFish(userId, body?.mode === 'public' ? 'public' : 'solo'); break;
       case 'sell': out = await sell(userId, body?.key ? String(body.key) : undefined); break;
       case 'upgrade': out = await upgrade(userId, String(body?.gear) as GearId); break;

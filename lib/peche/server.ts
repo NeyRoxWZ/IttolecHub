@@ -4,6 +4,7 @@ import {
   ACHIEVEMENTS, COSMETIC_BY_ID, COSMETIC_SLOTS, PASS_TIERS, SHOP_ITEMS, SPECIES, TREE, getSpecies,
   type AchievementMetric, type CosmeticSlot, type GearId, type MaterialId, type TreeId, type Variant,
 } from './data';
+import { newReelSeed, replayReel, REEL_DT } from './reel';
 import {
   AUTO_MAX_CATCHES_PER_CALL, AUTO_MAX_GAP_MS, CHEST_DAYS, JACKPOT_RATE, MIN_REEL_MS, ORDER_BONUS, PROMO_DISCOUNT, QUALITY,
   autoEfficiency, autoInterval, bossFor, bossReward, catchMods, catchPoints, chestReward, dailyMarket, dayKey, gaugeFor,
@@ -410,14 +411,12 @@ export function cast(userId: string, mode: FishingMode = 'solo') {
     const c = rollCatch(row.zone, row.gear, row.tree, row.maree, modsFor(row, Date.now(), mode));
     const id = randomUUID();
     const gauge = gaugeFor(c.rarity, row.gear, row.effects, Date.now(), c.variant);
-    // The fastest a real catch can be: the 1.5 s grace, then the meter going
-    // from its 40 % start to full while always in the zone. A reel reported
-    // sooner than that did not come from the gauge.
-    const minReelMs = Math.round((REEL_GRACE_S + (1 - REEL_START_PROGRESS) / Math.max(gauge.fill, 0.01)) * 1000);
-    const pendingCast = { ...c, id, at: Date.now(), mode, minReelMs };
+    // The fish's moves come from this seed, here and in the replay at reel time.
+    const seed = newReelSeed();
+    const pendingCast = { ...c, id, at: Date.now(), mode, reel: { ...gauge, seed } };
     return {
       patch: { pending_cast: pendingCast },
-      result: { id, rarity: c.rarity, ...gauge },
+      result: { id, rarity: c.rarity, ...gauge, seed },
     };
   });
 }
@@ -427,20 +426,23 @@ interface Landed {
   quality: 'perfect' | 'good'; value: number; materials: Materials; jackpot?: number;
 }
 
-/** Must match the reel gauge (ReelGauge.tsx): grace before the fish pulls, and where the meter starts. */
-const REEL_GRACE_S = 1.5;
-const REEL_START_PROGRESS = 0.4;
-
-export function reel(userId: string, castId: string, quality: Quality) {
+/**
+ * Lands (or loses) the fish on the line. The browser only sends on which
+ * steps the player pressed or released; the server replays the gauge from the
+ * cast's seed and decides the outcome itself.
+ */
+export function reel(userId: string, castId: string, toggles: unknown, clientSteps: number) {
   return mutate<{ caught: Landed | null; jackpot?: number }>(userId, (row) => {
     const pending = row.pending_cast;
     if (!pending || pending.id !== castId) return fail(400, 'Plus rien au bout de la ligne.');
     if (Date.now() - pending.at < MIN_REEL_MS) return fail(400, 'Trop rapide pour être vrai.');
-    // A little slack for clocks and the network; anything faster is not a real catch.
-    const minReelMs = Number((pending as { minReelMs?: number }).minReelMs) || 0;
-    if (quality !== 'fail' && Date.now() - pending.at < minReelMs * 0.85) {
-      return { patch: { pending_cast: null }, result: { caught: null } };
-    }
+
+    const g = (pending as { reel?: { green: number; speed: number; fill: number; drain: number; seed: number } }).reel;
+    const replay = g ? replayReel({ green: g.green, speed: g.speed, fill: g.fill, drain: g.drain, seed: g.seed }, toggles) : null;
+    // The replay must also have had the time to happen, and end where the player's gauge ended.
+    const tooFast = !!replay && Date.now() - pending.at < replay.steps * REEL_DT * 1000 * 0.8;
+    const mismatch = !!replay && Number.isFinite(clientSteps) && Math.abs(clientSteps - replay.steps) > 3;
+    const quality: Quality = !replay || tooFast || mismatch ? 'fail' : replay.result;
     if (quality === 'fail') return { patch: { pending_cast: null }, result: { caught: null } };
 
     const value = pending.value * QUALITY[quality];

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase/server';
 import { setSessionCookie } from '@/lib/session';
-import { clientIp, underLimit } from '@/lib/rateLimit';
+import { allow, clientIp } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
@@ -19,8 +19,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Le pseudo doit faire entre 2 et 24 caractères, sans espaces en trop.' }, { status: 400 });
     }
 
-    if (!(await underLimit(`register-ip:${clientIp(request)}`))) {
-      return NextResponse.json({ error: 'Trop de tentatives, réessaie dans une minute.' }, { status: 429 });
+    if (!(await allow(`register-ip:${clientIp(request)}`, 5, 60 * 60))) {
+      return NextResponse.json({ error: 'Trop de comptes créés, réessaie dans une heure.' }, { status: 429 });
     }
 
     // Vérifier si le pseudo existe déjà

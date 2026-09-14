@@ -2,19 +2,26 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase/server';
 import { setSessionCookie } from '@/lib/session';
-import { clientIp, underLimit } from '@/lib/rateLimit';
+import { allow, clearAttempts, clientIp } from '@/lib/rateLimit';
+
+const WINDOW_SECONDS = 15 * 60;
 
 export async function POST(request: Request) {
   try {
     const { pseudo, words } = await request.json();
 
-    if (!pseudo || !words || words.length !== 6) {
+    if (!pseudo || !words || words.length !== 6 || typeof pseudo !== 'string' || !Array.isArray(words)) {
       return NextResponse.json({ error: 'Pseudo et 6 mots requis' }, { status: 400 });
     }
 
-    // Per IP and per account: slows down anyone trying passphrases in a loop.
-    if (!(await underLimit(`login-ip:${clientIp(request)}`, `login-pseudo:${String(pseudo).toLowerCase()}`))) {
-      return NextResponse.json({ error: 'Trop de tentatives, réessaie dans une minute.' }, { status: 429 });
+    // Per account and per IP, counted exactly: guessing someone's six words in a loop stops here.
+    const pseudoKey = `login-pseudo:${pseudo.trim().toLowerCase()}`;
+    const [pseudoOk, ipOk] = await Promise.all([
+      allow(pseudoKey, 8, WINDOW_SECONDS),
+      allow(`login-ip:${clientIp(request)}`, 30, WINDOW_SECONDS),
+    ]);
+    if (!pseudoOk || !ipOk) {
+      return NextResponse.json({ error: 'Trop de tentatives, réessaie dans 15 minutes.' }, { status: 429 });
     }
 
     // Récupérer l'utilisateur
@@ -38,6 +45,8 @@ export async function POST(request: Request) {
     if (!isMatch) {
       return NextResponse.json({ error: 'Identifiants incorrects' }, { status: 400 });
     }
+
+    await clearAttempts(pseudoKey);
 
     // Ne pas renvoyer le hash
     const { passphrase_hash, ...safeUser } = user;

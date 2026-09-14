@@ -5,6 +5,17 @@
  * @type {import('next').NextConfig}
  */
 const nextConfig = {
+  // Ezoic manages the ads.txt file for the domain.
+  async redirects() {
+    return [
+      {
+        source: '/ads.txt',
+        destination: 'https://srv.adstxtmanager.com/19390/itollechub.com',
+        permanent: true,
+      },
+    ];
+  },
+
   // Browser-side hardening sent with every response.
   async headers() {
     return [

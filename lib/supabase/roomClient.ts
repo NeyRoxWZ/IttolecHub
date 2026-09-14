@@ -19,6 +19,20 @@ function readToken(): string {
   try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; }
 }
 
+/** The seat a token names (read only: the server checks the signature). */
+function seatOf(token: string): { pid: string; rid: string } | null {
+  try {
+    const body = token.split('.')[0];
+    if (!body) return null;
+    const json = JSON.parse(atob(body.replace(/-/g, '+').replace(/_/g, '/')));
+    if (typeof json?.pid !== 'string' || typeof json?.rid !== 'string') return null;
+    if (typeof json.exp === 'number' && json.exp * 1000 < Date.now()) return null;
+    return { pid: json.pid, rid: json.rid };
+  } catch {
+    return null;
+  }
+}
+
 function keepToken(token?: string) {
   if (!token) return;
   try { sessionStorage.setItem(TOKEN_KEY, token); } catch {}
@@ -79,7 +93,16 @@ class RoomQuery implements PromiseLike<Result> {
 export const roomDb = {
   from: (table: string) => new RoomQuery(table),
 
-  /** A returning player takes their seat back (same room, by id or by name). */
-  claim: async (roomId: string, who: { playerId?: string; name?: string }): Promise<Result> =>
-    send({ op: 'claim', roomId, playerId: who.playerId, name: who.name }),
+  /**
+   * A returning player takes their seat back (same room, by id or by name).
+   * Skipped when this tab already holds that seat's token: the server refuses
+   * to hand out a seat whose player is still active.
+   */
+  claim: async (roomId: string, who: { playerId?: string; name?: string }): Promise<Result> => {
+    const held = seatOf(readToken());
+    if (held && held.rid === roomId && (!who.playerId || held.pid === who.playerId)) {
+      return { data: { id: held.pid }, error: null };
+    }
+    return send({ op: 'claim', roomId, playerId: who.playerId, name: who.name });
+  },
 };

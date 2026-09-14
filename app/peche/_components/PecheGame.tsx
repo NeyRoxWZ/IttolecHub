@@ -81,7 +81,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
   const [state, setState] = useState<PecheState | null>(null);
   const [tab, setTab] = useState<Tab>('peche');
   const [phase, setPhase] = useState<Phase>('idle');
-  const [castInfo, setCastInfo] = useState<{ id: string; rarity: number; green: number; speed: number; fill: number; drain: number } | null>(null);
+  const [castInfo, setCastInfo] = useState<{ id: string; rarity: number; green: number; speed: number; fill: number; drain: number; seed: number } | null>(null);
   const [autoNextAt, setAutoNextAt] = useState<number | null>(null);
   const [autoPops, setAutoPops] = useState<{ key: number; speciesId: string; rarity: number; value: number; variant: string; materials?: Record<string, number> }[]>([]);
   const [landed, setLanded] = useState<Landed | null>(null);
@@ -143,10 +143,10 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
     setTimeout(() => { sfx.tick(); vibrate(HAPTIC.MEDIUM); setPhase('reeling'); }, wait);
   };
 
-  const onReelDone = async (quality: 'perfect' | 'good' | 'fail') => {
+  const onReelDone = async (_quality: 'perfect' | 'good' | 'fail', input: { toggles: number[]; steps: number }) => {
     if (!castInfo) return;
     const before = new Set((stateRef.current?.dex || []).map((d) => d.speciesId));
-    const r = await api('reel', { cast_id: castInfo.id, quality });
+    const r = await api('reel', { cast_id: castInfo.id, toggles: input.toggles, steps: input.steps });
     setCastInfo(null);
     if (!r || !r.caught) { setPhase('lost'); sfx.lose(); vibrate(HAPTIC.ERROR); return; }
     const c = r.caught;
@@ -328,7 +328,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
           <div className="relative z-10 flex-1 flex items-center justify-center p-4">
             {phase === 'reeling' && castInfo && (
               <div className="rounded-[22px] border-4 border-brand-border bg-brand-card/95 p-4 shadow-[0_6px_0_#05061A] animate-in zoom-in-95 duration-150">
-                <ReelGauge key={castInfo.id} green={castInfo.green} speed={castInfo.speed} fill={castInfo.fill} drain={castInfo.drain} onDone={onReelDone} />
+                <ReelGauge key={castInfo.id} green={castInfo.green} speed={castInfo.speed} fill={castInfo.fill} drain={castInfo.drain} seed={castInfo.seed} onDone={onReelDone} />
               </div>
             )}
             {phase === 'landed' && landed && (
