@@ -570,3 +570,74 @@ html body #ez-cookie-dialog-wrapper #ez-cookie-dialog .ez-switch-view-btn:focus-
   outline: 3px solid #ffffff !important;
   outline-offset: 2px;
 }
+/* Inner spacing Ezoic does not give, and a clean button row. */
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog {
+  box-sizing: border-box !important;
+  padding: 20px 24px 16px !important;
+}
+html body #ez-cookie-dialog-wrapper #ez-cookie-form,
+html body #ez-cookie-dialog-wrapper #ez-cookie-template {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+html body #ez-cookie-dialog-wrapper #ez-cmp-title { margin: 0 0 8px !important; line-height: 1.2 !important; }
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog p { margin: 0 !important; line-height: 1.55 !important; }
+html body #ez-cookie-dialog-wrapper .ez-btn-row-container {
+  padding: 14px 0 0 !important;
+  margin: 14px 0 0 !important;
+  border-top: 2px solid rgba(5, 6, 26, 0.6) !important;
+}
+html body #ez-cookie-dialog-wrapper #button-row {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+html body #ez-cookie-dialog-wrapper .ez-btn-group-left {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  margin: 0 !important;
+}
+html body #ez-cookie-dialog-wrapper #ez-cookie-dialog .ez-switch-view-btn { margin: 0 !important; }
+html body #ez-cookie-dialog-wrapper #secondary-links {
+  padding: 12px 0 0 !important;
+  margin: 0 !important;
+  gap: 6px !important;
+  align-items: center !important;
+}
+
+/* Phones: nearly full width, smaller text, stacked full-width buttons of equal size. */
+@media (max-width: 640px) {
+  html body #ez-cookie-dialog-wrapper #ez-cookie-dialog.ez_banner,
+  html body #ez-cookie-dialog-wrapper #ez-cookie-dialog.ez_modal {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+    border-radius: 18px !important;
+    padding: 16px 14px 12px !important;
+    max-height: calc(100dvh - 16px) !important;
+    overflow-y: auto !important;
+  }
+  html body #ez-cookie-dialog-wrapper #ez-cmp-title { font-size: 17px !important; }
+  html body #ez-cookie-dialog-wrapper #ez-cookie-dialog p { font-size: 12px !important; line-height: 1.45 !important; }
+  html body #ez-cookie-dialog-wrapper #button-row,
+  html body #ez-cookie-dialog-wrapper .ez-btn-group-left {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+  html body #ez-cookie-dialog-wrapper #ez-cookie-dialog .ez-switch-view-btn {
+    width: 100% !important;
+    font-size: 14px !important;
+    padding: 12px 14px !important;
+  }
+  html body #ez-cookie-dialog-wrapper #secondary-links {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+}
