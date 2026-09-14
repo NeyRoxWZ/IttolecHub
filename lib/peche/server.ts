@@ -871,6 +871,7 @@ export async function setAquarium(userId: string, fish: unknown) {
     const variant = String((f as { variant?: unknown })?.variant || '');
     const d = byId.get(speciesId);
     if (!d) return fail(400, 'Tu n’as pas encore attrapé ce poisson.');
+    if (clean.some((c) => c.speciesId === speciesId)) return fail(400, 'Chaque espèce ne peut être qu’une fois dans l’aquarium.');
     if (variant && !(d.variants || []).includes(variant)) return fail(400, 'Tu n’as pas encore cette variante.');
     clean.push({ speciesId, variant: variant === 'or' || variant === 'chroma' ? variant : '' });
   }

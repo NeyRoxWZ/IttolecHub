@@ -1,3 +1,20 @@
 {
-  "entries": []
+  "entries": [
+    {
+      "id": "2026-09-14-01",
+      "date": "2026-09-14",
+      "scope": "site",
+      "type": "correctif",
+      "title": "Pseudo OG bien doré",
+      "details": "Le pseudo des OG s’affiche en or, sans fond derrière, avec une pastille OG lisible."
+    },
+    {
+      "id": "2026-09-14-02",
+      "date": "2026-09-14",
+      "scope": "peche",
+      "type": "correctif",
+      "title": "Une seule fois chaque espèce dans l’aquarium",
+      "details": "Un même poisson ne peut plus être mis plusieurs fois dans ton aquarium."
+    }
+  ]
 }
