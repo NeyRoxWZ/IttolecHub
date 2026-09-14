@@ -409,9 +409,15 @@ export function cast(userId: string, mode: FishingMode = 'solo') {
     if (pending && Date.now() - pending.at < 1000) return fail(429, 'Doucement !');
     const c = rollCatch(row.zone, row.gear, row.tree, row.maree, modsFor(row, Date.now(), mode));
     const id = randomUUID();
+    const gauge = gaugeFor(c.rarity, row.gear, row.effects, Date.now(), c.variant);
+    // The fastest a real catch can be: the 1.5 s grace, then the meter going
+    // from its 40 % start to full while always in the zone. A reel reported
+    // sooner than that did not come from the gauge.
+    const minReelMs = Math.round((REEL_GRACE_S + (1 - REEL_START_PROGRESS) / Math.max(gauge.fill, 0.01)) * 1000);
+    const pendingCast = { ...c, id, at: Date.now(), mode, minReelMs };
     return {
-      patch: { pending_cast: { ...c, id, at: Date.now(), mode } },
-      result: { id, rarity: c.rarity, ...gaugeFor(c.rarity, row.gear, row.effects, Date.now(), c.variant) },
+      patch: { pending_cast: pendingCast },
+      result: { id, rarity: c.rarity, ...gauge },
     };
   });
 }
@@ -421,11 +427,20 @@ interface Landed {
   quality: 'perfect' | 'good'; value: number; materials: Materials; jackpot?: number;
 }
 
+/** Must match the reel gauge (ReelGauge.tsx): grace before the fish pulls, and where the meter starts. */
+const REEL_GRACE_S = 1.5;
+const REEL_START_PROGRESS = 0.4;
+
 export function reel(userId: string, castId: string, quality: Quality) {
   return mutate<{ caught: Landed | null; jackpot?: number }>(userId, (row) => {
     const pending = row.pending_cast;
     if (!pending || pending.id !== castId) return fail(400, 'Plus rien au bout de la ligne.');
     if (Date.now() - pending.at < MIN_REEL_MS) return fail(400, 'Trop rapide pour être vrai.');
+    // A little slack for clocks and the network; anything faster is not a real catch.
+    const minReelMs = Number((pending as { minReelMs?: number }).minReelMs) || 0;
+    if (quality !== 'fail' && Date.now() - pending.at < minReelMs * 0.85) {
+      return { patch: { pending_cast: null }, result: { caught: null } };
+    }
     if (quality === 'fail') return { patch: { pending_cast: null }, result: { caught: null } };
 
     const value = pending.value * QUALITY[quality];

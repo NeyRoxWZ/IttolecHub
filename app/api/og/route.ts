@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     .from('users')
     .update({ og_badge_visible: visible })
     .eq('id', userId)
-    .eq('is_og', true)
+    .or('is_og.eq.true,is_founder.eq.true')
     .select('id')
     .maybeSingle();
 

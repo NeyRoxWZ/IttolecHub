@@ -11,7 +11,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import ProfileStats from './ProfileStats';
 import DeleteAccount from './DeleteAccount';
-import OgName, { OgBadge } from '@/components/OgName';
+import OgName, { FounderBadge, OgBadge } from '@/components/OgName';
 import { useOgProfile } from '@/hooks/useOg';
 import { refreshOg, setOgBadgeVisible } from '@/lib/og';
 import { cn } from '@/lib/utils';
@@ -212,7 +212,7 @@ export default function ProfilPage() {
                     <div className="flex-1">
                       <div className="text-sm font-black text-tx-secondary">Distinction</div>
                       <div className="mt-1 flex items-center gap-2 font-display text-lg text-tx-base">
-                        <OgBadge /> Membre de la première heure
+                        {og.founder ? <><FounderBadge /> Fondateur d’IttolecHub</> : <><OgBadge /> Membre de la première heure</>}
                       </div>
                       <p className="mt-2 text-sm text-tx-secondary font-bold leading-relaxed">
                         {og.visible

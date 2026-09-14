@@ -1,6 +1,6 @@
 'use client';
 
-import { OG_BADGE_LABEL, OG_BADGE_TITLE } from '@/lib/og';
+import { FOUNDER_BADGE_LABEL, FOUNDER_BADGE_TITLE, OG_BADGE_LABEL, OG_BADGE_TITLE } from '@/lib/og';
 import { useOgProfile } from '@/hooks/useOg';
 import { cn } from '@/lib/utils';
 
@@ -13,10 +13,20 @@ export function OgBadge({ className }: { className?: string }) {
   );
 }
 
+/** La pastille Fondateur seule : cristal, reflet qui balaie, halo qui pulse. */
+export function FounderBadge({ className }: { className?: string }) {
+  return (
+    <span className={cn('founder-badge', className)} title={FOUNDER_BADGE_TITLE} aria-label={FOUNDER_BADGE_TITLE}>
+      {FOUNDER_BADGE_LABEL}
+    </span>
+  );
+}
+
 /**
- * Un pseudo à afficher n'importe où sur le site. Pour un OG qui affiche sa
- * distinction : pseudo en or à motif, suivi de la pastille. Pour tous les
- * autres : le pseudo, tel quel, sans rien changer à la mise en page.
+ * Un pseudo à afficher n'importe où sur le site. Pour le fondateur : pseudo en
+ * diamant qui scintille, suivi de la pastille FD. Pour un OG : pseudo en or,
+ * suivi de la pastille OG. Pour tous les autres : le pseudo, tel quel, sans rien
+ * changer à la mise en page. Chacun peut masquer sa distinction depuis son profil.
  */
 export default function OgName({
   name,
@@ -38,6 +48,15 @@ export default function OgName({
 
   if (!name) return null;
   if (!profile || !profile.visible) return <>{name}</>;
+
+  if (profile.founder) {
+    return (
+      <span className={cn('founder-wrap', className)} title={FOUNDER_BADGE_TITLE}>
+        <span className={cn('founder-name', truncate && 'truncate', nameClassName)}>{name}</span>
+        {badge && <FounderBadge />}
+      </span>
+    );
+  }
 
   return (
     <span className={cn('og-wrap', className)} title={OG_BADGE_TITLE}>

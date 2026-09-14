@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Fetch species data (for names and generation)
-    const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonId || name}`);
+    const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${encodeURIComponent(String(pokemonId || name))}`);
     if (!speciesResponse.ok) {
         // Fallback for some variants or errors
         console.error(`Pokemon species not found: ${pokemonId || name}`);

@@ -1,16 +1,16 @@
 import { supabase } from '@/lib/supabase/client';
 
 /**
- * Le badge OG.
+ * Les distinctions de compte : badge OG et badge Fondateur.
  *
- * La distinction est posée sur le compte (colonne `users.is_og`), jamais sur le
- * pseudo : un OG qui change de pseudo garde son badge. Chaque OG choisit de
- * l'afficher ou de le masquer (`users.og_badge_visible`).
+ * Elles sont posées sur le compte (colonnes `users.is_og` et `users.is_founder`),
+ * jamais sur le pseudo : un joueur qui change de pseudo garde ses badges. Chacun
+ * choisit de les afficher ou de les masquer (`users.og_badge_visible`).
  *
  * Le site affiche des pseudos un peu partout — classements, salons, parties
  * multijoueurs — et souvent sans identifiant de compte sous la main. On charge
- * donc une fois la (très courte) liste des OG et on la garde en mémoire,
- * indexée par pseudo normalisé.
+ * donc une fois la (très courte) liste des comptes distingués et on la garde en
+ * mémoire, indexée par pseudo normalisé.
  */
 
 export type OgProfile = {
@@ -18,12 +18,16 @@ export type OgProfile = {
   pseudo: string;
   /** Le joueur a choisi d'afficher sa distinction. */
   visible: boolean;
+  /** Fondateur du site : passe avant le badge OG. */
+  founder: boolean;
 };
 
 export type OgRegistry = Record<string, OgProfile>;
 
 export const OG_BADGE_LABEL = 'OG';
 export const OG_BADGE_TITLE = 'OG — membre de la première heure';
+export const FOUNDER_BADGE_LABEL = 'FD';
+export const FOUNDER_BADGE_TITLE = 'Fondateur d’IttolecHub';
 
 /** Les pseudos changent de casse au fil des renommages : on compare à plat. */
 export const ogKey = (name: string) => name.trim().toLowerCase();
@@ -43,8 +47,8 @@ const listeners = new Set<() => void>();
 async function load(): Promise<void> {
   const { data, error } = await supabase
     .from('users')
-    .select('id, pseudo, og_badge_visible')
-    .eq('is_og', true);
+    .select('id, pseudo, og_badge_visible, is_founder')
+    .or('is_og.eq.true,is_founder.eq.true');
 
   // Base pas encore migrée : pas de badge, mais surtout pas de page cassée.
   if (error) {
@@ -59,6 +63,7 @@ async function load(): Promise<void> {
       id: row.id,
       pseudo: row.pseudo,
       visible: row.og_badge_visible !== false,
+      founder: row.is_founder === true,
     };
   }
 
@@ -118,7 +123,7 @@ export function ogProfileIn(reg: OgRegistry, name?: string | null): OgProfile | 
   return reg[ogKey(name)] ?? null;
 }
 
-/** Met à jour le choix affiché/masqué d'un OG. */
+/** Met à jour le choix affiché/masqué d'un joueur distingué. */
 export async function setOgBadgeVisible(userId: string, visible: boolean): Promise<void> {
   const res = await fetch('/api/og', {
     method: 'POST',

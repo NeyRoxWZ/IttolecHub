@@ -11,6 +11,13 @@ export async function POST(request: Request) {
     if (!pseudo || !words || words.length !== 6) {
       return NextResponse.json({ error: 'Pseudo et 6 mots requis' }, { status: 400 });
     }
+    if (typeof pseudo !== 'string' || !Array.isArray(words) || !words.every((w: unknown) => typeof w === 'string' && w.length > 0 && w.length <= 32)) {
+      return NextResponse.json({ error: 'Pseudo et 6 mots requis' }, { status: 400 });
+    }
+    const cleanPseudo = pseudo.replace(/\s+/g, ' ').trim();
+    if (cleanPseudo.length < 2 || cleanPseudo.length > 24 || cleanPseudo !== pseudo) {
+      return NextResponse.json({ error: 'Le pseudo doit faire entre 2 et 24 caractères, sans espaces en trop.' }, { status: 400 });
+    }
 
     if (!(await underLimit(`register-ip:${clientIp(request)}`))) {
       return NextResponse.json({ error: 'Trop de tentatives, réessaie dans une minute.' }, { status: 429 });

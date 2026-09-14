@@ -39,6 +39,14 @@
       "type": "amelioration",
       "title": "Nouveau logo partout",
       "details": "L'icône de l'onglet et celle de l'appli installée reprennent le nouveau logo d'IttolecHub."
+    },
+    {
+      "id": "2026-09-14-06",
+      "date": "2026-09-14",
+      "scope": "site",
+      "type": "nouveau",
+      "title": "Badge Fondateur",
+      "details": "Le fondateur d'IttolecHub a son pseudo en diamant scintillant et un badge FD en cristal, partout sur le site."
     }
   ]
 }

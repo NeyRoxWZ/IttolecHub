@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const loginDiscord = async (nextPath?: string) => {
-    const safeNext = typeof nextPath === 'string' && nextPath.startsWith('/') ? nextPath : '/';
+    const safeNext = typeof nextPath === 'string' && nextPath.startsWith('/') && !nextPath.startsWith('//') && !nextPath.startsWith('/\\') ? nextPath : '/';
     await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {

@@ -8,6 +8,9 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/** A path on this site only: '//evil.com' and '/\evil.com' would leave it. */
+const isSafePath = (p: string) => p.startsWith('/') && !p.startsWith('//') && !p.startsWith('/\\');
+
 // Reading the URL (?next=) needs a Suspense boundary for the page to prerender.
 export default function ConnexionPageWrapper() {
   return (
@@ -27,18 +30,18 @@ function ConnexionPage() {
 
   const nextPath = useMemo(() => {
     const fromQuery = searchParams.get('next');
-    if (fromQuery && fromQuery.startsWith('/')) return fromQuery;
+    if (fromQuery && isSafePath(fromQuery)) return fromQuery;
 
     try {
       const stored = sessionStorage.getItem('itollec_next_path');
-      if (stored && stored.startsWith('/')) return stored;
+      if (stored && isSafePath(stored)) return stored;
     } catch {}
 
     try {
       const ref = document.referrer ? new URL(document.referrer) : null;
       if (ref && ref.origin === window.location.origin) {
         const p = `${ref.pathname}${ref.search}${ref.hash}`;
-        if (p.startsWith('/')) return p;
+        if (isSafePath(p)) return p;
       }
     } catch {}
 

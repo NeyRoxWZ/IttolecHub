@@ -34,6 +34,7 @@
   "preview_urls": false,
   // The site's own domain, served straight by this Worker.
   "routes": [
-    { "pattern": "itollechub.com", "custom_domain": true }
+    { "pattern": "itollechub.com", "custom_domain": true },
+    { "pattern": "www.itollechub.com", "custom_domain": true }
   ]
 }

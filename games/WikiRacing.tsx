@@ -269,6 +269,12 @@ export default function WikiRacing({ params }: { params: { code: string } }) {
             
             // Basic cleanup of Wikipedia HTML
             html = html.replace(/<span class="mw-editsection">.*?<\/span>/g, '');
+            // Defence in depth before injecting it: no active content, whatever the API returns.
+            html = html
+                .replace(/<(script|iframe|object|embed|style)[\s\S]*?<\/\1\s*>/gi, '')
+                .replace(/<(script|iframe|object|embed|link|meta)\b[^>]*\/?>/gi, '')
+                .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+                .replace(/(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1="#"');
             
             setHtmlContent(html);
             setCurrentTitle(data.parse.title);
