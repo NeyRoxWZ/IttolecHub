@@ -11,9 +11,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import ProfileStats from './ProfileStats';
 import DeleteAccount from './DeleteAccount';
-import OgName, { FounderBadge, OgBadge } from '@/components/OgName';
+import OgName, { BadgePlaque } from '@/components/OgName';
 import { useOgProfile } from '@/hooks/useOg';
-import { refreshOg, setOgBadgeVisible } from '@/lib/og';
+import { BADGE_INFO, ownedBadges, refreshOg, setBadgeVisible, type BadgeId } from '@/lib/og';
 import { cn } from '@/lib/utils';
 
 export default function ProfilPage() {
@@ -25,7 +25,7 @@ export default function ProfilPage() {
   const [newWords, setNewWords] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const og = useOgProfile(user?.pseudo);
-  const [ogSaving, setOgSaving] = useState(false);
+  const [badgeSaving, setBadgeSaving] = useState<BadgeId | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -68,17 +68,17 @@ export default function ProfilPage() {
     }
   };
 
-  const toggleOgBadge = async () => {
+  const toggleBadge = async (badge: BadgeId) => {
     if (!og) return;
-    const next = !og.visible;
-    setOgSaving(true);
+    const next = og.hidden.includes(badge);
+    setBadgeSaving(badge);
     try {
-      await setOgBadgeVisible(user.id, next);
-      toast.success(next ? 'Badge OG affiché' : 'Badge OG masqué');
+      await setBadgeVisible(user.id, badge, next);
+      toast.success(next ? 'Badge affiché' : 'Badge masqué');
     } catch {
       toast.error('Erreur lors de la mise à jour du badge');
     } finally {
-      setOgSaving(false);
+      setBadgeSaving(null);
     }
   };
 
@@ -206,35 +206,37 @@ export default function ProfilPage() {
                 )}
               </div>
 
-              {og && (
+              {og && ownedBadges(og).length > 0 && (
                 <div className="mt-4 rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div className="flex-1">
-                      <div className="text-sm font-black text-tx-secondary">Distinction</div>
-                      <div className="mt-1 flex items-center gap-2 font-display text-lg text-tx-base">
-                        {og.founder ? <><FounderBadge /> Fondateur d’IttolecHub</> : <><OgBadge /> Membre de la première heure</>}
-                      </div>
-                      <p className="mt-2 text-sm text-tx-secondary font-bold leading-relaxed">
-                        {og.visible
-                          ? 'Ton pseudo s’affiche en or avec le badge OG partout sur le site.'
-                          : 'Ton badge OG est masqué : tu apparais comme tout le monde.'}
-                        {' '}Il reste attaché à ton compte, même si tu changes de pseudo.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={toggleOgBadge}
-                      disabled={ogSaving}
-                      className={cn(
-                        'h-12 px-4 shrink-0 rounded-xl border-[3px] border-brand-border font-display text-lg flex items-center justify-center gap-2 active:translate-y-[3px] transition-transform disabled:opacity-60',
-                        og.visible
-                          ? 'bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A]'
-                          : 'bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A]'
-                      )}
-                    >
-                      {og.visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      {og.visible ? 'Masquer' : 'Afficher'}
-                    </button>
+                  <div className="text-sm font-black text-tx-secondary">Mes badges</div>
+                  <p className="mt-1 text-sm text-tx-secondary font-bold leading-relaxed">
+                    Choisis ceux qui s’affichent à côté de ton pseudo. Ils restent attachés à ton compte, même si tu changes de pseudo.
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {ownedBadges(og).map((b) => {
+                      const shown = !og.hidden.includes(b);
+                      return (
+                        <div key={b} className="flex items-center gap-3 rounded-xl border-[3px] border-brand-border bg-brand-card px-3 py-2">
+                          <div className="flex-1 min-w-0 flex items-center gap-2 font-display text-lg text-tx-base">
+                            <BadgePlaque badge={b} /> <span className="truncate">{BADGE_INFO[b].hint}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleBadge(b)}
+                            disabled={badgeSaving !== null}
+                            className={cn(
+                              'h-11 px-3 shrink-0 rounded-xl border-[3px] border-brand-border font-display text-base flex items-center justify-center gap-2 active:translate-y-[3px] transition-transform disabled:opacity-60',
+                              shown
+                                ? 'bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A]'
+                                : 'bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A]'
+                            )}
+                          >
+                            {shown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            {badgeSaving === b ? '···' : shown ? 'Masquer' : 'Afficher'}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

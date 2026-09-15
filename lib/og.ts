@@ -1,11 +1,12 @@
 import { supabase } from '@/lib/supabase/client';
 
 /**
- * Les distinctions de compte : badge OG et badge Fondateur.
+ * Les distinctions de compte : badges Fondateur, OG et Donateur.
  *
- * Elles sont posées sur le compte (colonnes `users.is_og` et `users.is_founder`),
- * jamais sur le pseudo : un joueur qui change de pseudo garde ses badges. Chacun
- * choisit de les afficher ou de les masquer (`users.og_badge_visible`).
+ * Elles sont posées sur le compte (colonnes `users.is_founder`, `is_og`,
+ * `is_donor`), jamais sur le pseudo : un joueur qui change de pseudo garde ses
+ * badges. Chacun choisit, badge par badge, ceux qu'il affiche
+ * (`users.hidden_badges`).
  *
  * Le site affiche des pseudos un peu partout — classements, salons, parties
  * multijoueurs — et souvent sans identifiant de compte sous la main. On charge
@@ -13,13 +14,17 @@ import { supabase } from '@/lib/supabase/client';
  * mémoire, indexée par pseudo normalisé.
  */
 
+export type BadgeId = 'founder' | 'og' | 'donor';
+export const BADGE_IDS: BadgeId[] = ['founder', 'og', 'donor'];
+
 export type OgProfile = {
   id: string;
   pseudo: string;
-  /** Le joueur a choisi d'afficher sa distinction. */
-  visible: boolean;
-  /** Fondateur du site : passe avant le badge OG. */
   founder: boolean;
+  og: boolean;
+  donor: boolean;
+  /** Les badges que le joueur a choisi de masquer. */
+  hidden: BadgeId[];
 };
 
 export type OgRegistry = Record<string, OgProfile>;
@@ -28,6 +33,32 @@ export const OG_BADGE_LABEL = 'OG';
 export const OG_BADGE_TITLE = 'OG — membre de la première heure';
 export const FOUNDER_BADGE_LABEL = 'FD';
 export const FOUNDER_BADGE_TITLE = 'Fondateur d’IttolecHub';
+export const DONOR_BADGE_LABEL = 'DON';
+export const DONOR_BADGE_TITLE = 'Donateur — soutient IttolecHub';
+
+export const BADGE_INFO: Record<BadgeId, { title: string; hint: string }> = {
+  founder: { title: FOUNDER_BADGE_TITLE, hint: 'Fondateur d’IttolecHub' },
+  og: { title: OG_BADGE_TITLE, hint: 'Membre de la première heure' },
+  donor: { title: DONOR_BADGE_TITLE, hint: 'A soutenu le site par un don' },
+};
+
+/** Les badges que ce compte possède, qu'ils soient affichés ou non. */
+export function ownedBadges(p: OgProfile): BadgeId[] {
+  return BADGE_IDS.filter((b) => p[b]);
+}
+
+/**
+ * Les badges à afficher à côté du pseudo, dans l'ordre. Fondateur et OG ne se
+ * cumulent pas (le Fondateur passe avant) ; Donateur s'ajoute à l'un ou l'autre.
+ */
+export function shownBadges(p: OgProfile): BadgeId[] {
+  const on = (b: BadgeId) => p[b] && !p.hidden.includes(b);
+  const out: BadgeId[] = [];
+  if (on('founder')) out.push('founder');
+  else if (on('og')) out.push('og');
+  if (on('donor')) out.push('donor');
+  return out;
+}
 
 /** Les pseudos changent de casse au fil des renommages : on compare à plat. */
 export const ogKey = (name: string) => name.trim().toLowerCase();
@@ -47,8 +78,8 @@ const listeners = new Set<() => void>();
 async function load(): Promise<void> {
   const { data, error } = await supabase
     .from('users')
-    .select('id, pseudo, og_badge_visible, is_founder')
-    .or('is_og.eq.true,is_founder.eq.true');
+    .select('id, pseudo, is_og, is_founder, is_donor, hidden_badges')
+    .or('is_og.eq.true,is_founder.eq.true,is_donor.eq.true');
 
   // Base pas encore migrée : pas de badge, mais surtout pas de page cassée.
   if (error) {
@@ -62,8 +93,10 @@ async function load(): Promise<void> {
     next[ogKey(row.pseudo)] = {
       id: row.id,
       pseudo: row.pseudo,
-      visible: row.og_badge_visible !== false,
       founder: row.is_founder === true,
+      og: row.is_og === true,
+      donor: row.is_donor === true,
+      hidden: ((row.hidden_badges as string[] | null) || []).filter((b): b is BadgeId => (BADGE_IDS as string[]).includes(b)),
     };
   }
 
@@ -123,12 +156,12 @@ export function ogProfileIn(reg: OgRegistry, name?: string | null): OgProfile | 
   return reg[ogKey(name)] ?? null;
 }
 
-/** Met à jour le choix affiché/masqué d'un joueur distingué. */
-export async function setOgBadgeVisible(userId: string, visible: boolean): Promise<void> {
+/** Affiche ou masque un badge précis sur son propre compte. */
+export async function setBadgeVisible(userId: string, badge: BadgeId, visible: boolean): Promise<void> {
   const res = await fetch('/api/og', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: userId, visible }),
+    body: JSON.stringify({ user_id: userId, badge, visible }),
   });
   if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Erreur');
   await refreshOg();

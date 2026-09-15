@@ -1,6 +1,9 @@
 'use client';
 
-import { FOUNDER_BADGE_LABEL, FOUNDER_BADGE_TITLE, OG_BADGE_LABEL, OG_BADGE_TITLE } from '@/lib/og';
+import {
+  BADGE_INFO, DONOR_BADGE_LABEL, DONOR_BADGE_TITLE, FOUNDER_BADGE_LABEL, FOUNDER_BADGE_TITLE, OG_BADGE_LABEL, OG_BADGE_TITLE,
+  shownBadges, type BadgeId,
+} from '@/lib/og';
 import { useOgProfile } from '@/hooks/useOg';
 import { cn } from '@/lib/utils';
 
@@ -22,11 +25,28 @@ export function FounderBadge({ className }: { className?: string }) {
   );
 }
 
+/** La pastille Donateur seule : cœur rose. */
+export function DonorBadge({ className }: { className?: string }) {
+  return (
+    <span className={cn('donor-badge', className)} title={DONOR_BADGE_TITLE} aria-label={DONOR_BADGE_TITLE}>
+      {DONOR_BADGE_LABEL}
+    </span>
+  );
+}
+
+export function BadgePlaque({ badge, className }: { badge: BadgeId; className?: string }) {
+  if (badge === 'founder') return <FounderBadge className={className} />;
+  if (badge === 'og') return <OgBadge className={className} />;
+  return <DonorBadge className={className} />;
+}
+
+const NAME_CLASS: Record<BadgeId, string> = { founder: 'founder-name', og: 'og-name', donor: 'donor-name' };
+
 /**
- * Un pseudo à afficher n'importe où sur le site. Pour le fondateur : pseudo en
- * diamant qui scintille, suivi de la pastille FD. Pour un OG : pseudo en or,
- * suivi de la pastille OG. Pour tous les autres : le pseudo, tel quel, sans rien
- * changer à la mise en page. Chacun peut masquer sa distinction depuis son profil.
+ * Un pseudo à afficher n'importe où sur le site, avec les badges que le joueur
+ * a choisi d'afficher. Le premier badge donne sa couleur au pseudo (diamant
+ * pour le Fondateur, or pour un OG, rose pour un Donateur) ; chaque badge
+ * ajoute sa pastille. Sans badge affiché : le pseudo, tel quel.
  */
 export default function OgName({
   name,
@@ -36,7 +56,7 @@ export default function OgName({
   truncate = true,
 }: {
   name?: string | null;
-  /** Appliquée au conteneur (pseudo + pastille). */
+  /** Appliquée au conteneur (pseudo + pastilles). */
   className?: string;
   /** Appliquée au pseudo seul. */
   nameClassName?: string;
@@ -47,21 +67,14 @@ export default function OgName({
   const profile = useOgProfile(name);
 
   if (!name) return null;
-  if (!profile || !profile.visible) return <>{name}</>;
+  const shown = profile ? shownBadges(profile) : [];
+  if (!shown.length) return <>{name}</>;
 
-  if (profile.founder) {
-    return (
-      <span className={cn('founder-wrap', className)} title={FOUNDER_BADGE_TITLE}>
-        <span className={cn('founder-name', truncate && 'truncate', nameClassName)}>{name}</span>
-        {badge && <FounderBadge />}
-      </span>
-    );
-  }
-
+  const top = shown[0];
   return (
-    <span className={cn('og-wrap', className)} title={OG_BADGE_TITLE}>
-      <span className={cn('og-name', truncate && 'truncate', nameClassName)}>{name}</span>
-      {badge && <OgBadge />}
+    <span className={cn(top === 'founder' ? 'founder-wrap' : 'og-wrap', className)} title={shown.map((b) => BADGE_INFO[b].title).join(' · ')}>
+      <span className={cn(NAME_CLASS[top], truncate && 'truncate', nameClassName)}>{name}</span>
+      {badge && shown.map((b) => <BadgePlaque key={b} badge={b} />)}
     </span>
   );
 }

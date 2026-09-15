@@ -401,7 +401,7 @@ function Home() {
                   </div>
                 </aside>
               </div>
-              <DonateStrip text="Si tu veux que le Casino et la Pêche continuent de grandir, un petit don aide à payer les serveurs." />
+              <DonateStrip pseudo={user?.pseudo} text="Si tu veux que le Casino et la Pêche continuent de grandir, un petit don aide à payer les serveurs." />
             </>
           ) : (
             <>
@@ -467,7 +467,7 @@ function Home() {
                   <HowToPlayDemo className="flex-1" />
                 </div>
               </div>
-              <DonateStrip text="Pour garder les salles ouvertes et ajouter de nouveaux jeux, un petit don aide à payer les serveurs." />
+              <DonateStrip pseudo={user?.pseudo} text="Pour garder les salles ouvertes et ajouter de nouveaux jeux, un petit don aide à payer les serveurs." />
             </>
           )}
         </div>

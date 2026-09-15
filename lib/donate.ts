@@ -1,5 +1,2 @@
-/**
- * The page where players can support the site. Empty until the owner has
- * created it: the support strips stay hidden rather than point nowhere.
- */
-export const DONATE_URL = '';
+/** Where players support the site. PayPal only for now. */
+export const DONATE_URL = 'https://paypal.me/NeyRoxWZ';
