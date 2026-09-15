@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -62,14 +62,17 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode, onAll
   // Majority, not unanimity: one player who left can't hold the table hostage.
   const requiredVotes = Math.floor(players.length / 2) + 1;
 
+  const leaving = useRef(false);
   useEffect(() => {
-    if (votes.length >= requiredVotes && requiredVotes > 0 && channel) {
-      (async () => {
-        if (onAllVoted) await onAllVoted();
-        channel.send({ type: 'broadcast', event: 'return_to_lobby', payload: {} });
-        router.push(`/room/${roomCode}?return=true`);
-      })();
-    }
+    if (leaving.current || !(votes.length >= requiredVotes && requiredVotes > 0 && channel)) return;
+    leaving.current = true;
+    (async () => {
+      // Tell everyone first: once this page navigates away the channel is gone. The room
+      // status change is the backup for anyone who misses the broadcast.
+      await channel.send({ type: 'broadcast', event: 'return_to_lobby', payload: {} }).catch(() => {});
+      try { if (onAllVoted) await onAllVoted(); } catch { /* the room page resets it too */ }
+      router.push(`/room/${roomCode}?return=true`);
+    })();
   }, [votes.length, requiredVotes, roomId, roomCode, router, channel, onAllVoted]);
 
   if (votes.length >= requiredVotes) return null;

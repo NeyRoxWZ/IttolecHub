@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils';
 import { BRAWL } from '@/lib/ui/brawl';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { addScores, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './party/usePartyGame';
-import { AnswerInput, AnswerList, NextStep, PartyShell, PlayerChips, Podium, PromptCard, RevealBanner, ScoreList, SetupScreen, Waiting } from './party/ui';
+import { useFitBox } from './party/useFitBox';
+import { AnswerInput, PartyShell, PlayerChips, Podium, PromptCard, ResultsScreen, RevealBanner, Screen, SetupScreen, Waiting, type RoundRow } from './party/ui';
 
 const SWATCH = { fill: '#8B3DFF', shade: '#6526C9' };
 const CLUE_TIME = 60;
@@ -39,7 +40,7 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
   const [sentGuess, markGuess] = useSent<number>(party, 'guess');
 
   const guesses: Record<string, number> = {};
-  for (const [pid, g] of Object.entries(party.latestBy('guess', 'guess'))) if (Number.isFinite(g?.angle)) guesses[pid] = g.angle;
+  for (const [pid, g] of Object.entries(party.latestBy('guess', 'guess'))) if (pid !== guide && Number.isFinite(g?.angle)) guesses[pid] = g.angle;
   const clueMove = party.movesIn('clue', 'clue').find((m) => m.player_id === guide);
 
   const roundOf = (deck: Pair[], n: number) => {
@@ -54,12 +55,9 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
     await party.startGame(deck, roundOf(deck, 1), deck.length);
   };
 
-  // The guide's clue opens the guessing; no clue in time, the round is skipped.
-  useHostStep(party, `${gid}:${roundNo}:clue-end`, phase === 'clue' && (!!clueMove || party.expired), async () => {
-    if (!clueMove) {
-      await party.patchRound({ phase: 'results', skipped: true, gains: {}, ends_at: party.deadline(6) });
-      return;
-    }
+  const guideGone = !!guide && !party.seated.some((p) => p.id === guide);
+  useHostStep(party, `${gid}:${roundNo}:clue-end`, phase === 'clue' && (!!clueMove || party.expired || guideGone), async () => {
+    if (!clueMove) { await party.patchRound({ phase: 'results', skipped: true, gains: {}, ends_at: party.deadline(6) }); return; }
     await party.patchRound({ phase: 'guess', clue: String(clueMove.payload?.text || '').slice(0, 60), ends_at: party.deadline(guessTime) });
   });
 
@@ -69,7 +67,6 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
     const gains: Scores = {};
     let bullseyes = 0;
     for (const [pid, a] of Object.entries(guesses)) {
-      if (pid === guide) continue;
       const pts = pointsFor(a, target, z);
       if (pts) gains[pid] = pts;
       if (pts === 300) bullseyes++;
@@ -89,91 +86,69 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
   const colorOf = (pid: string) => COLORS[Math.max(0, seekerIds.indexOf(pid)) % COLORS.length];
   const shownGuesses: Record<string, number> = round.guesses || {};
 
+  const gauge = (interactive: boolean, showTarget: boolean, needles: boolean) => pair && (
+    <Gauge
+      left={pair.left}
+      right={pair.right}
+      value={interactive ? angle : phase === 'guess' && !isGuide && myGuess !== undefined ? myGuess : undefined}
+      onChange={interactive ? setAngle : undefined}
+      target={showTarget ? target : undefined}
+      zones={z}
+      needles={needles ? Object.entries(shownGuesses).map(([pid, a]) => ({ pid, angle: a, color: colorOf(pid) })) : []}
+    />
+  );
+
   return (
     <PartyShell party={party} title="JaugeGuessr" maxTime={phase === 'clue' ? CLUE_TIME : phase === 'guess' ? guessTime : RESULTS_TIME}>
       {phase === 'setup' && (
         <SetupScreen
-          party={party}
-          title="JaugeGuessr"
-          tagline="Place l’aiguille entre deux extrêmes."
-          icon={Target}
-          swatch={SWATCH}
-          minPlayers={2}
-          onStart={start}
-          rules={[
-            'Chaque manche, un guide voit une cible cachée sur une jauge entre deux extrêmes.',
-            'Il donne un indice qui correspond à cet endroit de la jauge.',
-            'Les autres placent l’aiguille là où ils pensent que se trouve la cible.',
-            'En plein dans le mille : 300 points. À côté : 100. Le guide gagne 100 par joueur dans le mille.',
-          ]}
+          party={party} title="JaugeGuessr" tagline="Place l’aiguille entre deux extrêmes." icon={Target} swatch={SWATCH} minPlayers={2} onStart={start}
+          rules={['Chaque manche, un guide voit une cible cachée sur une jauge entre deux extrêmes.', 'Il donne un indice qui correspond à cet endroit de la jauge.', 'Les autres placent l’aiguille là où ils pensent que se trouve la cible.', 'Dans le mille : 300 points. À côté : 100. Le guide gagne 100 par joueur dans le mille.']}
         />
       )}
 
-      {phase !== 'setup' && phase !== 'podium' && pair && (
-        <>
+      {(phase === 'clue' || phase === 'guess') && pair && (
+        <Screen>
           <PromptCard eyebrow={phase === 'clue' ? (isGuide ? 'Tu es le guide' : `${party.nameOf(guide)} est le guide`) : 'L’indice'}>
             {phase === 'clue' ? (isGuide ? 'Trouve un indice pour la cible' : 'Le guide cherche un indice…') : `« ${round.clue || '—'} »`}
           </PromptCard>
-
-          <Gauge
-            left={pair.left}
-            right={pair.right}
-            value={phase === 'guess' && !isGuide ? (myGuess ?? angle) : undefined}
-            onChange={phase === 'guess' && !isGuide ? (a) => setAngle(a) : undefined}
-            target={phase === 'results' || (isGuide && (phase !== 'clue' || peek)) ? target : undefined}
-            zones={z}
-            needles={phase === 'results' ? Object.entries(shownGuesses).map(([pid, a]) => ({ pid, angle: a, color: colorOf(pid) })) : []}
-          />
-
+          <div className="flex min-h-0 flex-1 items-center justify-center">
+            {gauge(phase === 'guess' && !isGuide, isGuide && (phase === 'guess' || peek), false)}
+          </div>
           {phase === 'clue' && isGuide && (
-            <div className="w-full space-y-3">
+            <>
               <button
                 onPointerDown={() => setPeek(true)} onPointerUp={() => setPeek(false)} onPointerLeave={() => setPeek(false)} onPointerCancel={() => setPeek(false)}
                 onContextMenu={(e) => e.preventDefault()}
-                className={cn(BRAWL.dark, 'h-12 w-full select-none touch-none rounded-2xl text-lg')}
-              >
-                Maintiens pour voir la cible
-              </button>
+                className={cn(BRAWL.dark, 'h-11 w-full shrink-0 select-none touch-none rounded-2xl text-base')}
+              >Maintiens pour voir la cible</button>
               <AnswerInput value={clue} onChange={setClue} maxLength={60} placeholder="Ton indice…" submitLabel="Envoyer" onSubmit={() => { party.act('clue', { text: clue.trim() }); vibrate(HAPTIC.MEDIUM); }} />
-            </div>
+            </>
           )}
           {phase === 'clue' && !isGuide && <Waiting text={`${party.nameOf(guide)} réfléchit à un indice…`} />}
-
           {phase === 'guess' && !isGuide && (
-            <>
-              <button
-                onClick={() => { markGuess(angle); party.act('guess', { angle }); vibrate(HAPTIC.MEDIUM); }}
-                className={cn(BRAWL.green, 'h-14 w-full max-w-sm rounded-2xl text-xl')}
-              >
-                {myGuess !== undefined ? 'Changer ma position' : 'Valider ma position'}
-              </button>
-              <p className="text-center text-sm font-bold text-tx-secondary">Fais glisser l’aiguille sur la jauge.</p>
-            </>
+            <button onClick={() => { markGuess(angle); party.act('guess', { angle }); vibrate(HAPTIC.MEDIUM); }} className={cn(BRAWL.green, 'h-12 w-full shrink-0 rounded-2xl text-lg')}>
+              {myGuess !== undefined ? 'Changer ma position' : 'Valider ma position'}
+            </button>
           )}
           {phase === 'guess' && isGuide && <Waiting text="Les autres placent leur aiguille…" />}
-          {phase === 'guess' && <PlayerChips party={party} only={seekerIds} done={Object.keys(guesses)} label="Ont validé" />}
+          {phase === 'guess' && <PlayerChips party={party} only={seekerIds} done={Object.keys(guesses)} label="Validé" />}
+        </Screen>
+      )}
 
-          {phase === 'results' && (
-            <>
-              {round.skipped ? (
-                <RevealBanner tone="bad" eyebrow="Manche passée">Pas d’indice à temps</RevealBanner>
-              ) : (
-                <AnswerList
-                  party={party}
-                  title="Positions"
-                  rows={Object.entries(shownGuesses).map(([pid, a]) => ({
-                    pid,
-                    ok: pointsFor(a, target, z) > 0,
-                    answer: <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full border-2 border-brand-border" style={{ background: colorOf(pid) }} /> écart de {Math.round(Math.abs(a - target))}°</span>,
-                    points: round.gains?.[pid],
-                  }))}
-                />
-              )}
-              <ScoreList party={party} gains={round.gains} />
-              <NextStep party={party} onNext={next} label={roundNo >= totalRounds ? 'Voir le podium' : 'Manche suivante'} />
-            </>
-          )}
-        </>
+      {phase === 'results' && pair && (
+        <ResultsScreen
+          party={party}
+          reveal={round.skipped ? <RevealBanner tone="bad" eyebrow="Manche passée">Pas d’indice à temps</RevealBanner> : <RevealBanner tone="neutral" eyebrow="L’indice">« {round.clue} »</RevealBanner>}
+          media={round.skipped ? undefined : gauge(false, true, true)}
+          rows={Object.fromEntries(party.seated.map((p) => {
+            if (p.id === guide) return [p.id, { answer: 'le guide' } as RoundRow];
+            const a = shownGuesses[p.id];
+            return [p.id, a === undefined ? { ok: false, answer: 'pas de position' } : { ok: pointsFor(a, target, z) > 0, answer: <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full border border-brand-border" style={{ background: colorOf(p.id) }} /> écart de {Math.round(Math.abs(a - target))}°</span> } as RoundRow];
+          }))}
+          onNext={next}
+          nextLabel={roundNo >= totalRounds ? 'Voir le podium' : 'Manche suivante'}
+        />
       )}
 
       {phase === 'podium' && <Podium party={party} onReplay={start} flavor="Les télépathes de la soirée." />}
@@ -181,31 +156,32 @@ export default function JaugeGuessr({ params }: { params: { code: string } }) {
   );
 }
 
-/** A half-circle gauge from `left` (0°) to `right` (180°), with a draggable needle. */
+/** A half-circle gauge from `left` (0°) to `right` (180°), as large as its box allows. */
 function Gauge({ left, right, value, onChange, target, zones: z, needles }: {
   left: string; right: string; value?: number; onChange?: (a: number) => void; target?: number; zones: { bull: number; near: number }; needles: { pid: string; angle: number; color: string }[];
 }) {
   const svg = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
+  const fit = useFitBox(200 / 140);
   const polar = (a: number, r = 90) => { const rad = Math.PI - (a * Math.PI) / 180; return { x: 100 + r * Math.cos(rad), y: 100 - r * Math.sin(rad) }; };
   const arc = (a: number, b: number) => { const s = polar(a); const e = polar(b); return `M ${s.x} ${s.y} A 90 90 0 0 1 ${e.x} ${e.y}`; };
+  const clamp = (a: number) => Math.min(180, Math.max(0, a));
   const setFrom = (e: React.PointerEvent) => {
     if (!svg.current || !onChange) return;
     const r = svg.current.getBoundingClientRect();
     const x = ((e.clientX - r.left) / r.width) * 200 - 100;
-    const y = 100 - ((e.clientY - r.top) / r.height) * 110;
-    let a = (Math.atan2(Math.max(0, y), x) * 180) / Math.PI;
-    a = 180 - Math.min(180, Math.max(0, a));
-    onChange(Math.round(a));
+    const y = 100 - ((e.clientY - r.top) / r.height) * 140;
+    const a = (Math.atan2(Math.max(0, y), x) * 180) / Math.PI;
+    onChange(Math.round(180 - clamp(a)));
   };
-  const clamp = (a: number) => Math.min(180, Math.max(0, a));
 
   return (
-    <div className="w-full max-w-xl">
+    <div ref={fit.ref} className="flex h-full min-h-0 w-full items-center justify-center">
       <svg
         ref={svg}
-        viewBox="0 0 200 110"
-        className={cn('w-full overflow-visible', onChange && 'cursor-pointer touch-none')}
+        viewBox="0 0 200 140"
+        style={{ width: fit.size.w || 1, height: fit.size.h || 1 }}
+        className={cn('overflow-visible', onChange && 'cursor-pointer touch-none', !fit.size.w && 'invisible')}
         onPointerDown={(e) => { if (!onChange) return; dragging.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch {} setFrom(e); }}
         onPointerMove={(e) => { if (dragging.current) setFrom(e); }}
         onPointerUp={() => { dragging.current = false; }}
@@ -233,11 +209,13 @@ function Gauge({ left, right, value, onChange, target, zones: z, needles }: {
           </g>
         )}
         <circle cx="100" cy="100" r="8" fill="#FFFFFF" stroke="#05061A" strokeWidth="3" />
+        <foreignObject x="0" y="112" width="96" height="28">
+          <div className="font-display text-[8px] leading-tight text-white">{left}</div>
+        </foreignObject>
+        <foreignObject x="104" y="112" width="96" height="28">
+          <div className="text-right font-display text-[8px] leading-tight text-white">{right}</div>
+        </foreignObject>
       </svg>
-      <div className="mt-2 flex justify-between gap-4">
-        <span className="max-w-[48%] font-display text-base leading-tight md:text-lg">{left}</span>
-        <span className="max-w-[48%] text-right font-display text-base leading-tight md:text-lg">{right}</span>
-      </div>
     </div>
   );
 }

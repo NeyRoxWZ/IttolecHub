@@ -5,10 +5,12 @@ import { Brush } from 'lucide-react';
 import { toast } from 'sonner';
 import OgName from '@/components/OgName';
 import { cn } from '@/lib/utils';
+import { BRAWL } from '@/lib/ui/brawl';
 import { vibrate, HAPTIC } from '@/lib/haptic';
-import { isCloseEnough, shuffle, pickOne } from '@/lib/party/text';
+import { isCloseEnough, pickOne, shuffle } from '@/lib/party/text';
 import { addScores, listSetting, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './party/usePartyGame';
-import { AnswerInput, NextStep, PartyShell, Podium, PromptCard, RecapPanel, RevealBanner, ScoreList, SecretCard, SetupScreen, TurnStrip, VoteScreen, Waiting } from './party/ui';
+import { useFitBox } from './party/useFitBox';
+import { AnswerInput, Column, Columns, PartyShell, Podium, PromptCard, ResultsScreen, RevealBanner, Screen, SecretCard, SetupScreen, TurnStrip, VoteScreen, Waiting, type RoundRow } from './party/ui';
 
 const SWATCH = { fill: '#FF8A1F', shade: '#CC6508' };
 const COLORS = ['#FF4F8B', '#3B6BFF', '#1FB866', '#FF8A1F', '#8B3DFF', '#00A6C0', '#E63946', '#8D6E63', '#1F2937', '#E0A800'];
@@ -35,40 +37,29 @@ export default function UnTraitDeTrop({ params }: { params: { code: string } }) 
   const imposter: string | undefined = round.imposter;
   const colorOf = useCallback((pid: string) => COLORS[Math.max(0, order.indexOf(pid)) % COLORS.length], [order]);
 
-  /* ---------------- strokes ---------------- */
   const [pending, setPending] = useState<Stroke | null>(null);
+  const drawMoves = party.movesIn('draw', 'stroke');
   const strokes = useMemo(() => {
     const byTurn = new Map<number, Stroke>();
-    for (const m of party.movesIn('draw', 'stroke')) {
+    for (const m of drawMoves) {
       const t = Number(m.payload?.t);
       if (!Number.isInteger(t) || byTurn.has(t) || order[t % Math.max(1, order.length)] !== m.player_id) continue;
-      const pts = Array.isArray(m.payload?.pts) ? (m.payload.pts as Pt[]) : [];
-      byTurn.set(t, { t, pid: m.player_id, pts, color: colorOf(m.player_id) });
+      byTurn.set(t, { t, pid: m.player_id, pts: Array.isArray(m.payload?.pts) ? m.payload.pts : [], color: colorOf(m.player_id) });
     }
-    if (pending && pending.pts.length && !byTurn.has(pending.t) && round.gid === gid) byTurn.set(pending.t, pending);
+    if (pending && pending.pts.length && !byTurn.has(pending.t)) byTurn.set(pending.t, pending);
     return Array.from(byTurn.values()).sort((a, b) => a.t - b.t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [party.moves, gid, roundNo, order, pending, colorOf]);
+  }, [drawMoves, order, pending, colorOf]);
   useEffect(() => setPending(null), [gid, roundNo]);
 
-  const live = party.lastEvent?.type === 'trait_live' && party.lastEvent.payload?.g === gid && party.lastEvent.payload?.r === roundNo && party.lastEvent.payload?.t === turn && phase === 'draw'
-    ? { pts: party.lastEvent.payload.pts as Pt[], color: colorOf(party.lastEvent.payload.pid) }
-    : null;
+  const live = phase === 'draw' && party.lastEvent?.type === 'trait_live' && party.lastEvent.payload?.g === gid && party.lastEvent.payload?.r === roundNo && party.lastEvent.payload?.t === turn
+    ? { pts: party.lastEvent.payload.pts as Pt[], color: colorOf(party.lastEvent.payload.pid) } : null;
 
   const myTurn = phase === 'draw' && !!playerId && drawer === playerId;
   const drewThisTurn = strokes.some((s) => s.t === turn);
 
   const firstOf = (deck: Card[], n: number) => {
     const ids = shuffle(party.active.map((p) => p.id));
-    return {
-      phase: 'draw',
-      card: deck[n - 1] ?? deck[0],
-      imposter: pickOne(ids),
-      order: ids,
-      laps: numSetting(settings, 'laps', 2, 1, 5),
-      turn: 0,
-      ends_at: party.deadline(turnTime + 3),
-    };
+    return { phase: 'draw', card: deck[n - 1] ?? deck[0], imposter: pickOne(ids), order: ids, laps: numSetting(settings, 'laps', 2, 1, 5), turn: 0, ends_at: party.deadline(turnTime + 3) };
   };
 
   const start = async () => {
@@ -80,7 +71,6 @@ export default function UnTraitDeTrop({ params }: { params: { code: string } }) 
     await party.startGame(deck, firstOf(deck, 1), deck.length);
   };
 
-  // A stroke drawn, time up, or the drawer left: next turn, then the vote.
   const drawerGone = !!drawer && !party.seated.some((p) => p.id === drawer);
   useHostStep(party, `${gid}:${roundNo}:turn${turn}`, phase === 'draw' && (party.expired || drewThisTurn || drawerGone), async () => {
     const nextTurn = turn + 1;
@@ -88,12 +78,14 @@ export default function UnTraitDeTrop({ params }: { params: { code: string } }) 
     else await party.patchRound({ turn: nextTurn, ends_at: party.deadline(turnTime) });
   });
 
-  const votes = party.latestBy('vote', 'vote');
+  const votesRaw = party.latestBy('vote', 'vote');
+  const votes: Record<string, string> = Object.fromEntries(Object.entries(votesRaw).filter(([voter, v]) => v?.pid && order.includes(voter)).map(([voter, v]) => [voter, v.pid]));
   const [myPick, markPick] = useSent<string>(party, 'vote');
-  const allVoted = active.length > 0 && active.every((p) => votes[p.id]);
+  const voters = active.filter((p) => order.includes(p.id));
+  const allVoted = voters.length > 0 && voters.every((p) => votes[p.id]);
   useHostStep(party, `${gid}:${roundNo}:vote-end`, phase === 'vote' && (party.expired || allVoted), async () => {
     const counts: Record<string, number> = {};
-    for (const [voter, v] of Object.entries(votes)) if (v?.pid && v.pid !== voter) counts[v.pid] = (counts[v.pid] || 0) + 1;
+    for (const [voter, target] of Object.entries(votes)) if (target !== voter) counts[target] = (counts[target] || 0) + 1;
     const max = Math.max(0, ...Object.values(counts));
     const leaders = Object.keys(counts).filter((id) => counts[id] === max);
     const caught = max > 0 && leaders.length === 1 && leaders[0] === imposter;
@@ -105,15 +97,15 @@ export default function UnTraitDeTrop({ params }: { params: { code: string } }) 
     await party.patchRound({ phase: 'results', counts, voters: votes, caught: false, gains, scores: addScores(party.scores, gains), ends_at: party.deadline(RESULTS_TIME) });
   });
 
-  const guesses = party.latestBy('guess', 'guess');
-  const imposterGuess: string | undefined = imposter ? guesses[imposter]?.text : undefined;
-  useHostStep(party, `${gid}:${roundNo}:guess-end`, phase === 'guess' && (party.expired || !!imposterGuess), async () => {
+  const imposterGuess: string | undefined = imposter ? party.latestBy('guess', 'guess')[imposter]?.text : undefined;
+  const imposterGone = phase === 'guess' && !!imposter && !party.seated.some((p) => p.id === imposter);
+  useHostStep(party, `${gid}:${roundNo}:guess-end`, phase === 'guess' && (party.expired || !!imposterGuess || imposterGone), async () => {
     const right = !!imposterGuess && isCloseEnough(imposterGuess, round.card?.text || '');
     const gains: Scores = {};
     if (right && imposter) gains[imposter] = 200;
     if (!right) {
-      for (const p of party.seated) if (p.id !== imposter && order.includes(p.id)) gains[p.id] = 100;
-      for (const [voter, v] of Object.entries((round.voters || {}) as Record<string, any>)) if (voter !== imposter && v?.pid === imposter) gains[voter] = (gains[voter] || 0) + 50;
+      for (const pid of order) if (pid !== imposter) gains[pid] = 100;
+      for (const [voter, target] of Object.entries((round.voters || {}) as Record<string, string>)) if (voter !== imposter && target === imposter) gains[voter] = (gains[voter] || 0) + 50;
     }
     await party.patchRound({ phase: 'results', caught: true, guess: imposterGuess || '', right, gains, scores: addScores(party.scores, gains), ends_at: party.deadline(RESULTS_TIME) });
   });
@@ -123,23 +115,14 @@ export default function UnTraitDeTrop({ params }: { params: { code: string } }) 
     await party.goToRound(roundNo + 1, firstOf(party.deck || [], roundNo + 1));
   });
 
-  /* ---------------- render ---------------- */
   const card: Card | undefined = round.card;
   const isImposter = !!playerId && playerId === imposter;
   const [guessDraft, setGuessDraft] = useState('');
-  const myVote = myPick ?? (playerId ? votes[playerId]?.pid : undefined);
+  const playing = order.includes(playerId || '');
 
-  const roleCard = card && phase !== 'results' && (
-    order.includes(playerId || '') ? (
-      <SecretCard
-        label={`Ton mot · ${card.catLabel}`}
-        role={{ text: isImposter ? 'Imposteur' : 'Artiste', tone: isImposter ? 'bad' : 'good' }}
-        secret={isImposter ? `Pas de mot : thème ${card.catLabel}` : card.text}
-      />
-    ) : (
-      <PromptCard eyebrow="Tu regardes">Thème : {card.catLabel}</PromptCard>
-    )
-  );
+  const roleCard = card && (playing ? (
+    <SecretCard label={`Ton mot · ${card.catLabel}`} role={{ text: isImposter ? 'Imposteur' : 'Artiste', tone: isImposter ? 'bad' : 'good' }} secret={isImposter ? `Pas de mot : thème ${card.catLabel}` : card.text} />
+  ) : <PromptCard eyebrow="Tu regardes">Thème : {card.catLabel}</PromptCard>);
 
   const board = (
     <Board
@@ -156,88 +139,80 @@ export default function UnTraitDeTrop({ params }: { params: { code: string } }) 
       }}
     />
   );
+  const boardBox = <div className={cn(BRAWL.panel, 'flex min-h-0 flex-1 items-center justify-center p-1.5')}>{board}</div>;
 
   return (
     <PartyShell party={party} title="Un Trait de Trop" maxTime={phase === 'draw' ? turnTime : phase === 'vote' ? voteTime : phase === 'guess' ? GUESS_TIME : RESULTS_TIME}>
       {phase === 'setup' && (
         <SetupScreen
-          party={party}
-          title="Un Trait de Trop"
-          tagline="Un trait chacun. Un imposteur n’a pas le mot."
-          icon={Brush}
-          swatch={SWATCH}
-          minPlayers={3}
-          onStart={start}
-          rules={[
-            'Tout le monde reçoit le même mot, sauf l’imposteur qui ne connaît que le thème.',
-            'À ton tour, tu dessines un seul trait : tu appuies, tu traces, tu relâches.',
-            'Après les tours de dessin, votez pour démasquer l’imposteur.',
-            'Démasqué, il peut encore gagner en devinant le mot. Pas démasqué : 300 points pour lui.',
-          ]}
+          party={party} title="Un Trait de Trop" tagline="Un trait chacun. Un imposteur n’a pas le mot." icon={Brush} swatch={SWATCH} minPlayers={3} onStart={start}
+          rules={['Tout le monde reçoit le même mot, sauf l’imposteur qui ne connaît que le thème.', 'À ton tour, tu dessines un seul trait : tu appuies, tu traces, tu relâches.', 'Après les tours de dessin, votez pour démasquer l’imposteur. Le dessin reste affiché.', 'Démasqué, il peut encore gagner en devinant le mot. Pas démasqué : 300 points pour lui.']}
         />
       )}
 
       {phase === 'draw' && (
-        <>
-          {roleCard}
-          <TurnStrip party={party} order={order} current={drawer} colorOf={colorOf} />
-          <p className="font-display text-xl text-center">
-            {myTurn ? (drewThisTurn || pending ? 'Trait envoyé !' : 'À toi : un seul trait !') : <>Au tour de <OgName name={party.nameOf(drawer)} /></>}
-            <span className="ml-2 text-tx-secondary text-base">Trait {Math.min(turn + 1, totalTurns)}/{totalTurns}</span>
-          </p>
-          {board}
-        </>
+        <Screen>
+          <Columns className="grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:grid-rows-1">
+            <Column className="lg:justify-center">
+              {roleCard}
+              <TurnStrip party={party} order={order} current={drawer} colorOf={colorOf} />
+              <p className="shrink-0 text-center font-display text-lg">
+                {myTurn ? (drewThisTurn || pending ? 'Trait envoyé !' : 'À toi : un seul trait !') : <>Au tour de <OgName name={party.nameOf(drawer)} /></>}
+                <span className="ml-2 text-sm text-tx-secondary">trait {Math.min(turn + 1, totalTurns)}/{totalTurns}</span>
+              </p>
+            </Column>
+            <Column>{boardBox}</Column>
+          </Columns>
+        </Screen>
       )}
 
       {phase === 'vote' && (
-        <>
-          {roleCard}
-          <VoteScreen
-            party={party}
-            title="Qui est l’imposteur ?"
-            recap={<RecapPanel title="Le dessin">{board}</RecapPanel>}
-            candidates={order.filter((pid) => party.seated.some((p) => p.id === pid)).map((pid) => ({
-              id: pid,
-              title: <span className="inline-flex items-center gap-2"><span className="h-3 w-3 shrink-0 rounded-full border-2 border-brand-border" style={{ background: colorOf(pid) }} /><OgName name={party.nameOf(pid)} /></span>,
-              mine: pid === playerId,
-            }))}
-            myVote={myVote}
-            onVote={order.includes(playerId || '') ? (pid) => { markPick(pid); party.act('vote', { pid }); vibrate(HAPTIC.SOFT); } : undefined}
-            votes={Object.fromEntries(Object.entries(votes).map(([voter, v]) => [voter, v?.pid]))}
-          />
-        </>
+        <VoteScreen
+          party={party}
+          title="Qui est l’imposteur ?"
+          recap={boardBox}
+          candidates={order.filter((pid) => party.seated.some((p) => p.id === pid)).map((pid) => ({
+            id: pid,
+            title: <span className="inline-flex items-center gap-2"><span className="h-3 w-3 shrink-0 rounded-full border-2 border-brand-border" style={{ background: colorOf(pid) }} /><OgName name={party.nameOf(pid)} /></span>,
+            mine: pid === playerId,
+          }))}
+          hideMine
+          myVote={myPick ?? (playerId ? votes[playerId] : undefined)}
+          onVote={playing ? (pid) => { markPick(pid); party.act('vote', { pid }); vibrate(HAPTIC.SOFT); } : undefined}
+          votes={votes}
+          voters={voters.map((p) => p.id)}
+        />
       )}
 
       {phase === 'guess' && card && (
-        <>
+        <Screen>
           <RevealBanner tone="good" eyebrow="Démasqué"><OgName name={party.nameOf(imposter)} /> était l’imposteur</RevealBanner>
-          {board}
-          {isImposter ? (
-            imposterGuess ? <Waiting text="Réponse envoyée…" /> : (
-              <>
-                <p className="font-display text-xl">Dernière chance : quel était le mot ?</p>
-                <AnswerInput value={guessDraft} onChange={setGuessDraft} maxLength={40} placeholder="Le mot…" onSubmit={() => party.act('guess', { text: guessDraft.trim() })} />
-              </>
-            )
-          ) : (
-            <Waiting text="L’imposteur tente de deviner le mot…" />
-          )}
-        </>
+          {boardBox}
+          {isImposter ? (imposterGuess ? <Waiting text="Réponse envoyée…" /> : (
+            <>
+              <p className="shrink-0 text-center font-display text-lg">Dernière chance : quel était le mot ?</p>
+              <AnswerInput value={guessDraft} onChange={setGuessDraft} maxLength={40} placeholder="Le mot…" onSubmit={() => party.act('guess', { text: guessDraft.trim() })} />
+            </>
+          )) : <Waiting text="L’imposteur tente de deviner le mot…" />}
+        </Screen>
       )}
 
       {phase === 'results' && card && (
-        <>
-          <RevealBanner
-            tone={round.caught && !round.right ? 'good' : 'bad'}
-            eyebrow={!round.caught ? 'L’imposteur s’en sort' : round.right ? 'Démasqué, mais il a trouvé le mot !' : 'Imposteur démasqué !'}
-            detail={<>Le mot : « {card.text} »{round.caught && <> · sa réponse : « {round.guess || '—'} »</>}</>}
-          >
-            <OgName name={party.nameOf(imposter)} /> était l’imposteur
-          </RevealBanner>
-          {board}
-          <ScoreList party={party} gains={round.gains} />
-          <NextStep party={party} onNext={next} label={roundNo >= totalRounds ? 'Voir le podium' : 'Dessin suivant'} />
-        </>
+        <ResultsScreen
+          party={party}
+          reveal={
+            <RevealBanner tone={round.caught && !round.right ? 'good' : 'bad'} eyebrow={!round.caught ? 'L’imposteur s’en sort' : round.right ? 'Démasqué, mais il a trouvé le mot !' : 'Imposteur démasqué !'} detail={<>Le mot : « {card.text} »{round.caught && <> · sa réponse : « {round.guess || '—'} »</>}</>}>
+              <OgName name={party.nameOf(imposter)} /> était l’imposteur
+            </RevealBanner>
+          }
+          media={boardBox}
+          rows={Object.fromEntries(order.map((pid) => {
+            const voted = (round.voters || {})[pid];
+            return [pid, { answer: pid === imposter ? 'l’imposteur' : voted ? `a voté ${party.nameOf(voted)}` : 'pas voté', ok: pid === imposter ? !round.caught || !!round.right : voted === imposter } as RoundRow];
+          }))}
+          onNext={next}
+          nextLabel={roundNo >= totalRounds ? 'Voir le podium' : 'Dessin suivant'}
+        />
       )}
 
       {phase === 'podium' && <Podium party={party} onReplay={start} flavor="Les meilleurs artistes… et imposteurs." />}
@@ -245,10 +220,8 @@ export default function UnTraitDeTrop({ params }: { params: { code: string } }) 
   );
 }
 
-/** The shared drawing: finished strokes, the one being drawn elsewhere, and this player's stroke while drawing. */
-function Board({
-  strokes, live, canDraw, color, onStroke, onLive,
-}: {
+/** The shared drawing, as large as its box allows at 4:3. */
+function Board({ strokes, live, canDraw, color, onStroke, onLive }: {
   strokes: Stroke[]; live: { pts: Pt[]; color: string } | null; canDraw: boolean; color: string; onStroke: (pts: Pt[]) => void; onLive: (pts: Pt[]) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -267,12 +240,7 @@ function Board({
       if (!pts?.length) return;
       ctx.strokeStyle = col;
       ctx.fillStyle = col;
-      if (pts.length === 1) {
-        ctx.beginPath();
-        ctx.arc(pts[0][0] * W, pts[0][1] * H, 6, 0, Math.PI * 2);
-        ctx.fill();
-        return;
-      }
+      if (pts.length === 1) { ctx.beginPath(); ctx.arc(pts[0][0] * W, pts[0][1] * H, 6, 0, Math.PI * 2); ctx.fill(); return; }
       ctx.beginPath();
       ctx.moveTo(pts[0][0] * W, pts[0][1] * H);
       for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0] * W, pts[i][1] * H);
@@ -282,7 +250,6 @@ function Board({
     if (live) draw(live.pts, live.color);
     if (current.current) draw(current.current, color);
   }, [strokes, live, color]);
-
   useEffect(() => { paint(); }, [paint]);
 
   const pointAt = (e: React.PointerEvent<HTMLCanvasElement>): Pt => {
@@ -290,39 +257,38 @@ function Board({
     const clamp = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 1000) / 1000;
     return [clamp((e.clientX - r.left) / r.width), clamp((e.clientY - r.top) / r.height)];
   };
+  const finish = () => { const pts = current.current; current.current = null; if (pts) onStroke(pts); };
 
-  const finish = () => {
-    const pts = current.current;
-    current.current = null;
-    if (pts) onStroke(pts);
-  };
+  const fit = useFitBox(4 / 3);
+  useEffect(() => { paint(); }, [fit.size.w, paint]);
 
   return (
-    <div className="w-full max-w-[min(100%,calc((100dvh-320px)*4/3))] min-w-[260px]">
-      <canvas
-        ref={ref}
-        width={W}
-        height={H}
-        className={cn('block h-auto w-full rounded-2xl border-4 border-brand-border bg-white shadow-[0_6px_0_#05061A] touch-none', canDraw ? 'cursor-crosshair ring-4 ring-accent-primary' : 'cursor-default')}
-        onPointerDown={(e) => {
-          if (!canDraw || current.current || e.button > 0) return;
-          try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
-          current.current = [pointAt(e)];
-          paint();
-        }}
-        onPointerMove={(e) => {
-          const pts = current.current;
-          if (!pts) return;
-          const p = pointAt(e);
-          const last = pts[pts.length - 1];
-          if (Math.hypot(p[0] - last[0], p[1] - last[1]) < 0.004 || pts.length >= 600) return;
-          pts.push(p);
-          paint();
-          if (Date.now() - lastLive.current > 80) { lastLive.current = Date.now(); onLive(pts); }
-        }}
-        onPointerUp={finish}
-        onPointerCancel={finish}
-      />
+    <div ref={fit.ref} className="flex h-full min-h-0 w-full items-center justify-center">
+    <canvas
+      ref={ref}
+      width={W}
+      height={H}
+      className={cn('block rounded-xl bg-white touch-none', canDraw ? 'cursor-crosshair ring-4 ring-accent-success' : 'cursor-default', !fit.size.w && 'invisible')}
+      style={{ width: fit.size.w || 1, height: fit.size.h || 1 }}
+      onPointerDown={(e) => {
+        if (!canDraw || current.current || e.button > 0) return;
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+        current.current = [pointAt(e)];
+        paint();
+      }}
+      onPointerMove={(e) => {
+        const pts = current.current;
+        if (!pts) return;
+        const p = pointAt(e);
+        const last = pts[pts.length - 1];
+        if (Math.hypot(p[0] - last[0], p[1] - last[1]) < 0.004 || pts.length >= 600) return;
+        pts.push(p);
+        paint();
+        if (Date.now() - lastLive.current > 80) { lastLive.current = Date.now(); onLive(pts); }
+      }}
+      onPointerUp={finish}
+      onPointerCancel={finish}
+    />
     </div>
   );
 }

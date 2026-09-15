@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Gavel, Minus, Plus, ThumbsDown, Check } from 'lucide-react';
+import { Check, Gavel, Minus, Plus, ThumbsDown } from 'lucide-react';
 import { toast } from 'sonner';
 import OgName from '@/components/OgName';
 import { cn } from '@/lib/utils';
@@ -9,7 +9,7 @@ import { BRAWL } from '@/lib/ui/brawl';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { normalize } from '@/lib/party/text';
 import { addScores, listSetting, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './party/usePartyGame';
-import { AnswerInput, NextStep, PartyShell, PlayerChips, Podium, PromptCard, RevealBanner, ScoreList, SetupScreen, Waiting } from './party/ui';
+import { AnswerInput, Column, Columns, PartyShell, PlayerChips, Podium, PromptCard, RecapPanel, ResultsScreen, RevealBanner, Screen, SetupScreen, Waiting, type RoundRow } from './party/ui';
 
 const SWATCH = { fill: '#3B6BFF', shade: '#2A4FC4' };
 const REVIEW_TIME = 30;
@@ -36,8 +36,6 @@ export default function Surenchere({ params }: { params: { code: string } }) {
   const [myBid, markBid] = useSent<number>(party, 'bid');
 
   const bids = party.latestBy('bid', 'bid');
-
-  // The bidder's list, live, without repeats.
   const proveMoves = party.movesIn('prove');
   const liveItems = useMemo(() => {
     const seen = new Set<string>();
@@ -46,7 +44,7 @@ export default function Surenchere({ params }: { params: { code: string } }) {
       if (m.action_type !== 'item' || m.player_id !== bidder) continue;
       const text = String(m.payload?.text || '').trim().slice(0, 60);
       const key = normalize(text);
-      if (!text || seen.has(key)) continue;
+      if (!text || !key || seen.has(key)) continue;
       seen.add(key);
       out.push(text);
     }
@@ -55,15 +53,16 @@ export default function Surenchere({ params }: { params: { code: string } }) {
   const bidderDone = proveMoves.some((m) => m.action_type === 'done' && m.player_id === bidder);
 
   const items: string[] = round.items || [];
+  const reviewMoves = party.movesIn('review');
   const vetoes = useMemo(() => {
     const byPlayer: Record<string, Record<number, boolean>> = {};
-    for (const m of party.movesIn('review', 'veto')) {
-      if (m.player_id === bidder) continue;
+    for (const m of reviewMoves) {
+      if (m.action_type !== 'veto' || m.player_id === bidder) continue;
       (byPlayer[m.player_id] ||= {})[Number(m.payload?.i)] = !!m.payload?.on;
     }
     return byPlayer;
-  }, [party, bidder]);
-  const okBy = new Set(party.movesIn('review', 'ok').map((m) => m.player_id));
+  }, [reviewMoves, bidder]);
+  const okBy = new Set(reviewMoves.filter((m) => m.action_type === 'ok' && m.player_id !== bidder).map((m) => m.player_id));
   const rejectCount = (i: number) => Object.values(vetoes).filter((v) => v[i]).length;
 
   const firstOf = (deck: Card[], n: number) => ({ phase: 'bid', card: deck[n - 1] ?? deck[0], ends_at: party.deadline(bidTime) });
@@ -77,7 +76,6 @@ export default function Surenchere({ params }: { params: { code: string } }) {
     await party.startGame(deck, firstOf(deck, 1), deck.length);
   };
 
-  // Highest bid wins; on a tie, whoever announced it first.
   const allBid = active.length > 0 && active.every((p) => bids[p.id]);
   useHostStep(party, `${gid}:${roundNo}:bid-end`, phase === 'bid' && (party.expired || allBid), async () => {
     const latest: Record<string, { n: number; at: string }> = {};
@@ -91,7 +89,8 @@ export default function Surenchere({ params }: { params: { code: string } }) {
     await party.setRound({ phase: 'prove', card, bidder: winner, bid: top.n, bids: Object.fromEntries(Object.entries(latest).map(([k, v]) => [k, v.n])), ends_at: party.deadline(proveTime) });
   });
 
-  useHostStep(party, `${gid}:${roundNo}:prove-end`, phase === 'prove' && (party.expired || bidderDone), async () => {
+  const bidderGone = phase === 'prove' && !!bidder && !party.seated.some((p) => p.id === bidder);
+  useHostStep(party, `${gid}:${roundNo}:prove-end`, phase === 'prove' && (party.expired || bidderDone || bidderGone), async () => {
     await party.setRound({ phase: 'review', card, bidder, bid, bids: round.bids, items: liveItems, ends_at: party.deadline(REVIEW_TIME) });
   });
 
@@ -104,7 +103,7 @@ export default function Surenchere({ params }: { params: { code: string } }) {
     const gains: Scores = {};
     if (success && bidder) gains[bidder] = bid * 100;
     else for (const p of reviewers) gains[p.id] = 100;
-    await party.setRound({ phase: 'results', card, bidder, bid, items, rejected, valid, success, gains, scores: addScores(party.scores, gains), ends_at: party.deadline(RESULTS_TIME) });
+    await party.setRound({ phase: 'results', card, bidder, bid, bids: round.bids, items, rejected, valid, success, gains, scores: addScores(party.scores, gains), ends_at: party.deadline(RESULTS_TIME) });
   });
 
   const next = useHostStep(party, `${gid}:${roundNo}:next`, phase === 'results' && party.expired, async () => {
@@ -114,139 +113,113 @@ export default function Surenchere({ params }: { params: { code: string } }) {
 
   const announced = myBid ?? (playerId ? bids[playerId]?.n : undefined);
   const challenge = card && <PromptCard eyebrow={card.catLabel ?? 'Le défi'}>{card.text}</PromptCard>;
+  const itemList = (list: string[], rejected?: boolean[]) => (
+    <ol className="grid gap-1.5 sm:grid-cols-2">
+      {list.map((t, i) => (
+        <li key={i} className={cn('rounded-lg border-[3px] border-brand-border bg-brand-inner px-2 py-1 font-bold [overflow-wrap:anywhere]', rejected?.[i] && 'text-tx-muted line-through')}>
+          <span className="text-tx-secondary">{i + 1}.</span> {t}
+        </li>
+      ))}
+      {!list.length && <li className="text-center text-sm font-bold text-tx-secondary sm:col-span-2">Aucune réponse pour l’instant.</li>}
+    </ol>
+  );
 
   return (
     <PartyShell party={party} title="Surenchère" maxTime={phase === 'bid' ? bidTime : phase === 'prove' ? proveTime : phase === 'review' ? REVIEW_TIME : RESULTS_TIME}>
       {phase === 'setup' && (
         <SetupScreen
-          party={party}
-          title="Surenchère"
-          tagline="Annonce combien tu peux en citer, puis prouve-le."
-          icon={Gavel}
-          swatch={SWATCH}
-          minPlayers={2}
-          onStart={start}
-          rules={[
-            'Un défi s’affiche, par exemple « Des pays d’Afrique ».',
-            'Chacun annonce en secret combien il peut en citer.',
-            'La plus grosse annonce doit tenir parole, en direct, avant la fin du chrono.',
-            'Les autres refusent les réponses fausses. Promesse tenue : 100 points par réponse annoncée. Sinon, 100 points pour chacun des autres.',
-          ]}
+          party={party} title="Surenchère" tagline="Annonce combien tu peux en citer, puis prouve-le." icon={Gavel} swatch={SWATCH} minPlayers={2} onStart={start}
+          rules={['Un défi s’affiche, par exemple « Des pays d’Afrique ».', 'Chacun annonce en secret combien il peut en citer.', 'La plus grosse annonce doit tenir parole, en direct, avant la fin du chrono.', 'Les autres refusent les réponses fausses. Promesse tenue : 100 points par réponse annoncée. Sinon, 100 points pour chacun des autres.']}
         />
       )}
 
       {phase === 'bid' && card && (
-        <>
-          {challenge}
-          <div className={cn(BRAWL.panel, 'w-full max-w-md p-5 flex flex-col items-center gap-4')}>
-            <p className="font-bold text-tx-secondary">Combien tu peux en citer en {proveTime} s ?</p>
-            <div className="flex items-center gap-4">
-              <button onClick={() => setAmount((a) => Math.max(1, a - 1))} className={cn(BRAWL.dark, 'h-14 w-14 rounded-2xl')} aria-label="Moins"><Minus className="h-6 w-6" /></button>
-              <span className="w-24 text-center font-display text-6xl tabular-nums">{amount}</span>
-              <button onClick={() => setAmount((a) => Math.min(MAX_BID, a + 1))} className={cn(BRAWL.dark, 'h-14 w-14 rounded-2xl')} aria-label="Plus"><Plus className="h-6 w-6" /></button>
+        <Screen center>
+          <div className="flex w-full max-w-xl flex-col gap-3">
+            {challenge}
+            <div className={cn(BRAWL.panel, 'flex flex-col items-center gap-3 p-3')}>
+              <p className="text-center text-sm font-bold text-tx-secondary">Combien tu peux en citer en {proveTime} s ?</p>
+              <div className="flex items-center gap-4">
+                <button onClick={() => setAmount((a) => Math.max(1, a - 1))} className={cn(BRAWL.dark, 'h-12 w-12 rounded-2xl')} aria-label="Moins"><Minus className="h-6 w-6" /></button>
+                <span className="w-20 text-center font-display text-5xl tabular-nums">{amount}</span>
+                <button onClick={() => setAmount((a) => Math.min(MAX_BID, a + 1))} className={cn(BRAWL.dark, 'h-12 w-12 rounded-2xl')} aria-label="Plus"><Plus className="h-6 w-6" /></button>
+              </div>
+              <button onClick={() => { markBid(amount); party.act('bid', { n: amount }); vibrate(HAPTIC.MEDIUM); }} className={cn(BRAWL.green, 'h-12 w-full rounded-2xl text-lg')}>
+                {announced ? `Changer pour ${amount}` : `J’annonce ${amount}`}
+              </button>
+              {announced !== undefined && <p className="font-bold text-accent-success">Ton annonce : {announced}</p>}
             </div>
-            <button
-              onClick={() => { markBid(amount); party.act('bid', { n: amount }); vibrate(HAPTIC.MEDIUM); }}
-              className={cn(BRAWL.yellow, 'h-14 w-full rounded-2xl text-xl')}
-            >
-              {announced ? `Changer pour ${amount}` : `J’annonce ${amount}`}
-            </button>
-            {announced !== undefined && <p className="font-bold text-accent-success">Ton annonce : {announced}</p>}
+            <PlayerChips party={party} done={Object.keys(bids)} label="Annoncé" />
           </div>
-          <PlayerChips party={party} done={Object.keys(bids)} label="Ont annoncé" />
-        </>
+        </Screen>
       )}
 
       {phase === 'prove' && card && (
-        <>
-          {challenge}
-          <div className="w-full rounded-2xl border-[3px] border-brand-border bg-accent-secondary px-4 py-3 text-center text-white">
-            <p className="font-display text-2xl">
-              {isBidder ? `À toi : cite-en ${bid} !` : <><OgName name={party.nameOf(bidder)} /> doit en citer {bid}</>}
-            </p>
-            <p className="font-display text-4xl tabular-nums">{liveItems.length} / {bid}</p>
-          </div>
-          {isBidder && !bidderDone && (
-            <AnswerInput
-              value={draft}
-              onChange={setDraft}
-              maxLength={60}
-              placeholder="Une réponse, puis Entrée…"
-              submitLabel="Ajouter"
-              onSubmit={() => { party.act('item', { text: draft.trim() }); setDraft(''); vibrate(HAPTIC.SOFT); }}
-            />
-          )}
-          <ol className="grid w-full gap-2 sm:grid-cols-2">
-            {liveItems.map((t, i) => (
-              <li key={i} className="rounded-xl border-[3px] border-brand-border bg-brand-inner px-3 py-2 font-bold"><span className="text-tx-secondary">{i + 1}.</span> {t}</li>
-            ))}
-          </ol>
-          {isBidder && !bidderDone && (
-            <button onClick={() => party.act('done')} className={cn(BRAWL.green, 'h-12 px-6 rounded-2xl text-lg')}>
-              <Check className="h-5 w-5" /> J’ai fini
-            </button>
-          )}
-        </>
+        <Screen>
+          <Columns className="grid-rows-[auto_minmax(0,1fr)] lg:grid-rows-1">
+            <Column className="lg:justify-center">
+              {challenge}
+              <RevealBanner tone="neutral" eyebrow={isBidder ? 'À toi de prouver' : <><OgName name={party.nameOf(bidder)} /> doit en citer {bid}</>}>
+                {liveItems.length} / {bid}
+              </RevealBanner>
+              {isBidder && !bidderDone ? (
+                <>
+                  <AnswerInput value={draft} onChange={setDraft} maxLength={60} placeholder="Une réponse, puis Entrée…" submitLabel="Ajouter" onSubmit={() => { party.act('item', { text: draft.trim() }); setDraft(''); vibrate(HAPTIC.SOFT); }} />
+                  <button onClick={() => party.act('done')} className={cn(BRAWL.dark, 'h-11 shrink-0 rounded-2xl text-base')}><Check className="h-5 w-5" /> J’ai fini</button>
+                </>
+              ) : !isBidder ? <Waiting text="Vérifie ses réponses…" /> : null}
+            </Column>
+            <Column><RecapPanel title="Réponses">{itemList(liveItems)}</RecapPanel></Column>
+          </Columns>
+        </Screen>
       )}
 
       {phase === 'review' && card && (
-        <>
+        <Screen>
           {challenge}
-          <p className="text-center font-bold text-tx-secondary">
-            {isBidder ? 'Les autres vérifient tes réponses…' : 'Refuse les réponses fausses, puis valide.'}
-          </p>
-          <ul className="w-full space-y-2">
-            {items.map((t, i) => {
-              const mine = !!playerId && !!vetoes[playerId]?.[i];
-              const n = rejectCount(i);
-              return (
-                <li key={i} className={cn('flex items-center gap-3 rounded-xl border-[3px] border-brand-border px-3 py-2', n > reviewers.length / 2 ? 'bg-accent-secondary/30' : 'bg-brand-inner')}>
-                  <span className="min-w-0 flex-1 font-bold [overflow-wrap:anywhere]">{t}</span>
-                  {n > 0 && <span className="shrink-0 text-sm font-bold text-accent-secondary">{n} refus</span>}
-                  {!isBidder && (
-                    <button
-                      onClick={() => { party.act('veto', { i, on: !mine }); vibrate(HAPTIC.SOFT); }}
-                      className={cn('shrink-0 h-10 w-10 rounded-xl border-[3px] border-brand-border flex items-center justify-center', mine ? 'bg-accent-secondary text-white' : 'bg-[#2B3170] text-white')}
-                      aria-label={mine ? 'Annuler le refus' : 'Refuser'}
-                    >
-                      <ThumbsDown className="h-5 w-5" />
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-            {!items.length && <li className="text-center font-bold text-tx-secondary">Aucune réponse…</li>}
-          </ul>
-          {!isBidder && (
-            okBy.has(playerId || '') ? <Waiting text="Validé, on attend les autres…" /> : (
-              <button onClick={() => party.act('ok')} className={cn(BRAWL.green, 'h-14 w-full max-w-sm rounded-2xl text-xl')}>
-                <Check className="h-5 w-5" /> J’ai vérifié
-              </button>
-            )
-          )}
-        </>
+          <p className="shrink-0 text-center text-sm font-bold text-tx-secondary">{isBidder ? 'Les autres vérifient tes réponses…' : 'Refuse les réponses fausses, puis valide.'}</p>
+          <RecapPanel title={`Réponses de ${party.nameOf(bidder)} (${items.length}/${bid})`}>
+            <ul className="grid gap-1.5 sm:grid-cols-2">
+              {items.map((t, i) => {
+                const mine = !!playerId && !!vetoes[playerId]?.[i];
+                const n = rejectCount(i);
+                return (
+                  <li key={i} className={cn('flex items-center gap-2 rounded-lg border-[3px] border-brand-border px-2 py-1', n > reviewers.length / 2 ? 'bg-accent-secondary/30' : 'bg-brand-inner')}>
+                    <span className="min-w-0 flex-1 font-bold [overflow-wrap:anywhere]">{t}</span>
+                    {n > 0 && <span className="shrink-0 text-xs font-bold text-accent-secondary">{n} refus</span>}
+                    {!isBidder && (
+                      <button onClick={() => { party.act('veto', { i, on: !mine }); vibrate(HAPTIC.SOFT); }} className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-[3px] border-brand-border shadow-none', mine ? 'bg-accent-secondary text-white' : 'bg-[#2B3170] text-white')} aria-label={mine ? 'Annuler le refus' : 'Refuser'}>
+                        <ThumbsDown className="h-4 w-4" />
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+              {!items.length && <li className="text-center font-bold text-tx-secondary sm:col-span-2">Aucune réponse…</li>}
+            </ul>
+          </RecapPanel>
+          {!isBidder && (okBy.has(playerId || '') ? <Waiting text="Validé, on attend les autres…" /> : (
+            <button onClick={() => party.act('ok')} className={cn(BRAWL.green, 'h-12 w-full shrink-0 rounded-2xl text-lg')}><Check className="h-5 w-5" /> J’ai vérifié</button>
+          ))}
+          <PlayerChips party={party} only={reviewers.map((p) => p.id)} done={Array.from(okBy)} label="Vérifié" />
+        </Screen>
       )}
 
       {phase === 'results' && card && (
-        <>
-          {challenge}
-          {round.skipped ? (
-            <p className="font-bold text-tx-secondary">Personne n’a rien annoncé.</p>
+        <ResultsScreen
+          party={party}
+          reveal={round.skipped ? (
+            <RevealBanner tone="bad" eyebrow={card.text}>Personne n’a rien annoncé</RevealBanner>
           ) : (
-            <RevealBanner tone={round.success ? 'good' : 'bad'} eyebrow={round.success ? 'Pari tenu !' : 'Pari perdu !'}>
+            <RevealBanner tone={round.success ? 'good' : 'bad'} eyebrow={round.success ? 'Pari tenu !' : 'Pari perdu !'} detail={card.text}>
               <OgName name={party.nameOf(bidder)} /> : {round.valid} / {bid}
             </RevealBanner>
           )}
-          {items.length > 0 && (
-            <ul className="flex w-full flex-wrap justify-center gap-2">
-              {items.map((t, i) => (
-                <li key={i} className={cn('rounded-xl border-[3px] border-brand-border px-3 py-1.5 font-bold', round.rejected?.[i] ? 'bg-brand-inner text-tx-muted line-through' : 'bg-brand-inner')}>{t}</li>
-              ))}
-            </ul>
-          )}
-          <ScoreList party={party} gains={round.gains} />
-          <NextStep party={party} onNext={next} label={roundNo >= totalRounds ? 'Voir le podium' : 'Défi suivant'} />
-        </>
+          media={items.length ? <RecapPanel title="Réponses">{itemList(items, round.rejected)}</RecapPanel> : undefined}
+          rows={Object.fromEntries(Object.entries((round.bids || {}) as Record<string, number>).map(([pid, n]) => [pid, { answer: `a annoncé ${n}`, ok: pid === bidder ? !!round.success : !round.success } as RoundRow]))}
+          onNext={next}
+          nextLabel={roundNo >= totalRounds ? 'Voir le podium' : 'Défi suivant'}
+        />
       )}
 
       {phase === 'podium' && <Podium party={party} onReplay={start} flavor="Les rois de l’annonce." />}

@@ -4,11 +4,10 @@ import { useEffect, useState } from 'react';
 import { Laugh } from 'lucide-react';
 import { toast } from 'sonner';
 import OgName from '@/components/OgName';
-import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { shuffle } from '@/lib/party/text';
 import { addScores, listSetting, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './party/usePartyGame';
-import { AnswerInput, NextStep, PartyShell, PlayerChips, Podium, PromptCard, ScoreList, SetupScreen, VoteScreen, Waiting } from './party/ui';
+import { AnswerInput, PartyShell, PlayerChips, Podium, PromptCard, ResultsScreen, RevealBanner, Screen, SetupScreen, VoteScreen, Waiting, type RoundRow } from './party/ui';
 
 const SWATCH = { fill: '#FF4F8B', shade: '#C92D63' };
 const RESULTS_TIME = 14;
@@ -39,14 +38,9 @@ export default function Punchline({ params }: { params: { code: string } }) {
     await party.startGame(deck, { phase: 'answer', prompt: deck[0], ends_at: party.deadline(answerTime) }, deck.length);
   };
 
-  // Everyone answered, or time is up: the answers go to the vote, anonymously.
   const allAnswered = active.length > 0 && active.every((p) => answers[p.id]);
   useHostStep(party, `${gid}:${roundNo}:answer-end`, phase === 'answer' && (party.expired || allAnswered), async () => {
-    const list: Entry[] = shuffle(
-      Object.entries(answers)
-        .map(([pid, a]) => ({ pid, text: String(a?.text || '').trim().slice(0, 90) }))
-        .filter((e) => e.text),
-    );
+    const list: Entry[] = shuffle(Object.entries(answers).map(([pid, a]) => ({ pid, text: String(a?.text || '').trim().slice(0, 90) })).filter((e) => e.text));
     if (list.length < 2) {
       await party.setRound({ phase: 'results', prompt: round.prompt, entries: list, gains: {}, best: 0, skipped: true, ends_at: party.deadline(8) });
       return;
@@ -54,14 +48,10 @@ export default function Punchline({ params }: { params: { code: string } }) {
     await party.setRound({ phase: 'vote', prompt: round.prompt, entries: list, ends_at: party.deadline(voteTime) });
   });
 
-  // Everyone who can vote did, or time is up: count.
-  const canVote = (pid: string) => entries.some((e) => e.pid !== pid);
-  const allVoted = active.every((p) => votes[p.id] || !canVote(p.id));
+  // Everyone who has someone else's answer to vote for voted, or time is up.
+  const allVoted = active.every((p) => votes[p.id] || !entries.some((e) => e.pid !== p.id));
   useHostStep(party, `${gid}:${roundNo}:vote-end`, phase === 'vote' && (party.expired || allVoted), async () => {
-    const tally = entries.map((e) => ({
-      ...e,
-      votes: Object.entries(votes).filter(([voter, v]) => v?.pid === e.pid && voter !== e.pid).map(([voter]) => voter),
-    }));
+    const tally = entries.map((e) => ({ ...e, votes: Object.entries(votes).filter(([voter, v]) => v?.pid === e.pid && voter !== e.pid).map(([voter]) => voter) }));
     const best = Math.max(0, ...tally.map((t) => t.votes.length));
     const gains: Scores = {};
     for (const t of tally) {
@@ -79,51 +69,34 @@ export default function Punchline({ params }: { params: { code: string } }) {
 
   const answered = !!sentAnswer || (!!playerId && !!answers[playerId]);
   const myVote = myPick ?? (playerId ? votes[playerId]?.pid : undefined);
+  const top = entries.filter((e) => round.best > 0 && (e.votes?.length || 0) === round.best);
 
   return (
     <PartyShell party={party} title="Punchline" maxTime={phase === 'answer' ? answerTime : phase === 'vote' ? voteTime : RESULTS_TIME}>
       {phase === 'setup' && (
         <SetupScreen
-          party={party}
-          title="Punchline"
-          tagline="La réponse la plus drôle gagne."
-          icon={Laugh}
-          swatch={SWATCH}
-          minPlayers={3}
-          onStart={start}
-          rules={[
-            'Tout le monde reçoit la même question.',
-            'Chacun écrit sa réponse la plus drôle, en secret.',
-            'Vote anonyme pour ta réponse préférée (pas la tienne).',
-            '100 points par vote reçu, 100 de bonus pour la punchline du tour.',
-          ]}
+          party={party} title="Punchline" tagline="La réponse la plus drôle gagne." icon={Laugh} swatch={SWATCH} minPlayers={3} onStart={start}
+          rules={['Tout le monde reçoit la même question.', 'Chacun écrit sa réponse la plus drôle, en secret.', 'Vote anonyme pour ta réponse préférée (pas la tienne).', '100 points par vote reçu, 100 de bonus pour la punchline du tour.']}
         />
       )}
 
       {phase === 'answer' && (
-        <>
-          <PromptCard eyebrow={`Question ${roundNo}/${totalRounds}`}>{round.prompt}</PromptCard>
-          {answered ? (
-            <Waiting text="Réponse envoyée, on attend les autres…" />
-          ) : (
-            <AnswerInput
-              value={draft}
-              onChange={setDraft}
-              maxLength={90}
-              placeholder="Ta punchline…"
-              submitLabel="Envoyer"
-              onSubmit={() => { markAnswer(true); party.act('answer', { text: draft.trim() }); vibrate(HAPTIC.MEDIUM); }}
-            />
-          )}
-          <PlayerChips party={party} done={Object.keys(answers)} label="Ont répondu" />
-        </>
+        <Screen center>
+          <div className="flex w-full max-w-2xl flex-col gap-3">
+            <PromptCard eyebrow={`Question ${roundNo}/${totalRounds}`}>{round.prompt}</PromptCard>
+            {answered ? <Waiting text="Réponse envoyée, on attend les autres…" /> : (
+              <AnswerInput value={draft} onChange={setDraft} maxLength={90} placeholder="Ta punchline…" submitLabel="Envoyer" onSubmit={() => { markAnswer(true); party.act('answer', { text: draft.trim() }); vibrate(HAPTIC.MEDIUM); }} />
+            )}
+            <PlayerChips party={party} done={Object.keys(answers)} label="Répondu" />
+          </div>
+        </Screen>
       )}
 
       {phase === 'vote' && (
         <VoteScreen
           party={party}
           title={round.prompt}
-          subtitle="Vote pour la réponse la plus drôle (anonyme)."
+          subtitle="Vote pour la réponse la plus drôle. Personne ne sait qui a écrit quoi."
           candidates={entries.map((e) => ({ id: e.pid, title: e.text, mine: e.pid === playerId }))}
           myVote={myVote}
           onVote={(pid) => { markPick(pid); party.act('vote', { pid }); vibrate(HAPTIC.SOFT); }}
@@ -134,32 +107,19 @@ export default function Punchline({ params }: { params: { code: string } }) {
       )}
 
       {phase === 'results' && (
-        <>
-          <PromptCard eyebrow="Résultats">{round.prompt}</PromptCard>
-          {round.skipped && <p className="font-bold text-tx-secondary">Pas assez de réponses pour voter cette fois.</p>}
-          <div className="w-full space-y-3">
-            {[...entries].sort((a, b) => (b.votes?.length || 0) - (a.votes?.length || 0)).map((e) => {
-              const n = e.votes?.length || 0;
-              const top = round.best > 0 && n === round.best;
-              return (
-                <div key={e.pid} className={cn('rounded-2xl border-[3px] border-brand-border p-4 shadow-[0_4px_0_#05061A]', top ? 'bg-accent-primary text-brand-bg' : 'bg-brand-inner')}>
-                  <p className="font-display text-xl leading-snug [overflow-wrap:anywhere]">{e.text}</p>
-                  <div className="mt-2 flex items-center justify-between gap-2 text-sm font-bold">
-                    <span className="min-w-0 truncate">par <OgName name={party.nameOf(e.pid)} /></span>
-                    <span className="shrink-0 font-display text-lg">{n} vote{n > 1 ? 's' : ''}</span>
-                  </div>
-                  {n > 0 && (
-                    <p className={cn('mt-1 text-xs font-bold', top ? 'text-brand-bg/80' : 'text-tx-secondary')}>
-                      {e.votes!.map((v) => party.nameOf(v)).join(', ')}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <ScoreList party={party} gains={round.gains} />
-          <NextStep party={party} onNext={next} label={roundNo >= totalRounds ? 'Voir le podium' : 'Question suivante'} />
-        </>
+        <ResultsScreen
+          party={party}
+          reveal={round.skipped ? (
+            <RevealBanner tone="bad" eyebrow={round.prompt}>Pas assez de réponses pour voter</RevealBanner>
+          ) : (
+            <RevealBanner tone={top.length ? 'good' : 'neutral'} eyebrow={`Punchline du tour · ${round.prompt}`} detail={top.length ? <>par {top.map((t, i) => <span key={t.pid}>{i ? ', ' : ''}<OgName name={party.nameOf(t.pid)} /></span>)}</> : undefined}>
+              {top.length ? `« ${top[0].text} »` : 'Aucun vote'}
+            </RevealBanner>
+          )}
+          rows={Object.fromEntries(entries.map((e) => [e.pid, { answer: `« ${e.text} »`, note: `${e.votes?.length || 0} vote${(e.votes?.length || 0) > 1 ? 's' : ''}` } as RoundRow]))}
+          onNext={next}
+          nextLabel={roundNo >= totalRounds ? 'Voir le podium' : 'Question suivante'}
+        />
       )}
 
       {phase === 'podium' && <Podium party={party} onReplay={start} flavor="Les plus drôles de la soirée." />}

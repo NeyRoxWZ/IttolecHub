@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { isCloseEnough } from '@/lib/party/text';
 import { addScores, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './usePartyGame';
-import { AnswerInput, AnswerList, NextStep, PartyShell, PlayerChips, Podium, RevealBanner, ScoreList, SetupScreen, type Swatch } from './ui';
+import { AnswerInput, Column, Columns, FitFrame, PartyShell, PlayerChips, Podium, PromptCard, ResultsScreen, RevealBanner, Screen, SetupScreen, type RoundRow, type Swatch } from './ui';
 
 /**
  * Guess what the picture shows, typed, as fast as possible: PokéGuessr,
@@ -28,6 +28,7 @@ export interface ImageGuessConfig {
   gameType: string;
   title: string;
   tagline: string;
+  question: string;
   icon: LucideIcon;
   swatch: Swatch;
   rules: string[];
@@ -36,6 +37,10 @@ export interface ImageGuessConfig {
   flavor: string;
   placeholder: string;
   loadDeck: (settings: Record<string, any>, rounds: number) => Promise<GuessCard[]>;
+  /** Shape of the picture (width / height) and the frame's background. */
+  ratio: number;
+  frameClass?: string;
+  /** The picture itself, filling its frame. */
   renderMedia: (card: GuessCard, state: { playing: boolean; progress: number; settings: Record<string, any> }) => ReactNode;
 }
 
@@ -108,6 +113,11 @@ export default function ImageGuessGame({ roomCode, config }: { roomCode: string;
   });
 
   const finds: { pid: string; sec: number }[] = round.finds || [];
+  const media = (playing: boolean) => card && (
+    <div className="flex min-h-0 flex-1">
+      <FitFrame ratio={config.ratio} className={config.frameClass}>{config.renderMedia(card, { playing, progress: playing ? progress : 1, settings })}</FitFrame>
+    </div>
+  );
 
   return (
     <PartyShell party={party} title={config.title} maxTime={phase === 'guess' ? time : RESULTS_TIME}>
@@ -116,35 +126,42 @@ export default function ImageGuessGame({ roomCode, config }: { roomCode: string;
       )}
 
       {phase === 'guess' && card && (
-        <>
-          {config.renderMedia(card, { playing: true, progress, settings })}
-          {iFound ? (
-            <RevealBanner tone="good" eyebrow="Bien joué">Trouvé !</RevealBanner>
-          ) : (
-            <div className="w-full space-y-2">
-              <AnswerInput value={draft} onChange={setDraft} onSubmit={guess} placeholder={config.placeholder} maxLength={60} submitLabel="Proposer" />
-              {misses > 0 && <p key={misses} className="text-center font-bold text-accent-secondary animate-in fade-in">Raté, essaie encore</p>}
-            </div>
-          )}
-          <PlayerChips party={party} done={Object.keys(foundAt)} label="Ont trouvé" />
-        </>
+        <Screen>
+          <Columns className="grid-rows-[minmax(0,1fr)_auto] lg:grid-rows-1">
+            <Column>
+              <p className="text-stroke-sm shrink-0 text-center font-display text-lg leading-tight lg:hidden">{config.question}</p>
+              {media(true)}
+            </Column>
+            <Column className="lg:justify-center">
+              <PromptCard eyebrow={`Manche ${roundNo}/${totalRounds}`} className="hidden lg:block">{config.question}</PromptCard>
+              {iFound ? (
+                <RevealBanner tone="good" eyebrow="Bien joué">Trouvé !</RevealBanner>
+              ) : (
+                <>
+                  <AnswerInput value={draft} onChange={setDraft} onSubmit={guess} placeholder={config.placeholder} maxLength={60} submitLabel="Proposer" />
+                  <p key={misses} className={`shrink-0 text-center text-sm font-bold ${misses ? 'text-accent-secondary animate-in fade-in' : 'text-tx-secondary'}`}>
+                    {misses ? `Raté (${misses}), essaie encore` : 'Propose autant de fois que tu veux'}
+                  </p>
+                </>
+              )}
+              <PlayerChips party={party} done={Object.keys(foundAt)} label="Trouvé" />
+            </Column>
+          </Columns>
+        </Screen>
       )}
 
       {phase === 'results' && card && (
-        <>
-          {config.renderMedia(card, { playing: false, progress: 1, settings })}
-          <RevealBanner tone={finds.length ? 'good' : 'bad'} eyebrow="C’était" detail={card.detail}>{card.reveal}</RevealBanner>
-          <AnswerList
-            party={party}
-            title="Qui a trouvé"
-            rows={party.seated.map((p) => {
-              const f = finds.find((x) => x.pid === p.id);
-              return { pid: p.id, ok: !!f, note: f ? `en ${f.sec} s` : 'pas trouvé', points: round.gains?.[p.id] };
-            })}
-          />
-          <ScoreList party={party} gains={round.gains} />
-          <NextStep party={party} onNext={next} label={roundNo >= totalRounds ? 'Voir le podium' : 'Manche suivante'} />
-        </>
+        <ResultsScreen
+          party={party}
+          reveal={<RevealBanner tone={finds.length ? 'good' : 'bad'} eyebrow="C’était" detail={card.detail}>{card.reveal}</RevealBanner>}
+          media={media(false)}
+          rows={Object.fromEntries(party.seated.map((p) => {
+            const f = finds.find((x) => x.pid === p.id);
+            return [p.id, { ok: !!f, note: f ? `trouvé en ${f.sec} s` : 'pas trouvé' } as RoundRow];
+          }))}
+          onNext={next}
+          nextLabel={roundNo >= totalRounds ? 'Voir le podium' : 'Manche suivante'}
+        />
       )}
 
       {phase === 'podium' && <Podium party={party} onReplay={start} flavor={config.flavor} />}

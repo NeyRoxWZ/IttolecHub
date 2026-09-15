@@ -28,11 +28,10 @@ body.bg-brand-bg { background-color: #161A45; }
 
 /* Multiplayer games: their own green-lit backdrop, so a screen reads "multi" at a glance next to the solo games. */
 .mp-arena {
-  background-color: #0E1030;
+  background-color: #141A44;
   background-image:
-    radial-gradient(110% 55% at 50% -8%, rgba(51, 209, 122, 0.24), transparent 62%),
-    radial-gradient(80% 50% at 50% 110%, rgba(91, 140, 255, 0.16), transparent 60%),
-    repeating-linear-gradient(135deg, rgba(51, 209, 122, 0.05) 0 16px, transparent 16px 32px);
+    repeating-linear-gradient(135deg, rgba(51, 209, 122, 0.06) 0 24px, transparent 24px 48px),
+    linear-gradient(180deg, #172050 0%, #10133A 100%);
   background-attachment: fixed;
 }
 
@@ -415,7 +414,18 @@ html, body { overflow-x: clip; }
   vertical-align: middle;
   margin-block: -0.3em;
 }
-.donor-badge::before { content: '\2665'; font-size: 1.05em; }
+/* A drawn heart, not the ♥ glyph: a font's glyph sits high in its line box, a
+   shape is centred exactly by the badge's align-items. */
+.donor-badge::before {
+  content: '';
+  display: block;
+  flex: none;
+  width: 0.95em;
+  height: 0.85em;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 21'%3E%3Cpath d='M12 21 1.8 10.9A6 6 0 0 1 12 2.6a6 6 0 0 1 10.2 8.3Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 21'%3E%3Cpath d='M12 21 1.8 10.9A6 6 0 0 1 12 2.6a6 6 0 0 1 10.2 8.3Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
 :is(h1, h2, h3).font-display .donor-badge { font-size: max(11px, 0.4em); }
 
 @keyframes og-shine {

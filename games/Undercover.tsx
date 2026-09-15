@@ -10,7 +10,7 @@ import { vibrate, HAPTIC } from '@/lib/haptic';
 import { isCloseEnough, shuffle } from '@/lib/party/text';
 import { addScores, numSetting, useHostStep, usePartyGame, type Scores } from './party/usePartyGame';
 import {
-  AnswerInput, AnswerList, NextStep, PartyShell, Podium, PromptCard, ReadyScreen, RecapPanel, RevealBanner, ScoreList, SecretCard, SetupScreen, TurnStrip, VoteScreen, Waiting,
+  AnswerInput, Column, Columns, PartyShell, Podium, PromptCard, ReadyScreen, RecapPanel, ResultsScreen, RevealBanner, Screen, SecretCard, SetupScreen, TurnStrip, VoteScreen, Waiting, type RoundRow,
 } from './party/ui';
 
 type Role = 'CIVIL' | 'UNDERCOVER' | 'MR_WHITE';
@@ -43,23 +43,18 @@ export default function Undercover({ roomCode }: { roomCode: string }) {
   const myRole = playerId ? roles[playerId] : undefined;
   const iAmAlive = !!playerId && alive.includes(playerId);
   const here = (id: string) => active.some((p) => p.id === id);
-
   const wordOf = (role?: Role) => (role === 'CIVIL' ? pair?.civilWord : role === 'UNDERCOVER' ? pair?.undercoverWord : undefined);
 
   const [draft, setDraft] = useState('');
   const [guessDraft, setGuessDraft] = useState('');
   useEffect(() => setDraft(''), [turn, lap, stage]);
 
-  /* ---------------- data ---------------- */
-  const clues: Clue[] = party.movesIn('clues', 'clue').map((m) => ({
-    pid: m.player_id, text: String(m.payload?.text || '').slice(0, 40), lap: Number(m.payload?.lap), turn: Number(m.payload?.turn), s: Number(m.payload?.s ?? 0),
-  }));
+  const clues: Clue[] = party.movesIn('clues', 'clue').map((m) => ({ pid: m.player_id, text: String(m.payload?.text || '').slice(0, 40), lap: Number(m.payload?.lap), turn: Number(m.payload?.turn), s: Number(m.payload?.s ?? 0) }));
   const currentClue = clues.find((c) => c.s === stage && c.lap === lap && c.turn === turn && c.pid === speaker);
   const ready = Object.keys(party.latestBy('ready', 'roles'));
   const skips = Object.entries(party.latestBy('skip', 'clues', stage)).filter(([pid, v]) => v?.on && alive.includes(pid)).map(([pid]) => pid);
-  const votesRaw = party.latestBy('vote', 'vote', stage);
   const votes: Record<string, string> = {};
-  for (const [voter, v] of Object.entries(votesRaw)) if (alive.includes(voter) && v?.pid) votes[voter] = v.pid;
+  for (const [voter, v] of Object.entries(party.latestBy('vote', 'vote', stage))) if (alive.includes(voter) && v?.pid && v.pid !== voter) votes[voter] = v.pid;
   const whiteGuess = round.eliminated ? party.latestBy('guess', 'guess', stage)[round.eliminated]?.text : undefined;
 
   /* ---------------- host ---------------- */
@@ -92,14 +87,11 @@ export default function Undercover({ roomCode }: { roomCode: string }) {
 
   const finish = async (winner: 'CIVILS' | 'IMPOSTORS', whiteFound = false) => {
     const gains: Scores = {};
-    for (const [pid, role] of Object.entries(roles)) {
-      if (winner === 'CIVILS' ? role === 'CIVIL' : role !== 'CIVIL') gains[pid] = 200;
-    }
+    for (const [pid, role] of Object.entries(roles)) if (winner === 'CIVILS' ? role === 'CIVIL' : role !== 'CIVIL') gains[pid] = 200;
     if (whiteFound && round.eliminated) gains[round.eliminated] = (gains[round.eliminated] || 0) + 100;
     await party.patchRound({ phase: 'results', winner, whiteFound, gains, scores: addScores(party.scores, gains), ends_at: party.deadline(RESULTS_TIME) });
   };
 
-  /** After someone leaves the game: who wins, or back to the clues. */
   const settle = async (eliminated: string, nextAlive: string[], nextOut: string[]) => {
     const impostors = nextAlive.filter((id) => roles[id] !== 'CIVIL').length;
     const civils = nextAlive.length - impostors;
@@ -115,7 +107,6 @@ export default function Undercover({ roomCode }: { roomCode: string }) {
     await party.patchRound({ phase: 'clues', lap: 1, turn: 0, ends_at: party.deadline(CLUE_TIME) });
   });
 
-  // A clue given, the clock out, or the speaker gone: next speaker, next lap, then the vote.
   const speakerGone = !!speaker && !here(speaker);
   useHostStep(party, `${gid}:${roundNo}:${stage}:${lap}:${turn}`, phase === 'clues' && (!!currentClue || party.expired || speakerGone), async () => {
     const nextTurn = turn + 1;
@@ -131,7 +122,7 @@ export default function Undercover({ roomCode }: { roomCode: string }) {
   const allVoted = voters.length > 0 && voters.every((id) => votes[id]);
   useHostStep(party, `${gid}:${roundNo}:${stage}:vote-end`, phase === 'vote' && (party.expired || allVoted), async () => {
     const counts: Record<string, number> = {};
-    for (const [voter, target] of Object.entries(votes)) if (target !== voter) counts[target] = (counts[target] || 0) + 1;
+    for (const target of Object.values(votes)) counts[target] = (counts[target] || 0) + 1;
     const max = Math.max(0, ...Object.values(counts));
     const leaders = Object.keys(counts).filter((id) => counts[id] === max);
     if (max === 0 || leaders.length > 1) {
@@ -141,13 +132,12 @@ export default function Undercover({ roomCode }: { roomCode: string }) {
     const eliminated = leaders[0];
     const nextAlive = alive.filter((id) => id !== eliminated);
     const nextOut = [...out, eliminated];
-    if (roles[eliminated] === 'MR_WHITE') {
-      return party.patchRound({ phase: 'guess', eliminated, alive: nextAlive, out: nextOut, stage: stage + 1, ends_at: party.deadline(GUESS_TIME) });
-    }
+    if (roles[eliminated] === 'MR_WHITE') return party.patchRound({ phase: 'guess', eliminated, alive: nextAlive, out: nextOut, stage: stage + 1, ends_at: party.deadline(GUESS_TIME) });
     await settle(eliminated, nextAlive, nextOut);
   });
 
-  useHostStep(party, `${gid}:${roundNo}:${stage}:guess-end`, phase === 'guess' && (!!whiteGuess || party.expired), async () => {
+  const whiteGone = phase === 'guess' && !!round.eliminated && !party.seated.some((p) => p.id === round.eliminated);
+  useHostStep(party, `${gid}:${roundNo}:${stage}:guess-end`, phase === 'guess' && (!!whiteGuess || party.expired || whiteGone), async () => {
     if (whiteGuess && pair && isCloseEnough(whiteGuess, pair.civilWord)) return finish('IMPOSTORS', true);
     await settle(round.eliminated, alive, out);
   });
@@ -164,140 +154,111 @@ export default function Undercover({ roomCode }: { roomCode: string }) {
 
   /* ---------------- render ---------------- */
   const secret = myRole && (
-    <SecretCard
-      label="Ton mot"
-      secret={myRole === 'MR_WHITE' ? 'Pas de mot : bluffe !' : wordOf(myRole)}
-      role={showRoles ? { text: ROLE_LABEL[myRole], tone: myRole === 'CIVIL' ? 'good' : 'bad' } : undefined}
-    />
+    <SecretCard label="Ton mot" secret={myRole === 'MR_WHITE' ? 'Pas de mot : bluffe !' : wordOf(myRole)} role={showRoles ? { text: ROLE_LABEL[myRole], tone: myRole === 'CIVIL' ? 'good' : 'bad' } : undefined} />
   );
-
   const board = (
-    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+    <div className="grid grid-cols-2 gap-1.5 md:grid-cols-3">
       {[...alive, ...out].map((pid) => (
-        <div key={pid} className={cn('rounded-xl border-[3px] border-brand-border p-2', pid === speaker && phase === 'clues' ? 'bg-accent-success/20' : 'bg-brand-inner', out.includes(pid) && 'opacity-50')}>
+        <div key={pid} className={cn('rounded-lg border-2 border-brand-border p-1.5', pid === speaker && phase === 'clues' ? 'bg-accent-success/25' : 'bg-brand-inner', out.includes(pid) && 'opacity-50')}>
           <p className={cn('truncate font-display text-sm', out.includes(pid) && 'line-through')}><OgName name={party.nameOf(pid)} /></p>
-          <ul className="mt-1 flex flex-wrap gap-1">
-            {clues.filter((c) => c.pid === pid).map((c, i) => (
-              <li key={i} className="rounded-md border-2 border-brand-border bg-brand-card px-1.5 py-0.5 text-xs font-bold">{c.text}</li>
-            ))}
+          <ul className="mt-0.5 flex flex-wrap gap-1">
+            {clues.filter((c) => c.pid === pid).map((c, i) => <li key={i} className="rounded border-2 border-brand-border bg-brand-card px-1 text-xs font-bold">{c.text}</li>)}
           </ul>
         </div>
       ))}
     </div>
   );
+  const notice = round.notice && <p className="shrink-0 rounded-xl border-[3px] border-brand-border bg-accent-primary px-3 py-1 text-center text-sm font-bold text-brand-bg">{round.notice}</p>;
 
   return (
     <PartyShell party={party} title="Undercover" maxTime={phase === 'clues' ? CLUE_TIME : phase === 'vote' ? voteTime : phase === 'guess' ? GUESS_TIME : phase === 'eliminated' ? REVEAL_TIME : RESULTS_TIME}>
       {phase === 'setup' && (
         <SetupScreen
-          party={party}
-          title="Undercover"
-          tagline="Bluffez pour survivre."
-          icon={EyeOff}
-          swatch={SWATCH}
-          minPlayers={3}
-          onStart={start}
-          rules={[
-            'Les civils ont tous le même mot. Les undercovers en ont un très proche. Mr. White n’en a pas.',
-            'Chacun à son tour donne un indice sur son mot, sans trop en dire.',
-            'Après les tours d’indices, votez pour éliminer un joueur. Les indices restent affichés.',
-            'Les civils gagnent s’ils éliminent tous les imposteurs. Mr. White éliminé peut gagner en trouvant le mot des civils.',
-          ]}
+          party={party} title="Undercover" tagline="Bluffez pour survivre." icon={EyeOff} swatch={SWATCH} minPlayers={3} onStart={start}
+          rules={['Les civils ont tous le même mot. Les undercovers en ont un très proche. Mr. White n’en a pas.', 'Chacun à son tour donne un indice sur son mot, sans trop en dire.', 'Après les tours d’indices, votez pour éliminer un joueur. Les indices restent affichés.', 'Les civils gagnent s’ils éliminent tous les imposteurs. Mr. White éliminé peut gagner en trouvant le mot des civils.']}
         />
       )}
 
-      {phase === 'roles' && (
-        myRole ? (
-          <ReadyScreen party={party} ready={ready} onReady={() => party.act('ready')}>
-            <PromptCard eyebrow={`Manche ${roundNo}/${totalRounds}`}>Découvre ton mot en secret</PromptCard>
-            {secret}
-          </ReadyScreen>
-        ) : <Waiting text="Tu regardes cette manche." />
-      )}
+      {phase === 'roles' && (myRole ? (
+        <ReadyScreen party={party} ready={ready} onReady={() => party.act('ready')}>
+          <PromptCard eyebrow={`Manche ${roundNo}/${totalRounds}`}>Découvre ton mot en secret</PromptCard>
+          {secret}
+        </ReadyScreen>
+      ) : <Screen center><Waiting text="Tu regardes cette manche." /></Screen>)}
 
       {phase === 'clues' && (
-        <>
-          {round.notice && <p className="rounded-xl border-[3px] border-brand-border bg-accent-primary px-3 py-1.5 font-bold text-brand-bg">{round.notice}</p>}
-          {secret}
-          <TurnStrip party={party} order={alive} current={speaker} />
-          <p className="text-center text-sm font-bold text-tx-secondary">Tour d’indices {lap}/{clueRounds}</p>
-          {speaker === playerId ? (
-            <AnswerInput value={draft} onChange={setDraft} maxLength={40} placeholder="Ton indice…" submitLabel="Envoyer" onSubmit={() => { party.act('clue', { text: draft.trim(), lap, turn }); vibrate(HAPTIC.SOFT); }} />
-          ) : (
-            <Waiting text={<><OgName name={party.nameOf(speaker)} /> donne son indice…</>} />
-          )}
-          <RecapPanel title="Indices">{board}</RecapPanel>
-          {iAmAlive && (
-            <button
-              onClick={() => party.act('skip', { on: !skips.includes(playerId!) })}
-              className={cn(skips.includes(playerId || '') ? BRAWL.green : BRAWL.dark, 'h-12 rounded-2xl px-4 text-base')}
-            >
-              <SkipForward className="h-5 w-5" /> Passer au vote ({skips.length}/{majority})
-            </button>
-          )}
-        </>
+        <Screen>
+          <Columns className="grid-rows-[auto_minmax(0,1fr)] lg:grid-rows-1">
+            <Column className="lg:justify-center">
+              {notice}
+              {secret}
+              <TurnStrip party={party} order={alive} current={speaker} />
+              <p className="shrink-0 text-center text-sm font-bold text-tx-secondary">Tour d’indices {lap}/{clueRounds}</p>
+              {speaker === playerId ? (
+                <AnswerInput value={draft} onChange={setDraft} maxLength={40} placeholder="Ton indice…" submitLabel="Envoyer" onSubmit={() => { party.act('clue', { text: draft.trim(), lap, turn }); vibrate(HAPTIC.SOFT); }} />
+              ) : <Waiting text={<><OgName name={party.nameOf(speaker)} /> donne son indice…</>} />}
+              {iAmAlive && (
+                <button onClick={() => party.act('skip', { on: !skips.includes(playerId!) })} className={cn(skips.includes(playerId || '') ? BRAWL.green : BRAWL.dark, 'h-10 shrink-0 rounded-xl px-3 text-sm')}>
+                  <SkipForward className="h-4 w-4" /> Passer au vote ({skips.length}/{majority})
+                </button>
+              )}
+            </Column>
+            <Column><RecapPanel title="Indices">{board}</RecapPanel></Column>
+          </Columns>
+        </Screen>
       )}
 
       {phase === 'vote' && (
-        <>
-          {round.notice && <p className="rounded-xl border-[3px] border-brand-border bg-accent-primary px-3 py-1.5 font-bold text-brand-bg">{round.notice}</p>}
-          <VoteScreen
-            party={party}
-            title="Qui éliminer ?"
-            recap={<RecapPanel title="Indices">{board}</RecapPanel>}
-            candidates={alive.map((pid) => ({ id: pid, title: <OgName name={party.nameOf(pid)} />, mine: pid === playerId }))}
-            myVote={playerId ? votes[playerId] : undefined}
-            onVote={iAmAlive ? (pid) => { party.act('vote', { pid }); vibrate(HAPTIC.SOFT); } : undefined}
-            votes={votes}
-            voters={voters}
-            cantVoteText="Tu es éliminé : tu regardes le vote."
-          />
-        </>
+        <VoteScreen
+          party={party}
+          title="Qui éliminer ?"
+          subtitle={round.notice || undefined}
+          recap={<RecapPanel title="Indices">{board}</RecapPanel>}
+          candidates={alive.map((pid) => ({ id: pid, title: <OgName name={party.nameOf(pid)} />, mine: pid === playerId }))}
+          hideMine
+          myVote={playerId ? votes[playerId] : undefined}
+          onVote={iAmAlive ? (pid) => { party.act('vote', { pid }); vibrate(HAPTIC.SOFT); } : undefined}
+          votes={votes}
+          voters={voters}
+          cantVoteText="Tu es éliminé : tu regardes le vote."
+        />
       )}
 
       {phase === 'guess' && (
-        <>
-          <RevealBanner tone="good" eyebrow="Éliminé">
-            <OgName name={party.nameOf(round.eliminated)} /> était Mr. White
-          </RevealBanner>
-          {round.eliminated === playerId ? (
-            whiteGuess ? <Waiting text="Réponse envoyée…" /> : (
-              <>
-                <PromptCard eyebrow="Dernière chance">Quel est le mot des civils ?</PromptCard>
-                <AnswerInput value={guessDraft} onChange={setGuessDraft} maxLength={40} placeholder="Le mot…" onSubmit={() => party.act('guess', { text: guessDraft.trim() })} />
-              </>
-            )
-          ) : <Waiting text="Mr. White tente de trouver le mot des civils…" />}
+        <Screen>
+          <RevealBanner tone="good" eyebrow="Éliminé"><OgName name={party.nameOf(round.eliminated)} /> était Mr. White</RevealBanner>
+          {round.eliminated === playerId ? (whiteGuess ? <Waiting text="Réponse envoyée…" /> : (
+            <>
+              <p className="shrink-0 text-center font-display text-lg">Dernière chance : quel est le mot des civils ?</p>
+              <AnswerInput value={guessDraft} onChange={setGuessDraft} maxLength={40} placeholder="Le mot…" onSubmit={() => party.act('guess', { text: guessDraft.trim() })} />
+            </>
+          )) : <Waiting text="Mr. White tente de trouver le mot des civils…" />}
           <RecapPanel title="Indices">{board}</RecapPanel>
-        </>
+        </Screen>
       )}
 
       {phase === 'eliminated' && (
-        <>
+        <Screen>
           <RevealBanner tone={roles[round.eliminated] === 'CIVIL' ? 'bad' : 'good'} eyebrow="Éliminé" detail="La partie continue.">
             <OgName name={party.nameOf(round.eliminated)} /> était {ROLE_LABEL[roles[round.eliminated] as Role] ?? '?'}
           </RevealBanner>
           <RecapPanel title="Indices">{board}</RecapPanel>
-        </>
+        </Screen>
       )}
 
       {phase === 'results' && pair && (
-        <>
-          <RevealBanner
-            tone={round.winner === 'CIVILS' ? 'good' : 'bad'}
-            eyebrow="Fin de la manche"
-            detail={<>Mot des civils : « {pair.civilWord} » · mot undercover : « {pair.undercoverWord} »{round.whiteFound ? ' · Mr. White a trouvé le mot !' : ''}</>}
-          >
-            {round.winner === 'CIVILS' ? 'Victoire des civils' : 'Victoire des imposteurs'}
-          </RevealBanner>
-          <AnswerList
-            party={party}
-            title="Rôles"
-            rows={Object.entries(roles).map(([pid, role]) => ({ pid, ok: round.winner === 'CIVILS' ? role === 'CIVIL' : role !== 'CIVIL', answer: `${ROLE_LABEL[role]}${wordOf(role) ? ` · ${wordOf(role)}` : ''}`, points: round.gains?.[pid] }))}
-          />
-          <ScoreList party={party} gains={round.gains} />
-          <NextStep party={party} onNext={next} label={roundNo >= totalRounds ? 'Voir le podium' : 'Manche suivante'} />
-        </>
+        <ResultsScreen
+          party={party}
+          reveal={
+            <RevealBanner tone={round.winner === 'CIVILS' ? 'good' : 'bad'} eyebrow="Fin de la manche" detail={<>Civils : « {pair.civilWord} » · Undercover : « {pair.undercoverWord} »{round.whiteFound ? ' · Mr. White a trouvé !' : ''}</>}>
+              {round.winner === 'CIVILS' ? 'Victoire des civils' : 'Victoire des imposteurs'}
+            </RevealBanner>
+          }
+          media={<RecapPanel title="Indices">{board}</RecapPanel>}
+          rows={Object.fromEntries(Object.entries(roles).map(([pid, role]) => [pid, { ok: round.winner === 'CIVILS' ? role === 'CIVIL' : role !== 'CIVIL', answer: `${ROLE_LABEL[role]}${wordOf(role) ? ` · ${wordOf(role)}` : ''}` } as RoundRow]))}
+          onNext={next}
+          nextLabel={roundNo >= totalRounds ? 'Voir le podium' : 'Manche suivante'}
+        />
       )}
 
       {phase === 'podium' && <Podium party={party} onReplay={start} flavor="Les meilleurs menteurs… et détectives." />}

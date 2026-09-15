@@ -157,6 +157,7 @@ export const PARTY_GAMES: PartyGameEntry[] = [
       rounds(10),
       { id: 'listenTime', label: 'Durée d’écoute', type: 'select', default: '30', options: [{ value: '15', label: '15 secondes' }, { value: '20', label: '20 secondes' }, { value: '30', label: '30 secondes' }] },
       { id: 'answerMode', label: 'À trouver', type: 'select', default: 'both', options: [{ value: 'both', label: 'Titre et artiste' }, { value: 'title', label: 'Titre seulement' }, { value: 'artist', label: 'Artiste seulement' }] },
+      { id: 'scoring', label: 'Points', type: 'select', default: 'simple', options: [{ value: 'simple', label: '1 point par bonne réponse' }, { value: 'speed', label: 'Plus tu es rapide, plus tu marques' }] },
       categories(BLINDTEST_CATEGORIES, 'Playlists', ['rapfr', 'popfr', 'hits', 'annees2000']),
     ],
   },

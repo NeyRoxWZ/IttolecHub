@@ -156,7 +156,9 @@ export async function POST(request: Request) {
 
       if (table === 'rooms') {
         // Settings, game choice, status, host hand-over, closing: the host's job.
-        if (!runsRoom) {
+        // Anyone may only send the whole room back to the lobby (the players' majority vote).
+        const backToLobby = op === 'update' && Object.keys(rows[0]).length === 1 && rows[0].status === 'waiting';
+        if (!runsRoom && !backToLobby) {
           const remaining = (seated || []).filter((p) => p.id !== pid).length;
           const lastOneLeaving = op === 'delete' && remaining === 0;
           if (!lastOneLeaving) return fail(403, NOT_HOST);

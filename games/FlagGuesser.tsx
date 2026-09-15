@@ -2,7 +2,6 @@
 
 import { Flag } from 'lucide-react';
 import ImageGuessGame, { type GuessCard, type ImageGuessConfig } from './party/ImageGuessGame';
-import { MediaFrame } from './party/ui';
 
 async function loadDeck(settings: Record<string, any>, rounds: number): Promise<GuessCard[]> {
   const region = encodeURIComponent(String(settings.region || 'all'));
@@ -16,6 +15,7 @@ const CONFIG: ImageGuessConfig = {
   gameType: 'flagguessr',
   title: 'FlagGuessr',
   tagline: 'À quel pays est ce drapeau ?',
+  question: 'À quel pays est ce drapeau ?',
   icon: Flag,
   swatch: { fill: '#3B6BFF', shade: '#2A4FC4' },
   defaultTime: 15,
@@ -29,10 +29,10 @@ const CONFIG: ImageGuessConfig = {
     'Plus tu trouves vite, plus tu marques. Bonus pour le premier.',
   ],
   loadDeck,
+  ratio: 3 / 2,
+  frameClass: 'bg-[#DDE3FF]',
   renderMedia: (card, { playing }) => (
-    <MediaFrame className="mx-auto aspect-[3/2] max-w-xl p-4 sm:p-6">
-      <img src={String(card.flagUrl)} alt={playing ? 'Drapeau à deviner' : `Drapeau : ${card.reveal}`} draggable={false} className="h-full w-full select-none object-contain drop-shadow" />
-    </MediaFrame>
+    <img src={String(card.flagUrl)} alt={playing ? 'Drapeau à deviner' : `Drapeau : ${card.reveal}`} draggable={false} className="h-full w-full select-none object-contain p-[5%] drop-shadow" />
   ),
 };
 

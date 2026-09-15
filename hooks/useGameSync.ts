@@ -40,6 +40,8 @@ export function useGameSync(roomCode: string, gameType: string) {
 
   // Derived state
   const roomStatus = room?.status || 'waiting';
+  /** The game the room is on right now: a tab left on another game's page must not play it. */
+  const roomGameType: string | null = room?.game_type ?? null;
 
   const gameState: GameState | null = useMemo(() => {
     if (!session) return null;
@@ -321,6 +323,7 @@ export function useGameSync(roomCode: string, gameType: string) {
 
   return {
     roomStatus,
+    roomGameType,
     players,
     gameState,
     isHost,

@@ -3,7 +3,6 @@
 import { Zap } from 'lucide-react';
 import { shuffle } from '@/lib/party/text';
 import ImageGuessGame, { type GuessCard, type ImageGuessConfig } from './party/ImageGuessGame';
-import { MediaFrame } from './party/ui';
 
 const GENERATIONS: Record<number, [number, number]> = {
   1: [1, 151], 2: [152, 251], 3: [252, 386], 4: [387, 493], 5: [494, 649], 6: [650, 721], 7: [722, 809], 8: [810, 905], 9: [906, 1025],
@@ -44,6 +43,7 @@ const CONFIG: ImageGuessConfig = {
   gameType: 'pokeguessr',
   title: 'PokéGuessr',
   tagline: 'Quel est ce Pokémon ?',
+  question: 'Quel est ce Pokémon ?',
   icon: Zap,
   swatch: { fill: '#FF8A1F', shade: '#CC6508' },
   defaultTime: 30,
@@ -57,20 +57,21 @@ const CONFIG: ImageGuessConfig = {
     'Plus tu trouves vite, plus tu marques. Bonus pour le premier.',
   ],
   loadDeck,
+  ratio: 1,
+  // A light backdrop: the black silhouette has to stand out.
+  frameClass: 'bg-[radial-gradient(circle_at_50%_45%,#FFFFFF_0%,#DDE3FF_55%,#9FA9E8_100%)]',
   renderMedia: (card, { playing, settings }) => {
     const mode = settings.difficulty || 'normal';
     const style = !playing ? {} : mode === 'easy' ? { filter: 'blur(14px)' } : mode === 'hard' ? { filter: 'brightness(0)', transform: 'rotate(180deg)' } : { filter: 'brightness(0)' };
     return (
-      <MediaFrame className="mx-auto aspect-square max-w-[min(100%,320px)] p-6">
-        <img
-          src={String(card.imageUrl)}
-          alt={playing ? 'Pokémon à deviner' : card.reveal}
-          draggable={false}
-          onContextMenu={(e) => e.preventDefault()}
-          className="h-full w-full select-none object-contain transition-[filter,transform] duration-700"
-          style={style}
-        />
-      </MediaFrame>
+      <img
+        src={String(card.imageUrl)}
+        alt={playing ? 'Pokémon à deviner' : card.reveal}
+        draggable={false}
+        onContextMenu={(e) => e.preventDefault()}
+        className="h-full w-full select-none object-contain p-[6%] transition-[filter,transform] duration-700"
+        style={style}
+      />
     );
   },
 };

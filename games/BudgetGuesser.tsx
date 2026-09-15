@@ -1,8 +1,6 @@
 'use client';
 
 import { DollarSign } from 'lucide-react';
-import { BRAWL } from '@/lib/ui/brawl';
-import { cn } from '@/lib/utils';
 import EstimateGame, { type EstimateCard, type EstimateConfig } from './party/EstimateGame';
 import { MediaFrame } from './party/ui';
 
@@ -15,27 +13,24 @@ async function loadDeck(_settings: Record<string, any>, rounds: number): Promise
   return movies.map((m) => ({ id: m.id, value: m.budget, title: m.title, poster: m.poster_path, year: m.release_date, genres: m.genres }));
 }
 
+/** Poster on the left, title and details on the right: fits any height it is given. */
 function MovieCard({ card }: { card: EstimateCard }) {
   return (
-    <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-stretch">
-      <MediaFrame className="mx-auto aspect-[2/3] w-40 shrink-0 sm:mx-0 sm:w-48">
-        {card.poster ? (
-          <img src={String(card.poster)} alt={`Affiche de ${card.title}`} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full items-center justify-center p-3 text-center font-bold text-tx-muted">Pas d’affiche</div>
-        )}
-      </MediaFrame>
-      <div className={cn(BRAWL.panel, 'flex flex-1 flex-col justify-center gap-3 p-4 text-center sm:text-left')}>
-        <p className="text-xs font-black uppercase tracking-widest text-tx-secondary">Budget de production du film</p>
-        <h2 className="font-display text-3xl leading-tight md:text-4xl">{String(card.title)}</h2>
-        <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
-          <span className="rounded-lg border-[3px] border-brand-border bg-brand-inner px-2 py-0.5 font-display">{String(card.year)}</span>
+    <MediaFrame className="flex h-full min-h-0 w-full gap-3 bg-brand-card p-2 sm:p-3">
+      <div className="h-full min-h-0 shrink-0 overflow-hidden rounded-xl border-[3px] border-brand-border bg-brand-inner" style={{ aspectRatio: '2 / 3' }}>
+        {card.poster ? <img src={String(card.poster)} alt={`Affiche de ${card.title}`} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center p-2 text-center text-sm font-bold text-tx-muted">Pas d’affiche</div>}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
+        <p className="text-[11px] font-black uppercase tracking-widest text-tx-secondary">Budget du film</p>
+        <h2 className="font-display text-2xl leading-tight [overflow-wrap:anywhere] sm:text-3xl">{String(card.title)}</h2>
+        <div className="flex flex-wrap gap-1.5">
+          <span className="rounded-md border-2 border-brand-border bg-brand-inner px-2 font-display text-sm">{String(card.year)}</span>
           {(card.genres as string[] | undefined)?.slice(0, 3).map((g) => (
-            <span key={g} className="rounded-lg border-[3px] border-brand-border bg-accent-primary px-2 py-0.5 font-display text-brand-bg">{g}</span>
+            <span key={g} className="rounded-md border-2 border-brand-border bg-accent-primary px-2 font-display text-sm text-brand-bg">{g}</span>
           ))}
         </div>
       </div>
-    </div>
+    </MediaFrame>
   );
 }
 
@@ -43,6 +38,7 @@ const CONFIG: EstimateConfig = {
   gameType: 'budgetguessr',
   title: 'BudgetGuessr',
   tagline: 'Combien a coûté ce film ?',
+  question: 'Combien a coûté ce film ?',
   icon: DollarSign,
   swatch: { fill: '#1FB866', shade: '#158A4B' },
   defaultTime: 30,

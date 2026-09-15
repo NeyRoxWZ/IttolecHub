@@ -156,12 +156,19 @@ export function usePartyGame(roomCode: string, gameType: string) {
     router.push(`/room/${roomCode}?return=true`);
   }, [roomId, roomCode, router]);
 
-  // The host sent everyone back to the room: follow, instead of waiting on a game that no longer exists.
-  const seenPlaying = useRef(false);
+  // This page only plays while the room is on this very game. Back in the lobby, or
+  // on another game, the player follows the room instead of staring at a dead screen
+  // (and a forgotten tab can never drive another game's rounds).
+  const foreign = !!sync.roomGameType && sync.roomGameType !== gameType;
+  const roomKnown = !!sync.roomGameType;
   useEffect(() => {
-    if (sync.roomStatus === 'in_game') seenPlaying.current = true;
-    else if (sync.roomStatus === 'waiting' && seenPlaying.current && roomId) router.push(`/room/${roomCode}?return=true`);
-  }, [sync.roomStatus, roomId, roomCode, router]);
+    if (!roomId || !roomKnown) return;
+    const t = setTimeout(() => {
+      if (sync.roomStatus !== 'in_game') router.push(`/room/${roomCode}?return=true`);
+      else if (foreign) router.push(`/games/${sync.roomGameType}/${roomCode}`);
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [sync.roomStatus, sync.roomGameType, foreign, roomKnown, roomId, roomCode, router]);
 
   const deck = (gameState?.answers as any)?.deck;
 
@@ -169,7 +176,7 @@ export function usePartyGame(roomCode: string, gameType: string) {
     ...sync,
     roomCode,
     gameType,
-    loaded: !!gameState,
+    loaded: !!gameState && !foreign,
     round,
     phase,
     settings,

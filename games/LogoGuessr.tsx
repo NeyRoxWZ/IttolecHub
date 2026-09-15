@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 import ImageGuessGame, { type GuessCard, type ImageGuessConfig } from './party/ImageGuessGame';
-import { MediaFrame } from './party/ui';
 
 const SIZE = 320;
 const GRID = 8;
@@ -69,7 +68,7 @@ function LogoMedia({ url, name, playing, progress, mode }: { url: string; name: 
   }, [useCanvas, img, mode, progress, url]);
 
   return (
-    <MediaFrame className="mx-auto aspect-square max-w-[min(100%,300px)] bg-white p-4">
+    <div className="h-full w-full p-[6%]">
       {failed ? (
         <div className="flex h-full w-full items-center justify-center font-display text-6xl text-brand-bg">{playing ? '?' : name.slice(0, 2).toUpperCase()}</div>
       ) : useCanvas ? (
@@ -83,7 +82,7 @@ function LogoMedia({ url, name, playing, progress, mode }: { url: string; name: 
           style={playing && mode === 'easy' ? { filter: `blur(${Math.round(18 * (1 - progress))}px)` } : undefined}
         />
       )}
-    </MediaFrame>
+    </div>
   );
 }
 
@@ -91,6 +90,7 @@ const CONFIG: ImageGuessConfig = {
   gameType: 'logoguessr',
   title: 'LogoGuessr',
   tagline: 'Reconnais la marque.',
+  question: 'Quelle est cette marque ?',
   icon: ImageIcon,
   swatch: { fill: '#FF4F8B', shade: '#C92D63' },
   defaultTime: 15,
@@ -104,6 +104,8 @@ const CONFIG: ImageGuessConfig = {
     'Plus tu trouves vite, plus tu marques. Bonus pour le premier.',
   ],
   loadDeck,
+  ratio: 1,
+  frameClass: 'bg-white',
   renderMedia: (card, { playing, progress, settings }) => (
     <LogoMedia url={String(card.logoUrl)} name={card.reveal} playing={playing} progress={progress} mode={String(settings.difficulty || 'easy')} />
   ),

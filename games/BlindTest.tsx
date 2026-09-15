@@ -1,26 +1,45 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Music, Volume2, VolumeX, Check, X } from 'lucide-react';
+import { Check, Disc3, Music, Volume2, VolumeX, X } from 'lucide-react';
 import { toast } from 'sonner';
-import OgName from '@/components/OgName';
 import { cn } from '@/lib/utils';
 import { BRAWL } from '@/lib/ui/brawl';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { isCloseEnough, normalize } from '@/lib/party/text';
 import { addScores, listSetting, numSetting, useHostStep, usePartyGame, type Scores } from './party/usePartyGame';
-import { AnswerInput, NextStep, PartyShell, PlayerChips, Podium, PromptCard, ScoreList, SetupScreen } from './party/ui';
+import { AnswerInput, Column, Columns, MediaFrame, PartyShell, PlayerChips, Podium, PromptCard, ResultsScreen, RevealBanner, Screen, SetupScreen, type RoundRow } from './party/ui';
 
 const SWATCH = { fill: '#8B3DFF', shade: '#6526C9' };
 const LEAD_IN = 3;
 const RESULTS_TIME = 9;
 const VOLUME_KEY = 'itollec_blindtest_volume';
-// A silent sound played on a tap: phones then let the page play the songs.
-const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 
 type Song = { id: number; title: string; artist: string; cover: string; preview: string; catLabel?: string };
 type Part = 'title' | 'artist';
 type Find = { pid: string; part: Part; sec: number };
+
+/** A short three-note chime: proof the sound works, and it unlocks audio on phones. */
+function playChime(volume: number) {
+  try {
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new Ctx();
+    [523.25, 659.25, 783.99].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = 'triangle';
+      const t = ctx.currentTime + i * 0.14;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.25 * volume, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.32);
+    });
+    setTimeout(() => ctx.close(), 1200);
+  } catch {}
+}
 
 export default function BlindTest({ params }: { params: { code: string } }) {
   const party = usePartyGame(params.code, 'blindtest');
@@ -28,6 +47,7 @@ export default function BlindTest({ params }: { params: { code: string } }) {
   const listenTime = [15, 20, 30].includes(Number(settings.listenTime)) ? Number(settings.listenTime) : 30;
   const mode: 'both' | Part = settings.answerMode === 'title' || settings.answerMode === 'artist' ? settings.answerMode : 'both';
   const need: Part[] = mode === 'both' ? ['title', 'artist'] : [mode];
+  const simple = settings.scoring !== 'speed';
 
   const song: Song | undefined = round.song;
   const startsAt: number = round.starts_at || 0;
@@ -43,15 +63,14 @@ export default function BlindTest({ params }: { params: { code: string } }) {
   useEffect(() => {
     audio.current = new Audio();
     audio.current.preload = 'auto';
-    try { const v = Number(localStorage.getItem(VOLUME_KEY)); if (v >= 0 && v <= 1 && localStorage.getItem(VOLUME_KEY) !== null) setVolume(v); } catch {}
-    return () => { audio.current?.pause(); audio.current = null; };
+    try { const v = localStorage.getItem(VOLUME_KEY); if (v !== null && Number(v) >= 0 && Number(v) <= 1) setVolume(Number(v)); } catch {}
+    return () => { audio.current?.pause(); if (audio.current) audio.current.src = ''; audio.current = null; };
   }, []);
   useEffect(() => {
     if (audio.current) audio.current.volume = muted ? 0 : volume;
     try { localStorage.setItem(VOLUME_KEY, String(volume)); } catch {}
   }, [volume, muted]);
 
-  // New song: load it ahead of the countdown.
   useEffect(() => {
     const a = audio.current;
     if (!a || !song?.preview) return;
@@ -60,12 +79,12 @@ export default function BlindTest({ params }: { params: { code: string } }) {
     a.load();
   }, [song?.id, song?.preview]);
 
-  // Everyone starts the song at the same moment (late arrivals jump in at the right spot).
+  // Everyone starts the song at the same moment; late arrivals jump in at the right spot.
   useEffect(() => {
     const a = audio.current;
     if (!a || !song) return;
-    if (phase === 'podium' || phase === 'setup') { a.pause(); return; }
-    if ((phase === 'listen' || phase === 'results') && now >= startsAt && a.paused && !a.ended && a.src) {
+    if (phase !== 'listen' && phase !== 'results') { a.pause(); return; }
+    if (now >= startsAt && a.paused && !a.ended && a.src) {
       const offset = (now - startsAt) / 1000;
       if (offset < 29) {
         try { a.currentTime = Math.max(0, offset); } catch {}
@@ -74,28 +93,34 @@ export default function BlindTest({ params }: { params: { code: string } }) {
     }
   });
 
-  const unlock = () => {
+  // A tap unlocks the sound, joining the song where everyone else is.
+  const resume = () => {
     const a = audio.current;
     if (!a) return;
-    const keep = a.src;
-    if (!keep) {
-      a.src = SILENT;
-      a.play().catch(() => {});
-    } else {
-      a.play().then(() => setBlocked(false)).catch(() => {});
-    }
+    const offset = (party.serverTime() - startsAt) / 1000;
+    if (offset > 0 && offset < 29) { try { a.currentTime = offset; } catch {} }
+    a.play().then(() => setBlocked(false)).catch(() => toast.error('Le navigateur bloque le son. Vérifie qu’il n’est pas coupé.'));
   };
+
+  const soundControl = (
+    <div className="flex shrink-0 items-center gap-2 rounded-xl border-[3px] border-brand-border bg-brand-inner px-2 py-1.5">
+      <button onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Remettre le son' : 'Couper le son'}>
+        {muted || volume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5 text-accent-success" />}
+      </button>
+      <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => { setVolume(Number(e.target.value)); setMuted(false); }} className="min-w-0 flex-1 accent-[#33D17A]" aria-label="Volume" />
+      <button onClick={() => playChime(muted ? 0 : volume)} className="shrink-0 text-xs font-black uppercase tracking-widest text-tx-secondary hover:text-white">Tester</button>
+    </div>
+  );
 
   /* ---------------- guesses ---------------- */
   const [draft, setDraft] = useState('');
   const [miss, setMiss] = useState(0);
   const [localFound, setLocalFound] = useState<{ key: string; parts: Part[] }>({ key: '', parts: [] });
   const roundKey = `${gid}:${roundNo}`;
-  useEffect(() => setDraft(''), [roundKey]);
+  useEffect(() => { setDraft(''); setMiss(0); }, [roundKey]);
 
-  const finds = party.movesIn('listen', 'found');
   const foundBy: Record<string, Partial<Record<Part, string>>> = {};
-  for (const m of finds) {
+  for (const m of party.movesIn('listen', 'found')) {
     const part = m.payload?.part as Part;
     if (!need.includes(part)) continue;
     (foundBy[m.player_id] ||= {})[part] ||= m.created_at;
@@ -111,14 +136,14 @@ export default function BlindTest({ params }: { params: { code: string } }) {
     for (const part of need) {
       if (myParts.has(part)) continue;
       const answer = part === 'title' ? song.title : song.artist;
-      if (pieces.some((p) => isCloseEnough(p, answer) || (normalize(p).length >= 4 && normalize(answer).startsWith(normalize(p)) && normalize(p).length >= normalize(answer).length * 0.7))) hits.push(part);
+      const a = normalize(answer);
+      if (pieces.some((p) => isCloseEnough(p, answer) || (normalize(p).length >= 4 && a.startsWith(normalize(p)) && normalize(p).length >= a.length * 0.7))) hits.push(part);
     }
     setDraft('');
     if (!hits.length) { setMiss((n) => n + 1); vibrate(HAPTIC.SOFT); return; }
     setLocalFound({ key: roundKey, parts: Array.from(myParts).concat(hits) });
     for (const part of hits) party.act('found', { part });
     vibrate(HAPTIC.MEDIUM);
-    toast.success(hits.length === 2 ? 'Titre et artiste trouvés !' : hits[0] === 'title' ? 'Titre trouvé !' : 'Artiste trouvé !');
   };
 
   /* ---------------- host ---------------- */
@@ -132,6 +157,7 @@ export default function BlindTest({ params }: { params: { code: string } }) {
   };
 
   const start = async () => {
+    playChime(volume);
     const count = numSetting(settings, 'rounds', 10, 1, 30);
     const cats = listSetting(settings, 'categories').join(',');
     const data = await fetch(`/api/games/blindtest?count=${count}&categories=${cats}`).then((r) => r.json()).catch(() => null);
@@ -148,7 +174,7 @@ export default function BlindTest({ params }: { params: { code: string } }) {
       const ordered = Object.entries(foundBy).filter(([, f]) => f[part]).sort((a, b) => a[1][part]!.localeCompare(b[1][part]!));
       ordered.forEach(([pid, f], i) => {
         const sec = Math.max(0, (Date.parse(f[part]!) - startsAt) / 1000);
-        const pts = 60 + Math.round(40 * Math.max(0, 1 - sec / listenTime)) + (i === 0 ? 20 : 0);
+        const pts = simple ? 1 : 60 + Math.round(40 * Math.max(0, 1 - sec / listenTime)) + (i === 0 ? 20 : 0);
         gains[pid] = (gains[pid] || 0) + pts;
         list.push({ pid, part, sec: Math.round(sec * 10) / 10 });
       });
@@ -162,98 +188,77 @@ export default function BlindTest({ params }: { params: { code: string } }) {
     await party.goToRound(roundNo + 1, roundFor(await fetchSong(deck[roundNo])));
   });
 
-  /* ---------------- render ---------------- */
-  const soundBar = (
-    <div className="flex w-full max-w-md items-center gap-3 rounded-2xl border-[3px] border-brand-border bg-brand-inner px-3 py-2">
-      <button onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Remettre le son' : 'Couper le son'} className="text-tx-base">
-        {muted || volume === 0 ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
-      </button>
-      <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => { setVolume(Number(e.target.value)); setMuted(false); }} className="flex-1 accent-[#FFC61A]" aria-label="Volume" />
-    </div>
-  );
+  const finds: Find[] = round.finds || [];
+  const partLabel = (p: Part) => (p === 'title' ? 'Titre' : 'Artiste');
 
   return (
     <PartyShell party={party} title="BlindTest" maxTime={phase === 'listen' ? listenTime + LEAD_IN : RESULTS_TIME}>
       {phase === 'setup' && (
         <SetupScreen
-          party={party}
-          title="BlindTest"
-          tagline="Un extrait, trouve le titre et l’artiste."
-          icon={Music}
-          swatch={SWATCH}
-          minPlayers={1}
-          onStart={start}
+          party={party} title="BlindTest" tagline="Un extrait, trouve le titre et l’artiste." icon={Music} swatch={SWATCH} minPlayers={1} onStart={start}
           rules={[
             'Un extrait de chanson se lance en même temps chez tout le monde.',
-            mode === 'both' ? 'Tape le titre et l’artiste, dans l’ordre que tu veux.' : mode === 'title' ? 'Tape le titre de la chanson.' : 'Tape le nom de l’artiste.',
+            mode === 'both' ? 'Tape le titre et l’artiste, dans l’ordre que tu veux, en une ou deux fois.' : mode === 'title' ? 'Tape le titre de la chanson.' : 'Tape le nom de l’artiste.',
             'Pas besoin des accents ni des majuscules, une petite faute passe.',
-            'Plus tu es rapide, plus tu marques. Bonus pour le premier qui trouve.',
+            simple ? '1 point par bonne réponse : titre et artiste trouvés = 2 points.' : 'Plus tu es rapide, plus tu marques. Bonus pour le premier.',
           ]}
-          note={
-            <div className="flex w-full flex-col items-center gap-2">
-              <button onClick={unlock} className={cn(BRAWL.blue, 'h-12 px-5 rounded-2xl text-lg')}>
-                <Volume2 className="h-5 w-5" /> Activer le son
-              </button>
-              {soundBar}
-            </div>
-          }
+          note={<div className="shrink-0 space-y-1"><p className="text-center text-xs font-bold text-tx-secondary">Monte le son de ton appareil et appuie sur Tester : tu dois entendre trois notes.</p>{soundControl}</div>}
         />
       )}
 
       {phase === 'listen' && song && (
-        <>
-          <PromptCard eyebrow={song.catLabel ?? `Extrait ${roundNo}/${totalRounds}`}>
-            {countdown > 0 ? <span className="text-6xl tabular-nums">{countdown}</span> : <span className="inline-flex items-center gap-3"><Music className="h-8 w-8 animate-pulse" /> Écoute…</span>}
-          </PromptCard>
-          {blocked && (
-            <button onClick={unlock} className={cn(BRAWL.pink, 'h-14 w-full max-w-md rounded-2xl text-xl animate-pulse')}>
-              <Volume2 className="h-6 w-6" /> Touche pour lancer le son
-            </button>
-          )}
-          <div className="flex flex-wrap justify-center gap-2">
-            {need.map((part) => (
-              <span key={part} className={cn('inline-flex h-10 items-center gap-2 rounded-xl border-[3px] border-brand-border px-3 font-display text-lg', myParts.has(part) ? 'bg-accent-success text-brand-bg' : 'bg-brand-inner text-tx-secondary')}>
-                {myParts.has(part) ? <Check className="h-5 w-5" /> : <X className="h-5 w-5 opacity-50" />}
-                {part === 'title' ? 'Titre' : 'Artiste'}
-              </span>
-            ))}
-          </div>
-          {doneAll ? (
-            <p className="font-display text-2xl text-accent-success">Bien joué !</p>
-          ) : (
-            <div key={miss} className={cn('w-full', miss > 0 && 'animate-in shake')}>
-              <AnswerInput value={draft} onChange={setDraft} maxLength={80} placeholder={mode === 'artist' ? 'L’artiste…' : mode === 'title' ? 'Le titre…' : 'Titre ou artiste…'} submitLabel="Proposer" onSubmit={guess} />
-            </div>
-          )}
-          <PlayerChips party={party} done={Object.entries(foundBy).filter(([, f]) => need.every((p) => f[p])).map(([pid]) => pid)} label="Ont tout trouvé" />
-          {soundBar}
-        </>
+        <Screen>
+          <Columns className="grid-rows-[minmax(0,1fr)_auto] lg:grid-rows-1">
+            <Column className="items-center justify-center">
+              <MediaFrame className="flex aspect-square h-full max-h-full max-w-full flex-col items-center justify-center gap-2 bg-[radial-gradient(circle,#2B3170_0%,#151942_70%)] p-4">
+                {countdown > 0 ? (
+                  <span className="font-display text-7xl tabular-nums">{countdown}</span>
+                ) : (
+                  <Disc3 className={cn('h-2/3 w-2/3 text-accent-success', !blocked && 'animate-spin [animation-duration:3s]')} />
+                )}
+                <span className="text-center text-xs font-black uppercase tracking-widest text-tx-secondary">{song.catLabel ?? `Extrait ${roundNo}/${totalRounds}`}</span>
+              </MediaFrame>
+            </Column>
+            <Column className="lg:justify-center">
+              {blocked && (
+                <button onClick={resume} className={cn(BRAWL.pink, 'h-12 w-full shrink-0 animate-pulse rounded-2xl text-lg')}>
+                  <Volume2 className="h-6 w-6" /> Touche pour lancer le son
+                </button>
+              )}
+              <div className="flex shrink-0 justify-center gap-2">
+                {need.map((part) => (
+                  <span key={part} className={cn('inline-flex h-9 items-center gap-1.5 rounded-xl border-[3px] border-brand-border px-3 font-display', myParts.has(part) ? 'bg-accent-success text-brand-bg' : 'bg-brand-inner text-tx-secondary')}>
+                    {myParts.has(part) ? <Check className="h-5 w-5" /> : <X className="h-5 w-5 opacity-50" />}{partLabel(part)}
+                  </span>
+                ))}
+              </div>
+              {doneAll ? (
+                <RevealBanner tone="good" eyebrow="Bien joué">Tout trouvé !</RevealBanner>
+              ) : (
+                <>
+                  <AnswerInput value={draft} onChange={setDraft} maxLength={80} placeholder={mode === 'artist' ? 'L’artiste…' : mode === 'title' ? 'Le titre…' : 'Titre ou artiste…'} submitLabel="Proposer" onSubmit={guess} />
+                  <p key={miss} className={cn('shrink-0 text-center text-sm font-bold', miss ? 'text-accent-secondary animate-in fade-in' : 'text-tx-secondary')}>{miss ? 'Raté, essaie encore' : 'Propose autant de fois que tu veux'}</p>
+                </>
+              )}
+              {soundControl}
+              <PlayerChips party={party} done={Object.entries(foundBy).filter(([, f]) => need.every((p) => f[p])).map(([pid]) => pid)} label="Tout trouvé" />
+            </Column>
+          </Columns>
+        </Screen>
       )}
 
       {phase === 'results' && song && (
-        <>
-          <div className={cn(BRAWL.panel, 'w-full p-4 flex items-center gap-4')}>
-            {song.cover && <img src={song.cover} alt={`Pochette de ${song.title}`} className="h-24 w-24 shrink-0 rounded-xl border-[3px] border-brand-border object-cover" />}
-            <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-widest text-tx-secondary">C’était</p>
-              <p className="font-display text-2xl md:text-3xl leading-tight [overflow-wrap:anywhere]">{song.title}</p>
-              <p className="font-bold text-accent-primary">{song.artist}</p>
-            </div>
-          </div>
-          {(round.finds as Find[] | undefined)?.length ? (
-            <ul className="flex w-full flex-wrap justify-center gap-2">
-              {(round.finds as Find[]).map((f, i) => (
-                <li key={i} className="rounded-xl border-[3px] border-brand-border bg-brand-inner px-3 py-1.5 text-sm font-bold">
-                  <OgName name={party.nameOf(f.pid)} /> · {f.part === 'title' ? 'titre' : 'artiste'} en {f.sec} s
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="font-bold text-tx-secondary">Personne n’a trouvé.</p>
-          )}
-          <ScoreList party={party} gains={round.gains} />
-          <NextStep party={party} onNext={next} label={roundNo >= totalRounds ? 'Voir le podium' : 'Extrait suivant'} />
-        </>
+        <ResultsScreen
+          party={party}
+          reveal={<RevealBanner tone={finds.length ? 'good' : 'bad'} eyebrow="C’était" detail={song.artist}>{song.title}</RevealBanner>}
+          media={song.cover ? <MediaFrame className="aspect-square h-full max-h-full max-w-full"><img src={song.cover} alt={`Pochette de ${song.title}`} className="h-full w-full object-cover" /></MediaFrame> : undefined}
+          rows={Object.fromEntries(party.seated.map((p) => {
+            const mine = finds.filter((f) => f.pid === p.id);
+            return [p.id, { ok: mine.length === need.length, answer: mine.length ? mine.map((f) => `${partLabel(f.part).toLowerCase()} en ${f.sec} s`).join(' · ') : 'rien trouvé' } as RoundRow];
+          }))}
+          onNext={next}
+          nextLabel={roundNo >= totalRounds ? 'Voir le podium' : 'Extrait suivant'}
+        />
       )}
 
       {phase === 'podium' && <Podium party={party} onReplay={start} flavor="Les meilleures oreilles." />}

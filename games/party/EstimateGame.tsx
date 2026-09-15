@@ -5,7 +5,7 @@ import type { LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { addScores, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './usePartyGame';
-import { AnswerInput, AnswerList, NextStep, PartyShell, PlayerChips, Podium, RevealBanner, ScoreList, SetupScreen, type Swatch } from './ui';
+import { AnswerInput, Column, Columns, PartyShell, PlayerChips, Podium, PromptCard, ResultsScreen, RevealBanner, Screen, SetupScreen, type RoundRow, type Swatch } from './ui';
 
 /**
  * Estimate a number, closest wins: BudgetGuessr (a film's budget),
@@ -19,6 +19,7 @@ export interface EstimateConfig {
   gameType: string;
   title: string;
   tagline: string;
+  question: string;
   icon: LucideIcon;
   swatch: Swatch;
   rules: string[];
@@ -31,6 +32,7 @@ export interface EstimateConfig {
   unitOf: (typed: number) => number;
   format: (value: number) => string;
   loadDeck: (settings: Record<string, any>, rounds: number) => Promise<EstimateCard[]>;
+  /** The item to estimate, filling the box it is given. */
   renderCard: (card: EstimateCard, revealed: boolean) => ReactNode;
 }
 
@@ -106,34 +108,36 @@ export default function EstimateGame({ roomCode, config }: { roomCode: string; c
   const results: { pid: string; value: number; diff: number }[] = round.results || [];
 
   return (
-    <PartyShell party={party} title={config.title} maxTime={phase === 'estimate' ? time : RESULTS_TIME} wide>
+    <PartyShell party={party} title={config.title} maxTime={phase === 'estimate' ? time : RESULTS_TIME}>
       {phase === 'setup' && (
         <SetupScreen party={party} title={config.title} tagline={config.tagline} icon={config.icon} swatch={config.swatch} minPlayers={1} onStart={start} rules={config.rules} />
       )}
 
       {phase === 'estimate' && card && (
-        <>
-          {config.renderCard(card, false)}
-          <div className="w-full max-w-xl space-y-2">
-            <AnswerInput value={draft} onChange={setDraft} onSubmit={submit} placeholder={config.placeholder} maxLength={12} numeric prefix={config.prefix} submitLabel={mine ? 'Changer' : 'Valider'} autoFocus={false} />
-            {mine !== undefined && <p className="text-center font-bold text-accent-success">Ton estimation : {config.format(mine)} (tu peux la changer)</p>}
-          </div>
-          <PlayerChips party={party} done={Object.keys(estimates)} label="Ont estimé" />
-        </>
+        <Screen>
+          <Columns className="grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:grid-rows-1">
+            <Column>{config.renderCard(card, false)}</Column>
+            <Column className="lg:justify-center">
+              <PromptCard eyebrow={`Manche ${roundNo}/${totalRounds}`} className="hidden lg:block">{config.question}</PromptCard>
+              <AnswerInput value={draft} onChange={setDraft} onSubmit={submit} placeholder={config.placeholder} maxLength={12} numeric prefix={config.prefix} submitLabel={mine ? 'Changer' : 'Valider'} autoFocus={false} />
+              <p className="shrink-0 text-center text-sm font-bold text-tx-secondary">
+                {mine !== undefined ? <span className="text-accent-success">Ton estimation : {config.format(mine)} (modifiable)</span> : 'Tu peux changer d’avis jusqu’à la fin'}
+              </p>
+              <PlayerChips party={party} done={Object.keys(estimates)} label="Estimé" />
+            </Column>
+          </Columns>
+        </Screen>
       )}
 
       {phase === 'results' && card && (
-        <>
-          {config.renderCard(card, true)}
-          <RevealBanner tone={results.length && results[0].diff < 15 ? 'good' : 'neutral'} eyebrow="La vraie réponse">{config.format(card.value)}</RevealBanner>
-          <AnswerList
-            party={party}
-            title="Estimations"
-            rows={results.map((r) => ({ pid: r.pid, answer: config.format(r.value), ok: r.diff < 30, note: `écart de ${r.diff} %`, points: round.gains?.[r.pid] }))}
-          />
-          <ScoreList party={party} gains={round.gains} />
-          <NextStep party={party} onNext={next} label={roundNo >= totalRounds ? 'Voir le podium' : 'Manche suivante'} />
-        </>
+        <ResultsScreen
+          party={party}
+          reveal={<RevealBanner tone={results.length && results[0].diff < 15 ? 'good' : 'neutral'} eyebrow="La vraie réponse">{config.format(card.value)}</RevealBanner>}
+          media={config.renderCard(card, true)}
+          rows={Object.fromEntries(results.map((r) => [r.pid, { answer: config.format(r.value), ok: r.diff < 30, note: `écart ${r.diff} %` } as RoundRow]))}
+          onNext={next}
+          nextLabel={roundNo >= totalRounds ? 'Voir le podium' : 'Manche suivante'}
+        />
       )}
 
       {phase === 'podium' && <Podium party={party} onReplay={start} flavor={config.flavor} />}

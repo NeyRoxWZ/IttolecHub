@@ -19,7 +19,7 @@ import OgName from '@/components/OgName';
 import { roomDb } from '@/lib/supabase/roomClient';
 import { forgetSeat, recallSeat, rememberSeat, takeOverIfHostGone } from '@/lib/roomSeat';
 import { PARTY_GAMES, partyMinPlayers } from '@/lib/party/catalog';
-import GameIcon, { hasGameIcon } from '@/components/GameIcon';
+import RoomLobby from './RoomLobby';
 import { Music, Laugh, Quote, Gavel, BookOpen, Brush, Grid3x3, HelpCircle } from 'lucide-react';
 interface Player {
   id: string;
@@ -765,8 +765,12 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
               return;
           }
 
-          // Redirection si la partie commence
-          if (newRoom.status === 'in_game' || newRoom.status === 'started') {
+          // Redirection si une partie vient d'être lancée : seul un nouveau lancement (tampon
+          // startedAt) déplace les joueurs, pas un simple changement de jeu ou de réglage.
+          const startStamp = (newRoom.settings as any)?.startedAt ?? null;
+          const isNewStart = startStamp !== null && startStamp !== seenStartRef.current;
+          if (startStamp !== null) seenStartRef.current = startStamp;
+          if ((newRoom.status === 'in_game' || newRoom.status === 'started') && isNewStart) {
             const paramsUrl = new URLSearchParams();
             if (newRoom.settings) {
                 Object.entries(newRoom.settings).forEach(([k, v]) => {
@@ -851,18 +855,28 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
   // Realtime can miss the start of a game (phone asleep, background tab): check
   // the room now and then, and follow when it switches to a game.
   const lastStatus = useRef<string | null>(null);
+  const seenStartRef = useRef<unknown>(null);
   useEffect(() => {
     const check = async () => {
-      const { data } = await supabase.from('rooms').select('status, game_type, settings').eq('code', params.code).maybeSingle();
+      const { data } = await supabase.from('rooms').select('id, status, game_type, settings').eq('code', params.code).maybeSingle();
       if (!data) return;
       const playing = data.status === 'in_game' || data.status === 'started';
-      // Each start stamps the settings, so a new game is seen even when the room never left "in game".
-      const signature = `${data.status}:${data.game_type}:${(data.settings as any)?.startedAt ?? ''}`;
+      const cameBack = new URLSearchParams(window.location.search).get('return') === 'true';
+      // Coming back to the lobby ends the game for the whole room: nobody stays in it alone,
+      // and choosing the next game can't send anyone into the old one.
+      if (lastStatus.current === null && cameBack && playing) {
+        await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', data.id);
+        await roomDb.from('game_sessions').delete().eq('room_id', data.id);
+        lastStatus.current = 'waiting';
+        return;
+      }
+      // Each start stamps the settings: only a new stamp is a new game (picking a game is not).
+      const stamp = (data.settings as any)?.startedAt ?? null;
+      const signature = `${data.status}:${stamp ?? ''}`;
       const was = lastStatus.current;
       lastStatus.current = signature;
-      if (!playing || !data.game_type || data.game_type === '__placeholder__') return;
-      // Back from a game on purpose (?return=true): only a new start moves the player.
-      const cameBack = new URLSearchParams(window.location.search).get('return') === 'true';
+      if (stamp !== null) seenStartRef.current = stamp;
+      if (!playing || stamp === null || !data.game_type || data.game_type === '__placeholder__') return;
       if (was === null ? cameBack : was === signature) return;
       router.push(`/games/${data.game_type}/${params.code}`);
     };
@@ -1191,25 +1205,24 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10 font-sans selection:bg-tx-base/30 flex flex-col">
-      <div className="relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col">
-        
+    <div className="h-[100dvh] overflow-hidden bg-transparent text-tx-base px-3 sm:px-6 pt-3 pb-3 font-sans selection:bg-tx-base/30 flex flex-col">
+      <div className="relative z-10 w-full max-w-7xl mx-auto flex-1 min-h-0 flex flex-col">
         {/* Header */}
-        <header className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
+        <header className="flex items-center justify-between gap-2 mb-3 shrink-0">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-4">
                 <button
                     onClick={leaveRoom}
                     aria-label="Quitter le salon"
-                    className={cn(BRAWL.pink, "h-12 w-12")}
+                    className={cn(BRAWL.pink, "h-11 w-11 shrink-0 sm:h-12 sm:w-12")}
                 >
                     <LogOut className="h-5 w-5" />
                 </button>
-                <h1 className="font-display text-3xl sm:text-4xl leading-none">
+                <h1 className="font-display text-xl min-[400px]:text-2xl sm:text-4xl leading-none whitespace-nowrap">
                     Salon de jeu
                 </h1>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                 {!isPrivateMode && (
                     <button 
                         onClick={() => setShowJoinOverlay(true)}
@@ -1224,7 +1237,7 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
                     onClick={togglePrivateMode}
                     className={cn(
                         isPrivateMode ? BRAWL.yellow : BRAWL.dark,
-                        "h-12 px-4 text-lg"
+                        "h-11 px-3 text-lg sm:h-12 sm:px-4"
                     )}
                     title={isPrivateMode ? "Désactiver le mode privé" : "Activer le mode privé (masque les codes)"}
                     disabled={!isHost}
@@ -1234,7 +1247,7 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
                 </button>
 
                 <div 
-                    className="h-12 flex items-center gap-3 bg-brand-bg border-[3px] border-brand-border px-3 rounded-2xl cursor-pointer shadow-[0_4px_0_#05061A] active:translate-y-[3px] transition-transform group"
+                    className="h-11 sm:h-12 flex items-center gap-3 bg-brand-bg border-[3px] border-brand-border px-2 sm:px-3 rounded-2xl cursor-pointer shadow-[0_4px_0_#05061A] active:translate-y-[3px] transition-transform group"
                     onClick={() => {
                         navigator.clipboard.writeText(params.code);
                         toast.success('Code copié !');
@@ -1242,7 +1255,7 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
                     title={isPrivateMode ? "Code masqué (cliquez pour copier)" : "Copier le code"}
                 >
                     <span className="hidden sm:inline text-xs text-tx-secondary uppercase tracking-widest font-bold">Code</span>
-                    <span className="font-display text-2xl text-accent-primary transition-colors">
+                    <span className="font-display text-lg sm:text-2xl text-accent-primary transition-colors">
                         {isPrivateMode ? '••••••' : params.code}
                     </span>
                     {copied ? <CheckCircle className="h-5 w-5 text-accent-success" /> : <Copy className="h-5 w-5 text-tx-base group-hover:scale-110 transition-transform" />}
@@ -1250,285 +1263,17 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
             </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 flex-1 min-h-0">
-          
-          {/* LEFT: Game Configuration */}
-          <div className="lg:col-span-8 flex flex-col gap-6 min-h-0">
-            
-            {/* Game Selection Card */}
-            <div className={cn(BRAWL.panel, "p-5 sm:p-6 flex flex-col")}>
-                <div className="flex items-center gap-3 mb-5">
-                    <div className={cn(BRAWL.iconTile, "h-11 w-11 bg-accent-secondary text-white shadow-[inset_0_-4px_0_#C92D63]")}>
-                        <Gamepad2 className="h-6 w-6" />
-                    </div>
-                    <h2 className="font-display text-3xl">Choix du jeu</h2>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto custom-scrollbar p-1 pb-2 max-h-[320px] lg:max-h-none">
-                    {gamesList.map((game, gi) => {
-                        const isSelected = selectedGameId === game.id;
-                        const Icon = game.icon;
-                        const isComingSoon = (game as any).comingSoon;
-                        const sw = BRAWL_SWATCHES[gi % BRAWL_SWATCHES.length];
-
-                        return (
-                            <div
-                                key={game.id}
-                                onClick={() => {
-                                    if (!isHost) return;
-                                    if (isComingSoon) {
-                                        toast.info("Ce jeu arrive bientôt !");
-                                        return;
-                                    }
-                                    vibrate(HAPTIC.SOFT);
-                                    setSelectedGameId(game.id);
-                                }}
-                                className={cn(
-                                    "rounded-2xl border-[3px] border-brand-border transition-transform p-2.5 flex items-center gap-3",
-                                    isHost ? "cursor-pointer active:translate-y-[3px]" : "cursor-default",
-                                    isComingSoon && isHost && "opacity-50 cursor-not-allowed",
-                                    isSelected
-                                        ? "bg-accent-primary text-brand-bg shadow-[inset_0_-5px_0_#D98E00,0_4px_0_#05061A]"
-                                        : cn("bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A]", isHost && "hover:bg-[#333A80]")
-                                )}
-                            >
-                                {hasGameIcon(game.id) ? (
-                                    <GameIcon game={game.id} className="h-12 w-12 shrink-0" />
-                                ) : (
-                                    <div
-                                        className="h-12 w-12 shrink-0 rounded-xl border-[3px] border-brand-border flex items-center justify-center text-white"
-                                        style={{ background: sw.fill, boxShadow: `inset 0 -4px 0 ${sw.shade}` }}
-                                    >
-                                        <Icon className="h-6 w-6" />
-                                    </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between gap-2">
-                                        {/* Inner padding: the title's outline would otherwise be clipped by the ellipsis. */}
-                                        <h3 className="font-display text-xl leading-tight truncate px-1 py-0.5 -mx-1">{game.name}</h3>
-                                        {isComingSoon && (
-                                            <span className="shrink-0 text-[11px] font-black bg-brand-bg text-white border-[3px] border-brand-border px-1.5 py-0.5 rounded-lg">
-                                                Bientôt
-                                            </span>
-                                        )}
-                                        {isSelected && !isHost && (
-                                            <span className="shrink-0 text-[11px] font-black bg-brand-bg text-accent-primary border-[3px] border-brand-border px-1.5 py-0.5 rounded-lg">
-                                                Choisi
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className={cn("text-sm font-bold truncate", isSelected ? "text-brand-bg/80" : "text-tx-secondary")}>{game.description}</p>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-                {!isHost && !selectedGame && (
-                    <p className="mt-4 text-center text-tx-secondary font-bold flex items-center justify-center gap-2">
-                        <Settings className="h-4 w-4 animate-spin-slow opacity-50" />
-                        L&apos;hôte choisit un jeu...
-                    </p>
-                )}
-            </div>
-
-            {/* Settings Card */}
-            {selectedGame && (
-                <div className={cn(BRAWL.panel, "p-5 sm:p-6 flex flex-col flex-1 min-h-0 animate-in slide-in-from-bottom-4 duration-500")}>
-                    <div className="flex items-center justify-between mb-5">
-                        <div className="flex items-center gap-3">
-                            <div className={cn(BRAWL.iconTile, "h-11 w-11 bg-accent-info text-white shadow-[inset_0_-4px_0_#2F5BD0]")}>
-                                <Settings className="h-6 w-6" />
-                            </div>
-                            <h2 className="font-display text-3xl">Paramètres</h2>
-                        </div>
-                        {!isHost && (
-                            <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-brand-inner border-[3px] border-brand-border text-tx-secondary">
-                                Paramètres synchronisés
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {selectedGame.settings.map((setting) => (
-                                <div key={setting.id} className="space-y-2">
-                                    <label className="text-xs font-bold text-tx-secondary uppercase tracking-widest ml-1">
-                                        {setting.label}
-                                    </label>
-                                    
-                                    {isHost ? (
-                                        <div className="relative">
-                                            {setting.type === 'number' && (
-                                                <input
-                                                    type="number"
-                                                    value={String(gameSettings[setting.id] ?? setting.default)}
-                                                    onChange={(e) => handleSettingChange(setting.id, e.target.value === '' ? setting.default : Number(e.target.value))}
-                                                    className="w-full h-12 bg-brand-inner border-[3px] border-brand-border text-tx-base rounded-lg px-4 focus:outline-none focus:border-accent-primary transition-colors"
-                                                />
-                                            )}
-                                            {setting.type === 'text' && (
-                                                <input
-                                                    type="text"
-                                                    value={String(gameSettings[setting.id] ?? setting.default)}
-                                                    onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-                                                    className="w-full h-12 bg-brand-inner border-[3px] border-brand-border text-tx-base rounded-lg px-4 focus:outline-none focus:border-accent-primary transition-colors"
-                                                />
-                                            )}
-                                            {setting.type === 'select' && setting.options && (
-                                                <Select
-                                                    value={String(gameSettings[setting.id] ?? setting.default)}
-                                                    onValueChange={(v) => handleSettingChange(setting.id, v)}
-                                                >
-                                                    <SelectTrigger className="w-full h-12 bg-brand-inner border-[3px] border-brand-border text-tx-base rounded-lg px-4 focus:ring-0 focus:border-accent-primary font-bold">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="bg-brand-card border-4 border-brand-border rounded-xl shadow-brutal text-tx-base font-bold">
-                                                        {setting.options.map((opt) => (
-                                                            <SelectItem 
-                                                                key={opt.value} 
-                                                                value={opt.value} 
-                                                                disabled={opt.disabled}
-                                                                className={cn(
-                                                                    "focus:bg-brand-inner cursor-pointer rounded-lg mx-1 my-1",
-                                                                    opt.disabled && "opacity-40 cursor-not-allowed"
-                                                                )}
-                                                            >
-                                                                {opt.label} {opt.disabled && '(Bientôt)'}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
-                                            {setting.type === 'multiselect' && setting.options && (
-                                                <div className="flex flex-wrap gap-2 bg-brand-inner p-2 rounded-lg border-[3px] border-brand-border min-h-[48px]">
-                                                    {setting.options.map((opt) => {
-                                                        const currentVal = gameSettings[setting.id];
-                                                        const current = Array.isArray(currentVal) ? currentVal : (setting.default as any[]);
-                                                        const isSelected = Array.isArray(current) && current.includes(settingValue(opt.value));
-
-                                                        return (
-                                                            <button
-                                                                key={opt.value}
-                                                                disabled={opt.disabled}
-                                                                onClick={() => {
-                                                                    if (opt.disabled) return;
-                                                                    const val = settingValue(opt.value);
-                                                                    let newVal;
-                                                                    if (isSelected) {
-                                                                        newVal = current.filter((x: any) => x !== val);
-                                                                        // At least one choice stays on.
-                                                                        if (newVal.length === 0) newVal = [val];
-                                                                    } else {
-                                                                        newVal = [...current, val];
-                                                                    }
-                                                                    handleSettingChange(setting.id, newVal);
-                                                                }}
-                                                                className={cn(
-                                                                    "px-3 py-1.5 text-xs font-bold rounded-md border-[3px] transition-all",
-                                                                    opt.disabled ? "opacity-40 cursor-not-allowed border-brand-border bg-brand-card text-tx-muted" :
-                                                                    isSelected 
-                                                                        ? "border-accent-primary bg-accent-primary text-brand-bg" 
-                                                                        : "border-brand-border bg-brand-card text-tx-secondary hover:text-tx-base hover:border-tx-base/50"
-                                                                )}
-                                                            >
-                                                                {opt.label}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="h-12 flex items-center px-4 bg-brand-inner border-[3px] border-brand-border rounded-lg text-tx-base font-bold truncate">
-                                            {setting.type === 'select' && setting.options 
-                                                ? setting.options.find(o => o.value === String(gameSettings[setting.id] ?? setting.default))?.label 
-                                                : setting.type === 'multiselect'
-                                                    ? (() => {
-                                                        const chosen = (Array.isArray(gameSettings[setting.id]) ? gameSettings[setting.id] : setting.default) as unknown as any[];
-                                                        return (Array.isArray(chosen) ? chosen : []).map((v) => setting.options?.find((o) => settingValue(o.value) === v)?.label ?? String(v)).join(', ');
-                                                    })()
-                                                    : (gameSettings[setting.id] ?? setting.default)
-                                            }
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {isHost && (
-                        <div className="mt-6 pt-5 border-t-[3px] border-brand-border shrink-0">
-                            <button
-                                onClick={startGame}
-                                className={cn(BRAWL.green, "w-full h-16 text-2xl rounded-2xl gap-3")}
-                            >
-                                <Play className="w-6 h-6 fill-current" />
-                                Lancer la partie
-                            </button>
-                        </div>
-                    )}
-                </div>
-            )}
-          </div>
-
-          {/* RIGHT: Players List */}
-          <div className="lg:col-span-4 h-full flex flex-col">
-            <div className={cn(BRAWL.panel, "p-5 sm:p-6 h-[400px] lg:h-full flex flex-col")}>
-                <div className="flex items-center justify-between mb-5 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className={cn(BRAWL.iconTile, "h-11 w-11 bg-accent-success text-brand-bg shadow-[inset_0_-4px_0_#1E9A55]")}>
-                            <Users className="h-6 w-6" />
-                        </div>
-                        <h2 className="font-display text-3xl">Joueurs</h2>
-                    </div>
-                    <span className="h-9 min-w-9 inline-flex items-center justify-center bg-accent-primary text-brand-bg border-[3px] border-brand-border px-2 rounded-xl font-display text-xl tabular-nums">
-                        {players.length}
-                    </span>
-                </div>
-
-                <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2.5">
-                    {players.map((player, pi) => {
-                        const sw = BRAWL_SWATCHES[pi % BRAWL_SWATCHES.length];
-                        return (
-                        <div
-                            key={player.id}
-                            className="group flex items-center justify-between p-2 rounded-2xl border-[3px] border-brand-border bg-brand-inner"
-                        >
-                            <div className="flex items-center gap-3 overflow-hidden">
-                                <div
-                                    className="h-11 w-11 rounded-xl border-[3px] border-brand-border flex items-center justify-center text-xl font-display text-white shrink-0"
-                                    style={{ background: sw.fill, boxShadow: `inset 0 -4px 0 ${sw.shade}` }}
-                                >
-                                    {player.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="flex flex-col truncate">
-                                    <span className="font-display text-lg leading-tight text-white truncate">
-                                        <OgName name={player.name} />
-                                    </span>
-                                    {player.isHost && (
-                                        <span className="self-start mt-0.5 text-[11px] font-black bg-accent-primary text-brand-bg border-[3px] border-brand-border px-1.5 rounded-md">
-                                            Hôte
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            {isHost && !player.isHost && (
-                                <button
-                                    onClick={() => kickPlayer(player.id, player.name)}
-                                    className="sm:opacity-0 sm:group-hover:opacity-100 h-9 w-9 flex items-center justify-center rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white shadow-[inset_0_-3px_0_#C92D63] active:translate-y-[2px] transition-all"
-                                    title="Exclure ce joueur"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            )}
-                        </div>
-                        );
-                    })}
-                </div>
-            </div>
-          </div>
-
-        </div>
+        <RoomLobby
+          games={gamesList}
+          selectedGameId={selectedGameId}
+          onSelectGame={(id) => setSelectedGameId(id)}
+          isHost={isHost}
+          settings={gameSettings}
+          onSettingChange={handleSettingChange}
+          onStart={startGame}
+          players={players}
+          onKick={kickPlayer}
+        />
       </div>
     </div>
   );
