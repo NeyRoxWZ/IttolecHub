@@ -29,8 +29,8 @@
       "date": "2026-09-15",
       "scope": "site",
       "type": "amelioration",
-      "title": "Bouton « Faire un don » en haut de l'accueil",
-      "details": "Le don se trouve maintenant à côté du choix Solo / Multijoueur, au lieu d'un bandeau dans la page."
+      "title": "Bouton « Don » en haut de l'accueil",
+      "details": "Un bouton « Don » à gauche de ton profil ouvre la fenêtre pour soutenir le site ; le choix Solo / Multijoueur reste au centre."
     },
     {
       "id": "2026-09-15-05",
@@ -55,6 +55,22 @@
       "type": "amelioration",
       "title": "Pêche plus fluide",
       "details": "Les prises, les ventes et les récompenses s'enregistrent plus vite, et la canne auto ne ralentit plus le jeu pendant qu'elle attend la prochaine prise."
+    },
+    {
+      "id": "2026-09-15-08",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Ta photo de profil en haut à droite",
+      "details": "Si tu t'es connecté avec Discord, ta photo s'affiche dans le bouton de ton profil en haut de l'accueil."
+    },
+    {
+      "id": "2026-09-15-09",
+      "date": "2026-09-15",
+      "scope": "peche",
+      "type": "amelioration",
+      "title": "Couper le son sur ordinateur",
+      "details": "Sur PC, un bouton à côté du Guide coupe ou remet le son de la Pêche."
     }
   ]
 }

@@ -8,13 +8,13 @@ import { DonorBadge } from '@/components/OgName';
 import { cn } from '@/lib/utils';
 
 /**
- * "Faire un don": a button that sits next to the Solo / Multijoueur switch at
- * the top of the home page (and on the profile when a player has no badge).
- * It glows softly and its heart beats — noticeable without getting in the way.
- * It opens a short card that says everything in three lines.
+ * The donate button: in the home page's top bar, left of the profile (and on
+ * the profile when a player has no badge). Its heart beats; hovering it sends
+ * a sweep of light across every two seconds. It opens a short card that says
+ * everything in three lines.
  */
-export default function DonateButton({ pseudo, avatarUrl, compact, className }: {
-  pseudo?: string | null; avatarUrl?: string | null; compact?: boolean; className?: string;
+export default function DonateButton({ pseudo, avatarUrl, compact, iconOnly, label = 'Don', className }: {
+  pseudo?: string | null; avatarUrl?: string | null; compact?: boolean; iconOnly?: boolean; label?: string; className?: string;
 }) {
   const [open, setOpen] = useState(false);
   if (!DONATE_URL) return null;
@@ -24,17 +24,19 @@ export default function DonateButton({ pseudo, avatarUrl, compact, className }: 
       <button
         type="button"
         onClick={() => setOpen(true)}
+        aria-label={iconOnly ? 'Faire un don' : undefined}
+        title="Faire un don"
         className={cn(
-          'donate-glow shrink-0 inline-flex items-center gap-2 rounded-[18px] border-[3px] border-brand-border text-white font-display whitespace-nowrap transition-transform active:translate-y-[3px]',
-          'bg-[linear-gradient(135deg,#FF4F8B_0%,#C43FD1_100%)]',
-          compact ? 'h-11 pl-1.5 pr-3 text-base' : 'h-12 pl-1.5 pr-4 text-lg',
+          'donate-sweep relative overflow-hidden shrink-0 inline-flex items-center gap-2 rounded-[18px] border-[3px] border-brand-border text-white font-display whitespace-nowrap transition-transform active:translate-y-[3px]',
+          'bg-[linear-gradient(135deg,#FF4F8B_0%,#C43FD1_100%)] shadow-[inset_0_-4px_0_rgba(90,20,80,0.55),0_4px_0_#05061A]',
+          iconOnly ? 'h-12 w-12 justify-center' : compact ? 'h-11 pl-1.5 pr-3 text-base' : 'h-12 pl-1.5 pr-4 text-lg',
           className,
         )}
       >
-        <span className="donate-beat h-8 w-8 rounded-xl border-2 border-brand-border bg-white flex items-center justify-center">
+        <span className="donate-beat h-8 w-8 shrink-0 rounded-xl border-2 border-brand-border bg-white flex items-center justify-center">
           <Heart className="h-[18px] w-[18px] text-accent-secondary" fill="currentColor" />
         </span>
-        Faire un don
+        {!iconOnly && label}
       </button>
       {open && <DonateModal pseudo={pseudo} avatarUrl={avatarUrl} onClose={() => setOpen(false)} />}
     </>

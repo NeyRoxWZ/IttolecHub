@@ -337,6 +337,8 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
           <button onClick={() => setGuide(true)} aria-label="Guide" className={cn(BRAWL.dark, 'h-12 w-12 shrink-0')}>
             <HelpCircle className="h-6 w-6" />
           </button>
+          {/* Desktop: sound next to the guide. Phones have it in "Plus". */}
+          <SoundToggle compact />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <span className={BRAWL.pill} title={WEATHER[state.weather.id].hint}>
@@ -527,7 +529,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
 /* ------------------------------------------------------------------ */
 
 /** Sound on or off, shared with the casino (same setting). */
-function SoundToggle() {
+function SoundToggle({ compact }: { compact?: boolean }) {
   const [muted, setMutedState] = useState(false);
   // Read on mount only: localStorage is not available during the server render.
   useEffect(() => { setMutedState(isMuted()); }, []);
@@ -539,9 +541,10 @@ function SoundToggle() {
     vibrate(HAPTIC.SOFT);
   };
   return (
-    <button onClick={toggle} aria-label={muted ? 'Réactiver le son' : 'Couper le son'} className={cn(muted ? BRAWL.pink : BRAWL.dark, 'h-12 px-3 text-base shrink-0')}>
-      {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-      {muted ? 'Son coupé' : 'Son activé'}
+    <button onClick={toggle} aria-label={muted ? 'Réactiver le son' : 'Couper le son'} title={muted ? 'Réactiver le son' : 'Couper le son'}
+      className={cn(muted ? BRAWL.pink : BRAWL.dark, compact ? 'h-12 w-12 shrink-0' : 'h-12 px-3 text-base shrink-0')}>
+      {muted ? <VolumeX className={compact ? 'h-6 w-6' : 'h-5 w-5'} /> : <Volume2 className={compact ? 'h-6 w-6' : 'h-5 w-5'} />}
+      {!compact && (muted ? 'Son coupé' : 'Son activé')}
     </button>
   );
 }

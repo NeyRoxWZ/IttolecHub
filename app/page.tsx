@@ -208,7 +208,8 @@ function Home() {
 
       {/* TOP BAR */}
       <header className="px-4 sm:px-6 pt-4">
-        <div className="max-w-6xl mx-auto flex items-center gap-4">
+        {/* Three columns, the outer two of equal width: the mode switch sits in the true middle of the screen. */}
+        <div className="max-w-6xl mx-auto flex items-center gap-4 md:grid md:grid-cols-[1fr_auto_1fr]">
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
@@ -224,20 +225,21 @@ function Home() {
               alt="ItollecHub"
               width={1219}
               height={635}
-              className="h-12 md:h-16 w-auto object-contain select-none"
+              className="h-12 md:h-16 w-auto object-contain select-none md:justify-self-start"
               priority
               onError={() => setLogoVisible(false)}
             />
           )}
 
-          {/* Next to the switch, not inside it: the switch picks a mode, the button opens the donation card. */}
-          <div className="hidden md:flex flex-1 justify-center items-center gap-3">
-            {modeSwitch}
-            <DonateButton pseudo={user?.pseudo} avatarUrl={user?.avatar_url} className="hidden lg:inline-flex" />
-            <DonateButton pseudo={user?.pseudo} avatarUrl={user?.avatar_url} compact className="lg:hidden" />
-          </div>
+          <div className="hidden md:flex justify-center md:justify-self-center">{modeSwitch}</div>
 
-          <div className="hidden md:flex items-center gap-2 ml-auto">
+          {/* Phones: the donate button sits in the top bar, the mode switch keeps its own row. */}
+          <DonateButton pseudo={user?.pseudo} avatarUrl={user?.avatar_url} compact className="md:hidden ml-auto" />
+
+          <div className="hidden md:flex items-center gap-2 ml-auto md:justify-self-end">
+            {/* Left of the profile. Heart only on a tablet, where the bar is tight. */}
+            <DonateButton pseudo={user?.pseudo} avatarUrl={user?.avatar_url} className="hidden lg:inline-flex" />
+            <DonateButton pseudo={user?.pseudo} avatarUrl={user?.avatar_url} iconOnly className="lg:hidden" />
             {user ? (
               <>
                 <button
@@ -245,9 +247,13 @@ function Home() {
                   onClick={() => router.push('/profil')}
                   className="h-12 flex items-center gap-2 pl-1.5 pr-4 rounded-2xl bg-brand-card border-[3px] border-brand-border shadow-brutal font-black hover:bg-[#252B66] transition-colors"
                 >
-                  <span className="h-8 w-8 rounded-xl bg-accent-secondary text-white font-display text-lg flex items-center justify-center shadow-[inset_0_-3px_0_#C92D63]">
-                    {user.pseudo[0]?.toUpperCase()}
-                  </span>
+                  {user.avatar_url ? (
+                    <Image src={user.avatar_url} alt="" width={32} height={32} unoptimized className="h-8 w-8 rounded-xl border-2 border-brand-border object-cover" />
+                  ) : (
+                    <span className="h-8 w-8 rounded-xl bg-accent-secondary text-white font-display text-lg flex items-center justify-center shadow-[inset_0_-3px_0_#C92D63]">
+                      {user.pseudo[0]?.toUpperCase()}
+                    </span>
+                  )}
                   <OgName name={user.pseudo} />
                 </button>
                 <button type="button" onClick={logout} className={cn(BTN_PINK, 'h-12 w-12')} title="Se déconnecter" aria-label="Se déconnecter">
@@ -263,10 +269,7 @@ function Home() {
           </div>
         </div>
 
-        <div className="md:hidden mt-4 flex flex-wrap justify-center items-center gap-2">
-          {modeSwitch}
-          <DonateButton pseudo={user?.pseudo} avatarUrl={user?.avatar_url} compact />
-        </div>
+        <div className="md:hidden mt-4 flex justify-center">{modeSwitch}</div>
       </header>
 
       {/* MOBILE MENU */}

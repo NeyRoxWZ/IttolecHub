@@ -214,7 +214,7 @@ export default function ProfilPage() {
                     <p className="flex-1 text-sm text-tx-secondary font-bold leading-relaxed">
                       Tu n’as aucun badge pour l’instant. Pour en débloquer un, tu peux <span className="text-white">faire un don</span> : tu recevras le badge Donateur.
                     </p>
-                    <DonateButton pseudo={user.pseudo} avatarUrl={user.avatar_url} />
+                    <DonateButton pseudo={user.pseudo} avatarUrl={user.avatar_url} label="Faire un don" />
                   </div>
                 ) : (
                 <>
