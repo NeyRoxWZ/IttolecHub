@@ -23,6 +23,14 @@
       "type": "amelioration",
       "title": "Lien « Cookies » en bas de l'accueil",
       "details": "La roue crantée qui restait affichée après ton choix sur les cookies a disparu. Pour changer d'avis, clique sur « Cookies » en bas de l'accueil, à côté de « Conditions »."
+    },
+    {
+      "id": "2026-09-15-04",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "correctif",
+      "title": "Badge Fondateur entier partout",
+      "details": "Les étoiles et le halo du badge Fondateur ne sont plus coupés dans les jeux, les listes et les classements."
     }
   ]
 }

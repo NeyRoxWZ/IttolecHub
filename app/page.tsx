@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase/client';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import GameCover, { type CoverGame } from '@/components/GameCover';
 import HowToPlayDemo from '@/components/HowToPlayDemo';
+import DonateStrip from '@/components/DonateStrip';
 import { isOwner } from '@/lib/owner';
 import releases from '@/patch-notes/releases.json';
 
@@ -400,6 +401,7 @@ function Home() {
                   </div>
                 </aside>
               </div>
+              <DonateStrip text="Si tu veux que le Casino et la Pêche continuent de grandir, un petit don aide à payer les serveurs." />
             </>
           ) : (
             <>
@@ -465,6 +467,7 @@ function Home() {
                   <HowToPlayDemo className="flex-1" />
                 </div>
               </div>
+              <DonateStrip text="Pour garder les salles ouvertes et ajouter de nouveaux jeux, un petit don aide à payer les serveurs." />
             </>
           )}
         </div>
