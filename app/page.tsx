@@ -474,6 +474,18 @@ function Home() {
         <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-black tracking-widest uppercase text-tx-secondary">
           <Link href="/mentions-legales" className="hover:text-white">Mentions légales</Link>
           <Link href="/conditions" className="hover:text-white">Conditions</Link>
+          {/* Reopens Ezoic's consent window; its floating gear is hidden (globals.css). */}
+          <button
+            type="button"
+            onClick={() => {
+              const cmp = (window as unknown as { ezCMP?: { generateCMPFromPrivacyCenter?: () => void } }).ezCMP;
+              if (cmp?.generateCMPFromPrivacyCenter) cmp.generateCMPFromPrivacyCenter();
+              else router.push('/confidentialite');
+            }}
+            className="uppercase tracking-widest hover:text-white"
+          >
+            Cookies
+          </button>
           <Link href="/confidentialite" className="hover:text-white">Confidentialité</Link>
           <Link href="/patch-notes" className="hover:text-white">Patch notes</Link>
         </div>

@@ -503,6 +503,9 @@ body {
 /* choice stays visible and readable; which buttons exist is set in the  */
 /* Ezoic dashboard.                                                      */
 
+/* Ezoic's floating gear after a choice: replaced by "Cookies" in the home footer. */
+html body #ezPrivacyCenter { display: none !important; }
+
 html body #ez-cookie-dialog-wrapper {
   --ez-bg: #1e2358 !important;
   --ez-accent: #ffc61a !important;
