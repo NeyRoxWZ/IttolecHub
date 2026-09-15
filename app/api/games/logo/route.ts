@@ -16,7 +16,7 @@ function fisherYatesShuffle<T>(array: T[]): T[] {
 
 export async function GET(request: NextRequest) {
   try {
-    const brands = await readPublicJson<any[]>('/data/brands.json', request);
+    const brands = await readPublicJson<any[]>('/data/logoguessr.json', request);
 
     const { searchParams } = new URL(request.url);
     const count = parseInt(searchParams.get('count') || '1', 10);

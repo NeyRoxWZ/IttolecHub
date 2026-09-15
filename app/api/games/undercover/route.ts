@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import undercoverPairs from '@/undercover.json';
+import { readPublicJson } from '@/lib/staticData.server';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,14 +8,13 @@ type UndercoverPair = {
   undercoverWord: string;
 };
 
-const pairs = undercoverPairs as UndercoverPair[];
-
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const countParam = url.searchParams.get('count');
     const count = countParam ? parseInt(countParam, 10) : 1;
 
+    const pairs = await readPublicJson<UndercoverPair[]>('/data/undercover.json', request);
     if (!Array.isArray(pairs) || pairs.length === 0) {
       return NextResponse.json(
         { error: 'Aucune paire de mots disponible pour Undercover.' },
@@ -27,15 +26,15 @@ export async function GET(request: NextRequest) {
     const selected = shuffled.slice(0, Math.max(1, count));
 
     if (count === 1) {
-        return NextResponse.json({
-            civilWord: selected[0].civilWord,
-            undercoverWord: selected[0].undercoverWord,
-        });
+      return NextResponse.json({
+        civilWord: selected[0].civilWord,
+        undercoverWord: selected[0].undercoverWord,
+      });
     }
 
-    return NextResponse.json(selected.map(p => ({
-        civilWord: p.civilWord,
-        undercoverWord: p.undercoverWord,
+    return NextResponse.json(selected.map((p) => ({
+      civilWord: p.civilWord,
+      undercoverWord: p.undercoverWord,
     })));
   } catch (error) {
     console.error('Erreur API Undercover:', error);
@@ -45,4 +44,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

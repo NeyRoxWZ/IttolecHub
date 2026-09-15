@@ -10,6 +10,7 @@ node_modules
 .dev.vars
 .wrangler
 
-# Local env files and build caches: never committed.
+# Local env files, build caches and editor/agent settings: never committed.
 .env
 tsconfig.tsbuildinfo
+.claude/

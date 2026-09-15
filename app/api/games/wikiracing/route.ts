@@ -9,7 +9,7 @@ export async function GET(request: Request) {
         const difficulty = searchParams.get('difficulty') || 'easy';
         const count = parseInt(searchParams.get('count') || '1', 10);
 
-        const allPairs = await readPublicJson<Record<string, [string, string][]>>('/wikiracing.json', request);
+        const allPairs = await readPublicJson<Record<string, [string, string][]>>('/data/wikiracing.json', request);
 
         const validDifficulty = (difficulty === 'easy' || difficulty === 'hard') ? difficulty : 'easy';
         const pool = allPairs[validDifficulty] || allPairs['easy'];

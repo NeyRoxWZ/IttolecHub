@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const count = parseInt(searchParams.get('count') || '1', 10);
 
-    const data = await readPublicJson<any[]>('/jaugeguessr.json', request);
+    const data = await readPublicJson<any[]>('/data/jaugeguessr.json', request);
 
     // Shuffle and pick
     const shuffled = [...data].sort(() => 0.5 - Math.random());

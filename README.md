@@ -1,45 +1,52 @@
-# ItollecHub
+# IttolecHub
 
-Plateforme web multijoueur gratuite regroupant plusieurs mini-jeux de type "Guessr" basés sur des APIs publiques.
+Site de jeux gratuits : [itollechub.com](https://itollechub.com).
 
-## 🎮 Jeux disponibles
+- **Multijoueur** : parties entre potes par code de salle (BudgetGuessr, DrawGuessr, FlagGuessr, Infiltré, JaugeGuessr, LogoGuessr, PokeGuessr, RentGuessr, Undercover, WikiRacing).
+- **Casino** : monnaie fictive, une vingtaine de jeux, pass, missions, boutique.
+- **Pêche** : jeu idle avec Poissodex et aquarium.
 
-- **PokeGuessr** : Devine le Pokémon avec des images floues
-- **ComplèteGuessr** : Trouve les suggestions Google les plus bizarres  
-- **FlagGuessr** : Devine le pays ou sa population
-- **TrollTrivia** : QCM de culture générale absurde
+## Stack
 
-## 🛠️ Stack technique
+Next.js 15 (App Router), React 19, TypeScript, Tailwind 3, Supabase (base, realtime), hébergé sur Cloudflare Workers via OpenNext.
 
-- **Frontend** : Next.js 14 (App Router), TypeScript, TailwindCSS
-- **Backend** : Supabase (Realtime, Auth, Database)
-- **Icons** : Lucide React
-- **Hébergement** : Vercel
+## Arborescence
 
-## 📦 Installation
+| Dossier | Contenu |
+| --- | --- |
+| `app/` | pages et routes API (`app/api/*`) |
+| `components/` | composants partagés (`components/ui` : primitives) |
+| `games/` | composants des jeux multijoueur |
+| `hooks/` | hooks React |
+| `lib/` | logique serveur et client (`lib/casino`, `lib/peche`, `lib/seo`, `lib/supabase`) |
+| `public/data/` | données des jeux (listes de mots, pays, marques, annonces…) |
+| `patch-notes/` | patch notes : en attente, historique, scopes |
+| `scripts/` | outils en ligne de commande |
+| `supabase/` | scripts SQL (tables, policies, migrations) |
+| `custom-worker.ts` | worker Cloudflare : redirection https et tâches planifiées |
+
+## Développement
 
 ```bash
 npm install
 npm run dev
 ```
 
-## 🔧 Variables d'environnement
+Variables dans `.env.local` : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `SESSION_SECRET`, `CRON_SECRET`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `TMDB_API_KEY`, `KRASH_SEED`. Ne jamais les commiter.
 
-Créez un fichier `.env.local` :
+## Déploiement
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_KEY=your_service_key
+```bash
+npx opennextjs-cloudflare build
+npx opennextjs-cloudflare deploy
 ```
 
-## 🚀 Déploiement
+Les secrets de prod sont des secrets Cloudflare (`npx wrangler secret put NOM`).
 
-1. Push vers GitHub
-2. Connectez Vercel à votre repo
-3. Configurez les variables d'environnement
-4. Déployez !
+## Patch notes
 
-## 📄 Licence
-
-MIT
+```bash
+npm run note -- <scope> <type> "Titre" "Détails"
+npm run notes:status
+npm run release -- 1.6.0 "Titre de la version"
+```
