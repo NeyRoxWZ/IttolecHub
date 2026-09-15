@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readPublicJson } from '@/lib/staticData.server';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const count = parseInt(searchParams.get('count') || '1', 10);
-    
-    const filePath = path.join(process.cwd(), 'public', 'jaugeguessr.json');
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const data = JSON.parse(fileContent);
+
+    const data = await readPublicJson<any[]>('/jaugeguessr.json', request);
 
     // Shuffle and pick
     const shuffled = [...data].sort(() => 0.5 - Math.random());

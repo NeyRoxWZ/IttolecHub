@@ -122,6 +122,17 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
       }
   }, [currentProperty?.id, currentPhase]);
 
+  // Every photo of the property starts downloading as soon as the round
+  // starts, so flipping through them is instant instead of waiting on each one.
+  useEffect(() => {
+      const urls: string[] = Array.isArray(currentProperty?.photos_url) ? currentProperty.photos_url : currentProperty?.photo_url ? [currentProperty.photo_url] : [];
+      urls.forEach((url) => {
+          const img = new window.Image();
+          img.decoding = 'async';
+          img.src = url;
+      });
+  }, [currentProperty?.id]);
+
   // --- HOST LOGIC ---
 
   // Start/Next Round

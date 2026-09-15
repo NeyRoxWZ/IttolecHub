@@ -41,7 +41,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
     roomStatus,
     lastEvent,
     broadcast,
-    isConnected
+    isConnected,
+    isPlayerAway
   } = useGameSync(roomCode, 'undercover');
 
   // --- DERIVED STATE ---
@@ -319,13 +320,34 @@ export default function Undercover({ roomCode }: UndercoverProps) {
       }
   }, [isHost, roomId, clues, currentSpeakerId, alivePlayers, currentClueRound, clueRoundsBeforeVote, voteTime]);
 
+  // An away (or excluded) speaker loses their turn after 30 s: the host writes
+  // a placeholder clue in their name, and the turn moves on as usual.
+  const speakerSince = useRef<{ id: string | null; at: number }>({ id: null, at: 0 });
+  useEffect(() => {
+      if (!isHost || !roomId || currentPhase !== 'clues' || !currentSpeakerId) return;
+      if (speakerSince.current.id !== currentSpeakerId) speakerSince.current = { id: currentSpeakerId, at: Date.now() };
+      const t = setInterval(async () => {
+          const s = speakerSince.current;
+          if (s.id !== currentSpeakerId || Date.now() - s.at < 30_000 || !isPlayerAway(currentSpeakerId)) return;
+          speakerSince.current = { id: currentSpeakerId, at: Date.now() };
+          await roomDb.from('undercover_clues').insert({
+              room_id: roomId,
+              player_id: currentSpeakerId,
+              round_id: game.round_id,
+              text: '(absent, tour passé)',
+              round_number: currentClueRound,
+          });
+      }, 5_000);
+      return () => clearInterval(t);
+  }, [isHost, roomId, currentPhase, currentSpeakerId, isPlayerAway, game.round_id]);
+
   useEffect(() => {
     if (!isHost || !roomId) return;
 
     const managePhases = async () => {
-        // 1. Roles -> Clues (All Ready)
+        // 1. Roles -> Clues (All Ready). Someone away doesn't hold everyone up.
         if (currentPhase === 'roles') {
-             const allReady = alivePlayers.every(id => readyPlayersFromTable.includes(id));
+             const allReady = alivePlayers.every(id => readyPlayersFromTable.includes(id) || isPlayerAway(id));
              if (allReady && alivePlayers.length > 0) { 
                  await roomDb.from('undercover_games').update({
                      phase: 'clues',
@@ -1037,7 +1059,8 @@ export default function Undercover({ roomCode }: UndercoverProps) {
 
                 {/* BOTTOM: INPUT (Desktop & Mobile Fixed) */}
                 {isMyTurn && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 pr-[92px] z-50 md:relative md:bg-transparent md:border-none md:p-0 md:pr-0 md:mt-4">
+                    <div className="fixed bottom-0 left-0 right-0 z-[95] border-t-4 border-brand-border bg-brand-bg/95 backdrop-blur p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:relative md:z-auto md:bg-transparent md:border-none md:backdrop-blur-none md:p-0 md:mt-4">
+                        {/* On phones the bar covers the whole width, above the reaction button (z-90) that used to sit on "Envoyer". */}
                         <div className="max-w-3xl mx-auto flex gap-3">
                             <input 
                                 placeholder="Donnez votre indice (1 mot)..." 

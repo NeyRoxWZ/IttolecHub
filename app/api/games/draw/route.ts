@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+// Bundled with the route: a Cloudflare Worker has no filesystem to read it from (the old fs read failed with 500).
+import allWords from '@/mots_a_dessiner.json';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,23 +10,20 @@ export async function GET(request: NextRequest) {
         const count = parseInt(searchParams.get('count') || '10', 10);
         const difficulty = searchParams.get('difficulty') || 'mix';
 
-        // Read JSON file
-        const filePath = path.join(process.cwd(), 'mots_a_dessiner.json');
-        const fileContent = await fs.readFile(filePath, 'utf-8');
-        const allWords = JSON.parse(fileContent);
+        const words = allWords as { difficulty?: string }[];
 
         // Filter
-        let filtered = allWords;
+        let filtered = words;
         if (difficulty !== 'mix') {
-            filtered = allWords.filter((w: any) => w.difficulty === difficulty);
+            filtered = words.filter((w) => w.difficulty === difficulty);
         }
 
-        // Shuffle
-        const shuffled = filtered.sort(() => 0.5 - Math.random());
-        
+        // Shuffle (a copy: the bundled list is shared between requests)
+        const shuffled = [...filtered].sort(() => 0.5 - Math.random());
+
         // Take count
         const selected = shuffled.slice(0, count);
-        
+
         return NextResponse.json(selected);
 
     } catch (error) {

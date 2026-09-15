@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { readPublicJson } from '@/lib/staticData.server';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
@@ -8,9 +9,7 @@ export async function GET(request: Request) {
         const difficulty = searchParams.get('difficulty') || 'easy';
         const count = parseInt(searchParams.get('count') || '1', 10);
 
-        const filePath = path.join(process.cwd(), 'public', 'wikiracing.json');
-        const fileData = await fs.readFile(filePath, 'utf8');
-        const allPairs = JSON.parse(fileData);
+        const allPairs = await readPublicJson<Record<string, [string, string][]>>('/wikiracing.json', request);
 
         const validDifficulty = (difficulty === 'easy' || difficulty === 'hard') ? difficulty : 'easy';
         const pool = allPairs[validDifficulty] || allPairs['easy'];

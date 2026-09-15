@@ -15,8 +15,13 @@ const TOKEN_KEY = 'itollec_room_token';
 type Result = { data: any; error: { message: string; code?: string; details?: string; hint?: string } | null };
 type Filter = ['eq' | 'lt', string, unknown] | ['match', Record<string, unknown>];
 
+/**
+ * This tab's token, else the last one this device held: a player whose tab was
+ * closed or reloaded by the phone comes back with it (the server still checks
+ * it names this room and this seat).
+ */
 function readToken(): string {
-  try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; }
+  try { return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; }
 }
 
 /** The seat a token names (read only: the server checks the signature). */
@@ -36,6 +41,7 @@ function seatOf(token: string): { pid: string; rid: string } | null {
 function keepToken(token?: string) {
   if (!token) return;
   try { sessionStorage.setItem(TOKEN_KEY, token); } catch {}
+  try { localStorage.setItem(TOKEN_KEY, token); } catch {}
 }
 
 async function send(body: Record<string, unknown>): Promise<Result> {

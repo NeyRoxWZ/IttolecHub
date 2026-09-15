@@ -143,6 +143,70 @@
       "type": "nouveau",
       "title": "Pages Jeux multijoueur et Jeux solo",
       "details": "De nouvelles pages présentent chaque jeu multijoueur (règles, réglages, questions fréquentes) ainsi que le Casino et la Pêche, pour découvrir le site et trouver un jeu plus facilement."
+    },
+    {
+      "id": "2026-09-15-19",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "correctif",
+      "title": "Six jeux multijoueur refonctionnent",
+      "details": "FlagGuessr, WikiRacing, JaugeGuessr, LogoGuessr, DrawGuessr et RentGuessr ne pouvaient plus lancer de partie depuis le changement d'hébergeur. Tout est rétabli."
+    },
+    {
+      "id": "2026-09-15-20",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "correctif",
+      "title": "Retrouver sa place dans une partie",
+      "details": "Si tu quittes ou que ton téléphone se met en veille, tu gardes ta place : reviens dans le salon avec le même pseudo, même depuis un autre onglet ou appareil, et tu reprends la partie là où tu étais."
+    },
+    {
+      "id": "2026-09-15-21",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "L'hôte passe la main s'il part",
+      "details": "Si l'hôte ne répond plus, le salon n'est plus fermé : le joueur suivant devient hôte et la partie continue. L'hôte peut aussi retirer un joueur absent pendant la partie."
+    },
+    {
+      "id": "2026-09-15-22",
+      "date": "2026-09-15",
+      "scope": "undercover",
+      "type": "correctif",
+      "title": "Bouton Envoyer visible sur téléphone",
+      "details": "La zone pour écrire ton indice n'est plus cachée par le bouton des réactions, et le tour d'un joueur absent est passé au bout de 30 secondes."
+    },
+    {
+      "id": "2026-09-15-23",
+      "date": "2026-09-15",
+      "scope": "infiltre",
+      "type": "correctif",
+      "title": "Zone de saisie visible sur téléphone",
+      "details": "La zone de question n'est plus cachée par le bouton des réactions, et un joueur absent ne bloque plus le début de la partie."
+    },
+    {
+      "id": "2026-09-15-24",
+      "date": "2026-09-15",
+      "scope": "drawguessr",
+      "type": "correctif",
+      "title": "Traits continus pour tout le monde",
+      "details": "Les dessins s'affichent en traits continus chez les autres joueurs au lieu de petits points, et le dessin complet se remet à jour après chaque trait. Un dessinateur absent passe son tour."
+    },
+    {
+      "id": "2026-09-15-25",
+      "date": "2026-09-15",
+      "scope": "rentguessr",
+      "type": "amelioration",
+      "title": "Photos plus rapides",
+      "details": "Toutes les photos du logement se chargent dès le début de la manche : on peut les faire défiler sans attendre."
+    },
+    {
+      "id": "2026-09-15-26",
+      "date": "2026-09-15",
+      "scope": "flagguessr",
+      "type": "amelioration",
+      "title": "Réponse à écrire",
+      "details": "Il faut maintenant écrire le nom du pays, sans liste de choix, et les drapeaux sont en meilleure qualité."
     }
   ]
 }

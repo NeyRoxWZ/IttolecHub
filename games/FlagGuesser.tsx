@@ -52,7 +52,8 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
   const settings = gameState?.settings || {};
   const totalRounds = Number(settings.rounds || 10);
   const region = settings.region || 'all';
-  const mode = settings.mode || 'mcq';
+  // Always typed: finding the country is the skill, no list to pick from.
+  const mode = 'text' as 'text' | 'mcq';
   const timePerRound = Number(settings.time || 20);
 
   // Local State
@@ -416,7 +417,8 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                     <Image 
                         src={currentFlag.flagUrl} 
                         alt="Drapeau à deviner"
-                        fill 
+                        fill
+                        unoptimized
                         className="object-contain p-4 drop-shadow-md"
                         priority
                     />

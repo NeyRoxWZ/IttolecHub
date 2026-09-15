@@ -17,6 +17,7 @@ import { BRAWL, BRAWL_SWATCHES } from '@/lib/ui/brawl';
 
 import OgName from '@/components/OgName';
 import { roomDb } from '@/lib/supabase/roomClient';
+import { forgetSeat, recallSeat, rememberSeat, takeOverIfHostGone } from '@/lib/roomSeat';
 interface Player {
   id: string;
   name: string;
@@ -393,13 +394,17 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
     // now prompts for a pseudo instead of bouncing to home — this is what
     // lets a player rejoin an in-progress game just by knowing the code and
     // typing the same name back in.
-    const storedName = sessionStorage.getItem('playerName');
+    // The tab's pseudo, else the one this device used in this room (closed tab, phone reload).
+    const remembered = recallSeat(params.code);
+    const storedName = sessionStorage.getItem('playerName') || remembered?.name || null;
 
     if (!storedName) {
         setShowPseudoModal(true);
         return;
     }
 
+    sessionStorage.setItem('playerName', storedName);
+    if (remembered?.playerId && !sessionStorage.getItem('playerId')) sessionStorage.setItem('playerId', remembered.playerId);
     setPlayerName(storedName);
 
     const initRoom = async () => {
@@ -548,7 +553,10 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
 
         setIsHost(isCurrentHost);
         sessionStorage.setItem('isHost', String(isCurrentHost));
-        if (currentPlayerId) sessionStorage.setItem('playerId', currentPlayerId);
+        if (currentPlayerId) {
+          sessionStorage.setItem('playerId', currentPlayerId);
+          rememberSeat(params.code, { playerId: currentPlayerId, name: storedName });
+        }
 
         // Remember this room in localStorage (survives closed tabs, unlike
         // sessionStorage) so the home page can offer to resume it later.
@@ -598,46 +606,48 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
     if (!roomId) return;
     const currentPayloadId = sessionStorage.getItem('playerId');
 
-    // 1. Heartbeat (every 30s)
+    // 1. Heartbeat: every 30 s, and at once on coming back to the tab (phones
+    // freeze timers in the background, which used to read as "gone").
     const sendHeartbeat = async () => {
         if (currentPayloadId) {
             await roomDb.from('players').update({ last_seen_at: new Date().toISOString() }).eq('id', currentPayloadId);
         }
     };
+    const onBack = () => { if (document.visibilityState === 'visible') void sendHeartbeat(); };
     sendHeartbeat();
     const hbInterval = setInterval(sendHeartbeat, 30000);
+    document.addEventListener('visibilitychange', onBack);
+    window.addEventListener('focus', onBack);
+    window.addEventListener('online', onBack);
 
-    // 2. Inactivity Check (every 60s)
+    // 2. Every 20 s: a host who went quiet hands over to the first active player
+    // (nobody closes the room on everyone), and the host tidies up seats left
+    // empty for a long time — only here in the waiting room, never mid-game.
     const checkActivity = async () => {
-        if (isHostRef.current) {
-            // Host cleans up inactive players (> 5 min)
-            const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-            await roomDb.from('players').delete().eq('room_id', roomId).lt('last_seen_at', fiveMinAgo);
-            
-            // Si le host est le seul restant et qu'il est inactif ? Le host envoie des heartbeats.
-            // Mais on peut revérifier le compte total de joueurs
-            const { count } = await supabase.from('players').select('*', { count: 'exact', head: true }).eq('room_id', roomId);
-            if (count === 0) {
-                await roomDb.from('rooms').delete().eq('id', roomId);
-            }
-        } else {
-            // Clients check if Host is inactive
-            const host = playersRef.current.find(p => p.isHost);
-            if (host && host.last_seen_at) {
-                const lastSeen = new Date(host.last_seen_at).getTime();
-                // If host inactive > 5m30s
-                if (Date.now() - lastSeen > 330000) {
-                     // Supprimer la room si l'hôte a disparu
-                     await roomDb.from('rooms').delete().eq('id', roomId);
-                }
-            }
+        const { data: seats } = await supabase.from('players').select('id, joined_at, last_seen_at').eq('room_id', roomId);
+        const { data: roomRow } = await supabase.from('rooms').select('host_id, status').eq('id', roomId).maybeSingle();
+        if (!seats || !roomRow || !currentPayloadId) return;
+
+        if (await takeOverIfHostGone(roomId, currentPayloadId, roomRow.host_id, seats)) {
+            setIsHost(true);
+            isHostRef.current = true;
+            toast.success('L’hôte est parti : c’est toi l’hôte du salon maintenant.');
+            return;
+        }
+
+        if (isHostRef.current && roomRow.status === 'waiting') {
+            const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+            await roomDb.from('players').delete().eq('room_id', roomId).lt('last_seen_at', tenMinAgo);
         }
     };
-    const checkInterval = setInterval(checkActivity, 60000);
+    const checkInterval = setInterval(checkActivity, 20000);
 
     return () => {
         clearInterval(hbInterval);
         clearInterval(checkInterval);
+        document.removeEventListener('visibilitychange', onBack);
+        window.removeEventListener('focus', onBack);
+        window.removeEventListener('online', onBack);
     };
   }, [roomId]);
 
@@ -967,6 +977,7 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
     sessionStorage.removeItem('playerName');
     sessionStorage.removeItem('isHost');
     sessionStorage.removeItem('playerId');
+    forgetSeat(params.code);
     try { localStorage.removeItem('itollec_last_room'); } catch {}
     router.push('/');
   };

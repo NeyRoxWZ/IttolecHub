@@ -1,69 +1,40 @@
 import { NextResponse } from 'next/server';
-
-const REGION_MAP: Record<string, string> = {
-  'europe': 'region/europe',
-  'asia': 'region/asia',
-  'africa': 'region/africa',
-  'americas': 'region/americas',
-  'oceania': 'region/oceania',
-  'all': 'all'
-};
+import { readPublicJson } from '@/lib/staticData.server';
 
 export const dynamic = 'force-dynamic';
 
+interface Country { code: string; name: string; region: string; independent: boolean }
+
+/**
+ * Flags for FlagGuessr. The countries used to be fetched live from
+ * restcountries.com on every game, which refuses requests coming from the
+ * Cloudflare worker (500 since the move) — they now come from a list shipped
+ * with the site (public/data/countries.json), and the flag images from flagcdn.
+ */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const region = searchParams.get('region') || 'all';
-    const count = parseInt(searchParams.get('count') || '10');
-    const mode = searchParams.get('mode') || 'mcq';
+    const region = (searchParams.get('region') || 'all').toLowerCase();
+    const count = parseInt(searchParams.get('count') || '10', 10);
 
-    const endpoint = REGION_MAP[region.toLowerCase()] || 'all';
-    const response = await fetch(`https://restcountries.com/v3.1/${endpoint}?fields=name,cca2,translations,flags`);
-    
-    if (!response.ok) {
-        throw new Error('Failed to fetch flags');
+    const countries = await readPublicJson<Country[]>('/data/countries.json', request);
+    // Recognised countries only: tiny territories made rounds unguessable.
+    const pool = countries.filter((c) => c.independent && (region === 'all' || c.region === region));
+
+    if (pool.length === 0) {
+      return NextResponse.json({ error: 'No countries found' }, { status: 404 });
     }
 
-    const allCountries = await response.json();
-    
-    if (!allCountries || allCountries.length === 0) {
-        return NextResponse.json({ error: 'No countries found' }, { status: 404 });
-    }
-
-    // Shuffle and pick
-    const shuffled = allCountries.sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, count);
-
-    // Format for game
-    const questions = selected.map((country: any) => {
-        const correctName = country.translations.fra?.common || country.name.common;
-        const code = country.cca2;
-        const flagUrl = country.flags.svg || country.flags.png;
-
-        let options: string[] = [];
-        
-        if (mode === 'mcq') {
-            // Pick 3 distractors from the rest (or even from selected)
-            const distractors = allCountries
-                .filter((c: any) => c.cca2 !== code)
-                .sort(() => 0.5 - Math.random())
-                .slice(0, 3)
-                .map((c: any) => c.translations.fra?.common || c.name.common);
-            
-            options = [...distractors, correctName].sort(() => 0.5 - Math.random());
-        }
-
-        return {
-            name: correctName,
-            code: code,
-            flagUrl: flagUrl,
-            options: options
-        };
-    });
+    const shuffled = [...pool].sort(() => 0.5 - Math.random());
+    const questions = shuffled.slice(0, count).map((c) => ({
+      name: c.name,
+      code: c.code.toUpperCase(),
+      flagUrl: `https://flagcdn.com/w640/${c.code}.png`,
+      // Answers are typed, never picked from a list.
+      options: [] as string[],
+    }));
 
     return NextResponse.json(questions);
-
   } catch (error) {
     console.error('Flag API Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

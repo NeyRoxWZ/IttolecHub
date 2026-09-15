@@ -1,9 +1,10 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useGameRoom } from './useGameRoom';
 import { useServerTime } from './useServerTime';
 import { toast } from 'sonner';
 import { roomDb } from '@/lib/supabase/roomClient';
+import { ABSENT_MS, recallSeat, rememberSeat, takeOverIfHostGone } from '@/lib/roomSeat';
 
 export interface Player {
   id: string;
@@ -27,19 +28,23 @@ export interface GameState {
 export function useGameSync(roomCode: string, gameType: string) {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [isHost, setIsHost] = useState(false);
+  const [initialHost, setInitialHost] = useState(false);
   const { now } = useServerTime();
-  
+
   // Use the new robust hook for sync
-  const { 
-    room, session, players, moves, 
+  const {
+    room, session, players, moves,
     undercover, infiltre, flag, wiki, budget, draw, poke, rent, logo,
-    isConnected, lastEvent, broadcast 
+    isConnected, lastEvent, broadcast
   } = useGameRoom(roomId || '', playerId || '');
+
+  // The host is whoever the room names right now: after a hand-over the new
+  // host starts running the game loop without reloading anything.
+  const isHost = room?.host_id ? room.host_id === playerId : initialHost;
 
   // Derived state
   const roomStatus = room?.status || 'waiting';
-  
+
   const gameState: GameState | null = useMemo(() => {
     if (!session) return null;
     return {
@@ -71,29 +76,39 @@ export function useGameSync(roomCode: string, gameType: string) {
 
       setRoomId(roomData.id);
 
-      // 2. Register/Identify player
-      const storedPlayerId = sessionStorage.getItem('playerId');
-      const playerName = sessionStorage.getItem('playerName') || `Player-${Math.floor(Math.random() * 1000)}`;
-      
+      // 2. Who is this? This tab's seat, else the seat this device remembers for the room.
+      const remembered = recallSeat(roomCode);
+      const storedPlayerId = sessionStorage.getItem('playerId') || remembered?.playerId || null;
+      const playerName = sessionStorage.getItem('playerName') || remembered?.name || null;
+
+      // No name at all (link opened on a new device): the room page asks for one, then sends the player here.
+      if (!storedPlayerId && !playerName) {
+        window.location.href = `/room/${roomCode}`;
+        return;
+      }
+
       let player;
 
       // A. Try by ID
       if (storedPlayerId) {
-        const { data } = await supabase.from('players').select('*').eq('id', storedPlayerId).maybeSingle();
+        const { data } = await supabase.from('players').select('*').eq('id', storedPlayerId).eq('room_id', roomData.id).maybeSingle();
         if (data) player = data;
       }
 
-      // B. Try by Name + Room
-      if (!player) {
+      // B. Try by Name + Room: the same pseudo takes back the same seat.
+      if (!player && playerName) {
         const { data } = await supabase.from('players').select('*').eq('room_id', roomData.id).eq('name', playerName).maybeSingle();
         if (data) player = data;
       }
 
       // A returning player takes their seat token back before writing anything.
-      if (player) await roomDb.claim(roomData.id, { playerId: player.id });
+      if (player) {
+        const { error } = await roomDb.claim(roomData.id, { playerId: player.id });
+        if (error) toast.error(error.message || 'Impossible de reprendre ta place.');
+      }
 
       // C. Create new
-      if (!player) {
+      if (!player && playerName) {
         const { data: newPlayer } = await roomDb
           .from('players')
           .insert({
@@ -103,37 +118,39 @@ export function useGameSync(roomCode: string, gameType: string) {
           })
           .select()
           .maybeSingle();
-        
+
         if (newPlayer) {
           player = newPlayer;
-          sessionStorage.setItem('playerId', newPlayer.id);
           // If room has no host, claim it
           if (!roomData.host_id) {
-             await roomDb.from('rooms').update({ host_id: newPlayer.id }).eq('id', roomData.id);
-             await roomDb.from('players').update({ is_host: true }).eq('id', newPlayer.id);
-             setIsHost(true);
+            await roomDb.from('rooms').update({ host_id: newPlayer.id }).eq('id', roomData.id);
+            await roomDb.from('players').update({ is_host: true }).eq('id', newPlayer.id);
+            setInitialHost(true);
           }
         }
       }
 
       if (player) {
         setPlayerId(player.id);
-        setIsHost(player.is_host);
-        
+        setInitialHost(player.is_host || roomData.host_id === player.id);
+        sessionStorage.setItem('playerId', player.id);
+        sessionStorage.setItem('playerName', player.name);
+        rememberSeat(roomCode, { playerId: player.id, name: player.name });
+
         // Sync host status if mismatch
         if (player.is_host && roomData.host_id !== player.id) {
-            await roomDb.from('rooms').update({ host_id: player.id }).eq('id', roomData.id);
+          await roomDb.from('rooms').update({ host_id: player.id }).eq('id', roomData.id);
         }
 
         // Initialize session if host and missing
         if (player.is_host) {
-             const { data: existingSession } = await supabase.from('game_sessions').select('*').eq('room_id', roomData.id).maybeSingle();
-             if (!existingSession) {
-                 await roomDb.from('game_sessions').insert({
-                    room_id: roomData.id,
-                    status: 'waiting'
-                 });
-             }
+          const { data: existingSession } = await supabase.from('game_sessions').select('*').eq('room_id', roomData.id).maybeSingle();
+          if (!existingSession) {
+            await roomDb.from('game_sessions').insert({
+              room_id: roomData.id,
+              status: 'waiting'
+            });
+          }
         }
       }
     };
@@ -141,46 +158,55 @@ export function useGameSync(roomCode: string, gameType: string) {
     init();
   }, [roomCode]);
 
-  // Heartbeat system
+  // Presence: every 30 s, and at once when the player comes back to the tab
+  // (phones freeze timers in the background, which used to read as "gone").
   useEffect(() => {
     if (!playerId) return;
     const sendHeartbeat = async () => {
-        await roomDb.from('players').update({ last_seen_at: new Date().toISOString() }).eq('id', playerId);
+      await roomDb.from('players').update({ last_seen_at: new Date().toISOString() }).eq('id', playerId);
     };
+    const onBack = () => { if (document.visibilityState === 'visible') void sendHeartbeat(); };
     sendHeartbeat();
     const interval = setInterval(sendHeartbeat, 30000);
-    return () => clearInterval(interval);
+    document.addEventListener('visibilitychange', onBack);
+    window.addEventListener('online', onBack);
+    window.addEventListener('focus', onBack);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onBack);
+      window.removeEventListener('online', onBack);
+      window.removeEventListener('focus', onBack);
+    };
   }, [playerId]);
 
-  // Cleanup inactive players (Host only)
-  useEffect(() => {
-    if (!isHost || !roomId) return;
-    const cleanup = async () => {
-        const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-        await roomDb.from('players').delete().eq('room_id', roomId).lt('last_seen_at', twoMinAgo);
-    };
-    const interval = setInterval(cleanup, 60000);
-    return () => clearInterval(interval);
-  }, [isHost, roomId]);
+  // Nobody is removed for being away during a game any more: they keep their
+  // seat and find it again when they come back. Only the host excludes someone.
 
-  // Check Host Inactivity
+  // The host went quiet: the first active player takes over instead of the
+  // whole room closing on everyone.
+  const playersRef = useRef(players);
+  playersRef.current = players;
   useEffect(() => {
-    if (!roomId || !players.length) return;
-    const checkHost = async () => {
-       const host = players.find((p: any) => p.is_host);
-       if (host && host.last_seen_at) {
-          const lastSeen = new Date(host.last_seen_at).getTime();
-          if (Date.now() - lastSeen > 150000) {
-             if (roomStatus !== 'closed') {
-                 await roomDb.from('rooms').update({ status: 'closed' }).eq('id', roomId);
-             }
-          }
-       }
+    if (!roomId || !playerId) return;
+    const check = async () => {
+      if (await takeOverIfHostGone(roomId, playerId, room?.host_id, playersRef.current)) {
+        toast.success('L’hôte est parti : tu mènes la partie maintenant.');
+      }
     };
-    const interval = setInterval(checkHost, 30000);
+    const interval = setInterval(check, 20000);
     return () => clearInterval(interval);
-  }, [roomId, players, roomStatus]);
+  }, [roomId, playerId, room?.host_id]);
 
+  // Excluded by the host: this seat disappeared after being seen.
+  const seenSelf = useRef(false);
+  useEffect(() => {
+    if (!playerId || players.length === 0) return;
+    if (players.some((p: any) => p.id === playerId)) { seenSelf.current = true; return; }
+    if (seenSelf.current) {
+      toast.error('Tu as été exclu de la partie.');
+      window.location.href = '/';
+    }
+  }, [players, playerId]);
 
   // Actions
   const updateSettings = async (newSettings: any) => {
@@ -291,6 +317,12 @@ export function useGameSync(roomCode: string, gameType: string) {
     return diff > 0 ? diff : 0;
   }, [now]);
 
+  /** Players who stopped sending presence: shown as away, their turns can be skipped. */
+  const isPlayerAway = useCallback((id: string) => {
+    const p = players.find((x: any) => x.id === id);
+    return !p?.last_seen_at || Date.now() - new Date(p.last_seen_at).getTime() > ABSENT_MS;
+  }, [players]);
+
   return {
     roomStatus,
     players,
@@ -322,6 +354,7 @@ export function useGameSync(roomCode: string, gameType: string) {
     roomId, // Exposed UUID
     lastEvent, // Exposed for components
     broadcast, // Exposed for components
-    isConnected // Exposed for connection-status banner
+    isConnected, // Exposed for connection-status banner
+    isPlayerAway, // Exposed: away players (turn skipping, host tools)
   };
 }

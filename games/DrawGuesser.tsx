@@ -64,7 +64,8 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
     roomId,
     lastEvent,
     broadcast,
-    isConnected
+    isConnected,
+    isPlayerAway
   } = useGameSync(roomCode, 'draw');
 
   // --- DERIVED STATE ---
@@ -246,27 +247,27 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       ctx.lineJoin = 'round';
       
       if (batch.points.length === 0) return;
-      
-      // Get previous strokes to connect
+
       const existingBatches = receivedStrokes.current.get(batch.strokeId) || [];
-      const isFirstBatch = existingBatches.length === 0;
-      
-      // Connect to last point of previous batch if exists
-      if (!isFirstBatch && existingBatches.length > 0) {
-          const lastBatch = existingBatches[existingBatches.length - 1];
-          if (lastBatch.points.length > 0) {
-              const lastPoint = lastBatch.points[lastBatch.points.length - 1];
-              ctx.moveTo(lastPoint.x * displayWidth, lastPoint.y * displayHeight);
-          }
+
+      // Every batch now starts with the last point of the one before it (see
+      // broadcastBatch), so it draws a continuous line on its own even when a
+      // batch in between was dropped by the realtime channel — the old
+      // "connect to the previous batch" joined the wrong points or nothing,
+      // which is what left dotted lines. A single point is a dot, drawn round.
+      if (batch.points.length === 1) {
+          const p = batch.points[0];
+          ctx.arc(p.x * displayWidth, p.y * displayHeight, batch.size / 2, 0, Math.PI * 2);
+          ctx.fillStyle = batch.color;
+          ctx.fill();
       } else {
           ctx.moveTo(batch.points[0].x * displayWidth, batch.points[0].y * displayHeight);
+          for (let i = 1; i < batch.points.length; i++) {
+              const point = batch.points[i];
+              ctx.lineTo(point.x * displayWidth, point.y * displayHeight);
+          }
+          ctx.stroke();
       }
-      
-      for (let i = 0; i < batch.points.length; i++) {
-          const point = batch.points[i];
-          ctx.lineTo(point.x * displayWidth, point.y * displayHeight);
-      }
-      ctx.stroke();
       
       // Store batch
       existingBatches.push(batch);
@@ -287,7 +288,28 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
               isEnd: true
           };
           setStrokes(prev => [...prev, completeStroke]);
+          scheduleResync();
       }
+  };
+
+  // Once a stroke ends, the drawer has saved the full drawing: re-read it and
+  // redraw, so anything the live batches missed is filled in within a second.
+  const resyncTimer = useRef<NodeJS.Timeout | null>(null);
+  const scheduleResync = () => {
+      if (resyncTimer.current) clearTimeout(resyncTimer.current);
+      resyncTimer.current = setTimeout(async () => {
+          if (!roomId || !currentRoundId || isDrawingRef.current) return;
+          const { data } = await supabase
+              .from('draw_strokes')
+              .select('strokes_data')
+              .eq('room_id', roomId)
+              .eq('round_id', currentRoundId)
+              .maybeSingle();
+          if (data?.strokes_data && Array.isArray(data.strokes_data) && renderQueue.current.length === 0) {
+              setStrokes(data.strokes_data);
+              redrawCanvas(data.strokes_data);
+          }
+      }, 900);
   };
 
   // Handle Incoming Draw Events
@@ -446,7 +468,10 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       
       broadcast('draw_batch', batch);
       strokeSequence.current++;
-      strokeBatch.current = [];
+      // The next batch starts from where this one stopped, so each batch is a
+      // continuous piece of line by itself (a lost batch no longer breaks the stroke).
+      const last = batch.points[batch.points.length - 1];
+      strokeBatch.current = isEnd || !last ? [] : [last];
   };
   const getCoords = (e: any) => {
       const canvas = canvasRef.current;
@@ -490,11 +515,13 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       // never actually ran, meaning viewers only saw the whole stroke pop
       // in at once when the drawer lifted their finger.
       if (batchTimeout.current) clearInterval(batchTimeout.current);
+      // Every 80 ms (12 messages a second): 40 ms went past what the realtime
+      // channel accepts per client, and the dropped messages were the gaps.
       batchTimeout.current = setInterval(() => {
-          if (strokeBatch.current.length > 0) {
+          if (strokeBatch.current.length > 1) {
               broadcastBatch(false);
           }
-      }, 40);
+      }, 80);
   };
 
   const drawStroke = (e: any) => {
@@ -571,7 +598,8 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
           // 1. Playing -> Round Results (Time up or All Guessers Found)
           if (currentPhase === 'playing') {
               const timeIsUp = timeLeft === 0 && timerStartAt && (Date.now() > new Date(timerStartAt).getTime() + timerSeconds * 1000);
-              const guessers = players.filter(p => p.id !== currentDrawerId);
+              // Players who left don't hold the round open until the timer runs out.
+              const guessers = players.filter(p => p.id !== currentDrawerId && !isPlayerAway(p.id));
               const allFound = guessers.length > 0 && gamePlayers.filter((p: any) => p.has_guessed && p.player_id !== currentDrawerId).length >= guessers.length;
 
               if (timeIsUp || allFound) {
@@ -603,6 +631,23 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
 
       manageGame();
   }, [isHost, roomId, currentPhase, timeLeft, timerStartAt, timerSeconds, players.length, gamePlayers, currentDrawerId]);
+
+  // A drawer who is away for 30 s: the round ends and the next player draws.
+  const drawerSince = useRef<{ id: string | null; at: number }>({ id: null, at: 0 });
+  useEffect(() => {
+      if (!isHost || !roomId || currentPhase !== 'playing' || !currentDrawerId) return;
+      if (drawerSince.current.id !== currentDrawerId) drawerSince.current = { id: currentDrawerId, at: Date.now() };
+      const t = setInterval(async () => {
+          const s = drawerSince.current;
+          if (s.id !== currentDrawerId || Date.now() - s.at < 30_000 || !isPlayerAway(currentDrawerId)) return;
+          drawerSince.current = { id: null, at: Date.now() };
+          await roomDb.from('draw_games').update({ phase: 'round_results', timer_start_at: null }).eq('room_id', roomId);
+          toast.info('Le dessinateur est absent : on passe au suivant.');
+          setTimeout(() => { void nextRound(); }, 3000);
+      }, 5_000);
+      return () => clearInterval(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHost, roomId, currentPhase, currentDrawerId, isPlayerAway]);
 
   // --- ACTIONS ---
 
@@ -699,10 +744,13 @@ export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
       // Generate new round ID
       const newRoundId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Determine next drawer
+      // Determine next drawer: the next player who is still here.
       const currentIndex = players.findIndex(p => p.id === currentDrawerId);
-      const nextIndex = (currentIndex + 1) % players.length;
-      const nextDrawerId = players[nextIndex].id;
+      let nextDrawerId = players[(currentIndex + 1) % players.length].id;
+      for (let step = 1; step <= players.length; step++) {
+          const candidate = players[(currentIndex + step) % players.length];
+          if (!isPlayerAway(candidate.id)) { nextDrawerId = candidate.id; break; }
+      }
 
       // Reset players guess state
       await roomDb.from('draw_players').update({

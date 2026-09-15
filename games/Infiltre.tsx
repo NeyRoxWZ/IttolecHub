@@ -43,7 +43,8 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
     roomStatus,
     lastEvent,
     broadcast,
-    isConnected
+    isConnected,
+    isPlayerAway
   } = useGameSync(roomCode, 'infiltre');
 
   // --- DERIVED STATE ---
@@ -178,9 +179,9 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
     if (!isHost || !roomId) return;
 
     const managePhases = async () => {
-        // 1. Roles -> Playing (All Ready)
+        // 1. Roles -> Playing (All Ready). Someone away doesn't hold everyone up.
         if (currentPhase === 'roles') {
-             const allReady = alivePlayers.every(id => readyPlayersFromTable.includes(id));
+             const allReady = alivePlayers.every(id => readyPlayersFromTable.includes(id) || isPlayerAway(id));
              if (allReady && alivePlayers.length > 0) { 
                  await roomDb.from('infiltre_games').update({
                      phase: 'playing',
@@ -944,7 +945,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
                 {/* BOTTOM INPUT (Fixed Mobile) */}
                 {!isMaster && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 pr-[92px] z-50 md:relative md:p-0 md:pr-0 md:mt-4">
+                    <div className="fixed bottom-0 left-0 right-0 z-[95] border-t-4 border-brand-border bg-brand-bg/95 backdrop-blur p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:relative md:z-auto md:border-t-0 md:bg-transparent md:backdrop-blur-none md:p-0 md:mt-4">
                         <div className="max-w-3xl mx-auto flex gap-3">
                             <input 
                                 placeholder="Posez une question..." 
@@ -966,7 +967,7 @@ export default function Infiltre({ roomCode }: InfiltreProps) {
 
                 {/* MASTER CONTROLS */}
                 {isMaster && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 pr-[92px] z-50 md:relative md:p-0 md:pr-0 md:mt-4 text-center">
+                    <div className="fixed bottom-0 left-0 right-0 z-[95] border-t-4 border-brand-border bg-brand-bg/95 backdrop-blur p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:relative md:z-auto md:border-t-0 md:bg-transparent md:backdrop-blur-none md:p-0 md:mt-4 text-center">
                         <p className="text-tx-secondary font-bold mb-2 uppercase tracking-widest text-sm">Quelqu'un a trouvé le mot ?</p>
                         <div className="flex flex-wrap justify-center gap-3">
                             {players.filter(p => p.id !== playerId).map(p => (

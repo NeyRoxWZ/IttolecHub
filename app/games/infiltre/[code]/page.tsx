@@ -3,6 +3,7 @@
 import { use } from 'react';
 
 import Infiltre from '@/games/Infiltre';
+import HostAwayPlayers from '@/components/HostAwayPlayers';
 
 export default function InfiltrePage({
   params,
@@ -12,6 +13,10 @@ export default function InfiltrePage({
   searchParams: Promise<{ [key: string]: string }>;
 }) {
   const { code } = use(params);
-  return <Infiltre roomCode={code} />;
+  return (
+    <>
+      <Infiltre roomCode={code} />
+      <HostAwayPlayers roomCode={code} />
+    </>
+  );
 }
-

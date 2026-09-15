@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
-import { readPayload, signPayload } from '@/lib/session';
+import { readPayload, sessionUserId, signPayload } from '@/lib/session';
 import { allow, clientIp } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
@@ -39,9 +39,9 @@ const AUTHORED: Record<string, string> = {
 const OPS = new Set(['insert', 'update', 'delete', 'upsert']);
 const IDENT = /^[a-z_]+$/;
 const SEAT_MAX_AGE = 60 * 60 * 24;
-/** Presence is sent every 30 s: past this, a host is gone and anyone may take over. */
-const HOST_GONE_MS = 150_000;
-/** A seat whose player still sent presence this recently cannot be taken back by name. */
+/** Presence is sent every 30 s: past this, a host is gone and the next active player takes over (lib/roomSeat). */
+const HOST_GONE_MS = 75_000;
+/** A seat whose player still sent presence this recently cannot be taken back by name alone. */
 const SEAT_ACTIVE_MS = 45_000;
 
 type Row = Record<string, unknown>;
@@ -67,12 +67,28 @@ export async function POST(request: Request) {
     const playerId = typeof body.playerId === 'string' ? body.playerId : '';
     const name = typeof body.name === 'string' ? body.name : '';
     if (!roomId || (!playerId && !name)) return fail(400, 'Salon ou joueur manquant');
-    let q = supabase.from('players').select('id, room_id, last_seen_at').eq('room_id', roomId);
+    let q = supabase.from('players').select('id, room_id, name, last_seen_at').eq('room_id', roomId);
     q = playerId ? q.eq('id', playerId) : q.eq('name', name);
     const { data: player } = await q.maybeSingle();
     if (!player) return fail(404, 'Joueur introuvable dans ce salon');
-    // Someone still playing keeps their seat: knowing a code and a pseudo is not enough to take it.
-    if (recent(player.last_seen_at, SEAT_ACTIVE_MS)) return fail(409, 'Ce joueur est déjà connecté dans ce salon.');
+
+    // Straight back in, even while the seat still looks active (a tab reloaded
+    // by the phone, a second tab): this device held the seat before, or the
+    // signed-in account is the one wearing that pseudo.
+    const held = await readPayload<Seat>(request.headers.get('x-room-token'));
+    const sameDevice = !!held && held.typ === 'seat' && held.pid === player.id && held.rid === player.room_id;
+    let sameAccount = false;
+    if (!sameDevice) {
+      const uid = await sessionUserId(request);
+      if (uid) {
+        const { data: me } = await supabase.from('users').select('pseudo').eq('id', uid).maybeSingle();
+        sameAccount = !!me?.pseudo && String(me.pseudo).toLowerCase() === String(player.name).toLowerCase();
+      }
+    }
+    // Otherwise someone still playing keeps their seat: knowing a code and a pseudo is not enough to take it.
+    if (!sameDevice && !sameAccount && recent(player.last_seen_at, SEAT_ACTIVE_MS)) {
+      return fail(409, 'Ce joueur est déjà connecté dans ce salon.');
+    }
     return reply({ data: { id: player.id }, error: null, token: await seatToken(player.id, player.room_id) });
   }
 
@@ -155,6 +171,9 @@ export async function POST(request: Request) {
           if (!lastOneLeaving) return fail(403, NOT_HOST);
         }
       } else if (table === 'players') {
+        // Presence is dated by the server: phone clocks drift, and a seat's
+        // "away" status and the host hand-over both read this column.
+        if (op === 'update' && 'last_seen_at' in rows[0]) rows[0].last_seen_at = new Date().toISOString();
         if (!runsRoom) {
           // Everyone else only touches their own seat, and cannot crown themselves.
           filters.push(['eq', 'id', pid]);
