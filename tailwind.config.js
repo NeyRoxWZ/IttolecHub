@@ -12,6 +12,12 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
+      screens: {
+        // A desktop window that isn't tall (laptops): the home page tightens so it fits without scrolling.
+        short: { raw: '(min-width: 1024px) and (max-height: 860px)' },
+        // A desktop window tall enough to hold the home page: it is locked to one screen, the cards shrink to fit.
+        fit: { raw: '(min-width: 1024px) and (min-height: 620px)' },
+      },
       // Direction "Brawl", dark: indigo panels with thick black outlines on a
       // deep navy page, chunky outlined titles, bright buttons with a
       // pressed-in bottom edge. Token names are the old ones so every screen

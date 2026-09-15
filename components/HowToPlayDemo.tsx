@@ -200,8 +200,8 @@ export default function HowToPlayDemo({ className }: { className?: string }) {
         })}
       </div>
 
-      {/* Fixed size: the card must not grow or shrink between steps. */}
-      <div className="mt-4 relative h-[250px] shrink-0 rounded-2xl bg-brand-inner border-[3px] border-brand-border overflow-hidden flex items-center justify-center p-4 shadow-[inset_0_4px_0_#0B0E2A]">
+      {/* Fixed size: the card must not grow or shrink between steps. On a home page locked to one screen it takes the room left instead. */}
+      <div className="mt-4 short:mt-3 relative h-[250px] shrink-0 fit:h-auto fit:flex-1 fit:min-h-[130px] rounded-2xl bg-brand-inner border-[3px] border-brand-border overflow-hidden flex items-center justify-center p-4 shadow-[inset_0_4px_0_#0B0E2A]">
         <div key={step} className="w-full h-full flex items-center justify-center">
           {step === 0 && <CreateRoom />}
           {step === 1 && <PickGame />}

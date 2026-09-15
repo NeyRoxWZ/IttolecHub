@@ -1,3 +1,28 @@
 {
-  "entries": []
+  "entries": [
+    {
+      "id": "2026-09-15-01",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "L'accueil tient sur un écran",
+      "details": "Sur ordinateur, les pages Solo et Multijoueur ne défilent plus : tout s'adapte à la taille de la fenêtre, et le don est rangé dans les cartes."
+    },
+    {
+      "id": "2026-09-15-02",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Icônes Solo et Multijoueur",
+      "details": "Le choix du mode en haut de l'accueil a maintenant une icône pour chaque mode."
+    },
+    {
+      "id": "2026-09-15-03",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Aperçu de ton pseudo Donateur",
+      "details": "La fenêtre « Faire un don » montre ton pseudo tel qu'il s'affichera avec le badge Donateur."
+    }
+  ]
 }

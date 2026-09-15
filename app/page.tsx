@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { LogOut, Menu, X, RotateCcw, Sparkles, ArrowRight } from 'lucide-react';
+import { LogOut, Menu, X, RotateCcw, Sparkles, ArrowRight, Users, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -178,12 +178,13 @@ function Home() {
           onClick={() => handleSetMode(m)}
           aria-pressed={mode === m}
           className={cn(
-            'h-10 px-5 rounded-[13px] font-display text-lg transition-colors',
+            'h-10 px-4 sm:px-5 rounded-[13px] font-display text-lg transition-colors flex items-center gap-2',
             mode === m
               ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00]'
               : 'text-tx-secondary hover:text-white'
           )}
         >
+          {m === 'multiplayer' ? <Users className="h-5 w-5" strokeWidth={2.5} /> : <User className="h-5 w-5" strokeWidth={2.5} />}
           {m === 'multiplayer' ? 'Multijoueur' : 'Solo'}
         </button>
       ))}
@@ -193,7 +194,7 @@ function Home() {
   return (
     // Locked to one screen only when the window is big enough to hold it all;
     // a narrow or short window (split screen) scrolls normally.
-    <main className="bg-transparent min-h-screen flex flex-col relative">
+    <main className="bg-transparent min-h-screen flex flex-col relative fit:h-[100dvh] fit:min-h-0 fit:overflow-hidden">
       {easterEggActive && (
         <div className="fixed inset-0 z-[9999] pointer-events-none">
           <div
@@ -291,8 +292,8 @@ function Home() {
         </div>
       )}
 
-      <section className="flex-1 px-4 sm:px-6 py-6 md:py-8">
-        <div className="max-w-6xl mx-auto">
+      <section className="flex-1 px-4 sm:px-6 py-6 md:py-8 short:py-3 fit:min-h-0 fit:flex fit:flex-col">
+        <div className="max-w-6xl mx-auto fit:w-full fit:flex-1 fit:min-h-0 fit:flex fit:flex-col">
           {resumeRoom && mode === 'multiplayer' && (
             <button
               type="button"
@@ -306,26 +307,27 @@ function Home() {
 
           {mode === 'solo' ? (
             <>
-              <div className="mb-6">
-                <h1 className="font-display text-5xl md:text-6xl leading-none">Jeux solo</h1>
-                <p className="mt-2 font-black text-tx-secondary">Joue à ton rythme. Ta progression est sauvegardée sur ton compte.</p>
+              <div className="mb-6 short:mb-3">
+                <h1 className="font-display text-5xl md:text-6xl short:text-5xl leading-none">Jeux solo</h1>
+                <p className="mt-2 short:mt-1 font-black text-tx-secondary">Joue à ton rythme. Ta progression est sauvegardée sur ton compte.</p>
               </div>
 
               {/* Stretch, so the side column ends exactly where the game cards end. */}
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-stretch">
-                <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-stretch fit:flex-1 fit:min-h-0">
+                <div className="grid gap-5 sm:grid-cols-2 fit:min-h-0">
                   {SOLO_GAMES.map((g) => {
                     const locked = !!g.building && !isOwner(user?.id);
                     return (
                     <article
                       key={g.id}
-                      className="relative flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] overflow-hidden shadow-[0_8px_0_#05061A]"
+                      className="relative flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] overflow-hidden shadow-[0_8px_0_#05061A] fit:min-h-0"
                     >
                       <span className={cn('absolute top-3 left-[-4px] z-10 px-3 py-1 font-display text-base border-[3px] border-brand-border rounded-r-xl', g.tagClass)}>
                         {g.tag}
                       </span>
-                      <div className="relative overflow-hidden border-b-4 border-brand-border">
-                        <GameCover game={g.id} className={cn('block w-full aspect-[16/9]', locked && 'grayscale-[40%]')} />
+                      {/* On a locked screen the cover gives up height first, so the card fits. */}
+                      <div className="relative overflow-hidden border-b-4 border-brand-border fit:flex-1 fit:min-h-0">
+                        <GameCover game={g.id} className={cn('block w-full aspect-[16/9] fit:aspect-auto fit:h-full', locked && 'grayscale-[40%]')} />
                         {g.building && (
                           // Two crossing strips of warning tape across the cover.
                           <div aria-hidden className="absolute inset-0 pointer-events-none">
@@ -363,9 +365,9 @@ function Home() {
                   })}
                 </div>
 
-                <aside className="flex flex-col">
+                <aside className="flex flex-col fit:min-h-0">
                   {/* Takes the whole column: the latest version, summed up. */}
-                  <div className="flex-1 flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] p-5 shadow-[0_8px_0_#05061A]">
+                  <div className="flex-1 flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] p-5 shadow-[0_8px_0_#05061A] fit:min-h-0 fit:overflow-hidden">
                     <div className="flex items-center gap-2">
                       <span className="h-10 w-10 rounded-xl border-[3px] border-brand-border bg-accent-primary flex items-center justify-center shadow-[inset_0_-3px_0_#D98E00]">
                         <Sparkles className="h-5 w-5 text-brand-bg" />
@@ -378,40 +380,42 @@ function Home() {
                           Version {latestRelease.version}
                         </div>
                         {latestRelease.title && <p className="mt-2 font-display text-xl leading-tight">{latestRelease.title}</p>}
-                        <ul className="mt-3 space-y-1.5">
-                          {(latestRelease.entries || []).slice(0, 6).map((e, i) => (
+                        {/* On a locked screen the list gives up height, never the button under it. */}
+                        <ul className="mt-3 space-y-1.5 fit:min-h-0 fit:overflow-hidden">
+                          {(latestRelease.entries || []).slice(0, 5).map((e, i) => (
                             <li key={i} className="flex gap-2 items-start text-sm font-bold text-tx-secondary leading-snug">
                               <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-brand-border bg-accent-primary" />
                               <span>{e.title}</span>
                             </li>
                           ))}
                         </ul>
-                        {(latestRelease.entries?.length || 0) > 6 && (
-                          <p className="mt-2 text-xs font-black text-tx-secondary">et {latestRelease.entries!.length - 6} autres changements</p>
+                        {(latestRelease.entries?.length || 0) > 5 && (
+                          <p className="mt-2 text-xs font-black text-tx-secondary">et {latestRelease.entries!.length - 5} autres changements</p>
                         )}
                       </>
                     ) : (
                       <p className="mt-2 text-sm font-bold text-tx-secondary">Toutes les mises à jour du site.</p>
                     )}
-                    <div className="mt-auto pt-4">
+                    <div className="mt-auto pt-4 shrink-0">
                       <Link href="/patch-notes" className={cn(BTN_YELLOW, 'w-full h-12 text-lg')}>
                         Voir les patch notes <ArrowRight className="h-4 w-4" />
                       </Link>
                     </div>
                   </div>
+                  {/* Inside the column, not under the page: asking for support never adds a scroll. */}
+                  <DonateStrip className="mt-4" pseudo={user?.pseudo} text="Aide le Casino et la Pêche à grandir." />
                 </aside>
               </div>
-              <DonateStrip pseudo={user?.pseudo} text="Si tu veux que le Casino et la Pêche continuent de grandir, un petit don aide à payer les serveurs." />
             </>
           ) : (
             <>
-              <div className="mb-6">
-                <h1 className="font-display text-5xl md:text-6xl leading-none">Multijoueur</h1>
-                <p className="mt-2 font-black text-tx-secondary">Crée une salle, envoie le code, jouez tous ensemble.</p>
+              <div className="mb-6 short:mb-3">
+                <h1 className="font-display text-5xl md:text-6xl short:text-5xl leading-none">Multijoueur</h1>
+                <p className="mt-2 short:mt-1 font-black text-tx-secondary">Crée une salle, envoie le code, jouez tous ensemble.</p>
               </div>
 
               {/* Two cards side by side, same height, tops and bottoms aligned. */}
-              <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+              <div className="grid gap-6 lg:grid-cols-2 items-stretch fit:flex-1 fit:min-h-0">
                 <div className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] p-5 md:p-6 shadow-[0_8px_0_#05061A]">
                   <div className="font-display text-2xl mb-4">{activeTab === 'create' ? 'Créer une salle' : 'Rejoindre une salle'}</div>
                   <div className="flex gap-1 p-1.5 rounded-[22px] bg-brand-bg border-[3px] border-brand-border">
@@ -462,12 +466,13 @@ function Home() {
                   </form>
                 </div>
 
-                <div className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] p-5 md:p-6 shadow-[0_8px_0_#05061A]">
-                  <div className="font-display text-2xl mb-4">Comment jouer</div>
-                  <HowToPlayDemo className="flex-1" />
+                <div className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] p-5 md:p-6 shadow-[0_8px_0_#05061A] fit:min-h-0 fit:overflow-hidden">
+                  <div className="font-display text-2xl mb-4 short:mb-2">Comment jouer</div>
+                  <HowToPlayDemo className="flex-1 min-h-0" />
+                  {/* Inside the card, not under the page: asking for support never adds a scroll. */}
+                  <DonateStrip className="mt-4" pseudo={user?.pseudo} text="Garde les salles ouvertes et de nouveaux jeux." />
                 </div>
               </div>
-              <DonateStrip pseudo={user?.pseudo} text="Pour garder les salles ouvertes et ajouter de nouveaux jeux, un petit don aide à payer les serveurs." />
             </>
           )}
         </div>
