@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { shuffle } from '@/lib/party/text';
 import { addScores, listSetting, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './party/usePartyGame';
-import { AnswerInput, ChoiceButton, NextStep, PartyShell, PlayerChips, Podium, PromptCard, ScoreList, SetupScreen, Waiting } from './party/ui';
+import { AnswerInput, NextStep, PartyShell, PlayerChips, Podium, PromptCard, ScoreList, SetupScreen, VoteScreen, Waiting } from './party/ui';
 
 const SWATCH = { fill: '#FF4F8B', shade: '#C92D63' };
 const RESULTS_TIME = 14;
@@ -120,27 +120,17 @@ export default function Punchline({ params }: { params: { code: string } }) {
       )}
 
       {phase === 'vote' && (
-        <>
-          <PromptCard eyebrow="Vote pour la meilleure">{round.prompt}</PromptCard>
-          <div className="grid w-full gap-3 sm:grid-cols-2">
-            {entries.map((e) => {
-              const mine = e.pid === playerId;
-              return (
-                <ChoiceButton
-                  key={e.pid}
-                  selected={myVote === e.pid}
-                  disabled={mine}
-                  onClick={() => { markPick(e.pid); party.act('vote', { pid: e.pid }); vibrate(HAPTIC.SOFT); }}
-                  className={cn('min-h-[76px] text-lg leading-snug', mine && 'opacity-60')}
-                >
-                  {e.text}
-                  {mine && <span className="mt-1 block text-xs font-black uppercase tracking-widest opacity-80">Ta réponse</span>}
-                </ChoiceButton>
-              );
-            })}
-          </div>
-          <PlayerChips party={party} done={Object.keys(votes)} label="Ont voté" />
-        </>
+        <VoteScreen
+          party={party}
+          title={round.prompt}
+          subtitle="Vote pour la réponse la plus drôle (anonyme)."
+          candidates={entries.map((e) => ({ id: e.pid, title: e.text, mine: e.pid === playerId }))}
+          myVote={myVote}
+          onVote={(pid) => { markPick(pid); party.act('vote', { pid }); vibrate(HAPTIC.SOFT); }}
+          votes={{}}
+          voted={Object.keys(votes)}
+          voters={active.map((p) => p.id)}
+        />
       )}
 
       {phase === 'results' && (

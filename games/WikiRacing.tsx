@@ -1,657 +1,242 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useGameSync } from '@/hooks/useGameSync';
-import GameLayout from './components/GameLayout';
-import VoteToLobby from './components/VoteToLobby';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Flag, Link as LinkIcon, Loader2, Search, Trophy, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { Trophy, Clock, Loader2, ArrowRight, Target, Link as LinkIcon, Search, ChevronUp, ChevronDown, X, CornerRightUp } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
-import { vibrate, HAPTIC } from '@/lib/haptic';
 import OgName from '@/components/OgName';
-import { roomDb } from '@/lib/supabase/roomClient';
+import { cn } from '@/lib/utils';
+import { BRAWL } from '@/lib/ui/brawl';
+import { vibrate, HAPTIC } from '@/lib/haptic';
+import { addScores, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './party/usePartyGame';
+import { AnswerList, NextStep, PartyShell, Podium, RevealBanner, ScoreList, SetupScreen, Waiting } from './party/ui';
+
+const SWATCH = { fill: '#FF8A1F', shade: '#CC6508' };
+const MAX_RACE = 300;
+const AFTER_HALF = 20;
+const RESULTS_TIME = 12;
+
+type Pair = { start: string; target: string };
+const pretty = (t: string) => String(t || '').replace(/_/g, ' ');
+const same = (a: string, b: string) => pretty(a).trim().toLowerCase() === pretty(b).trim().toLowerCase();
+const clockOf = (ms: number) => { const s = Math.round(ms / 1000); return s >= 60 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${s} s`; };
 
 export default function WikiRacing({ params }: { params: { code: string } }) {
-    const roomCode = params.code;
-    const router = useRouter();
-    
-    const { 
-        roomStatus,
-        gameState,
-        roomId,
-        players, 
-        playerId, 
-        isHost, 
-        updateRoundData,
-        sendMove,
-        moves,
-        setGameStatus,
-        serverTime,
-        isConnected
-    } = useGameSync(roomCode, 'wikiracing');
+  const party = usePartyGame(params.code, 'wikiracing');
+  const { round, phase, settings, playerId, active, roundNo, totalRounds, gid } = party;
+  const byClicks = settings.winCondition === 'optimization';
 
-    const [htmlContent, setHtmlContent] = useState<string>('');
-    const [isLoadingPage, setIsLoadingPage] = useState(false);
-    const [localClicks, setLocalClicks] = useState(0);
-    const [currentTitle, setCurrentTitle] = useState('');
-    const [hasFinished, setHasFinished] = useState(false);
-    const [cheatDetected, setCheatDetected] = useState(false);
-    
-    // Auto-scroll to top on page change
-    const contentRef = useRef<HTMLDivElement>(null);
+  const pair: Pair | undefined = round.pair;
+  const startedAt: number = round.started_at || 0;
 
-    // --- DERIVED STATE ---
-    const roundData = gameState?.round_data || {};
-    const currentPhase = roundData.phase || 'setup';
-    const settings = gameState?.settings || {};
-    const totalRounds = gameState?.total_rounds || settings.rounds || 3;
-    const currentRound = gameState?.current_round || 1;
-    const winCondition = settings.winCondition || 'speed'; // speed | optimization
-    
-    const startPage = roundData.start_page || '';
-    const targetPage = roundData.target_page || '';
-    const scores = roundData.scores || {};
-    const playerStats = roundData.player_stats || {}; // { playerId: { clicks, time, finishedAt } }
-    const countdownEndTime = roundData.countdown_end_time || null;
-    const roundStartTime = roundData.start_time || null;
+  /* ---------------- this player's race ---------------- */
+  const [html, setHtml] = useState('');
+  const [title, setTitle] = useState('');
+  const [clicks, setClicks] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [showBoard, setShowBoard] = useState(false);
+  const [finishedLocal, markFinished] = useSent(party, 'race');
+  const content = useRef<HTMLDivElement>(null);
 
-    // --- HOST LOGIC (EVENT SOURCING & COUNTDOWN) ---
-    const processedMoves = useRef(new Set<string>());
+  const finishes: Record<string, { clicks: number; ms: number }> = {};
+  for (const m of party.movesIn('race', 'finish')) if (!finishes[m.player_id]) finishes[m.player_id] = { clicks: Number(m.payload?.clicks) || 0, ms: Number(m.payload?.ms) || 0 };
+  const positions = party.latestBy('page', 'race');
+  const finished = !!finishedLocal || (!!playerId && !!finishes[playerId]);
 
-    useEffect(() => {
-        if (!isHost || !roomId) return;
-
-        const processMoves = async () => {
-            const newMoves = moves.filter(m => !processedMoves.current.has(m.id));
-            if (newMoves.length === 0) return;
-
-            let updatedRoundData = { ...roundData };
-            let stateChanged = false;
-
-            for (const move of newMoves) {
-                processedMoves.current.add(move.id);
-
-                if (move.action_type === 'wiki_finish' && updatedRoundData.phase === 'racing') {
-                    const stats = updatedRoundData.player_stats || {};
-                    if (!stats[move.player_id]) {
-                        stats[move.player_id] = {
-                            clicks: move.payload.clicks,
-                            time: move.payload.time,
-                            finishedAt: Date.now()
-                        };
-                        updatedRoundData.player_stats = stats;
-                        stateChanged = true;
-                    }
-                }
-            }
-
-            if (stateChanged) {
-                const currentStats = updatedRoundData.player_stats || {};
-                const finishedCount = Object.keys(currentStats).length;
-                const totalPlayers = players.length;
-
-                // Rule: If 50% finished, start 20s countdown
-                if (finishedCount >= Math.ceil(totalPlayers / 2) && !updatedRoundData.countdown_end_time && updatedRoundData.phase === 'racing') {
-                    updatedRoundData.countdown_end_time = Date.now() + 20000;
-                }
-
-                // Rule: If everyone finished before countdown ends
-                if (finishedCount === totalPlayers && updatedRoundData.phase === 'racing') {
-                    endRound(updatedRoundData);
-                    return; // endRound will handle the update
-                }
-
-                await updateRoundData(updatedRoundData);
-            }
-        };
-
-        processMoves();
-    }, [moves, isHost, roundData, players]);
-
-    // Host checking countdown
-    useEffect(() => {
-        if (!isHost || currentPhase !== 'racing' || !countdownEndTime) return;
-
-        const checkCountdown = () => {
-            if (Date.now() >= countdownEndTime) {
-                endRound({ ...roundData });
-            }
-        };
-
-        const interval = setInterval(checkCountdown, 1000);
-        return () => clearInterval(interval);
-    }, [isHost, currentPhase, countdownEndTime, roundData]);
-
-    const endRound = async (dataToUpdate: any) => {
-        const stats = dataToUpdate.player_stats || {};
-        const newScores = { ...(dataToUpdate.scores || {}) };
-
-        // Calculate scores based on win condition
-        const finishedPlayers = players.filter(p => stats[p.id]);
-        
-        if (winCondition === 'speed') {
-            finishedPlayers.sort((a, b) => stats[a.id].time - stats[b.id].time);
-        } else {
-            finishedPlayers.sort((a, b) => {
-                if (stats[a.id].clicks !== stats[b.id].clicks) {
-                    return stats[a.id].clicks - stats[b.id].clicks;
-                }
-                return stats[a.id].time - stats[b.id].time; // Tie-breaker
-            });
-        }
-
-        // Award points: 1st = 3, 2nd = 2, 3rd = 1
-        finishedPlayers.forEach((p, index) => {
-            let pts = 0;
-            if (index === 0) pts = 3;
-            else if (index === 1) pts = 2;
-            else if (index === 2) pts = 1;
-            newScores[p.id] = (newScores[p.id] || 0) + pts;
-        });
-
-        dataToUpdate.phase = 'round_results';
-        dataToUpdate.scores = newScores;
-        dataToUpdate.round_end_time = Date.now() + 8000; // 8s to see results
-
-        await updateRoundData(dataToUpdate);
-    };
-
-    // Auto next round
-    useEffect(() => {
-        if (!isHost || currentPhase !== 'round_results' || !roundData.round_end_time) return;
-
-        const timeToWait = roundData.round_end_time - Date.now();
-        if (timeToWait <= 0) {
-            nextRound();
-            return;
-        }
-
-        const timer = setTimeout(() => {
-            nextRound();
-        }, timeToWait);
-
-        return () => clearTimeout(timer);
-    }, [isHost, currentPhase, roundData.round_end_time]);
-
-
-    // --- GAME ACTIONS ---
-    const startNewGame = async () => {
-        if (!isHost) return;
-        
-        try {
-            const res = await fetch(`/api/games/wikiracing?difficulty=${settings.difficulty}&count=${totalRounds}`);
-            const pairs = await res.json();
-            
-            if (!pairs || pairs.length === 0) {
-                toast.error("Erreur lors du chargement des mots.");
-                return;
-            }
-
-            await roomDb.from('game_sessions').upsert({
-                room_id: roomId,
-                status: 'round_active',
-                current_round: 1,
-                total_rounds: totalRounds,
-                answers: { pairs },
-                round_data: {
-                    phase: 'racing',
-                    start_page: pairs[0].start,
-                    target_page: pairs[0].target,
-                    start_time: Date.now(),
-                    player_stats: {},
-                    scores: {},
-                    countdown_end_time: null
-                }
-            }, { onConflict: 'room_id' });
-
-            await roomDb.from('game_moves').delete().eq('room_id', roomId);
-            await roomDb.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
-        } catch (e) {
-            console.error(e);
-            toast.error("Erreur au démarrage de la partie");
-        }
-    };
-
-    const nextRound = async () => {
-        if (!isHost) return;
-        
-        if (currentRound >= totalRounds) {
-            await setGameStatus('game_over');
-            await updateRoundData({
-                ...roundData,
-                phase: 'podium'
-            });
-        } else {
-            const nextRoundNum = currentRound + 1;
-            const pairs = gameState?.answers?.pairs || [];
-            const nextPair = pairs[nextRoundNum - 1] || { start: "Pomme", target: "France" };
-
-            await roomDb.from('game_moves').delete().eq('room_id', roomId);
-            await roomDb.from('game_sessions').update({
-                current_round: nextRoundNum,
-                round_data: {
-                    ...roundData,
-                    phase: 'racing',
-                    start_page: nextPair.start,
-                    target_page: nextPair.target,
-                    start_time: Date.now(),
-                    player_stats: {},
-                    countdown_end_time: null
-                }
-            }).eq('room_id', roomId);
-        }
-    };
-
-    const returnToLobby = async () => {
-        if (!isHost || !roomCode) return;
-        await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
-        await roomDb.from('game_sessions').delete().eq('room_id', roomId);
-        router.push(`/room/${roomCode}?return=true`);
-    };
-
-    // --- WIKIPEDIA LOGIC ---
-    const loadWikiPage = async (title: string, isInitial = false) => {
-        setIsLoadingPage(true);
-        try {
-            const cleanTitle = title.split('#')[0]; // Remove hash links
-            const res = await fetch(`https://fr.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(cleanTitle)}&format=json&origin=*&disableeditsection=true`);
-            const data = await res.json();
-            
-            if (data.error) {
-                toast.error("Erreur Wikipédia: Page introuvable.");
-                setIsLoadingPage(false);
-                return;
-            }
-
-            let html = data.parse.text['*'];
-            
-            // Basic cleanup of Wikipedia HTML
-            html = html.replace(/<span class="mw-editsection">.*?<\/span>/g, '');
-            // Defence in depth before injecting it: no active content, whatever the API returns.
-            html = html
-                .replace(/<(script|iframe|object|embed|style)[\s\S]*?<\/\1\s*>/gi, '')
-                .replace(/<(script|iframe|object|embed|link|meta)\b[^>]*\/?>/gi, '')
-                .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-                .replace(/(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1="#"');
-            
-            setHtmlContent(html);
-            setCurrentTitle(data.parse.title);
-            
-            if (contentRef.current) {
-                contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-
-            // Check win condition
-            if (!isInitial && data.parse.title.toLowerCase() === targetPage.replace(/_/g, ' ').toLowerCase()) {
-                handleFinish();
-            }
-
-        } catch (e) {
-            console.error(e);
-            toast.error("Impossible de charger la page.");
-        } finally {
-            setIsLoadingPage(false);
-        }
-    };
-
-    useEffect(() => {
-        if (currentPhase === 'racing' && startPage && !hasFinished && currentTitle === '') {
-            setLocalClicks(0);
-            setHasFinished(false);
-            loadWikiPage(startPage, true);
-        }
-    }, [currentPhase, startPage]);
-
-    // Reset local state when round changes
-    useEffect(() => {
-        if (currentPhase === 'racing') {
-            setHasFinished(false);
-            setLocalClicks(0);
-            setCurrentTitle('');
-        }
-    }, [currentRound, currentPhase]);
-
-    const handleWikiClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (hasFinished || isLoadingPage || currentPhase !== 'racing') {
-            e.preventDefault();
-            return;
-        }
-
-        const target = e.target as HTMLElement;
-        const anchor = target.closest('a');
-        
-        if (anchor) {
-            e.preventDefault();
-            const href = anchor.getAttribute('href');
-            const titleAttr = anchor.getAttribute('title');
-            
-            if (href && href.startsWith('/wiki/')) {
-                const nextTitle = decodeURIComponent(href.replace('/wiki/', ''));
-                
-                // Block special pages
-                if (nextTitle.includes(':') && !nextTitle.startsWith('Catégorie:')) {
-                    toast.error("Les pages spéciales sont interdites.");
-                    return;
-                }
-
-                setLocalClicks(c => c + 1);
-                vibrate(HAPTIC.SOFT);
-                loadWikiPage(nextTitle);
-            }
-        }
-    };
-
-    const handleFinish = () => {
-        if (hasFinished || !playerId) return;
-        setHasFinished(true);
-        const timeTaken = Date.now() - (roundStartTime || Date.now());
-        sendMove('wiki_finish', { clicks: localClicks + 1, time: timeTaken });
+  const load = useCallback(async (page: string, nextClicks: number, initial = false) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`https://fr.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(page.split('#')[0])}&format=json&origin=*&disableeditsection=true&redirects=true`);
+      const data = await res.json();
+      if (data.error) { toast.error('Page Wikipédia introuvable.'); return; }
+      const clean = String(data.parse.text['*'])
+        .replace(/<(script|iframe|object|embed|style)[\s\S]*?<\/\1\s*>/gi, '')
+        .replace(/<(script|iframe|object|embed|link|meta)\b[^>]*\/?>/gi, '')
+        .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+        .replace(/(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1="#"');
+      setHtml(clean);
+      setTitle(data.parse.title);
+      setClicks(nextClicks);
+      content.current?.scrollTo({ top: 0 });
+      party.act('page', { title: data.parse.title, clicks: nextClicks });
+      if (!initial && pair && same(data.parse.title, pair.target)) {
+        markFinished(true);
+        party.act('finish', { clicks: nextClicks, ms: Math.max(0, party.serverTime() - startedAt) });
         vibrate(HAPTIC.SUCCESS);
-        toast.success("Vous avez atteint la cible !");
-    };
-
-    // --- ANTI-CHEAT (CTRL+F / F3) ---
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (currentPhase !== 'racing' || hasFinished) return;
-
-            // Detect Ctrl+F (Windows/Linux) or Cmd+F (Mac) or F3
-            if (((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') || e.key === 'F3') {
-                e.preventDefault(); // Block real search
-                setCheatDetected(true);
-                
-                // Penalty of 5 seconds
-                setTimeout(() => {
-                    setCheatDetected(false);
-                }, 5000);
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [currentPhase, hasFinished]);
-
-    // --- RENDER HELPERS ---
-    const sortedPlayers = useMemo(() => {
-        return [...players].map(p => ({
-            ...p,
-            score: scores[p.id] || 0
-        })).sort((a, b) => (b.score - a.score) || a.name.localeCompare(b.name));
-    }, [players, scores]);
-
-    // Timer display
-    const [timeLeft, setTimeLeft] = useState(0);
-    useEffect(() => {
-        if (currentPhase !== 'racing' || !countdownEndTime) {
-            setTimeLeft(0);
-            return;
-        }
-        
-        const updateTimer = () => {
-            const diff = Math.ceil((countdownEndTime - Date.now()) / 1000);
-            setTimeLeft(diff > 0 ? diff : 0);
-        };
-        
-        updateTimer();
-        const interval = setInterval(updateTimer, 1000);
-        return () => clearInterval(interval);
-    }, [countdownEndTime, currentPhase]);
-
-    const formatTime = (ms: number) => {
-        const totalSeconds = Math.floor(ms / 1000);
-        const m = Math.floor(totalSeconds / 60);
-        const s = totalSeconds % 60;
-        if (m > 0) return `${m}m ${s}s`;
-        return `${s}s`;
-    };
-
-    if (!gameState) {
-        return (
-            <GameLayout isConnected={isConnected} gameTitle="WikiRacing" roundCount={1} maxRounds={1} timer="00" timeLeft={0} voteToLobby={<VoteToLobby roomCode={roomCode} roomId={roomId || ''} playerId={playerId || ''} players={players} />}>
-                <div className="flex items-center justify-center flex-1">
-                    <Loader2 className="w-12 h-12 animate-spin text-accent-primary" />
-                </div>
-            </GameLayout>
-        );
+      }
+    } catch {
+      toast.error('Impossible de charger la page.');
+    } finally {
+      setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pair?.target, startedAt, party.act]);
 
-    return (
-        <GameLayout
-            isConnected={isConnected}
-            gameTitle="WikiRacing"
-            roundCount={currentRound}
-            maxRounds={totalRounds}
-            timer={countdownEndTime && timeLeft > 0 ? String(timeLeft) : "--"}
-            timeLeft={countdownEndTime ? Math.max(0, (timeLeft / 20) * 100) : 100}
-            voteToLobby={<VoteToLobby roomCode={roomCode} roomId={roomId || ''} playerId={playerId || ''} players={players} />}
-            className="p-0 md:p-0 max-w-none" // Remove padding for full width wiki
-        >
-            {/* SETUP PHASE */}
-            {currentPhase === 'setup' && (
-                <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg p-4 mx-auto mt-12">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
-                        <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform -rotate-3">
-                            <Search className="w-16 h-16 text-accent-primary" />
-                        </div>
-                        
-                        <div className="text-center space-y-2 mb-8">
-                            <h2 className="font-display text-4xl text-tx-base">
-                                Wiki<span className="text-accent-primary">Racing</span>
-                            </h2>
-                            <p className="text-tx-secondary font-bold">
-                                Rejoignez la page cible en cliquant sur les liens.
-                            </p>
-                        </div>
-                        
-                        {isHost ? (
-                            <button 
-                                onClick={startNewGame} 
-                                className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg active:translate-y-[3px] shadow-brutal"
-                            >
-                                COMMENCER LA PARTIE
-                            </button>
-                        ) : (
-                            <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
-                                <Clock className="w-6 h-6 animate-spin text-accent-primary" />
-                                <span className="font-display text-tx-base">En attente de l'hôte...</span>
-                            </div>
-                        )}
-                    </div>
+  // A new race starts from its first page.
+  useEffect(() => {
+    if (phase === 'race' && pair && !finished) { setHtml(''); setTitle(''); void load(pair.start, 0, true); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gid, roundNo, phase === 'race']);
+
+  const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const a = (e.target as HTMLElement).closest('a');
+    if (!a) return;
+    e.preventDefault();
+    if (finished || loading || phase !== 'race') return;
+    const href = a.getAttribute('href') || '';
+    if (!href.startsWith('/wiki/')) return;
+    const next = decodeURIComponent(href.replace('/wiki/', ''));
+    if (next.includes(':')) { toast.error('Les pages spéciales ne comptent pas.'); return; }
+    vibrate(HAPTIC.SOFT);
+    void load(next, clicks + 1);
+  };
+
+  // The page search would make it too easy: blocked, with a short penalty.
+  useEffect(() => {
+    if (phase !== 'race' || finished) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') || e.key === 'F3') {
+        e.preventDefault();
+        setBlocked(true);
+        setTimeout(() => setBlocked(false), 5000);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [phase, finished]);
+
+  /* ---------------- host ---------------- */
+  const roundOf = (deck: Pair[], n: number) => {
+    const now = party.serverTime();
+    return { phase: 'race', pair: deck[n - 1], started_at: now, ends_at: now + MAX_RACE * 1000, countdown: false };
+  };
+
+  const start = async () => {
+    const rounds = numSetting(settings, 'rounds', 3, 1, 10);
+    const deck: Pair[] = await fetch(`/api/games/wikiracing?difficulty=${settings.difficulty || 'easy'}&count=${rounds}`).then((r) => r.json()).catch(() => []);
+    if (!Array.isArray(deck) || !deck.length) { toast.error('Impossible de charger les courses.'); return; }
+    await party.startGame(deck, roundOf(deck, 1), deck.length);
+  };
+
+  const doneCount = Object.keys(finishes).length;
+  const half = Math.ceil(active.length / 2);
+  // Half the players arrived: 20 seconds left for the others.
+  useHostStep(party, `${gid}:${roundNo}:countdown`, phase === 'race' && !round.countdown && doneCount >= half && doneCount < active.length, async () => {
+    await party.patchRound({ countdown: true, ends_at: Math.min(round.ends_at, party.deadline(AFTER_HALF)) });
+  });
+
+  const everyone = active.length > 0 && active.every((p) => finishes[p.id]);
+  useHostStep(party, `${gid}:${roundNo}:race-end`, phase === 'race' && (party.expired || everyone), async () => {
+    const ranked = Object.entries(finishes).sort((a, b) => (byClicks ? a[1].clicks - b[1].clicks || a[1].ms - b[1].ms : a[1].ms - b[1].ms));
+    const gains: Scores = {};
+    ranked.forEach(([pid], i) => { gains[pid] = [300, 200, 100][i] ?? 50; });
+    await party.patchRound({ phase: 'results', ranking: ranked.map(([pid, f]) => ({ pid, ...f })), gains, scores: addScores(party.scores, gains), ends_at: party.deadline(RESULTS_TIME) });
+  });
+
+  const next = useHostStep(party, `${gid}:${roundNo}:next`, phase === 'results' && party.expired, async () => {
+    const deck: Pair[] = party.deck || [];
+    if (roundNo >= totalRounds || !deck[roundNo]) return party.endGame();
+    await party.goToRound(roundNo + 1, roundOf(deck, roundNo + 1));
+  });
+
+  /* ---------------- render ---------------- */
+  const board = (
+    <ul className="space-y-1.5">
+      {party.seated.map((p) => {
+        const f = finishes[p.id];
+        const at = positions[p.id];
+        return (
+          <li key={p.id} className={cn('flex items-center gap-2 rounded-xl border-[3px] border-brand-border px-2 py-1.5', f ? 'bg-accent-success text-brand-bg' : 'bg-brand-inner')}>
+            <span className="w-24 shrink-0 truncate font-display text-sm"><OgName name={p.name} /></span>
+            <span className="min-w-0 flex-1 truncate text-sm font-bold">{f ? `Arrivé en ${clockOf(f.ms)}` : pretty(at?.title || pair?.start || '…')}</span>
+            <span className="shrink-0 font-display text-sm tabular-nums">{f ? f.clicks : at?.clicks ?? 0} clics</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  return (
+    <PartyShell party={party} title="WikiRacing" maxTime={phase === 'race' ? (round.countdown ? AFTER_HALF : MAX_RACE) : RESULTS_TIME} wide>
+      {phase === 'setup' && (
+        <SetupScreen
+          party={party}
+          title="WikiRacing"
+          tagline="Relie deux pages Wikipédia."
+          icon={Search}
+          swatch={SWATCH}
+          minPlayers={1}
+          onStart={start}
+          rules={[
+            'Tout le monde part de la même page Wikipédia.',
+            'Clique de lien en lien pour atteindre la page d’arrivée. La recherche est interdite.',
+            byClicks ? 'Le moins de clics gagne (le temps départage).' : 'Le plus rapide gagne.',
+            'Quand la moitié des joueurs est arrivée, il reste 20 secondes aux autres. 300, 200 et 100 points aux trois premiers.',
+          ]}
+        />
+      )}
+
+      {phase === 'race' && pair && (
+        <div className="flex w-full flex-1 flex-col gap-3">
+          <div className={cn(BRAWL.panel, 'flex flex-wrap items-center gap-2 p-2 sm:p-3')}>
+            <span className="inline-flex min-w-0 flex-1 items-center gap-2">
+              <Flag className="h-5 w-5 shrink-0 text-accent-success" />
+              <span className="min-w-0">
+                <span className="block text-[11px] font-black uppercase tracking-widest text-tx-secondary">Arrivée</span>
+                <span className="block truncate font-display text-lg text-accent-primary sm:text-xl">{pretty(pair.target)}</span>
+              </span>
+            </span>
+            <span className="inline-flex h-10 items-center gap-1 rounded-xl border-[3px] border-brand-border bg-brand-inner px-2 font-display tabular-nums"><LinkIcon className="h-4 w-4" /> {clicks}</span>
+            <button onClick={() => setShowBoard((v) => !v)} className={cn(showBoard ? BRAWL.green : BRAWL.dark, 'h-10 rounded-xl px-3 text-sm')}>
+              <Users className="h-4 w-4" /> {doneCount}/{active.length}
+            </button>
+          </div>
+          {showBoard && <div className={cn(BRAWL.panel, 'p-2')}>{board}</div>}
+
+          {finished ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-4">
+              <RevealBanner tone="good" eyebrow="Arrivé !">{pretty(pair.target)}</RevealBanner>
+              <Waiting text="On attend les autres coureurs…" />
+              <div className={cn(BRAWL.panel, 'w-full p-2')}>{board}</div>
+            </div>
+          ) : (
+            <div ref={content} className="relative min-h-[55vh] flex-1 overflow-y-auto rounded-[22px] border-4 border-brand-border bg-[#1E2358] shadow-[0_6px_0_#05061A]">
+              <p className="sticky top-0 z-10 truncate border-b-[3px] border-brand-border bg-brand-card px-3 py-1.5 font-display">{pretty(title || pair.start)}</p>
+              {(loading || blocked) && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-brand-bg/80 p-6 text-center backdrop-blur-sm">
+                  {blocked ? (
+                    <>
+                      <p className="font-display text-2xl">La recherche est désactivée.</p>
+                      <p className="font-bold text-tx-secondary">5 secondes de pénalité…</p>
+                    </>
+                  ) : <Loader2 className="h-10 w-10 animate-spin text-accent-success" />}
                 </div>
-            )}
+              )}
+              <div className="wiki-content mx-auto max-w-4xl p-3 text-white md:p-6" onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />
+            </div>
+          )}
+        </div>
+      )}
 
-            {/* RACING PHASE */}
-            {currentPhase === 'racing' && (
-                <div className="flex flex-col w-full h-full relative flex-1">
-                    {cheatDetected && (
-                        <div className="fixed inset-0 bg-brand-bg/95 z-[9999] flex flex-col backdrop-blur-sm">
-                            {/* Fake Search Bar UI at the top right, pushed down below navbar */}
-                            <div className="absolute top-24 md:top-32 right-4 md:right-12 bg-white rounded-lg shadow-xl flex items-center p-1 w-72 animate-in fade-in slide-in-from-top-8 border border-gray-300 z-50">
-                                <div className="flex-1 px-3 py-1.5 text-gray-500 text-sm font-sans flex items-center gap-2 border-r border-gray-200">
-                                    <Search className="w-4 h-4 text-gray-400" />
-                                    Rechercher...
-                                </div>
-                                <div className="flex items-center px-1 text-gray-400 gap-1">
-                                    <span className="text-xs mr-2">0/0</span>
-                                    <button className="p-1 hover:bg-gray-100 rounded cursor-not-allowed"><ChevronUp className="w-4 h-4" /></button>
-                                    <button className="p-1 hover:bg-gray-100 rounded cursor-not-allowed border-r border-gray-200 pr-2 mr-1"><ChevronDown className="w-4 h-4" /></button>
-                                    <button className="p-1 hover:bg-red-100 hover:text-red-500 rounded cursor-not-allowed"><X className="w-4 h-4" /></button>
-                                </div>
-                            </div>
+      {phase === 'results' && pair && (
+        <>
+          <RevealBanner tone={(round.ranking || []).length ? 'good' : 'bad'} eyebrow={`${pretty(pair.start)} → ${pretty(pair.target)}`}>
+            {(round.ranking || []).length ? <><Trophy className="mr-2 inline h-8 w-8" /><OgName name={party.nameOf(round.ranking[0].pid)} /></> : 'Personne n’est arrivé'}
+          </RevealBanner>
+          <AnswerList
+            party={party}
+            title="Arrivées"
+            rows={party.seated.map((p) => {
+              const f = (round.ranking || []).find((r: any) => r.pid === p.id);
+              return { pid: p.id, ok: !!f, answer: f ? `${clockOf(f.ms)} · ${f.clicks} clics` : 'pas arrivé', points: round.gains?.[p.id] };
+            })}
+          />
+          <ScoreList party={party} gains={round.gains} />
+          <NextStep party={party} onNext={next} label={roundNo >= totalRounds ? 'Voir le podium' : 'Course suivante'} />
+        </>
+      )}
 
-                            {/* Arrow pointing to search bar - Hand drawn SVG */}
-                            <div className="absolute top-[160px] md:top-[180px] right-32 md:right-48 flex flex-col items-end text-accent-primary animate-in zoom-in duration-500 delay-300">
-                                <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-2 stroke-current transform rotate-12">
-                                    <path d="M15 85C25 70 40 45 80 20" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="animate-[dash_1s_ease-in-out_forwards]"/>
-                                    <path d="M60 15C70 15 80 15 85 20C85 30 80 40 75 45" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                <h3 className="font-display text-xl md:text-2xl transform -rotate-6">C'est ça que tu cherches ?</h3>
-                            </div>
-
-                            {/* Main Warning Text */}
-                            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center mt-20">
-                                <div className="bg-brand-inner border-4 border-brand-border p-8 rounded-3xl shadow-brutal mb-6 transform rotate-2">
-                                    <h2 className="font-display text-4xl md:text-5xl text-tx-base mb-4">La recherche est désactivée.</h2>
-                                    <p className="text-xl font-bold text-tx-secondary uppercase tracking-widest">Pénalité de 5 secondes en cours...</p>
-                                    <Loader2 className="w-12 h-12 animate-spin text-accent-primary mx-auto mt-6" />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* HUD - Fixed Top */}
-                    <div className="bg-brand-card border-b-4 border-brand-border p-3 md:p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm z-10 sticky top-0">
-                        <div className="flex items-center gap-3">
-                            <span className="text-tx-secondary font-bold uppercase tracking-widest text-xs">Cible :</span>
-                            <div className="font-display text-xl md:text-2xl text-accent-primary break-words">
-                                {targetPage.replace(/_/g, ' ')}
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-6">
-                            <div className="flex items-center gap-2 bg-brand-inner border-[3px] border-brand-border px-4 py-2 rounded-xl">
-                                <LinkIcon className="w-5 h-5 text-tx-secondary" />
-                                <span className="font-display text-xl text-tx-base">{localClicks}</span>
-                                <span className="text-xs text-tx-secondary font-bold uppercase ml-1">Clics</span>
-                            </div>
-                            {countdownEndTime && (
-                                <div className="flex items-center gap-2 bg-accent-secondary border-[3px] border-brand-border px-4 py-2 rounded-xl text-brand-bg animate-pulse">
-                                    <Clock className="w-5 h-5" />
-                                    <span className="font-display text-xl">{timeLeft}s</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Wiki Content */}
-                    <div 
-                        ref={contentRef}
-                        className="flex-1 overflow-y-auto w-full bg-[#1e1e28] relative"
-                    >
-                        {isLoadingPage && !cheatDetected && (
-                            <div className="absolute inset-0 bg-brand-bg/50 backdrop-blur-sm flex flex-col items-center justify-center z-20">
-                                <Loader2 className="w-12 h-12 text-accent-primary animate-spin mb-4" />
-                                <span className="font-display text-tx-base">Chargement de la page...</span>
-                            </div>
-                        )}
-                        
-                        {hasFinished && !cheatDetected ? (
-                            <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 text-center">
-                                <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-3xl shadow-brutal mb-6 transform rotate-3">
-                                    <Trophy className="w-16 h-16 text-[#FFC61A]" />
-                                </div>
-                                <h3 className="font-display text-3xl text-tx-base mb-4">Objectif Atteint !</h3>
-                                <p className="text-tx-secondary font-bold text-lg">
-                                    En attente des autres joueurs...
-                                </p>
-                            </div>
-                        ) : !cheatDetected && (
-                            <div 
-                                className="wiki-content max-w-4xl mx-auto p-4 md:p-8 text-white"
-                                onClick={handleWikiClick}
-                                dangerouslySetInnerHTML={{ __html: htmlContent }}
-                            />
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* ROUND RESULTS PHASE */}
-            {currentPhase === 'round_results' && (
-                <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-2xl p-4 mx-auto mt-12">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col w-full">
-                        <h2 className="font-display text-3xl text-tx-base text-center mb-8">Résultats de la manche</h2>
-                        
-                        <div className="space-y-3">
-                            {players.map(p => {
-                                const stat = playerStats[p.id];
-                                const isDnf = !stat;
-                                
-                                return (
-                                    <div key={p.id} className={cn(
-                                        "flex items-center justify-between p-4 rounded-xl border-[3px] border-brand-border",
-                                        isDnf ? "bg-brand-bg opacity-70" : "bg-brand-inner"
-                                    )}>
-                                        <span className="font-display text-lg text-tx-base"><OgName name={p.name} /></span>
-                                        {isDnf ? (
-                                            <span className="text-accent-secondary font-bold uppercase tracking-widest text-sm">Temps écoulé</span>
-                                        ) : (
-                                            <div className="flex items-center gap-4">
-                                                <span className="text-tx-secondary font-bold text-sm">{stat.clicks} clics</span>
-                                                <span className="text-accent-primary font-display">{formatTime(stat.time)}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })}
-                        </div>
-
-                        {isHost && (
-                            <div className="mt-8 flex items-center justify-center gap-2 text-tx-secondary font-bold text-sm uppercase tracking-widest">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Manche suivante imminente...
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* PODIUM PHASE */}
-            {currentPhase === 'podium' && (
-                <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in mx-auto mt-12">
-                    <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
-                        <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
-                            <Trophy className="w-16 h-16 text-accent-primary" />
-                        </div>
-                        <h2 className="font-display text-4xl text-tx-base mb-8">Classement Final</h2>
-                        
-                        <div className="w-full space-y-4 mb-8">
-                            {sortedPlayers.map((p, i) => (
-                                <div key={p.id} className={cn(
-                                    "relative flex items-center justify-between p-4 rounded-2xl border-4 border-brand-border shadow-brutal",
-                                    i === 0 ? "bg-accent-primary text-brand-bg transform scale-105 z-10" : "bg-brand-inner text-tx-base"
-                                )}>
-                                    {i === 0 && (
-                                        <div className="absolute -top-4 -right-4 bg-accent-primary text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
-                                            Encyclopédie
-                                        </div>
-                                    )}
-                                    
-                                    <div className="flex items-center gap-4">
-                                        <span className={cn(
-                                            "w-12 h-12 flex items-center justify-center rounded-xl font-display text-2xl border-[3px] border-brand-border",
-                                            i === 0 ? "bg-accent-primary text-brand-bg" : "bg-brand-bg text-tx-base"
-                                        )}>
-                                            {i + 1}
-                                        </span>
-                                        
-                                        <div className="flex flex-col text-left">
-                                            <span className="text-xl font-display"><OgName name={p.name} /></span>
-                                        </div>
-                                    </div>
-                                    <span className={cn(
-                                        "text-3xl font-display",
-                                        i === 0 ? "text-brand-bg" : "text-accent-primary"
-                                    )}>{p.score} pts</span>
-                                </div>
-                            ))}
-                        </div>
-                        
-                        {isHost && (
-                            <button 
-                                onClick={returnToLobby} 
-                                className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[3px]"
-                            >
-                                Retour au salon
-                            </button>
-                        )}
-                    </div>
-                </div>
-            )}
-        </GameLayout>
-    );
+      {phase === 'podium' && <Podium party={party} onReplay={start} flavor="Les as de l’encyclopédie." />}
+    </PartyShell>
+  );
 }

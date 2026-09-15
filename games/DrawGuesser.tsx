@@ -1,1198 +1,415 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-
-
-import { useGameSync } from '@/hooks/useGameSync';
-import GameLayout from './components/GameLayout';
-import VoteToLobby from './components/VoteToLobby';
-import { Trophy, Clock, PenTool, CheckCircle, Eraser, Eye, EyeOff, Trash2, Home, Loader2, Send } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Eraser, PaintBucket, PenTool, Pencil, Trash2, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
-
-import { vibrate, HAPTIC } from '@/lib/haptic';
 import OgName from '@/components/OgName';
-import { roomDb } from '@/lib/supabase/roomClient';
+import { cn } from '@/lib/utils';
+import { BRAWL } from '@/lib/ui/brawl';
+import { vibrate, HAPTIC } from '@/lib/haptic';
+import { isCloseEnough, levenshtein, normalize } from '@/lib/party/text';
+import { addScores, numSetting, useHostStep, usePartyGame, useSent, type PartyMove, type Scores } from './party/usePartyGame';
+import { speedPoints } from './party/ImageGuessGame';
+import { AnswerInput, AnswerList, ChoiceButton, NextStep, PartyShell, PlayerChips, Podium, PromptCard, RevealBanner, ScoreList, SetupScreen, Waiting } from './party/ui';
 
-interface DrawGuesserProps {
-  roomCode: string;
+const SWATCH = { fill: '#8B3DFF', shade: '#6526C9' };
+const CHOOSE_TIME = 15;
+const RESULTS_TIME = 10;
+const W = 1200;
+const H = 900;
+const WHITE = '#FFFFFF';
+const COLORS = ['#05061A', '#FFFFFF', '#8D6E63', '#9CA3AF', '#E63946', '#FF8A1F', '#FFC61A', '#33D17A', '#1F8A4C', '#5B8CFF', '#1E3A8A', '#8B3DFF', '#FF4F8B', '#F5C9A0'];
+const SIZES = [6, 14, 26, 44];
+
+type Pt = [number, number];
+type Op =
+  | { k: 'stroke'; id: string; pts: Pt[]; color: string; size: number }
+  | { k: 'fill'; id: string; x: number; y: number; color: string }
+  | { k: 'undo'; id: string }
+  | { k: 'clear'; id: string };
+type Word = { word: string };
+
+/* ---------------- drawing ---------------- */
+
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-const COLORS = [
-  '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FFA500', '#800080',
-  '#FF69B4', '#00CED1', '#8B4513', '#808080', '#FF6347', '#40E0D0', '#EEE8AA', '#98FB98'
-];
-const SIZES = [4, 8, 12, 18];
-
-interface StrokePoint {
-  x: number;
-  y: number;
+function drawStroke(ctx: CanvasRenderingContext2D, pts: Pt[], color: string, size: number) {
+  if (!pts.length) return;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = size;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (pts.length === 1) {
+    ctx.beginPath();
+    ctx.arc(pts[0][0] * W, pts[0][1] * H, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0] * W, pts[0][1] * H);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0] * W, pts[i][1] * H);
+  ctx.stroke();
 }
 
-interface Stroke {
-  strokeId: string;
-  sequence: number;
-  points: StrokePoint[];
-  color: string;
-  size: number;
-  isEnd: boolean;
-}
-
-interface StrokeBatch {
-  strokeId: string;
-  sequence: number;
-  points: StrokePoint[];
-  color: string;
-  size: number;
-  isEnd: boolean;
-}
-
-export default function DrawGuesser({ roomCode }: DrawGuesserProps) {
-  const router = useRouter();
-  
-  // --- SYNC ---
-  const {
-    gameState,
-    isHost,
-    players,
-    playerId,
-    draw,
-    setPlayerReady,
-    resetAllPlayersReady,
-    roomId,
-    lastEvent,
-    broadcast,
-    isConnected,
-    isPlayerAway
-  } = useGameSync(roomCode, 'draw');
-
-  // --- DERIVED STATE ---
-  const game = draw?.game || {};
-  const gamePlayers = draw?.players || [];
-  
-  const currentPhase = game.phase || 'setup';
-  const currentRound = game.current_round || 1;
-  const currentRoundId = game.round_id || null;
-  const currentWord = game.current_word;
-  const currentDrawerId = game.current_drawer_id;
-  const isDrawer = playerId === currentDrawerId;
-  
-  const getDrawerName = () => {
-      const drawer = players.find(p => p.id === currentDrawerId);
-      return drawer?.name || 'Unknown';
-  };
-  
-  const timerStartAt = game.timer_start_at;
-  const timerSeconds = game.timer_seconds || 90;
-  
-  // Settings
-  const settings = gameState?.settings || {};
-  const totalRounds = Number(settings.rounds || 5);
-  // Difficulty handled by API
-
-  // Local State
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [userGuess, setUserGuess] = useState('');
-  const [hasGuessed, setHasGuessed] = useState(false);
-  const [guessRank, setGuessRank] = useState(0);
-  
-  // Canvas State
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [color, setColor] = useState('#000000');
-  const [size, setSize] = useState(8);
-  const isDrawing = useRef(false);
-  const lastPos = useRef({ x: 0, y: 0 });
-  const [revealedWord, setRevealedWord] = useState(false);
-  const isHoldingRef = useRef(false);
-  const revealedWordRef = useRef(false);
-  const [strokes, setStrokes] = useState<Stroke[]>([]);
-  const currentStroke = useRef<Stroke | null>(null);
-  const strokeBatch = useRef<StrokePoint[]>([]);
-  const batchTimeout = useRef<NodeJS.Timeout | null>(null);
-  const isDrawingRef = useRef(false);
-  const strokesLoaded = useRef(false);
-  
-  // Round ID system
-  const [roundId, setRoundId] = useState<string | null>(null);
-  const currentStrokeId = useRef<string>('');
-  const strokeSequence = useRef(0);
-  
-  // Render queue for receiving strokes
-  const renderQueue = useRef<StrokeBatch[]>([]);
-  const isProcessingQueue = useRef(false);
-  const receivedStrokes = useRef<Map<string, StrokeBatch[]>>(new Map());
-
-  // --- EFFECTS ---
-
-  // Cleanup stray batch interval on unmount (e.g. leaving mid-stroke)
-  useEffect(() => {
-    return () => {
-        if (batchTimeout.current) clearInterval(batchTimeout.current);
-    };
-  }, []);
-
-  // Return to Lobby Broadcast
-  useEffect(() => {
-    if (lastEvent && lastEvent.type === 'return_to_lobby') {
-        router.push(`/room/${roomCode}?return=true`);
+/** Paint bucket: scanline flood fill on the fixed-size board, so every screen fills the same area. */
+function floodFill(ctx: CanvasRenderingContext2D, fx: number, fy: number, hex: string) {
+  const img = ctx.getImageData(0, 0, W, H);
+  const d = img.data;
+  const sx = Math.min(W - 1, Math.max(0, Math.floor(fx * W)));
+  const sy = Math.min(H - 1, Math.max(0, Math.floor(fy * H)));
+  const o = (sy * W + sx) * 4;
+  const [tr, tg, tb] = [d[o], d[o + 1], d[o + 2]];
+  const [r, g, b] = hexToRgb(hex);
+  if (Math.abs(tr - r) + Math.abs(tg - g) + Math.abs(tb - b) < 12) return;
+  const match = (i: number) => Math.abs(d[i] - tr) + Math.abs(d[i + 1] - tg) + Math.abs(d[i + 2] - tb) <= 96;
+  const seen = new Uint8Array(W * H);
+  const stack = [sx, sy];
+  while (stack.length) {
+    const y = stack.pop()!;
+    let x = stack.pop()!;
+    let i = y * W + x;
+    while (x >= 0 && !seen[i] && match(i * 4)) { x--; i--; }
+    x++; i++;
+    let up = false;
+    let down = false;
+    while (x < W && !seen[i] && match(i * 4)) {
+      seen[i] = 1;
+      d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = b; d[i * 4 + 3] = 255;
+      if (y > 0) { const j = i - W; if (!seen[j] && match(j * 4)) { if (!up) { stack.push(x, y - 1); up = true; } } else up = false; }
+      if (y < H - 1) { const j = i + W; if (!seen[j] && match(j * 4)) { if (!down) { stack.push(x, y + 1); down = true; } } else down = false; }
+      x++; i++;
     }
-  }, [lastEvent, roomCode, router]);
+  }
+  ctx.putImageData(img, 0, 0);
+}
 
-  // Timer Logic
+/** The drawing as it stands: every operation in order, undo and clear applied. */
+function flatten(ops: Op[]): Op[] {
+  let list: Op[] = [];
+  for (const op of ops) {
+    if (op.k === 'clear') list = [];
+    else if (op.k === 'undo') list = list.slice(0, -1);
+    else list.push(op);
+  }
+  return list;
+}
+
+function Board({ ops, live, canDraw, tool, color, size, onStroke, onFill, onLive }: {
+  ops: Op[]; live: { pts: Pt[]; color: string; size: number } | null; canDraw: boolean; tool: 'pen' | 'fill';
+  color: string; size: number; onStroke: (pts: Pt[]) => void; onFill: (x: number, y: number) => void; onLive: (pts: Pt[]) => void;
+}) {
+  const base = useRef<HTMLCanvasElement>(null);
+  const overlay = useRef<HTMLCanvasElement>(null);
+  const applied = useRef<string[]>([]);
+  const painted = useRef(false);
+  const current = useRef<Pt[] | null>(null);
+  const lastLive = useRef(0);
+  const flat = useMemo(() => flatten(ops), [ops]);
+
+  // Only the new operations are drawn; anything else (undo, clear) redraws from white.
   useEffect(() => {
-    if (!timerStartAt || currentPhase !== 'playing') {
-        if (currentPhase !== 'playing') setTimeLeft(0);
-        return;
+    const ctx = base.current?.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+    const ids = flat.map((o) => o.id);
+    const prev = applied.current;
+    // A blank canvas is transparent, which the paint bucket would read as black ink: start from white.
+    const extends_ = painted.current && prev.length <= ids.length && prev.every((id, i) => ids[i] === id);
+    painted.current = true;
+    let from = prev.length;
+    if (!extends_) {
+      ctx.fillStyle = WHITE;
+      ctx.fillRect(0, 0, W, H);
+      from = 0;
     }
+    for (const op of flat.slice(from)) {
+      if (op.k === 'stroke') drawStroke(ctx, op.pts, op.color, op.size);
+      else if (op.k === 'fill') floodFill(ctx, op.x, op.y, op.color);
+    }
+    applied.current = ids;
+  }, [flat]);
 
-    const start = new Date(timerStartAt).getTime();
-    const duration = timerSeconds * 1000;
-    
-    const interval = setInterval(() => {
-        const now = Date.now();
-        const remaining = Math.max(0, Math.ceil((start + duration - now) / 1000));
-        setTimeLeft(remaining);
-        
-        if (remaining <= 0) {
-            clearInterval(interval);
-        }
-    }, 200);
+  const paintOverlay = useCallback(() => {
+    const ctx = overlay.current?.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, W, H);
+    if (live) drawStroke(ctx, live.pts, live.color, live.size);
+    if (current.current) drawStroke(ctx, current.current, color, size);
+  }, [live, color, size]);
+  useEffect(() => { paintOverlay(); }, [paintOverlay]);
 
-    return () => clearInterval(interval);
-  }, [timerStartAt, timerSeconds, currentPhase]);
-
-  // Sync Local Player State
-  useEffect(() => {
-      if (playerId) {
-          const myPlayer = gamePlayers.find((p: any) => p.player_id === playerId);
-          if (myPlayer) {
-              setHasGuessed(myPlayer.has_guessed);
-              setGuessRank(myPlayer.guess_rank);
-          }
-      }
-  }, [gamePlayers, playerId]);
-
-  // Reset local state on new round
-  useEffect(() => {
-      if (currentPhase === 'playing') {
-          setUserGuess('');
-          setHasGuessed(false);
-          setGuessRank(0);
-          setStrokes([]);
-          setRoundId(currentRoundId);
-          strokesLoaded.current = false;
-          renderQueue.current = [];
-          receivedStrokes.current.clear();
-          clearCanvasLocal();
-      }
-  }, [currentRound, currentPhase, currentRoundId]);
-
-  // Load strokes from Supabase when drawer starts or when joining
-  useEffect(() => {
-      if (!roomId || currentPhase !== 'playing' || strokesLoaded.current || !currentRoundId) return;
-      
-      const loadStrokes = async () => {
-          const { data } = await supabase
-              .from('draw_strokes')
-              .select('strokes_data')
-              .eq('room_id', roomId)
-              .eq('round_id', currentRoundId)
-              .single();
-          
-          if (data?.strokes_data && Array.isArray(data.strokes_data)) {
-              setStrokes(data.strokes_data);
-              redrawCanvas(data.strokes_data);
-          }
-          strokesLoaded.current = true;
-      };
-      
-      loadStrokes();
-  }, [roomId, currentPhase, currentRound, currentRoundId]);
-
-  // Process render queue with requestAnimationFrame
-  const processRenderQueue = () => {
-      if (renderQueue.current.length === 0) {
-          isProcessingQueue.current = false;
-          return;
-      }
-      
-      isProcessingQueue.current = true;
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (!ctx || !canvas) {
-          isProcessingQueue.current = false;
-          return;
-      }
-      
-      // Process next batch
-      const batch = renderQueue.current.shift();
-      if (batch) {
-          drawBatchOnCanvas(ctx, batch);
-          requestAnimationFrame(processRenderQueue);
-      }
+  const at = (e: React.PointerEvent<HTMLCanvasElement>): Pt => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const c = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 1000) / 1000;
+    return [c((e.clientX - r.left) / r.width), c((e.clientY - r.top) / r.height)];
   };
-
-  const drawBatchOnCanvas = (ctx: CanvasRenderingContext2D, batch: StrokeBatch) => {
-      const canvas = ctx.canvas;
-      const parent = canvas.parentElement;
-      const displayWidth = parent?.clientWidth || parseFloat(canvas.style.width) || canvas.width;
-      const displayHeight = parent?.clientHeight || parseFloat(canvas.style.height) || canvas.height;
-      
-      ctx.beginPath();
-      ctx.strokeStyle = batch.color;
-      ctx.lineWidth = batch.size;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      
-      if (batch.points.length === 0) return;
-
-      const existingBatches = receivedStrokes.current.get(batch.strokeId) || [];
-
-      // Every batch now starts with the last point of the one before it (see
-      // broadcastBatch), so it draws a continuous line on its own even when a
-      // batch in between was dropped by the realtime channel — the old
-      // "connect to the previous batch" joined the wrong points or nothing,
-      // which is what left dotted lines. A single point is a dot, drawn round.
-      if (batch.points.length === 1) {
-          const p = batch.points[0];
-          ctx.arc(p.x * displayWidth, p.y * displayHeight, batch.size / 2, 0, Math.PI * 2);
-          ctx.fillStyle = batch.color;
-          ctx.fill();
-      } else {
-          ctx.moveTo(batch.points[0].x * displayWidth, batch.points[0].y * displayHeight);
-          for (let i = 1; i < batch.points.length; i++) {
-              const point = batch.points[i];
-              ctx.lineTo(point.x * displayWidth, point.y * displayHeight);
-          }
-          ctx.stroke();
-      }
-      
-      // Store batch
-      existingBatches.push(batch);
-      receivedStrokes.current.set(batch.strokeId, existingBatches);
-      
-      // Update strokes state when stroke is complete
-      if (batch.isEnd) {
-          const allPoints: StrokePoint[] = [];
-          for (const b of existingBatches) {
-              allPoints.push(...b.points);
-          }
-          const completeStroke: Stroke = {
-              strokeId: batch.strokeId,
-              sequence: batch.sequence,
-              points: allPoints,
-              color: batch.color,
-              size: batch.size,
-              isEnd: true
-          };
-          setStrokes(prev => [...prev, completeStroke]);
-          scheduleResync();
-      }
+  const end = () => {
+    const pts = current.current;
+    current.current = null;
+    if (pts) onStroke(pts);
+    paintOverlay();
   };
-
-  // Once a stroke ends, the drawer has saved the full drawing: re-read it and
-  // redraw, so anything the live batches missed is filled in within a second.
-  const resyncTimer = useRef<NodeJS.Timeout | null>(null);
-  const scheduleResync = () => {
-      if (resyncTimer.current) clearTimeout(resyncTimer.current);
-      resyncTimer.current = setTimeout(async () => {
-          if (!roomId || !currentRoundId || isDrawingRef.current) return;
-          const { data } = await supabase
-              .from('draw_strokes')
-              .select('strokes_data')
-              .eq('room_id', roomId)
-              .eq('round_id', currentRoundId)
-              .maybeSingle();
-          if (data?.strokes_data && Array.isArray(data.strokes_data) && renderQueue.current.length === 0) {
-              setStrokes(data.strokes_data);
-              redrawCanvas(data.strokes_data);
-          }
-      }, 900);
-  };
-
-  // Handle Incoming Draw Events
-  useEffect(() => {
-      if (!lastEvent || !canvasRef.current) return;
-
-      if (lastEvent.type === 'draw_batch') {
-          const batch = lastEvent.payload as StrokeBatch;
-          
-          // Verify round ID matches
-          if (currentRoundId && roundId && roundId !== currentRoundId) {
-              return; // Ignore strokes from old round
-          }
-          
-          // Add to render queue
-          renderQueue.current.push(batch);
-          
-          // Start processing if not already
-          if (!isProcessingQueue.current) {
-              isProcessingQueue.current = true;
-              requestAnimationFrame(processRenderQueue);
-          }
-      } else if (lastEvent.type === 'clear_canvas') {
-          clearCanvasLocal();
-          setStrokes([]);
-          renderQueue.current = [];
-          receivedStrokes.current.clear();
-      } else if (lastEvent.type === 'player_found') {
-          const { playerName } = lastEvent.payload;
-          toast.success(`✅ ${playerName} a trouvé !`);
-      } else if (lastEvent.type === 'new_round') {
-          // Reset for new round
-          setRoundId(lastEvent.payload.roundId);
-          clearCanvasLocal();
-          setStrokes([]);
-          renderQueue.current = [];
-          receivedStrokes.current.clear();
-          strokesLoaded.current = false;
-      }
-  }, [lastEvent, roundId, currentRoundId]);
-
-  // --- CANVAS HELPERS ---
-  const clearCanvasLocal = () => {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      const parent = canvas?.parentElement;
-      if (ctx && canvas && parent) {
-          const displayWidth = parent.clientWidth;
-          const displayHeight = parent.clientHeight;
-          ctx.save();
-          ctx.setTransform(1, 0, 0, 1, 0, 0);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, displayWidth, displayHeight);
-          ctx.restore();
-      }
-  };
-
-  const drawStrokeOnCanvas = (ctx: CanvasRenderingContext2D, stroke: Stroke) => {
-      if (stroke.points.length < 1) return;
-      const canvas = ctx.canvas;
-      const parent = canvas.parentElement;
-      const displayWidth = parent?.clientWidth || parseFloat(canvas.style.width) || canvas.width;
-      const displayHeight = parent?.clientHeight || parseFloat(canvas.style.height) || canvas.height;
-      
-      ctx.beginPath();
-      ctx.strokeStyle = stroke.color;
-      ctx.lineWidth = stroke.size;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      
-      if (stroke.points.length === 1) {
-          const point = stroke.points[0];
-          ctx.arc(point.x * displayWidth, point.y * displayHeight, stroke.size / 2, 0, Math.PI * 2);
-          ctx.fillStyle = stroke.color;
-          ctx.fill();
-          return;
-      }
-      
-      const firstPoint = stroke.points[0];
-      ctx.moveTo(firstPoint.x * displayWidth, firstPoint.y * displayHeight);
-      
-      for (let i = 1; i < stroke.points.length; i++) {
-          const point = stroke.points[i];
-          ctx.lineTo(point.x * displayWidth, point.y * displayHeight);
-      }
-      ctx.stroke();
-  };
-
-  const drawStrokeOnCanvasWithConnection = (ctx: CanvasRenderingContext2D, previousStrokes: Stroke[], newBatch: Stroke) => {
-      const canvas = ctx.canvas;
-      const parent = canvas.parentElement;
-      const displayWidth = parent?.clientWidth || parseFloat(canvas.style.width) || canvas.width;
-      const displayHeight = parent?.clientHeight || parseFloat(canvas.style.height) || canvas.height;
-      
-      ctx.beginPath();
-      ctx.strokeStyle = newBatch.color;
-      ctx.lineWidth = newBatch.size;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      
-      // Connect to last point of previous stroke if exists
-      if (previousStrokes.length > 0) {
-          const lastStroke = previousStrokes[previousStrokes.length - 1];
-          if (lastStroke.points.length > 0) {
-              const lastPoint = lastStroke.points[lastStroke.points.length - 1];
-              ctx.moveTo(lastPoint.x * displayWidth, lastPoint.y * displayHeight);
-          }
-      } else if (newBatch.points.length > 0) {
-          const firstPoint = newBatch.points[0];
-          ctx.moveTo(firstPoint.x * displayWidth, firstPoint.y * displayHeight);
-      }
-      
-      // Draw all points in the new batch
-      for (let i = 0; i < newBatch.points.length; i++) {
-          const point = newBatch.points[i];
-          ctx.lineTo(point.x * displayWidth, point.y * displayHeight);
-      }
-      ctx.stroke();
-  };
-
-  const redrawCanvas = (strokesToDraw: Stroke[]) => {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (!ctx || !canvas) return;
-      
-      clearCanvasLocal();
-      
-      for (const stroke of strokesToDraw) {
-          drawStrokeOnCanvas(ctx, stroke);
-      }
-  };
-
-  // Save strokes to Supabase
-  const saveStrokesToSupabase = async (newStrokes: Stroke[]) => {
-      if (!roomId || !isDrawer || !currentRoundId) return;
-      await roomDb.from('draw_strokes').upsert({
-          room_id: roomId,
-          round_id: currentRoundId,
-          round: currentRound,
-          strokes_data: newStrokes
-      }, { onConflict: 'room_id,round_id' });
-  };
-
-  // Broadcast batched strokes
-  const broadcastBatch = (isEnd: boolean = false) => {
-      if (strokeBatch.current.length < 1 || !broadcast) return;
-      
-      const batch: StrokeBatch = {
-          strokeId: currentStrokeId.current,
-          sequence: strokeSequence.current,
-          points: [...strokeBatch.current],
-          color,
-          size,
-          isEnd
-      };
-      
-      broadcast('draw_batch', batch);
-      strokeSequence.current++;
-      // The next batch starts from where this one stopped, so each batch is a
-      // continuous piece of line by itself (a lost batch no longer breaks the stroke).
-      const last = batch.points[batch.points.length - 1];
-      strokeBatch.current = isEnd || !last ? [] : [last];
-  };
-  const getCoords = (e: any) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return { x: 0, y: 0 };
-      const rect = canvas.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return {
-          x: Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)),
-          y: Math.max(0, Math.min(1, (clientY - rect.top) / rect.height))
-      };
-  };
-
-  const startDrawing = (e: any) => {
-      if (!isDrawer || currentPhase !== 'playing') return;
-      e.preventDefault();
-      isDrawing.current = true;
-      isDrawingRef.current = true;
-      const { x, y } = getCoords(e);
-      lastPos.current = { x, y };
-      
-      // Generate new stroke ID
-      currentStrokeId.current = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      strokeSequence.current = 0;
-      
-      currentStroke.current = {
-          strokeId: currentStrokeId.current,
-          sequence: 0,
-          points: [{ x, y }],
-          color,
-          size,
-          isEnd: false
-      };
-      strokeBatch.current = [{ x, y }];
-
-      // Start periodic broadcast for the duration of this stroke. This is
-      // started/stopped explicitly (not via a useEffect keyed on a ref)
-      // because refs don't trigger effect re-runs — a previous version kept
-      // this in an effect depending on isDrawing.current, so the interval
-      // was only ever evaluated once at mount (before drawing started) and
-      // never actually ran, meaning viewers only saw the whole stroke pop
-      // in at once when the drawer lifted their finger.
-      if (batchTimeout.current) clearInterval(batchTimeout.current);
-      // Every 80 ms (12 messages a second): 40 ms went past what the realtime
-      // channel accepts per client, and the dropped messages were the gaps.
-      batchTimeout.current = setInterval(() => {
-          if (strokeBatch.current.length > 1) {
-              broadcastBatch(false);
-          }
-      }, 80);
-  };
-
-  const drawStroke = (e: any) => {
-      if (!isDrawing.current || !isDrawer || !canvasRef.current) return;
-      e.preventDefault();
-      
-      const { x, y } = getCoords(e);
-      const lastX = lastPos.current.x;
-      const lastY = lastPos.current.y;
-      
-      const canvas = canvasRef.current;
-      const parent = canvas.parentElement;
-      const displayWidth = parent?.clientWidth || parseFloat(canvas.style.width) || canvas.width;
-      const displayHeight = parent?.clientHeight || parseFloat(canvas.style.height) || canvas.height;
-      
-      const ctx = canvas.getContext('2d');
-      if (ctx && currentStroke.current) {
-          currentStroke.current.points.push({ x, y });
-          strokeBatch.current.push({ x, y });
-          
-          ctx.beginPath();
-          ctx.strokeStyle = color;
-          ctx.lineWidth = size;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          ctx.moveTo(lastX * displayWidth, lastY * displayHeight);
-          ctx.lineTo(x * displayWidth, y * displayHeight);
-          ctx.stroke();
-      }
-      
-      lastPos.current = { x, y };
-  };
-
-  const stopDrawing = () => {
-      if (!isDrawing.current) return;
-      isDrawing.current = false;
-      isDrawingRef.current = false;
-
-      if (batchTimeout.current) {
-          clearInterval(batchTimeout.current);
-          batchTimeout.current = null;
-      }
-
-      // Send final batch with isEnd: true
-      if (strokeBatch.current.length > 0) {
-          broadcastBatch(true);
-      }
-      
-      if (currentStroke.current && currentStroke.current.points.length >= 1) {
-          const newStrokes = [...strokes, currentStroke.current];
-          setStrokes(newStrokes);
-          saveStrokesToSupabase(newStrokes);
-      }
-      
-      currentStroke.current = null;
-      strokeBatch.current = [];
-  };
-
-  const clearCanvas = () => {
-      if (!isDrawer && !isHost) return;
-      clearCanvasLocal();
-      setStrokes([]);
-      if (broadcast) broadcast('clear_canvas', {});
-      if (isDrawer && roomId) {
-          saveStrokesToSupabase([]);
-      }
-  };
-
-  // --- HOST LOGIC ---
-  useEffect(() => {
-      if (!isHost || !roomId) return;
-
-      const manageGame = async () => {
-          // 1. Playing -> Round Results (Time up or All Guessers Found)
-          if (currentPhase === 'playing') {
-              const timeIsUp = timeLeft === 0 && timerStartAt && (Date.now() > new Date(timerStartAt).getTime() + timerSeconds * 1000);
-              // Players who left don't hold the round open until the timer runs out.
-              const guessers = players.filter(p => p.id !== currentDrawerId && !isPlayerAway(p.id));
-              const allFound = guessers.length > 0 && gamePlayers.filter((p: any) => p.has_guessed && p.player_id !== currentDrawerId).length >= guessers.length;
-
-              if (timeIsUp || allFound) {
-                  // Calculate Scores for Drawer
-                  const foundCount = gamePlayers.filter((p: any) => p.has_guessed && p.player_id !== currentDrawerId).length;
-                  let drawerPoints = 0;
-                  if (foundCount > 0) drawerPoints = 500;
-                  if (foundCount === guessers.length && guessers.length > 0) drawerPoints = 800;
-
-                  if (drawerPoints > 0) {
-                      // Fetch current score
-                      const { data: dData } = await supabase.from('draw_players').select('score').eq('room_id', roomId).eq('player_id', currentDrawerId).single();
-                      await roomDb.from('draw_players').update({ score: (dData?.score || 0) + drawerPoints }).eq('room_id', roomId).eq('player_id', currentDrawerId);
-                  }
-
-                  // Move to Results
-                  await roomDb.from('draw_games').update({
-                      phase: 'round_results',
-                      timer_start_at: null
-                  }).eq('room_id', roomId);
-                  
-                  // Auto Next Round after 5s
-                  setTimeout(async () => {
-                      await nextRound();
-                  }, 5000);
-              }
-          }
-      };
-
-      manageGame();
-  }, [isHost, roomId, currentPhase, timeLeft, timerStartAt, timerSeconds, players.length, gamePlayers, currentDrawerId]);
-
-  // A drawer who is away for 30 s: the round ends and the next player draws.
-  const drawerSince = useRef<{ id: string | null; at: number }>({ id: null, at: 0 });
-  useEffect(() => {
-      if (!isHost || !roomId || currentPhase !== 'playing' || !currentDrawerId) return;
-      if (drawerSince.current.id !== currentDrawerId) drawerSince.current = { id: currentDrawerId, at: Date.now() };
-      const t = setInterval(async () => {
-          const s = drawerSince.current;
-          if (s.id !== currentDrawerId || Date.now() - s.at < 30_000 || !isPlayerAway(currentDrawerId)) return;
-          drawerSince.current = { id: null, at: Date.now() };
-          await roomDb.from('draw_games').update({ phase: 'round_results', timer_start_at: null }).eq('room_id', roomId);
-          toast.info('Le dessinateur est absent : on passe au suivant.');
-          setTimeout(() => { void nextRound(); }, 3000);
-      }, 5_000);
-      return () => clearInterval(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHost, roomId, currentPhase, currentDrawerId, isPlayerAway]);
-
-  // --- ACTIONS ---
-
-  const startNewGame = async () => {
-      if (!isHost || !roomId) return;
-
-      try {
-          toast.loading("Préparation des crayons...");
-          
-          // Fetch words
-          const count = totalRounds + 5; // Extra buffer
-          const difficulty = settings.difficulty || 'mix';
-          
-          const res = await fetch(`/api/games/draw?count=${count}&difficulty=${difficulty}`);
-          if (!res.ok) throw new Error("API Error");
-          const words = await res.json();
-          
-          if (!words || words.length === 0) {
-              toast.error("Aucun mot trouvé");
-              return;
-          }
-
-          const firstWord = words[0];
-          const queue = words.slice(1);
-          
-          const firstDrawerId = players[0].id;
-          
-          // Generate round ID
-          const roundId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-          // Reset Players
-          const playerInserts = players.map(p => ({
-              room_id: roomId,
-              player_id: p.id,
-              score: 0,
-              has_guessed: false,
-              guess_rank: 0,
-              guess_time_ms: 0
-          }));
-          
-          await roomDb.from('draw_players').delete().eq('room_id', roomId);
-          await roomDb.from('draw_players').insert(playerInserts);
-          
-          // Clear old strokes
-          await roomDb.from('draw_strokes').delete().eq('room_id', roomId);
-
-          // Update Game with round_id
-          await roomDb.from('draw_games').upsert({
-              room_id: roomId,
-              phase: 'playing',
-              current_round: 1,
-              round_id: roundId,
-              total_rounds: totalRounds,
-              timer_seconds: Number(settings.time || 90),
-              timer_start_at: new Date().toISOString(),
-              current_word: firstWord,
-              current_drawer_id: firstDrawerId,
-              queue: queue,
-              created_at: new Date().toISOString()
-          }, { onConflict: 'room_id' });
-
-          await roomDb.from('rooms').update({ status: 'in_game' }).eq('id', roomId);
-          setRoundId(roundId);
-          
-          // Broadcast new round
-          if (broadcast) broadcast('new_round', { roundId });
-          
-          toast.dismiss();
-          toast.success("À vos pinceaux !");
-
-      } catch (e) {
-          console.error(e);
-          toast.error("Erreur au démarrage");
-      }
-  };
-
-  const nextRound = async () => {
-      if (!isHost || !roomId) return;
-
-      const queue = game.queue || [];
-      const currentRoundNum = game.current_round || 1;
-
-      if (queue.length === 0 || currentRoundNum >= totalRounds) {
-          // Game Over -> Podium
-          await roomDb.from('draw_games').update({
-              phase: 'podium'
-          }).eq('room_id', roomId);
-          return;
-      }
-
-      const nextWord = queue[0];
-      const nextQueue = queue.slice(1);
-      
-      // Generate new round ID
-      const newRoundId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Determine next drawer: the next player who is still here.
-      const currentIndex = players.findIndex(p => p.id === currentDrawerId);
-      let nextDrawerId = players[(currentIndex + 1) % players.length].id;
-      for (let step = 1; step <= players.length; step++) {
-          const candidate = players[(currentIndex + step) % players.length];
-          if (!isPlayerAway(candidate.id)) { nextDrawerId = candidate.id; break; }
-      }
-
-      // Reset players guess state
-      await roomDb.from('draw_players').update({
-          has_guessed: false,
-          guess_rank: 0,
-          guess_time_ms: 0
-      }).eq('room_id', roomId);
-      
-      // Clear old strokes for this room
-      await roomDb.from('draw_strokes').delete().eq('room_id', roomId);
-
-      // Start next round with new round_id
-      await roomDb.from('draw_games').update({
-          phase: 'playing',
-          current_round: currentRoundNum + 1,
-          round_id: newRoundId,
-          current_word: nextWord,
-          current_drawer_id: nextDrawerId,
-          queue: nextQueue,
-          timer_start_at: new Date().toISOString()
-      }).eq('room_id', roomId);
-      
-      // Update local state
-      setRoundId(newRoundId);
-      setStrokes([]);
-      strokesLoaded.current = false;
-      renderQueue.current = [];
-      receivedStrokes.current.clear();
-      
-      // Broadcast new round and clear canvas
-      if (broadcast) {
-          broadcast('new_round', { roundId: newRoundId });
-          broadcast('clear_canvas', {});
-      }
-  };
-
-  const submitGuess = async () => {
-      if (!roomId || !playerId || hasGuessed || isDrawer || currentPhase !== 'playing') return;
-      if (!currentWord || !currentWord.word) {
-          toast.error("Pas de mot à deviner");
-          return;
-      }
-      
-      const guess = userGuess.trim();
-      if (!guess) return;
-      
-      // Filter numbers
-      if (/\d/.test(guess)) {
-          toast.error("Pas de chiffres !");
-          return;
-      }
-
-      try {
-          const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-          const userGuessNorm = normalize(guess);
-          const correctWordNorm = normalize(currentWord.word);
-          
-          // Levenshtein
-          const dist = levenshteinDistance(userGuessNorm, correctWordNorm);
-          const threshold = correctWordNorm.length > 5 ? 2 : 1;
-          const isCorrect = dist <= threshold;
-
-          if (isCorrect) {
-              const now = Date.now();
-              const start = timerStartAt ? new Date(timerStartAt).getTime() : now;
-              const timeTaken = Math.max(0, now - start);
-
-              // Calculate Score (1000 -> 100)
-              const maxTime = timerSeconds * 1000;
-              let points = 100;
-              if (timeTaken <= 5000) {
-                  points = 1000;
-              } else if (maxTime > 5000) {
-                  const factor = 1 - ((timeTaken - 5000) / (maxTime - 5000));
-                  points = Math.max(100, Math.round(100 + 900 * Math.max(0, factor)));
-              }
-
-              // Fetch current rank
-              const { count } = await supabase.from('draw_players').select('*', { count: 'exact', head: true }).eq('room_id', roomId).eq('has_guessed', true);
-              const rank = (count || 0) + 1;
-
-              setHasGuessed(true);
-              setGuessRank(rank);
-              vibrate(HAPTIC.SUCCESS);
-              toast.success(`Trouvé ! +${points} pts`);
-
-              // Update DB
-              const { data: pData } = await supabase.from('draw_players').select('score').eq('room_id', roomId).eq('player_id', playerId).single();
-              await roomDb.from('draw_players').update({
-                  score: (pData?.score || 0) + points,
-                  has_guessed: true,
-                  guess_rank: rank,
-                  guess_time_ms: timeTaken
-              }).eq('room_id', roomId).eq('player_id', playerId);
-
-              // Broadcast found
-              const myName = players.find(p => p.id === playerId)?.name || 'Quelqu\'un';
-              if (broadcast) broadcast('player_found', { playerName: myName });
-              
-              setUserGuess('');
-          } else {
-              // Check closeness for "Chauffe !" message
-              if (dist <= threshold + 2) {
-                  vibrate(HAPTIC.WARNING);
-                  toast('Chauffe !', { icon: '🔥' });
-              } else {
-                  vibrate(HAPTIC.ERROR);
-              }
-              // Don't clear input on wrong answer - let them retry
-          }
-      } catch (err) {
-          console.error('Error submitting guess:', err);
-          toast.error("Erreur lors de la soumission");
-      }
-  };
-
-  const returnToLobby = async () => {
-      if (!isHost || !roomId) return;
-      await roomDb.from('draw_games').delete().eq('room_id', roomId);
-      await roomDb.from('draw_players').delete().eq('room_id', roomId);
-      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
-      if (broadcast) await broadcast('return_to_lobby', {});
-      router.push(`/room/${roomCode}?return=true`);
-  };
-
-  const cleanupForVote = async () => {
-      if (!isHost || !roomId) return;
-      await roomDb.from('draw_games').delete().eq('room_id', roomId);
-      await roomDb.from('draw_players').delete().eq('room_id', roomId);
-      await roomDb.from('rooms').update({ status: 'waiting' }).eq('id', roomId);
-  };
-
-  // --- UTILS ---
-  const levenshteinDistance = (a: string, b: string) => {
-      if (a.length === 0) return b.length; 
-      if (b.length === 0) return a.length; 
-      const matrix = []; 
-      for (let i = 0; i <= b.length; i++) { matrix[i] = [i]; } 
-      for (let j = 0; j <= a.length; j++) { matrix[0][j] = j; } 
-      for (let i = 1; i <= b.length; i++) { 
-          for (let j = 1; j <= a.length; j++) { 
-              if (b.charAt(i - 1) === a.charAt(j - 1)) { 
-                  matrix[i][j] = matrix[i - 1][j - 1]; 
-              } else { 
-                  matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)); 
-              } 
-          } 
-      } 
-      return matrix[b.length][a.length]; 
-  };
-
-  const sortedPlayers = useMemo(() => {
-      return [...players].map(p => {
-          const gp = gamePlayers.find((gp: any) => gp.player_id === p.id);
-          return { ...p, score: gp?.score || 0 };
-      }).sort((a, b) => (b.score - a.score) || a.name.localeCompare(b.name));
-  }, [players, gamePlayers]);
-
-  // Handle Resize
-  useEffect(() => {
-      const handleResize = () => {
-          if (canvasRef.current) {
-              const parent = canvasRef.current.parentElement;
-              if (parent) {
-                  const scale = window.devicePixelRatio || 2;
-                  const displayWidth = parent.clientWidth;
-                  const displayHeight = parent.clientHeight;
-                  
-                  canvasRef.current.width = displayWidth * scale;
-                  canvasRef.current.height = displayHeight * scale;
-                  canvasRef.current.style.width = displayWidth + 'px';
-                  canvasRef.current.style.height = displayHeight + 'px';
-                  
-                  const ctx = canvasRef.current.getContext('2d');
-                  if (ctx) {
-                      ctx.imageSmoothingEnabled = true;
-                      ctx.imageSmoothingQuality = 'high';
-                      ctx.lineCap = 'round';
-                      ctx.lineJoin = 'round';
-                      ctx.fillStyle = '#FFFFFF';
-                      ctx.fillRect(0, 0, displayWidth, displayHeight);
-                      
-                      if (strokes.length > 0) {
-                          redrawCanvas(strokes);
-                      }
-                  }
-              }
-          }
-      };
-      
-      handleResize();
-      window.addEventListener('resize', handleResize);
-      const observer = new ResizeObserver(handleResize);
-      if (canvasRef.current?.parentElement) {
-          observer.observe(canvasRef.current.parentElement);
-      }
-      return () => {
-          window.removeEventListener('resize', handleResize);
-          observer.disconnect();
-      };
-  }, [strokes]);
 
   return (
-    <GameLayout
-      isConnected={isConnected}
-      roundCount={game.current_round || 0}
-      maxRounds={game.total_rounds || totalRounds}
-      timer={timeLeft > 0 ? `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}` : '--:--'}
-      gameTitle="DrawGuessr"
-      timeLeft={timeLeft}
-      voteToLobby={<VoteToLobby roomId={roomId || ''} playerId={playerId || ''} players={players} roomCode={roomCode} onAllVoted={cleanupForVote} />}
-    >
-      <div className="flex flex-col items-center w-full max-w-6xl mx-auto h-full min-h-[calc(100vh-150px)] relative">
-        
-        {/* PHASE: SETUP */}
-        {currentPhase === 'setup' && (
-            <div className="flex flex-col items-center justify-center flex-1 gap-6 animate-in fade-in w-full max-w-lg">
-               <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 shadow-brutal flex flex-col items-center w-full text-center">
-                   <div className="bg-brand-inner border-4 border-brand-border p-6 rounded-2xl mb-6 shadow-brutal transform rotate-3">
-                       <PenTool className="w-16 h-16 text-accent-secondary" />
-                   </div>
-                   
-                   <div className="text-center space-y-2 mb-8">
-                        <h2 className="font-display text-4xl text-tx-base">Prêt à dessiner ?</h2>
-                       <p className="text-tx-secondary font-bold">
-                           Rounds : <span className="text-accent-secondary font-black uppercase tracking-widest">{totalRounds}</span> • 
-                           Temps : <span className="text-[#06B6D4] font-black uppercase tracking-widest">{settings.time || 90}s</span>
-                       </p>
-                   </div>
+    <div className="relative mx-auto w-full max-w-[min(100%,calc((100dvh-300px)*4/3))] min-w-[260px] overflow-hidden rounded-[22px] border-4 border-brand-border bg-white shadow-[0_6px_0_#05061A]" style={{ aspectRatio: '4 / 3' }}>
+      <canvas ref={base} width={W} height={H} className="absolute inset-0 h-full w-full" />
+      <canvas
+        ref={overlay}
+        width={W}
+        height={H}
+        className={cn('absolute inset-0 h-full w-full touch-none', canDraw ? (tool === 'fill' ? 'cursor-cell' : 'cursor-crosshair') : 'cursor-default')}
+        onPointerDown={(e) => {
+          if (!canDraw || e.button > 0) return;
+          if (tool === 'fill') { const [x, y] = at(e); onFill(x, y); return; }
+          try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+          current.current = [at(e)];
+          paintOverlay();
+        }}
+        onPointerMove={(e) => {
+          const pts = current.current;
+          if (!pts) return;
+          const p = at(e);
+          const last = pts[pts.length - 1];
+          if (Math.hypot(p[0] - last[0], p[1] - last[1]) < 0.003 || pts.length >= 1500) return;
+          pts.push(p);
+          paintOverlay();
+          if (Date.now() - lastLive.current > 80) { lastLive.current = Date.now(); onLive(pts.slice(-400)); }
+        }}
+        onPointerUp={end}
+        onPointerCancel={end}
+      />
+    </div>
+  );
+}
 
-                   {isHost ? (
-                       <button 
-                           onClick={startNewGame}
-                           className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-secondary text-brand-bg hover:bg-brand-inner hover:text-accent-secondary shadow-brutal"
-                       >
-                           Lancer la partie
-                       </button>
-                   ) : (
-                        <div className="flex items-center justify-center gap-4 bg-brand-inner border-4 border-brand-border px-8 py-4 rounded-2xl shadow-brutal w-full">
-                            <Loader2 className="w-6 h-6 animate-spin text-accent-secondary" />
-                            <span className="font-display text-tx-base">En attente de l'hôte...</span>
-                       </div>
-                   )}
-               </div>
+/* ---------------- game ---------------- */
+
+export default function DrawGuesser({ roomCode }: { roomCode: string }) {
+  const party = usePartyGame(roomCode, 'drawguessr');
+  const { round, phase, settings, playerId, active, roundNo, totalRounds, gid } = party;
+  const drawTime = numSetting(settings, 'time', 90, 20, 300);
+
+  const drawer: string | undefined = round.drawer;
+  const isDrawer = !!playerId && playerId === drawer;
+  const word: string | undefined = round.word;
+  const startedAt: number = round.started_at || 0;
+
+  const [tool, setTool] = useState<'pen' | 'fill'>('pen');
+  const [color, setColor] = useState(COLORS[0]);
+  const [size, setSize] = useState(SIZES[1]);
+  const [eraser, setEraser] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [pending, setPending] = useState<Op[]>([]);
+  useEffect(() => { setDraft(''); setPending([]); setTool('pen'); setEraser(false); }, [gid, roundNo]);
+  const [foundLocal, markFound] = useSent(party, 'draw');
+
+  const drawMoves: PartyMove[] = party.movesIn('draw');
+  const ops = useMemo(() => {
+    const list: Op[] = [];
+    const ids = new Set<string>();
+    for (const m of drawMoves) {
+      if (m.player_id !== drawer || !['stroke', 'fill', 'undo', 'clear'].includes(m.action_type)) continue;
+      const id = String(m.payload?.id || m.id);
+      ids.add(id);
+      list.push({ ...(m.payload || {}), k: m.action_type, id } as Op);
+    }
+    // The drawer's own last operations, before the server sends them back.
+    for (const op of pending) if (!ids.has(op.id)) list.push(op);
+    return list;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [party.moves, gid, roundNo, drawer, pending]);
+
+  const live = !isDrawer && phase === 'draw' && party.lastEvent?.type === 'draw_live' && party.lastEvent.payload?.g === gid && party.lastEvent.payload?.r === roundNo
+    ? { pts: party.lastEvent.payload.pts as Pt[], color: String(party.lastEvent.payload.color), size: Number(party.lastEvent.payload.size) }
+    : null;
+
+  const foundAt: Record<string, string> = {};
+  for (const m of drawMoves) if (m.action_type === 'found' && m.player_id !== drawer && !foundAt[m.player_id]) foundAt[m.player_id] = m.created_at;
+  const iFound = !!foundLocal || (!!playerId && !!foundAt[playerId]);
+  const feed = drawMoves.filter((m) => m.action_type === 'guess' || m.action_type === 'found').slice(-30);
+
+  const opId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const push = (k: Op['k'], data: Record<string, unknown>) => {
+    const op = { k, id: opId(), ...data } as Op;
+    setPending((p) => [...p, op]);
+    party.act(k, { ...data, id: op.id });
+  };
+
+  /* ---------------- host ---------------- */
+  const roundOf = (deck: Word[][], n: number) => {
+    const order = party.active.map((p) => p.id);
+    return { phase: 'choose', drawer: order[(n - 1) % Math.max(1, order.length)], options: (deck[n - 1] || []).map((w) => w.word), ends_at: party.deadline(CHOOSE_TIME) };
+  };
+
+  const start = async () => {
+    const rounds = numSetting(settings, 'rounds', 5, 1, 30);
+    const words: Word[] = await fetch(`/api/games/draw?count=${rounds * 3}&difficulty=${settings.difficulty || 'mix'}`).then((r) => r.json()).catch(() => []);
+    if (!Array.isArray(words) || words.length < 3) { toast.error('Impossible de charger les mots.'); return; }
+    const deck: Word[][] = [];
+    for (let i = 0; i + 2 < words.length && deck.length < rounds; i += 3) deck.push(words.slice(i, i + 3));
+    await party.startGame(deck, roundOf(deck, 1), deck.length);
+  };
+
+  const pick = party.movesIn('choose', 'pick').find((m) => m.player_id === drawer);
+  const drawerGone = !!drawer && !party.seated.some((p) => p.id === drawer);
+  useHostStep(party, `${gid}:${roundNo}:choose-end`, phase === 'choose' && (!!pick || party.expired || drawerGone), async () => {
+    const options: string[] = round.options || [];
+    const chosen = options[Number(pick?.payload?.i)] ?? options[0];
+    const now = party.serverTime();
+    await party.patchRound({ phase: 'draw', word: chosen, started_at: now, ends_at: now + drawTime * 1000 });
+  });
+
+  const guessers = active.filter((p) => p.id !== drawer);
+  const allFound = guessers.length > 0 && guessers.every((p) => foundAt[p.id]);
+  useHostStep(party, `${gid}:${roundNo}:draw-end`, phase === 'draw' && (party.expired || allFound || drawerGone), async () => {
+    const gains: Scores = {};
+    const finds = Object.entries(foundAt).sort((a, b) => a[1].localeCompare(b[1]));
+    for (const [pid, at] of finds) gains[pid] = speedPoints(Math.max(0, (Date.parse(at) - startedAt) / 1000), drawTime);
+    if (drawer && finds.length) gains[drawer] = 500 + (allFound ? 300 : 0);
+    await party.patchRound({ phase: 'results', finds: finds.map(([pid, at]) => ({ pid, sec: Math.round(Math.max(0, (Date.parse(at) - startedAt) / 100)) / 10 })), gains, scores: addScores(party.scores, gains), ends_at: party.deadline(RESULTS_TIME) });
+  });
+
+  const next = useHostStep(party, `${gid}:${roundNo}:next`, phase === 'results' && party.expired, async () => {
+    const deck: Word[][] = party.deck || [];
+    if (roundNo >= totalRounds || !deck[roundNo]) return party.endGame();
+    await party.goToRound(roundNo + 1, roundOf(deck, roundNo + 1));
+  });
+
+  /* ---------------- player ---------------- */
+  const guess = () => {
+    if (!word || iFound || isDrawer) return;
+    const text = draft.trim();
+    setDraft('');
+    if (isCloseEnough(text, word)) {
+      markFound(true);
+      party.act('found');
+      vibrate(HAPTIC.SUCCESS);
+      return;
+    }
+    const close = levenshtein(normalize(text), normalize(word)) <= 3;
+    party.act('guess', { text: text.slice(0, 40), close });
+    vibrate(close ? HAPTIC.WARNING : HAPTIC.ERROR);
+  };
+
+  const board = (
+    <Board
+      ops={ops}
+      live={live}
+      canDraw={isDrawer && phase === 'draw'}
+      tool={tool}
+      color={eraser ? WHITE : color}
+      size={eraser ? SIZES[3] : size}
+      onStroke={(pts) => push('stroke', { pts, color: eraser ? WHITE : color, size: eraser ? SIZES[3] : size })}
+      onFill={(x, y) => push('fill', { x, y, color })}
+      onLive={(pts) => party.broadcast('draw_live', { g: gid, r: roundNo, pts, color: eraser ? WHITE : color, size: eraser ? SIZES[3] : size })}
+    />
+  );
+
+  return (
+    <PartyShell party={party} title="DrawGuessr" maxTime={phase === 'choose' ? CHOOSE_TIME : phase === 'draw' ? drawTime : RESULTS_TIME} wide>
+      {phase === 'setup' && (
+        <SetupScreen
+          party={party}
+          title="DrawGuessr"
+          tagline="Dessinez, c’est gagné !"
+          icon={PenTool}
+          swatch={SWATCH}
+          minPlayers={2}
+          onStart={start}
+          rules={[
+            'À chaque manche, un joueur choisit un mot parmi trois et le dessine.',
+            'Les autres tapent leurs propositions : le plus rapide marque le plus.',
+            'Crayon, couleurs, gomme, pot de peinture, annuler : tout pour bien dessiner.',
+            'Le dessinateur gagne 500 points si quelqu’un trouve, 800 si tout le monde trouve.',
+          ]}
+        />
+      )}
+
+      {phase === 'choose' && (
+        isDrawer ? (
+          <>
+            <PromptCard eyebrow="À toi de dessiner" tone="green">Choisis ton mot</PromptCard>
+            <div className="grid w-full gap-3 sm:grid-cols-3">
+              {(round.options as string[] || []).map((w, i) => (
+                <ChoiceButton key={w} onClick={() => party.act('pick', { i })} className="min-h-[72px] text-center font-display text-2xl">{w}</ChoiceButton>
+              ))}
             </div>
-        )}
+          </>
+        ) : <Waiting text={<><OgName name={party.nameOf(drawer)} /> choisit un mot…</>} />
+      )}
 
-        {/* PHASE: PLAYING / RESULTS */}
-        {(currentPhase === 'playing' || currentPhase === 'round_results') && (
-            <div className="flex flex-col w-full h-full gap-4 p-4">
-                
-                {/* TOP: Word Reveal Card */}
-                <div className="flex-shrink-0">
-                    {isDrawer && currentPhase === 'playing' && (
-                        <div className="bg-brand-card p-6 rounded-[22px] border-4 border-brand-border shadow-brutal word-reveal-container">
-                            <div className="flex flex-col items-center gap-4">
-                                <div className="word-display w-full">
-                                    <div className="bg-brand-inner px-8 py-4 rounded-2xl border-4 border-brand-border w-full shadow-inner">
-                                        <span className="block text-xs text-tx-secondary font-bold uppercase tracking-widest text-center mb-1">Mot à dessiner</span>
-                                        <span className="font-display text-3xl text-tx-base block text-center">{currentWord?.word}</span>
-                                    </div>
-                                </div>
-                                <p className="word-hint text-tx-secondary font-bold uppercase tracking-widest text-sm text-center">Maintenir le bouton pour voir le mot</p>
-                                <button
-                                    type="button"
-                                    className="w-full bg-brand-inner hover:brightness-110 active:bg-[#333A80] border-4 border-brand-border rounded-2xl py-4 transition-colors select-none touch-none shadow-brutal active:translate-y-1 active:shadow-none group"
-                                >
-                                    <Eye className="w-8 h-8 mx-auto text-tx-base group-hover:text-brand-bg group-active:text-brand-bg transition-colors" />
-                                </button>
-                            </div>
-                            <style jsx>{`
-                                .word-reveal-container:has(button:active) .word-display {
-                                    display: block !important;
-                                }
-                                .word-reveal-container:has(button:active) .word-hint {
-                                    display: none !important;
-                                }
-                                .word-display {
-                                    display: none;
-                                }
-                            `}</style>
-                        </div>
-                    )}
-                    {!isDrawer && currentPhase === 'playing' && (
-                        <div className="bg-brand-card px-8 py-4 rounded-2xl border-4 border-brand-border shadow-brutal flex items-center justify-center gap-4">
-                            <PenTool className="w-6 h-6 text-accent-secondary animate-bounce" />
-                            <span className="font-display text-xl text-tx-base">{getDrawerName()} dessine</span>
-                        </div>
-                    )}
-                    {currentPhase === 'round_results' && (
-                        <div className="bg-brand-card px-10 py-6 rounded-[22px] border-4 border-brand-border shadow-brutal flex flex-col items-center justify-center">
-                            <span className="block text-sm text-tx-secondary font-bold uppercase tracking-widest text-center mb-2">Le mot était</span>
-                            <span className="font-display text-4xl text-accent-secondary block text-center">{currentWord?.word}</span>
-                        </div>
-                    )}
-                </div>
-
-                {/* MIDDLE: Canvas */}
-                <div className="flex-1 bg-white rounded-[22px] shadow-brutal overflow-hidden relative touch-none border-4 border-brand-border min-h-[300px]">
-                    <canvas
-                        ref={canvasRef}
-                        onMouseDown={startDrawing}
-                        onMouseMove={drawStroke}
-                        onMouseUp={stopDrawing}
-                        onMouseLeave={stopDrawing}
-                        onTouchStart={startDrawing}
-                        onTouchMove={drawStroke}
-                        onTouchEnd={stopDrawing}
-                        className="w-full h-full cursor-crosshair"
-                    />
-                    
-                    {/* TOOLBAR (Drawer Only) */}
-                    {isDrawer && currentPhase === 'playing' && (
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-brand-bg/95 backdrop-blur-md px-6 py-3 rounded-2xl flex items-center gap-4 shadow-brutal border-4 border-brand-border max-w-[95%] overflow-x-auto">
-                            <div className="flex gap-2 flex-wrap justify-center min-w-[120px]">
-                                {COLORS.map(c => (
-                                    <button
-                                        key={c}
-                                        onClick={() => setColor(c)}
-                                        className={cn(
-                                            "w-8 h-8 rounded-full border-4 transition-transform flex-shrink-0",
-                                            color === c ? 'border-brand-border scale-110 shadow-brutal' : 'border-transparent hover:scale-110'
-                                        )}
-                                        style={{ backgroundColor: c }}
-                                    />
-                                ))}
-                            </div>
-                            <div className="w-1 h-8 bg-brand-inner rounded-full" />
-                            <div className="flex gap-2 items-center">
-                                {SIZES.map(s => (
-                                    <button
-                                        key={s}
-                                        onClick={() => setSize(s)}
-                                        className={cn(
-                                            "rounded-full bg-brand-inner flex items-center justify-center transition-all border-[3px] border-brand-border",
-                                            size === s ? 'ring-2 ring-brand-border shadow-sm' : 'hover:bg-brand-card'
-                                        )}
-                                        style={{ width: s + 16, height: s + 16, minWidth: s + 16, minHeight: s + 16 }}
-                                    >
-                                        <div className="rounded-full bg-brand-border" style={{ width: s, height: s }} />
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="w-1 h-8 bg-brand-inner rounded-full" />
-                            <button onClick={() => setColor('#FFFFFF')} className={cn(
-                                "p-2.5 rounded-xl border-[3px] transition-colors",
-                                color === '#FFFFFF' ? 'bg-brand-card border-brand-border shadow-sm' : 'bg-brand-inner border-transparent hover:border-brand-border'
-                            )}>
-                                <Eraser className="w-5 h-5 text-tx-base" />
-                            </button>
-                            <button onClick={clearCanvas} className="p-2.5 rounded-xl bg-brand-inner border-[3px] border-transparent hover:border-accent-secondary hover:bg-accent-secondary/10 transition-colors group">
-                                <Trash2 className="w-5 h-5 text-accent-secondary group-hover:scale-110 transition-transform" />
-                            </button>
-                        </div>
-                    )}
-                </div>
-
-                {/* BOTTOM: Answer Input (Guesser Only) */}
-                {!isDrawer && currentPhase === 'playing' && !hasGuessed && (
-                    <div className="flex-shrink-0 pb-2">
-                        <form onSubmit={(e) => { e.preventDefault(); submitGuess(); }} className="flex gap-3">
-                            <input 
-                                placeholder="Devinez le mot..." 
-                                value={userGuess}
-                                onChange={e => setUserGuess(e.target.value)}
-                                className="flex-1 h-16 text-xl bg-brand-inner border-4 border-brand-border focus:border-accent-primary text-tx-base placeholder:text-tx-muted text-center rounded-2xl shadow-brutal outline-none font-bold transition-colors"
-                                autoFocus
-                            />
-                            <button 
-                                type="submit" 
-                                disabled={!userGuess.trim()}
-                                className="h-16 w-20 bg-accent-success hover:brightness-110 text-brand-bg font-black rounded-2xl shadow-brutal border-4 border-brand-border flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Send className="w-6 h-6" />
-                            </button>
-                        </form>
-                    </div>
-                )}
+      {phase === 'draw' && (
+        <>
+          <PromptCard eyebrow={isDrawer ? 'Ton mot' : `${party.nameOf(drawer)} dessine`} tone={isDrawer ? 'yellow' : 'default'}>
+            {isDrawer ? word : iFound ? 'Trouvé ! Regarde les autres chercher.' : 'Devine le dessin'}
+          </PromptCard>
+          {board}
+          {isDrawer && (
+            <div className={cn(BRAWL.panel, 'flex w-full flex-wrap items-center justify-center gap-2 p-2')}>
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => { setColor(c); setEraser(false); }}
+                    aria-label={`Couleur ${c}`}
+                    className={cn('h-8 w-8 rounded-full border-[3px] transition-transform', !eraser && color === c ? 'scale-110 border-accent-success' : 'border-brand-border')}
+                    style={{ background: c }}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {SIZES.map((s) => (
+                  <button key={s} onClick={() => { setSize(s); setTool('pen'); }} aria-label={`Épaisseur ${s}`} className={cn('flex h-10 w-10 items-center justify-center rounded-xl border-[3px] border-brand-border', size === s && tool === 'pen' && !eraser ? 'bg-accent-success' : 'bg-brand-inner')}>
+                    <span className="rounded-full bg-white" style={{ width: Math.max(4, s / 2.5), height: Math.max(4, s / 2.5) }} />
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button onClick={() => { setTool('pen'); setEraser(false); }} aria-label="Crayon" className={cn('h-10 w-10 rounded-xl', tool === 'pen' && !eraser ? BRAWL.green : BRAWL.dark)}><Pencil className="h-5 w-5" /></button>
+                <button onClick={() => { setTool('pen'); setEraser(true); }} aria-label="Gomme" className={cn('h-10 w-10 rounded-xl', eraser ? BRAWL.green : BRAWL.dark)}><Eraser className="h-5 w-5" /></button>
+                <button onClick={() => { setTool('fill'); setEraser(false); }} aria-label="Pot de peinture" className={cn('h-10 w-10 rounded-xl', tool === 'fill' ? BRAWL.green : BRAWL.dark)}><PaintBucket className="h-5 w-5" /></button>
+                <button onClick={() => push('undo', {})} aria-label="Annuler" className={cn(BRAWL.dark, 'h-10 w-10 rounded-xl')}><Undo2 className="h-5 w-5" /></button>
+                <button onClick={() => push('clear', {})} aria-label="Tout effacer" className={cn(BRAWL.pink, 'h-10 w-10 rounded-xl')}><Trash2 className="h-5 w-5" /></button>
+              </div>
             </div>
-        )}
+          )}
+          {!isDrawer && !iFound && <AnswerInput value={draft} onChange={setDraft} onSubmit={guess} maxLength={40} placeholder="Ta proposition…" submitLabel="Proposer" />}
+          <div className={cn(BRAWL.panel, 'w-full p-2')}>
+            <ul className="flex max-h-32 flex-col-reverse gap-1 overflow-y-auto custom-scrollbar">
+              {[...feed].reverse().map((m) => (
+                <li key={m.id} className={cn('rounded-lg px-2 py-1 text-sm font-bold', m.action_type === 'found' ? 'bg-accent-success text-brand-bg' : m.payload?.close ? 'bg-accent-primary text-brand-bg' : 'bg-brand-inner')}>
+                  <OgName name={party.nameOf(m.player_id)} />{' '}
+                  {m.action_type === 'found' ? 'a trouvé !' : m.payload?.close ? 'est tout proche !' : `: ${m.payload?.text}`}
+                </li>
+              ))}
+              {!feed.length && <li className="text-center text-sm font-bold text-tx-secondary">Les propositions s’affichent ici.</li>}
+            </ul>
+          </div>
+          <PlayerChips party={party} only={guessers.map((p) => p.id)} done={Object.keys(foundAt)} label="Ont trouvé" />
+        </>
+      )}
 
-        {/* PHASE: PODIUM */}
-        {currentPhase === 'podium' && (
-            <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl p-4 animate-in zoom-in">
-                <div className="bg-brand-card border-4 border-brand-border rounded-[22px] p-8 text-center w-full relative overflow-hidden shadow-brutal">
-                    <div className="bg-brand-inner border-4 border-brand-border p-4 rounded-2xl inline-block shadow-brutal mb-6">
-                        <Trophy className="w-16 h-16 text-accent-secondary" />
-                    </div>
-                    <h2 className="font-display text-4xl text-tx-base mb-8">Classement Final</h2>
-                    
-                    <div className="w-full space-y-4 mb-8">
-                        {sortedPlayers.map((p, i) => (
-                            <div key={p.id} className={cn(
-                                "relative flex items-center justify-between p-4 rounded-2xl border-4 border-brand-border shadow-brutal",
-                                i === 0 ? "bg-accent-secondary text-brand-bg transform scale-105 z-10" : "bg-brand-inner text-tx-base"
-                            )}>
-                                {/* Badges */}
-                                {i === 0 && (
-                                    <div className="absolute -top-4 -right-4 bg-accent-primary text-brand-bg border-4 border-brand-border text-xs font-black px-4 py-2 rounded-xl uppercase tracking-wider shadow-brutal transform rotate-12">
-                                        Picasso
-                                    </div>
-                                )}
-                                
-                                <div className="flex items-center gap-4">
-                                    <span className={cn(
-                                        "w-12 h-12 flex items-center justify-center rounded-xl font-display text-2xl border-[3px] border-brand-border",
-                                        i === 0 ? "bg-accent-primary text-brand-bg" : "bg-brand-bg text-tx-base"
-                                    )}>
-                                        {i + 1}
-                                    </span>
-                                    
-                                    <div className="flex flex-col text-left">
-                                        <span className="text-xl font-display"><OgName name={p.name} /></span>
-                                        <span className={cn(
-                                            "text-xs font-bold uppercase tracking-widest",
-                                            i === 0 ? "text-brand-bg/80" : "text-tx-secondary"
-                                        )}>
-                                            {i === 0 ? '🎨 Artiste' : '✏️ Gribouilleur'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <span className={cn(
-                                    "text-3xl font-display",
-                                    i === 0 ? "text-brand-bg" : "text-accent-secondary"
-                                )}>{p.score}</span>
-                            </div>
-                        ))}
-                    </div>
+      {phase === 'results' && (
+        <>
+          <RevealBanner tone={(round.finds || []).length ? 'good' : 'bad'} eyebrow={`Dessin de ${party.nameOf(drawer)}`}>Le mot était « {word} »</RevealBanner>
+          {board}
+          <AnswerList
+            party={party}
+            title="Qui a trouvé"
+            rows={party.seated.filter((p) => p.id !== drawer).map((p) => {
+              const f = (round.finds || []).find((x: any) => x.pid === p.id);
+              return { pid: p.id, ok: !!f, note: f ? `en ${f.sec} s` : 'pas trouvé', points: round.gains?.[p.id] };
+            })}
+          />
+          <ScoreList party={party} gains={round.gains} />
+          <NextStep party={party} onNext={next} label={roundNo >= totalRounds ? 'Voir le podium' : 'Dessin suivant'} />
+        </>
+      )}
 
-                    {isHost && (
-                        <button 
-                            onClick={returnToLobby} 
-                            className="w-full h-16 rounded-2xl font-display text-xl transition-colors border-4 border-brand-border bg-accent-primary text-brand-bg shadow-[inset_0_-6px_0_#D98E00,0_5px_0_#05061A] active:translate-y-[3px]"
-                        >
-                            Retour au salon
-                        </button>
-                    )}
-                </div>
-            </div>
-        )}
-
-      </div>
-    </GameLayout>
+      {phase === 'podium' && <Podium party={party} onReplay={start} flavor="Les Picasso de la soirée." />}
+    </PartyShell>
   );
 }

@@ -9,7 +9,7 @@ import { BRAWL } from '@/lib/ui/brawl';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { normalize } from '@/lib/party/text';
 import { addScores, listSetting, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './party/usePartyGame';
-import { AnswerInput, NextStep, PartyShell, PlayerChips, Podium, PromptCard, ScoreList, SetupScreen, Waiting } from './party/ui';
+import { AnswerInput, NextStep, PartyShell, PlayerChips, Podium, PromptCard, RevealBanner, ScoreList, SetupScreen, Waiting } from './party/ui';
 
 const SWATCH = { fill: '#3B6BFF', shade: '#2A4FC4' };
 const REVIEW_TIME = 30;
@@ -233,10 +233,9 @@ export default function Surenchere({ params }: { params: { code: string } }) {
           {round.skipped ? (
             <p className="font-bold text-tx-secondary">Personne n’a rien annoncé.</p>
           ) : (
-            <div className={cn('w-full rounded-[22px] border-4 border-brand-border p-5 text-center shadow-[0_6px_0_#05061A]', round.success ? 'bg-accent-success text-brand-bg' : 'bg-accent-secondary text-white')}>
-              <p className="text-xs font-black uppercase tracking-widest opacity-80">{round.success ? 'Pari tenu !' : 'Pari perdu !'}</p>
-              <p className="font-display text-3xl"><OgName name={party.nameOf(bidder)} /> : {round.valid} / {bid}</p>
-            </div>
+            <RevealBanner tone={round.success ? 'good' : 'bad'} eyebrow={round.success ? 'Pari tenu !' : 'Pari perdu !'}>
+              <OgName name={party.nameOf(bidder)} /> : {round.valid} / {bid}
+            </RevealBanner>
           )}
           {items.length > 0 && (
             <ul className="flex w-full flex-wrap justify-center gap-2">

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { normalize, shuffle } from '@/lib/party/text';
 import { addScores, listSetting, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './party/usePartyGame';
-import { AnswerInput, ChoiceButton, NextStep, PartyShell, PlayerChips, Podium, PromptCard, ScoreList, SetupScreen, Waiting } from './party/ui';
+import { AnswerInput, NextStep, PartyShell, PlayerChips, Podium, PromptCard, ScoreList, SetupScreen, VoteScreen, Waiting } from './party/ui';
 
 const SWATCH = { fill: '#1FB866', shade: '#158A4B' };
 const RESULTS_TIME = 15;
@@ -129,31 +129,17 @@ export default function LeDico({ params }: { params: { code: string } }) {
       )}
 
       {phase === 'vote' && card && (
-        <>
-          {wordCard}
-          <p className="text-center font-bold text-tx-secondary">Laquelle est la vraie définition ?</p>
-          <div className="w-full space-y-3">
-            {defs.map((d, i) => {
-              const mine = d.id === playerId;
-              return (
-                <ChoiceButton
-                  key={d.id}
-                  selected={myVote === d.id}
-                  disabled={mine}
-                  onClick={() => { markPick(d.id); party.act('vote', { id: d.id }); vibrate(HAPTIC.SOFT); }}
-                  className={cn('flex items-start gap-3 text-base md:text-lg', mine && 'opacity-60')}
-                >
-                  <span className="font-display text-xl">{String.fromCharCode(65 + i)}.</span>
-                  <span className="flex-1">
-                    {d.text}
-                    {mine && <span className="mt-1 block text-xs font-black uppercase tracking-widest opacity-80">Ta définition</span>}
-                  </span>
-                </ChoiceButton>
-              );
-            })}
-          </div>
-          <PlayerChips party={party} done={Object.keys(votes)} label="Ont voté" />
-        </>
+        <VoteScreen
+          party={party}
+          title={card.word}
+          subtitle="Laquelle est la vraie définition ?"
+          candidates={defs.map((d, i) => ({ id: d.id, title: <span className="font-sans text-base font-bold md:text-lg">{String.fromCharCode(65 + i)}. {d.text}</span>, mine: d.id === playerId }))}
+          myVote={myVote}
+          onVote={(id) => { markPick(id); party.act('vote', { id }); vibrate(HAPTIC.SOFT); }}
+          votes={{}}
+          voted={Object.keys(votes)}
+          voters={active.map((p) => p.id)}
+        />
       )}
 
       {phase === 'results' && card && (

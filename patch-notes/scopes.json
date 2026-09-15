@@ -30,6 +30,7 @@
     { "id": "clicker", "label": "ItollecClicker", "group": "solo" },
     { "id": "krash", "label": "Krash", "group": "solo" },
 
+    { "id": "multi", "label": "Multijoueur", "group": "multi" },
     { "id": "budgetguessr", "label": "BudgetGuessr", "group": "multi" },
     { "id": "drawguessr", "label": "DrawGuessr", "group": "multi" },
     { "id": "flagguessr", "label": "FlagGuessr", "group": "multi" },

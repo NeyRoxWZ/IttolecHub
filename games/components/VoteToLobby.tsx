@@ -22,7 +22,8 @@ interface Vote {
   timestamp: number;
 }
 
-export default function VoteToLobby({ roomId, playerId, players, roomCode, gameType, onAllVoted }: VoteToLobbyProps) {
+/** "Back to the room" by majority vote, in the game header on every screen size. */
+export default function VoteToLobby({ roomId, playerId, players, roomCode, onAllVoted }: VoteToLobbyProps) {
   const router = useRouter();
   const [votes, setVotes] = useState<Vote[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
@@ -37,10 +38,7 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode, gameT
     voteChannel
       .on('broadcast', { event: 'vote_lobby' }, (payload) => {
         const newVote = payload.payload as Vote;
-        setVotes(prev => {
-          if (prev.find(v => v.player_id === newVote.player_id)) return prev;
-          return [...prev, newVote];
-        });
+        setVotes((prev) => (prev.find((v) => v.player_id === newVote.player_id) ? prev : [...prev, newVote]));
       })
       .on('broadcast', { event: 'return_to_lobby' }, () => {
         router.push(`/room/${roomCode}?return=true`);
@@ -54,103 +52,44 @@ export default function VoteToLobby({ roomId, playerId, players, roomCode, gameT
 
   const handleVote = async () => {
     if (hasVoted || !roomId || !playerId || !channel) return;
-
     vibrate(HAPTIC.SOFT);
-    const playerName = players.find(p => p.id === playerId)?.name || 'Joueur';
-    
-    const vote: Vote = {
-      player_id: playerId,
-      player_name: playerName,
-      timestamp: Date.now()
-    };
-
+    const vote: Vote = { player_id: playerId, player_name: players.find((p) => p.id === playerId)?.name || 'Joueur', timestamp: Date.now() };
     setHasVoted(true);
-    setVotes(prev => [...prev, vote]);
-
-    await channel.send({
-      type: 'broadcast',
-      event: 'vote_lobby',
-      payload: vote
-    });
+    setVotes((prev) => [...prev, vote]);
+    await channel.send({ type: 'broadcast', event: 'vote_lobby', payload: vote });
   };
 
-  // Majority instead of unanimity: a single AFK/disconnected player
-  // shouldn't be able to hold the whole table hostage in an active game.
+  // Majority, not unanimity: one player who left can't hold the table hostage.
   const requiredVotes = Math.floor(players.length / 2) + 1;
 
   useEffect(() => {
     if (votes.length >= requiredVotes && requiredVotes > 0 && channel) {
-      const handleAllVoted = async () => {
-        if (onAllVoted) {
-          await onAllVoted();
-        }
-        
-        channel.send({
-          type: 'broadcast',
-          event: 'return_to_lobby',
-          payload: {}
-        });
-        
+      (async () => {
+        if (onAllVoted) await onAllVoted();
+        channel.send({ type: 'broadcast', event: 'return_to_lobby', payload: {} });
         router.push(`/room/${roomCode}?return=true`);
-      };
-      
-      handleAllVoted();
+      })();
     }
   }, [votes.length, requiredVotes, roomId, roomCode, router, channel, onAllVoted]);
 
-  if (votes.length >= requiredVotes) {
-    return null;
-  }
+  if (votes.length >= requiredVotes) return null;
 
   return (
-    <>
-      {/* Desktop: Inside header, right side */}
-      <div className="hidden md:block">
-        <button
-          onClick={handleVote}
-          disabled={hasVoted}
-          title="Voter pour retourner au salon"
-          className={cn(
-              "h-10 flex items-center gap-2 px-3 rounded-xl border-[3px] border-brand-border font-display text-base transition-transform",
-              hasVoted
-              ? "bg-accent-success text-brand-bg shadow-[inset_0_-4px_0_#1E9A55] cursor-not-allowed"
-              : "bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] hover:bg-[#333A80] active:translate-y-[3px]"
-          )}
-        >
-          {hasVoted ? (
-            <div className="w-2.5 h-2.5 rounded-full bg-brand-bg animate-pulse" />
-          ) : (
-            <LogOut className="w-4 h-4" />
-          )}
-          <span className="tabular-nums">
-            Salon {votes.length}/{requiredVotes}
-          </span>
-        </button>
-      </div>
-
-      {/* Mobile: Bottom left floating - same style as ReactionButton */}
-      <div className="md:hidden fixed bottom-6 left-6 z-[90]">
-        <button
-          onClick={handleVote}
-          disabled={hasVoted}
-          aria-label="Voter pour retourner au salon"
-          className={cn(
-              "h-14 w-14 flex items-center justify-center rounded-2xl border-4 border-brand-border transition-transform",
-              hasVoted
-              ? "bg-accent-success text-brand-bg shadow-[inset_0_-5px_0_#1E9A55,0_4px_0_#05061A]"
-              : "bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A] active:translate-y-[3px]"
-          )}
-        >
-          {hasVoted ? (
-            <div className="w-3 h-3 rounded-full bg-brand-bg animate-pulse" />
-          ) : (
-            <LogOut className="w-6 h-6" />
-          )}
-        </button>
-        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 font-display text-sm text-brand-bg bg-accent-primary px-2 py-0.5 rounded-lg border-[3px] border-brand-border whitespace-nowrap tabular-nums">
-          {votes.length}/{requiredVotes}
-        </div>
-      </div>
-    </>
+    <button
+      onClick={handleVote}
+      disabled={hasVoted}
+      title="Voter pour retourner au salon"
+      aria-label={`Voter pour retourner au salon (${votes.length} sur ${requiredVotes})`}
+      className={cn(
+        'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border-[3px] border-brand-border px-2 font-display text-sm tabular-nums transition-transform sm:text-base',
+        hasVoted
+          ? 'cursor-default bg-accent-success text-brand-bg shadow-[inset_0_-3px_0_#1E9A55]'
+          : 'bg-[#2B3170] text-white shadow-[inset_0_-3px_0_#1A1F52] hover:bg-[#333A80] active:translate-y-[2px]',
+      )}
+    >
+      <LogOut className="h-4 w-4" />
+      <span className="hidden sm:inline">Salon</span>
+      {votes.length}/{requiredVotes}
+    </button>
   );
 }

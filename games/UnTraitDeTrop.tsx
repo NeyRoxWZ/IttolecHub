@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { isCloseEnough, shuffle, pickOne } from '@/lib/party/text';
 import { addScores, listSetting, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './party/usePartyGame';
-import { AnswerInput, ChoiceButton, NextStep, PartyShell, PlayerChips, Podium, PromptCard, ScoreList, SetupScreen, Waiting } from './party/ui';
+import { AnswerInput, NextStep, PartyShell, Podium, PromptCard, RecapPanel, RevealBanner, ScoreList, SecretCard, SetupScreen, TurnStrip, VoteScreen, Waiting } from './party/ui';
 
 const SWATCH = { fill: '#FF8A1F', shade: '#CC6508' };
 const COLORS = ['#FF4F8B', '#3B6BFF', '#1FB866', '#FF8A1F', '#8B3DFF', '#00A6C0', '#E63946', '#8D6E63', '#1F2937', '#E0A800'];
@@ -130,10 +130,12 @@ export default function UnTraitDeTrop({ params }: { params: { code: string } }) 
   const myVote = myPick ?? (playerId ? votes[playerId]?.pid : undefined);
 
   const roleCard = card && phase !== 'results' && (
-    isImposter ? (
-      <PromptCard eyebrow="Tu es l’imposteur" tone="pink">Thème : {card.catLabel}</PromptCard>
-    ) : order.includes(playerId || '') ? (
-      <PromptCard eyebrow={`Le mot · ${card.catLabel}`} tone="yellow">{card.text}</PromptCard>
+    order.includes(playerId || '') ? (
+      <SecretCard
+        label={`Ton mot · ${card.catLabel}`}
+        role={{ text: isImposter ? 'Imposteur' : 'Artiste', tone: isImposter ? 'bad' : 'good' }}
+        secret={isImposter ? `Pas de mot : thème ${card.catLabel}` : card.text}
+      />
     ) : (
       <PromptCard eyebrow="Tu regardes">Thème : {card.catLabel}</PromptCard>
     )
@@ -178,14 +180,7 @@ export default function UnTraitDeTrop({ params }: { params: { code: string } }) 
       {phase === 'draw' && (
         <>
           {roleCard}
-          <div className="flex w-full flex-wrap items-center justify-center gap-2">
-            {order.map((pid, i) => (
-              <span key={pid} className={cn('inline-flex h-9 items-center gap-1.5 rounded-xl border-[3px] border-brand-border px-2.5 font-display text-sm', drawer === pid ? 'bg-accent-primary text-brand-bg' : 'bg-brand-inner text-tx-secondary')}>
-                <span className="h-3 w-3 rounded-full border-2 border-brand-border" style={{ background: COLORS[i % COLORS.length] }} />
-                <OgName name={party.nameOf(pid)} />
-              </span>
-            ))}
-          </div>
+          <TurnStrip party={party} order={order} current={drawer} colorOf={colorOf} />
           <p className="font-display text-xl text-center">
             {myTurn ? (drewThisTurn || pending ? 'Trait envoyé !' : 'À toi : un seul trait !') : <>Au tour de <OgName name={party.nameOf(drawer)} /></>}
             <span className="ml-2 text-tx-secondary text-base">Trait {Math.min(turn + 1, totalTurns)}/{totalTurns}</span>
@@ -197,26 +192,25 @@ export default function UnTraitDeTrop({ params }: { params: { code: string } }) 
       {phase === 'vote' && (
         <>
           {roleCard}
-          {board}
-          <p className="font-bold text-tx-secondary">Qui est l’imposteur ?</p>
-          <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3">
-            {order.filter((pid) => pid !== playerId && party.seated.some((p) => p.id === pid)).map((pid) => (
-              <ChoiceButton key={pid} selected={myVote === pid} onClick={() => { markPick(pid); party.act('vote', { pid }); vibrate(HAPTIC.SOFT); }} className="flex items-center justify-center gap-2 font-display text-lg">
-                <span className="h-3 w-3 shrink-0 rounded-full border-2 border-brand-border" style={{ background: colorOf(pid) }} />
-                <span className="truncate"><OgName name={party.nameOf(pid)} /></span>
-              </ChoiceButton>
-            ))}
-          </div>
-          <PlayerChips party={party} done={Object.keys(votes)} label="Ont voté" />
+          <VoteScreen
+            party={party}
+            title="Qui est l’imposteur ?"
+            recap={<RecapPanel title="Le dessin">{board}</RecapPanel>}
+            candidates={order.filter((pid) => party.seated.some((p) => p.id === pid)).map((pid) => ({
+              id: pid,
+              title: <span className="inline-flex items-center gap-2"><span className="h-3 w-3 shrink-0 rounded-full border-2 border-brand-border" style={{ background: colorOf(pid) }} /><OgName name={party.nameOf(pid)} /></span>,
+              mine: pid === playerId,
+            }))}
+            myVote={myVote}
+            onVote={order.includes(playerId || '') ? (pid) => { markPick(pid); party.act('vote', { pid }); vibrate(HAPTIC.SOFT); } : undefined}
+            votes={Object.fromEntries(Object.entries(votes).map(([voter, v]) => [voter, v?.pid]))}
+          />
         </>
       )}
 
       {phase === 'guess' && card && (
         <>
-          <div className="w-full rounded-[22px] border-4 border-brand-border bg-accent-success p-4 text-center text-brand-bg shadow-[0_6px_0_#05061A]">
-            <p className="text-xs font-black uppercase tracking-widest opacity-80">Démasqué</p>
-            <p className="font-display text-3xl"><OgName name={party.nameOf(imposter)} /> était l’imposteur</p>
-          </div>
+          <RevealBanner tone="good" eyebrow="Démasqué"><OgName name={party.nameOf(imposter)} /> était l’imposteur</RevealBanner>
           {board}
           {isImposter ? (
             imposterGuess ? <Waiting text="Réponse envoyée…" /> : (
@@ -233,13 +227,13 @@ export default function UnTraitDeTrop({ params }: { params: { code: string } }) 
 
       {phase === 'results' && card && (
         <>
-          <div className={cn('w-full rounded-[22px] border-4 border-brand-border p-4 text-center shadow-[0_6px_0_#05061A]', round.caught && !round.right ? 'bg-accent-success text-brand-bg' : 'bg-accent-secondary text-white')}>
-            <p className="text-xs font-black uppercase tracking-widest opacity-80">
-              {!round.caught ? 'L’imposteur s’en sort' : round.right ? 'Démasqué, mais il a trouvé le mot !' : 'Imposteur démasqué !'}
-            </p>
-            <p className="font-display text-3xl"><OgName name={party.nameOf(imposter)} /> était l’imposteur</p>
-            <p className="mt-1 font-bold">Le mot : « {card.text} »{round.caught && <> · sa réponse : « {round.guess || '—'} »</>}</p>
-          </div>
+          <RevealBanner
+            tone={round.caught && !round.right ? 'good' : 'bad'}
+            eyebrow={!round.caught ? 'L’imposteur s’en sort' : round.right ? 'Démasqué, mais il a trouvé le mot !' : 'Imposteur démasqué !'}
+            detail={<>Le mot : « {card.text} »{round.caught && <> · sa réponse : « {round.guess || '—'} »</>}</>}
+          >
+            <OgName name={party.nameOf(imposter)} /> était l’imposteur
+          </RevealBanner>
           {board}
           <ScoreList party={party} gains={round.gains} />
           <NextStep party={party} onNext={next} label={roundNo >= totalRounds ? 'Voir le podium' : 'Dessin suivant'} />

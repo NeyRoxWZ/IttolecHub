@@ -26,6 +26,16 @@ body {
    background above must win. */
 body.bg-brand-bg { background-color: #161A45; }
 
+/* Multiplayer games: their own green-lit backdrop, so a screen reads "multi" at a glance next to the solo games. */
+.mp-arena {
+  background-color: #0E1030;
+  background-image:
+    radial-gradient(110% 55% at 50% -8%, rgba(51, 209, 122, 0.24), transparent 62%),
+    radial-gradient(80% 50% at 50% 110%, rgba(91, 140, 255, 0.16), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(51, 209, 122, 0.05) 0 16px, transparent 16px 32px);
+  background-attachment: fixed;
+}
+
 h1,
 h2,
 h3,

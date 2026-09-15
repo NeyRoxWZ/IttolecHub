@@ -32,11 +32,7 @@ export function useGameSync(roomCode: string, gameType: string) {
   const { now } = useServerTime();
 
   // Use the new robust hook for sync
-  const {
-    room, session, players, moves,
-    undercover, infiltre, flag, wiki, budget, draw, poke, rent, logo,
-    isConnected, lastEvent, broadcast
-  } = useGameRoom(roomId || '', playerId || '');
+  const { room, session, players, moves, isConnected, lastEvent, broadcast } = useGameRoom(roomId || '', playerId || '');
 
   // The host is whoever the room names right now: after a hand-over the new
   // host starts running the game loop without reloading anything.
@@ -340,15 +336,6 @@ export function useGameSync(roomCode: string, gameType: string) {
     resetAllPlayersReady, // Exposed
     sendMove, // Exposed robust move function
     moves, // Exposed moves history
-    undercover, // Exposed dedicated tables
-    infiltre, // Exposed dedicated tables
-    flag, // Exposed dedicated tables
-    wiki, // Exposed dedicated tables
-    budget, // Exposed dedicated tables
-    draw, // Exposed dedicated tables
-    poke, // Exposed dedicated tables
-    rent, // Exposed dedicated tables
-    logo, // Exposed dedicated tables
     getTimeLeft, // Exposed for components
     serverTime: now, // Exposed if needed
     roomId, // Exposed UUID

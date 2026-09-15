@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { pickOne } from '@/lib/party/text';
 import { addScores, listSetting, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './party/usePartyGame';
-import { AnswerInput, ChoiceButton, NextStep, PartyShell, PlayerChips, Podium, PromptCard, ScoreList, SetupScreen, Waiting } from './party/ui';
+import { AnswerInput, NextStep, PartyShell, PlayerChips, Podium, PromptCard, RevealBanner, ScoreList, SetupScreen, VoteScreen, Waiting } from './party/ui';
 
 const SWATCH = { fill: '#8B3DFF', shade: '#6526C9' };
 const RESULTS_TIME = 15;
@@ -121,39 +121,22 @@ export default function HorsSujet({ params }: { params: { code: string } }) {
       )}
 
       {phase === 'vote' && card && (
-        <>
-          <PromptCard eyebrow="La vraie question était" tone="yellow">{card.q}</PromptCard>
-          <p className="text-center font-bold text-tx-secondary">Qui a répondu à côté ? Débattez, puis votez.</p>
-          <div className="grid w-full gap-3 sm:grid-cols-2">
-            {shown.map((e) => {
-              const mine = e.pid === playerId;
-              return (
-                <ChoiceButton
-                  key={e.pid}
-                  selected={myVote === e.pid}
-                  disabled={mine}
-                  onClick={() => { markPick(e.pid); party.act('vote', { pid: e.pid }); vibrate(HAPTIC.SOFT); }}
-                  className={cn('min-h-[76px]', mine && 'opacity-60')}
-                >
-                  <span className="block text-xs font-black uppercase tracking-widest opacity-80">
-                    <OgName name={party.nameOf(e.pid)} />{mine && ' (toi)'}
-                  </span>
-                  <span className="mt-1 block font-display text-xl leading-snug">{e.text || <em className="opacity-60">pas de réponse</em>}</span>
-                </ChoiceButton>
-              );
-            })}
-          </div>
-          <PlayerChips party={party} done={Object.keys(votes)} label="Ont voté" />
-        </>
+        <VoteScreen
+          party={party}
+          title="Qui est hors sujet ?"
+          subtitle={<>La vraie question : « {card.q} ». Débattez, puis votez.</>}
+          candidates={shown.map((e) => ({ id: e.pid, title: <OgName name={party.nameOf(e.pid)} />, subtitle: e.text ? `« ${e.text} »` : 'pas de réponse', mine: e.pid === playerId }))}
+          myVote={myVote}
+          onVote={(pid) => { markPick(pid); party.act('vote', { pid }); vibrate(HAPTIC.SOFT); }}
+          votes={Object.fromEntries(Object.entries(votes).map(([voter, v]) => [voter, v?.pid]))}
+        />
       )}
 
       {phase === 'results' && card && (
         <>
-          <div className={cn('w-full rounded-[22px] border-4 border-brand-border p-5 text-center shadow-[0_6px_0_#05061A]', round.caught ? 'bg-accent-success text-brand-bg' : 'bg-accent-secondary text-white')}>
-            <p className="text-xs font-black uppercase tracking-widest opacity-80">{round.caught ? 'Démasqué !' : 'Il vous a eus !'}</p>
-            <p className="mt-1 font-display text-3xl md:text-4xl"><OgName name={party.nameOf(oddId)} /> était hors sujet</p>
-            <p className="mt-3 font-bold">Sa question : « {card.odd} »</p>
-          </div>
+          <RevealBanner tone={round.caught ? 'good' : 'bad'} eyebrow={round.caught ? 'Démasqué !' : 'Il vous a eus !'} detail={<>Sa question : « {card.odd} »</>}>
+            <OgName name={party.nameOf(oddId)} /> était hors sujet
+          </RevealBanner>
           <div className="grid w-full gap-2 sm:grid-cols-2">
             {shown.map((e) => {
               const n = round.counts?.[e.pid] || 0;

@@ -21,20 +21,11 @@ export const dynamic = 'force-dynamic';
  * Reads and realtime still go straight to Supabase: they are not sensitive.
  */
 
-const TABLES = new Set([
-  'rooms', 'players', 'game_sessions', 'game_moves', 'game_state', 'game_votes', 'game_players', 'draw_strokes',
-  'undercover_games', 'undercover_players', 'undercover_clues', 'undercover_votes',
-  'infiltre_games', 'infiltre_players', 'infiltre_questions', 'infiltre_votes',
-  'flag_games', 'flag_players', 'wiki_games', 'wiki_players', 'budget_games', 'budget_players',
-  'draw_games', 'draw_players', 'poke_games', 'poke_players', 'rent_games', 'rent_players', 'logo_games', 'logo_players',
-]);
+/** Every multiplayer game runs on these four tables (games/party/usePartyGame). */
+const TABLES = new Set(['rooms', 'players', 'game_sessions', 'game_moves']);
 /** Rows that belong to one player: written in that player's name only (column holding the author). */
 const AUTHORED: Record<string, string> = {
   game_moves: 'player_id',
-  undercover_clues: 'player_id',
-  infiltre_questions: 'player_id',
-  undercover_votes: 'voter_id',
-  infiltre_votes: 'voter_id',
 };
 const OPS = new Set(['insert', 'update', 'delete', 'upsert']);
 const IDENT = /^[a-z_]+$/;

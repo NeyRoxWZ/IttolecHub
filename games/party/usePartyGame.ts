@@ -69,28 +69,35 @@ export function usePartyGame(roomCode: string, gameType: string) {
   const active = useMemo(() => seated.filter((p) => !isPlayerAway(p.id) || p.id === playerId), [seated, isPlayerAway, playerId]);
   const nameOf = useCallback((id?: string | null) => seated.find((p) => p.id === id)?.name || 'Joueur parti', [seated]);
 
-  /** This round's moves made during `inPhase` (the current phase by default). */
+  /**
+   * This round's moves made during `inPhase` (the current phase by default).
+   * `stage` narrows to one pass through a phase that comes back within a round
+   * (a second vote after a tie): games bump round_data.stage for that.
+   */
+  const stage: number = round.stage ?? 0;
   const movesIn = useCallback(
-    (inPhase: string = phase, type?: string): PartyMove[] =>
+    (inPhase: string = phase, type?: string, inStage?: number): PartyMove[] =>
       (moves as PartyMove[]).filter(
-        (m) => m.payload?.g === gid && m.payload?.r === roundNo && m.payload?.p === inPhase && (!type || m.action_type === type),
+        (m) =>
+          m.payload?.g === gid && m.payload?.r === roundNo && m.payload?.p === inPhase && (!type || m.action_type === type)
+          && (inStage === undefined || (m.payload?.s ?? 0) === inStage),
       ),
     [moves, gid, roundNo, phase],
   );
 
   /** Each player's latest move of a kind in a phase. */
   const latestBy = useCallback(
-    (type: string, inPhase: string = phase): Record<string, any> => {
+    (type: string, inPhase: string = phase, inStage?: number): Record<string, any> => {
       const out: Record<string, any> = {};
-      for (const m of movesIn(inPhase, type)) out[m.player_id] = m.payload;
+      for (const m of movesIn(inPhase, type, inStage)) out[m.player_id] = m.payload;
       return out;
     },
     [movesIn, phase],
   );
 
   const act = useCallback(
-    (type: string, data: Record<string, unknown> = {}) => sendMove(type, { ...data, g: gid, r: roundNo, p: phase }),
-    [sendMove, gid, roundNo, phase],
+    (type: string, data: Record<string, unknown> = {}) => sendMove(type, { ...data, g: gid, r: roundNo, p: phase, s: stage }),
+    [sendMove, gid, roundNo, phase, stage],
   );
 
   /* ---------------- host writes ---------------- */
@@ -161,6 +168,7 @@ export function usePartyGame(roomCode: string, gameType: string) {
   return {
     ...sync,
     roomCode,
+    gameType,
     loaded: !!gameState,
     round,
     phase,
@@ -169,6 +177,7 @@ export function usePartyGame(roomCode: string, gameType: string) {
     roundNo,
     totalRounds,
     scores,
+    stage,
     deck,
     timeLeft,
     expired,

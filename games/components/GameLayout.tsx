@@ -1,25 +1,33 @@
 'use client';
 
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { Clock, WifiOff } from 'lucide-react';
+import { Clock, Users, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import GameIcon from '@/components/GameIcon';
 import ReactionButton from './ReactionButton';
 
 interface GameLayoutProps {
   children: ReactNode;
-  // Game Info
   gameTitle: string;
   roundCount: number;
   maxRounds: number;
+  /** Clock text; "--" when the phase has no deadline. */
   timer: string;
-  // State
   timeLeft?: number;
   className?: string;
-  voteToLobby?: ReactNode; // Vote to lobby button
-  isConnected?: boolean; // Realtime connection status (from useGameSync)
-  maxTime?: number; // Length of the current phase in seconds, for the progress bar
+  voteToLobby?: ReactNode;
+  isConnected?: boolean;
+  /** Length of the current phase in seconds, for the progress bar. */
+  maxTime?: number;
+  /** Game id, for its icon in the header. */
+  gameId?: string;
 }
 
+/**
+ * The frame of every multiplayer game. Its own look, next to the solo games':
+ * a green-lit arena backdrop and a header that says "Multijoueur", with the
+ * game's icon, the round, the clock and the vote to go back to the room.
+ */
 export default function GameLayout({
   children,
   gameTitle,
@@ -28,16 +36,14 @@ export default function GameLayout({
   timer,
   timeLeft = 0,
   className,
-  voteToLobby, // Default undefined
+  voteToLobby,
   isConnected = true,
-  maxTime = 30
+  maxTime = 30,
+  gameId,
 }: GameLayoutProps) {
-
-  // Extract roomId from URL (simple hack since we don't pass it down yet)
   const roomId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop()?.split('?')[0] : '';
 
-  // Only show the "connection lost" banner after we've connected at least
-  // once — otherwise it'd flash during the normal initial handshake.
+  // The "connection lost" banner only after a first connection: not during the normal handshake.
   const everConnected = useRef(false);
   const [showDisconnected, setShowDisconnected] = useState(false);
   useEffect(() => {
@@ -49,84 +55,66 @@ export default function GameLayout({
     }
   }, [isConnected]);
 
-  const urgent = timeLeft < 10;
+  const timed = !!timer && !/^-+(:-+)?$/.test(timer);
+  const urgent = timed && timeLeft <= 5;
+  const pct = timed ? Math.min(100, Math.max(0, (timeLeft / Math.max(1, maxTime)) * 100)) : 0;
 
   return (
-    <div className="min-h-screen bg-transparent text-tx-base font-sans selection:bg-accent-primary/30 flex flex-col">
+    <div className="mp-arena min-h-[100dvh] text-tx-base font-sans flex flex-col">
       {showDisconnected && (
-        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[100] rounded-2xl border-[3px] border-brand-border bg-accent-secondary text-white font-display text-base px-4 py-2 flex items-center justify-center gap-2 shadow-[inset_0_-4px_0_#C92D63,0_4px_0_#05061A] animate-in slide-in-from-top duration-300">
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[100] rounded-2xl border-[3px] border-brand-border bg-accent-secondary text-white font-display text-base px-4 py-2 flex items-center justify-center gap-2 shadow-[inset_0_-4px_0_#C92D63,0_4px_0_#05061A]">
           <WifiOff className="w-5 h-5" />
           Connexion perdue, on se reconnecte…
         </div>
       )}
 
-      {/* REACTION BUTTON (Fixed Bottom Right) */}
-      <div className="fixed bottom-6 right-6 z-[90]">
-          <ReactionButton roomId={roomId || ''} />
+      <div className="fixed right-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-[90]">
+        <ReactionButton roomId={roomId || ''} />
       </div>
 
-      {/* HEADER */}
-      <header className="relative z-50 px-3 pt-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 rounded-[22px] border-4 border-brand-border bg-brand-card px-3 py-2.5 shadow-[inset_0_-5px_0_#151942,0_5px_0_#05061A]">
-            {/* Left: Game Title & Round */}
-            <div className="flex items-center gap-3 min-w-0">
-                <h1 className="text-xl md:text-3xl font-display text-tx-base leading-none truncate">
-                    {gameTitle}
-                </h1>
-                <span className="shrink-0 inline-flex items-center h-8 rounded-xl border-[3px] border-brand-border bg-accent-info text-white font-display text-sm md:text-base px-2.5 shadow-[inset_0_-3px_0_#2F5BD0]">
-                    Manche {roundCount}/{maxRounds}
-                </span>
+      <header className="sticky top-0 z-50 px-2 sm:px-3 pt-[calc(env(safe-area-inset-top)+8px)] pb-2 bg-gradient-to-b from-[#0E1030] via-[#0E1030]/90 to-transparent">
+        <div className="mx-auto max-w-5xl overflow-hidden rounded-[20px] border-4 border-brand-border bg-brand-card shadow-[0_5px_0_#05061A]">
+          <div className="flex items-center gap-2 px-2 py-2 sm:gap-3 sm:px-3">
+            {gameId && <GameIcon game={gameId} className="h-10 w-10 shrink-0 sm:h-11 sm:w-11" />}
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-accent-success sm:text-xs">
+                <Users className="h-3.5 w-3.5" /> Multijoueur
+              </p>
+              <p className="text-stroke-sm truncate px-0.5 font-display text-lg leading-tight sm:text-2xl">{gameTitle}</p>
             </div>
-
-            {/* Center: Timer (Visual) */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 mt-1.5 hidden md:flex items-center gap-3 w-1/3 max-w-sm">
-                 <div className={cn(
-                   'shrink-0 inline-flex items-center gap-1.5 h-10 rounded-xl border-[3px] border-brand-border px-3 font-display text-2xl tabular-nums',
-                   urgent ? 'bg-accent-secondary text-white animate-pulse' : 'bg-brand-bg text-white'
-                 )}>
-                    <Clock className={cn('w-5 h-5', urgent ? 'text-white' : 'text-accent-primary')} />
-                    {timer}
-                 </div>
-                 {/* Progress Bar */}
-                 <div className="flex-1 h-4 bg-brand-bg border-[3px] border-brand-border rounded-full overflow-hidden">
-                    <div
-                        className={cn(
-                            "h-full rounded-full transition-all duration-1000 ease-linear shadow-[inset_0_-3px_0_rgba(0,0,0,0.25)]",
-                            urgent ? "bg-accent-secondary" : "bg-accent-primary"
-                        )}
-                        style={{ width: `${Math.min(100, (timeLeft / Math.max(1, maxTime)) * 100)}%` }}
-                    />
-                 </div>
-            </div>
-
-            {/* Right: Timer (Mobile) or Extra Info */}
-            <div className="flex items-center gap-3 shrink-0">
-              <div className={cn(
-                'md:hidden inline-flex items-center gap-1.5 h-10 rounded-xl border-[3px] border-brand-border px-2.5 font-display text-xl tabular-nums',
-                urgent ? 'bg-accent-secondary text-white' : 'bg-brand-bg text-white'
-              )}>
-                  <Clock className={cn('w-4 h-4', urgent ? 'text-white' : 'text-accent-primary')} />
-                  {timer}
-              </div>
-              {/* Vote to Lobby button - desktop only in header */}
-              <div className="hidden md:block">
-                {voteToLobby}
-              </div>
-            </div>
+            {maxRounds > 0 && (
+              <span className="inline-flex h-9 shrink-0 items-center gap-1 rounded-xl border-[3px] border-brand-border bg-brand-inner px-2 font-display text-sm tabular-nums sm:text-base">
+                <span className="hidden text-tx-secondary sm:inline">Manche</span>
+                {Math.max(1, roundCount)}/{maxRounds}
+              </span>
+            )}
+            {timed && (
+              <span
+                className={cn(
+                  'inline-flex h-9 shrink-0 items-center gap-1 rounded-xl border-[3px] border-brand-border px-2 font-display text-base tabular-nums sm:text-lg',
+                  urgent ? 'animate-pulse bg-accent-secondary text-white' : 'bg-brand-bg text-white',
+                )}
+              >
+                <Clock className={cn('h-4 w-4', urgent ? 'text-white' : 'text-accent-success')} />
+                {timer}
+              </span>
+            )}
+            {voteToLobby}
+          </div>
+          <div className="h-1.5 bg-brand-bg">
+            {timed && (
+              <div
+                className={cn('h-full transition-[width] duration-300 ease-linear', urgent ? 'bg-accent-secondary' : 'bg-accent-success')}
+                style={{ width: `${pct}%` }}
+              />
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Mobile floating vote button - rendered outside header */}
-      <div className="md:hidden">
-        {voteToLobby}
-      </div>
-
-      {/* MAIN CONTENT AREA */}
-      <main className={cn(
-          "relative z-10 flex-1 flex flex-col items-center justify-center p-4 w-full max-w-7xl mx-auto",
-          className
-      )}>
-          {children}
+      {/* Bottom room on phones: the reaction button never covers the last button. */}
+      <main className={cn('relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-2 sm:px-4', className)}>
+        {children}
       </main>
     </div>
   );

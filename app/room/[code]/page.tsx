@@ -826,26 +826,26 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
       return () => clearTimeout(timer);
   }, [selectedGameId, gameSettings, isHost, roomId, isPrivateMode]);
 
+  // Choosing another game starts from that game's own defaults: settings with the
+  // same name (rounds, time) no longer carry over from the game chosen before.
+  const settingsGameRef = useRef<string | null>(null);
   useEffect(() => {
-    if (selectedGameId && selectedGameId !== '__placeholder__') {
-      const game = gamesList.find(g => g.id === selectedGameId);
-      if (game && isHost) {
-          // Initialize defaults ONLY if they are missing
-          const newSettings = { ...gameSettings };
-          let hasChanges = false;
-          
-          game.settings.forEach(s => {
-              if (newSettings[s.id] === undefined) {
-                  newSettings[s.id] = s.default as any;
-                  hasChanges = true;
-              }
-          });
-          
-          if (hasChanges) {
-              setGameSettings(newSettings);
-          }
+    if (!selectedGameId || selectedGameId === '__placeholder__' || !isHost) return;
+    const game = gamesList.find(g => g.id === selectedGameId);
+    if (!game) return;
+    const switched = settingsGameRef.current !== null && settingsGameRef.current !== selectedGameId;
+    settingsGameRef.current = selectedGameId;
+    const base: Record<string, any> = switched
+      ? Object.fromEntries(Object.entries(gameSettings).filter(([k]) => k === 'isPrivate' || k === 'banned'))
+      : { ...gameSettings };
+    let hasChanges = switched;
+    game.settings.forEach(s => {
+      if (base[s.id] === undefined) {
+        base[s.id] = s.default as any;
+        hasChanges = true;
       }
-    }
+    });
+    if (hasChanges) setGameSettings(base as any);
   }, [selectedGameId, isHost, gameSettings]);
 
   // Realtime can miss the start of a game (phone asleep, background tab): check
@@ -856,12 +856,14 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
       const { data } = await supabase.from('rooms').select('status, game_type, settings').eq('code', params.code).maybeSingle();
       if (!data) return;
       const playing = data.status === 'in_game' || data.status === 'started';
+      // Each start stamps the settings, so a new game is seen even when the room never left "in game".
+      const signature = `${data.status}:${data.game_type}:${(data.settings as any)?.startedAt ?? ''}`;
       const was = lastStatus.current;
-      lastStatus.current = data.status;
+      lastStatus.current = signature;
       if (!playing || !data.game_type || data.game_type === '__placeholder__') return;
       // Back from a game on purpose (?return=true): only a new start moves the player.
       const cameBack = new URLSearchParams(window.location.search).get('return') === 'true';
-      if (was === null ? cameBack : was === data.status) return;
+      if (was === null ? cameBack : was === signature) return;
       router.push(`/games/${data.game_type}/${params.code}`);
     };
     void check();
@@ -940,7 +942,8 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
     await roomDb.from('rooms').update({
         status: 'in_game',
         game_type: selectedGameId,
-        settings: gameSettings
+        // Stamp of this start: players who missed the live update still see a new game began.
+        settings: { ...gameSettings, startedAt: Date.now() }
     }).eq('id', roomId);
     
     // 3. Construct URL

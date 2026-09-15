@@ -25,6 +25,7 @@ La liste fait foi dans `patch-notes/scopes.json`. En résumé :
 - `krash` — Krash (jeu retiré : scope gardé seulement pour l'historique des patch notes)
 - `peche` — Pêche (bêta, ouvert à tous), catégorie à part
 - `solo` — ce qui touche tous les jeux solo à la fois
+- `multi` — ce qui touche tous les jeux multijoueur à la fois (salon, écrans communs)
 - multijoueur : `budgetguessr`, `drawguessr`, `flagguessr`, `infiltre`, `jaugeguessr`, `logoguessr`, `pokeguessr`, `rentguessr`, `undercover`, `wikiracing`, `horssujet`, `untraitdetrop`, `blindtest`, `punchline`, `petitbac`, `quiaditca`, `surenchere`, `ledico`
 
 Un nouveau jeu doit être ajouté à `patch-notes/scopes.json` avant d'y attacher des notes.

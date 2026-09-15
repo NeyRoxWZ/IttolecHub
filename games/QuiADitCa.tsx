@@ -9,7 +9,7 @@ import { BRAWL } from '@/lib/ui/brawl';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { shuffle } from '@/lib/party/text';
 import { addScores, listSetting, numSetting, useHostStep, usePartyGame, useSent, type Scores } from './party/usePartyGame';
-import { ChoiceButton, NextStep, PartyShell, PlayerChips, Podium, PromptCard, ScoreList, SetupScreen, Waiting } from './party/ui';
+import { NextStep, PartyShell, PlayerChips, Podium, PromptCard, RevealBanner, ScoreList, SetupScreen, VoteScreen, Waiting } from './party/ui';
 
 const SWATCH = { fill: '#FF8A1F', shade: '#CC6508' };
 const RESULTS_TIME = 10;
@@ -147,40 +147,24 @@ export default function QuiADitCa({ params }: { params: { code: string } }) {
       )}
 
       {phase === 'guess' && item && (
-        <>
-          <PromptCard eyebrow={item.q}>« {item.text} »</PromptCard>
-          {item.pid === playerId ? (
-            <div className="rounded-2xl border-[3px] border-brand-border bg-accent-secondary px-5 py-3 text-center font-display text-xl text-white">
-              C’est ta réponse. Garde ton sérieux !
-            </div>
-          ) : (
-            <>
-              <p className="font-bold text-tx-secondary">Qui a écrit ça ?</p>
-              <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3">
-                {party.active.filter((p) => p.id !== playerId).map((p) => (
-                  <ChoiceButton
-                    key={p.id}
-                    selected={myGuess === p.id}
-                    onClick={() => { markPick(p.id); party.act('guess', { pid: p.id }); vibrate(HAPTIC.SOFT); }}
-                    className="text-center font-display text-lg truncate"
-                  >
-                    <OgName name={p.name} />
-                  </ChoiceButton>
-                ))}
-              </div>
-            </>
-          )}
-          <PlayerChips party={party} only={guessers.map((p) => p.id)} done={Object.keys(guesses)} label="Ont deviné" />
-        </>
+        <VoteScreen
+          party={party}
+          title={<>« {item.text} »</>}
+          subtitle={`${item.q} · Qui a écrit ça ?`}
+          candidates={party.active.map((p) => ({ id: p.id, title: <OgName name={p.name} />, mine: p.id === playerId }))}
+          myVote={myGuess}
+          onVote={item.pid === playerId ? undefined : (pid) => { markPick(pid); party.act('guess', { pid }); vibrate(HAPTIC.SOFT); }}
+          votes={{}}
+          voted={Object.keys(guesses)}
+          voters={guessers.map((p) => p.id)}
+          cantVoteText="C’est ta réponse : garde ton sérieux !"
+        />
       )}
 
       {phase === 'results' && item && (
         <>
           <PromptCard eyebrow={item.q}>« {item.text} »</PromptCard>
-          <div className="w-full rounded-[22px] border-4 border-brand-border bg-accent-primary p-4 text-center text-brand-bg shadow-[0_6px_0_#05061A]">
-            <p className="text-xs font-black uppercase tracking-widest opacity-80">C’était</p>
-            <p className="font-display text-4xl"><OgName name={party.nameOf(item.pid)} /></p>
-          </div>
+          <RevealBanner tone="neutral" eyebrow="C’était"><OgName name={party.nameOf(item.pid)} /></RevealBanner>
           <div className="flex w-full flex-wrap justify-center gap-2">
             {Object.entries(round.guesses || {}).filter(([voter]) => voter !== item.pid).map(([voter, g]: [string, any]) => (
               <span key={voter} className={cn('rounded-xl border-[3px] border-brand-border px-3 py-1.5 text-sm font-bold', g?.pid === item.pid ? 'bg-accent-success text-brand-bg' : 'bg-brand-inner text-tx-secondary')}>

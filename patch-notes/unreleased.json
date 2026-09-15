@@ -207,6 +207,205 @@
       "type": "amelioration",
       "title": "Réponse à écrire",
       "details": "Il faut maintenant écrire le nom du pays, sans liste de choix, et les drapeaux sont en meilleure qualité."
+    },
+    {
+      "id": "2026-09-15-27",
+      "date": "2026-09-15",
+      "scope": "horssujet",
+      "type": "nouveau",
+      "title": "Nouveau jeu : Hors Sujet",
+      "details": "Tout le monde reçoit la même question, sauf un joueur. Débattez et trouvez qui a répondu à côté."
+    },
+    {
+      "id": "2026-09-15-28",
+      "date": "2026-09-15",
+      "scope": "untraitdetrop",
+      "type": "nouveau",
+      "title": "Nouveau jeu : Un Trait de Trop",
+      "details": "Un trait chacun sur le même dessin, et un imposteur qui ne connaît que le thème."
+    },
+    {
+      "id": "2026-09-15-29",
+      "date": "2026-09-15",
+      "scope": "blindtest",
+      "type": "nouveau",
+      "title": "Nouveau jeu : BlindTest",
+      "details": "Des extraits de chansons par playlist (rap FR, années 80, hits…) : trouve le titre et l’artiste le plus vite possible."
+    },
+    {
+      "id": "2026-09-15-30",
+      "date": "2026-09-15",
+      "scope": "punchline",
+      "type": "nouveau",
+      "title": "Nouveau jeu : Punchline",
+      "details": "Réponds à des questions drôles, puis vote en anonyme pour la meilleure réponse."
+    },
+    {
+      "id": "2026-09-15-31",
+      "date": "2026-09-15",
+      "scope": "petitbac",
+      "type": "nouveau",
+      "title": "Nouveau jeu : Petit Bac",
+      "details": "Une lettre, plus de vingt catégories au choix, un bouton STOP et la vérification des réponses à plusieurs."
+    },
+    {
+      "id": "2026-09-15-32",
+      "date": "2026-09-15",
+      "scope": "quiaditca",
+      "type": "nouveau",
+      "title": "Nouveau jeu : Qui a dit ça ?",
+      "details": "Répondez en secret à des questions perso, puis devinez qui a écrit chaque réponse."
+    },
+    {
+      "id": "2026-09-15-33",
+      "date": "2026-09-15",
+      "scope": "surenchere",
+      "type": "nouveau",
+      "title": "Nouveau jeu : Surenchère",
+      "details": "Annonce combien de réponses tu peux citer sur un thème, puis prouve-le devant les autres."
+    },
+    {
+      "id": "2026-09-15-34",
+      "date": "2026-09-15",
+      "scope": "ledico",
+      "type": "nouveau",
+      "title": "Nouveau jeu : Le Dico",
+      "details": "Invente de fausses définitions de vrais mots rares et trouve la bonne."
+    },
+    {
+      "id": "2026-09-15-35",
+      "date": "2026-09-15",
+      "scope": "multi",
+      "type": "amelioration",
+      "title": "Tous les jeux multijoueur ont les mêmes écrans",
+      "details": "Même écran de départ, même page de vote avec la manche gardée sous les yeux, mêmes résultats et même podium avec Rejouer, pensés pour le téléphone et la tablette."
+    },
+    {
+      "id": "2026-09-15-36",
+      "date": "2026-09-15",
+      "scope": "multi",
+      "type": "amelioration",
+      "title": "Nouveau look pour le multijoueur",
+      "details": "Un fond et un bandeau propres au multijoueur, avec l’icône du jeu, la manche et le chrono."
+    },
+    {
+      "id": "2026-09-15-37",
+      "date": "2026-09-15",
+      "scope": "multi",
+      "type": "amelioration",
+      "title": "Une icône dessinée pour chaque jeu du salon"
+    },
+    {
+      "id": "2026-09-15-38",
+      "date": "2026-09-15",
+      "scope": "multi",
+      "type": "correctif",
+      "title": "Les parties ne restent plus bloquées après avoir quitté l’onglet",
+      "details": "Le jeu se remet à jour dès que tu reviens, et tout le monde suit l’hôte quand il relance une partie ou revient au salon."
+    },
+    {
+      "id": "2026-09-15-39",
+      "date": "2026-09-15",
+      "scope": "multi",
+      "type": "correctif",
+      "title": "Chaque jeu repart avec ses propres réglages",
+      "details": "Changer de jeu dans le salon ne reprend plus le temps ou les manches du jeu choisi avant."
+    },
+    {
+      "id": "2026-09-15-40",
+      "date": "2026-09-15",
+      "scope": "multi",
+      "type": "correctif",
+      "title": "Les noms des jeux ne sont plus coupés dans le salon"
+    },
+    {
+      "id": "2026-09-15-41",
+      "date": "2026-09-15",
+      "scope": "drawguessr",
+      "type": "nouveau",
+      "title": "Gomme, pot de peinture et bouton annuler",
+      "details": "Le dessinateur choisit aussi son mot parmi trois."
+    },
+    {
+      "id": "2026-09-15-42",
+      "date": "2026-09-15",
+      "scope": "drawguessr",
+      "type": "amelioration",
+      "title": "Les propositions des joueurs s’affichent en direct",
+      "details": "Une proposition presque juste affiche « tout proche » sans dévoiler le mot."
+    },
+    {
+      "id": "2026-09-15-43",
+      "date": "2026-09-15",
+      "scope": "pokeguessr",
+      "type": "amelioration",
+      "title": "Propositions illimitées et bonus du plus rapide",
+      "details": "Plus tu trouves vite, plus tu marques, et le premier à trouver gagne un bonus."
+    },
+    {
+      "id": "2026-09-15-44",
+      "date": "2026-09-15",
+      "scope": "flagguessr",
+      "type": "amelioration",
+      "title": "Propositions illimitées et bonus du plus rapide"
+    },
+    {
+      "id": "2026-09-15-45",
+      "date": "2026-09-15",
+      "scope": "logoguessr",
+      "type": "amelioration",
+      "title": "Propositions illimitées et bonus du plus rapide"
+    },
+    {
+      "id": "2026-09-15-46",
+      "date": "2026-09-15",
+      "scope": "wikiracing",
+      "type": "amelioration",
+      "title": "Vois en direct sur quelle page sont les autres"
+    },
+    {
+      "id": "2026-09-15-47",
+      "date": "2026-09-15",
+      "scope": "undercover",
+      "type": "amelioration",
+      "title": "Les indices restent affichés pendant le vote",
+      "details": "En cas d’égalité, on revote une fois avant de repartir pour un tour d’indices."
+    },
+    {
+      "id": "2026-09-15-48",
+      "date": "2026-09-15",
+      "scope": "infiltre",
+      "type": "amelioration",
+      "title": "Deux essais pour démasquer l’infiltré"
+    },
+    {
+      "id": "2026-09-15-49",
+      "date": "2026-09-15",
+      "scope": "budgetguessr",
+      "type": "amelioration",
+      "title": "Le budget se donne en millions de dollars",
+      "details": "Et tu peux changer ton estimation jusqu’à la fin du chrono."
+    },
+    {
+      "id": "2026-09-15-50",
+      "date": "2026-09-15",
+      "scope": "rentguessr",
+      "type": "correctif",
+      "title": "Les flèches des photos ne descendent plus quand on appuie"
+    },
+    {
+      "id": "2026-09-15-51",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Le choix Multijoueur / Solo glisse d’un mode à l’autre"
+    },
+    {
+      "id": "2026-09-15-52",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "correctif",
+      "title": "Le cœur du bouton Don est aligné avec le texte"
     }
   ]
 }
