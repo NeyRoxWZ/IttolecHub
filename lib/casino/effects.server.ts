@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/server';
+import { runInBackground } from '@/lib/background.server';
 
 export interface ActiveEffect {
   effect: string;
@@ -23,8 +24,9 @@ export async function loadEffects(userId: string): Promise<EffectMap> {
     map[e.effect] = { ...e, magnitude: Number(e.magnitude) };
   }
 
+  // Already left out of the map above, so the cleanup needn't hold up the bet.
   if (expired.length) {
-    await supabase.from('casino_effects').delete().eq('user_id', userId).in('effect', expired);
+    runInBackground(supabase.from('casino_effects').delete().eq('user_id', userId).in('effect', expired));
   }
   return map;
 }
@@ -34,16 +36,15 @@ export async function loadEffects(userId: string): Promise<EffectMap> {
  * effects have no `uses_left` and simply keep running until they expire.
  */
 export async function consumeEffects(userId: string, effects: EffectMap, used: string[]) {
-  for (const name of used) {
+  // One row per effect: burned together.
+  await Promise.all(used.map((name) => {
     const e = effects[name];
-    if (!e || e.uses_left === null) continue;
+    if (!e || e.uses_left === null) return null;
     const left = e.uses_left - 1;
-    if (left <= 0) {
-      await supabase.from('casino_effects').delete().eq('user_id', userId).eq('effect', name);
-    } else {
-      await supabase.from('casino_effects').update({ uses_left: left }).eq('user_id', userId).eq('effect', name);
-    }
-  }
+    return left <= 0
+      ? supabase.from('casino_effects').delete().eq('user_id', userId).eq('effect', name)
+      : supabase.from('casino_effects').update({ uses_left: left }).eq('user_id', userId).eq('effect', name);
+  }));
 }
 
 export async function grantEffect(

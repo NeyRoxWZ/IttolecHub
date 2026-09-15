@@ -195,23 +195,27 @@ export async function advancePass(userId: string, xp: number, source: PassXpSour
   const capped = Math.min(PASS_TIERS, tier);
   const tiersGained = Math.max(0, capped - row.tier);
 
-  if (tiersGained > 0) {
-    const { data: w } = await supabase.from('casino_wallets').select('pass_tiers_total').eq('user_id', userId).maybeSingle();
-    if (w) {
-      await supabase.from('casino_wallets')
-        .update({ pass_tiers_total: Number(w.pass_tiers_total || 0) + tiersGained })
-        .eq('user_id', userId);
-    }
-  }
-
-  await supabase.from('casino_pass').update({
-    xp: newXp,
-    tier: capped,
-    day_key: today,
-    day_xp: dayXp + xp,
-    day_bet_xp: dayBetXp + (source === 'bet' ? xp : 0),
-    updated_at: new Date().toISOString(),
-  }).eq('user_id', userId).eq('week_key', row.week_key);
+  // The tier counter on the wallet and the pass row are separate tables: written together.
+  await Promise.all([
+    tiersGained > 0
+      ? (async () => {
+          const { data: w } = await supabase.from('casino_wallets').select('pass_tiers_total').eq('user_id', userId).maybeSingle();
+          if (w) {
+            await supabase.from('casino_wallets')
+              .update({ pass_tiers_total: Number(w.pass_tiers_total || 0) + tiersGained })
+              .eq('user_id', userId);
+          }
+        })()
+      : null,
+    supabase.from('casino_pass').update({
+      xp: newXp,
+      tier: capped,
+      day_key: today,
+      day_xp: dayXp + xp,
+      day_bet_xp: dayBetXp + (source === 'bet' ? xp : 0),
+      updated_at: new Date().toISOString(),
+    }).eq('user_id', userId).eq('week_key', row.week_key),
+  ]);
 
   const unlocked: number[] = [];
   for (let t = row.tier + 1; t <= capped; t++) unlocked.push(t);

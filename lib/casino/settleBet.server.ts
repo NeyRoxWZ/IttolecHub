@@ -9,6 +9,7 @@ import { pushLive } from './live.server';
 import { PASS_XP } from './pass';
 import { loadBankroll, applyDelta, logPotMove } from './bankroll.server';
 import { endDrainedSyndicate } from './syndicate.server';
+import { runInBackground } from '@/lib/background.server';
 
 interface SettleParams {
   userId: string;
@@ -119,8 +120,9 @@ export async function settleBet({ userId, gameSlug, amount, resolve }: SettlePar
     recordSettlement(userId, gameSlug, {
       amount, payout, multiplier, baseMultiplier, newBalance, effects, wagered: amount, pooled,
     }),
-    pooled ? Promise.resolve() : pushLive(userId, gameSlug, netChange, multiplier),
   ]);
+  // The public tape changes nothing for the player: written after the answer.
+  if (!pooled) runInBackground(pushLive(userId, gameSlug, netChange, multiplier));
 
   const pass = await advancePass(userId, passXp + (progression.levelsGained ? PASS_XP.levelUp * progression.levelsGained : 0));
 

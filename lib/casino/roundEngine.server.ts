@@ -10,6 +10,7 @@ import { endDrainedSyndicate } from './syndicate.server';
 import { advancePass, type PassProgress } from './pass.server';
 import { pushLive } from './live.server';
 import { PASS_XP } from './pass';
+import { runInBackground } from '@/lib/background.server';
 
 // Shared by every "start a round, take steps, cash out anytime" game
 // (Mines, Tower, Poulet, Dino). casino_rounds.state holds the server-secret
@@ -109,46 +110,51 @@ export async function updateRoundState(roundId: string, state: any, multiplier: 
 }
 
 export async function bustRound(userId: string, roundId: string, gameSlug: string, amount: number): Promise<SettlementResult> {
-  await supabase.from('casino_rounds').update({ status: 'busted', updated_at: new Date().toISOString() }).eq('id', roundId);
-  const bank = await loadBankroll(userId);
+  // Closing the round is still awaited before anything is answered — a busted
+  // round can never be cashed out — but the two reads it doesn't depend on run
+  // beside it instead of after it: losing used to be a long chain of
+  // round-trips while a safe step was two.
+  const [, bank, effects] = await Promise.all([
+    supabase.from('casino_rounds').update({ status: 'busted', updated_at: new Date().toISOString() }).eq('id', roundId),
+    loadBankroll(userId),
+    loadEffects(userId),
+  ]);
   const pooled = bank?.kind === 'syndicate';
   let balance = bank?.balance ?? 0;
 
   // Loss insurance hands part of the stake back before the settlement is logged.
-  const effects = await loadEffects(userId);
   if (effects.loss_refund && bank) {
     const refunded = Math.round(amount * effects.loss_refund.magnitude);
+    let logRefund: Promise<unknown> = Promise.resolve();
     if (refunded > 0) {
       const back = await applyDelta(bank, userId, refunded, balance);
       if (back.ok) balance = back.newBalance;
-      if (pooled) {
-        await logPotMove(bank!, userId, gameSlug, 0, refunded, 0, balance);
-      } else {
-        await supabase.from('casino_transactions').insert({
-          user_id: userId, game_slug: gameSlug, type: 'bonus', amount: refunded,
-          balance_after: balance, meta: { kind: 'loss_refund', roundId },
-        });
-      }
+      logRefund = pooled
+        ? logPotMove(bank, userId, gameSlug, 0, refunded, 0, balance)
+        : Promise.resolve(supabase.from('casino_transactions').insert({
+            user_id: userId, game_slug: gameSlug, type: 'bonus', amount: refunded,
+            balance_after: balance, meta: { kind: 'loss_refund', roundId },
+          }));
     }
-    await consumeEffects(userId, effects, ['loss_refund']);
+    await Promise.all([logRefund, consumeEffects(userId, effects, ['loss_refund'])]);
   }
 
   const [progression] = await Promise.all([
     recordSettlement(userId, gameSlug, { amount, payout: 0, multiplier: 0, baseMultiplier: 0, newBalance: balance, effects, pooled }),
     advancePass(userId, PASS_XP.bet),
-    pooled ? Promise.resolve() : pushLive(userId, gameSlug, -amount, 0),
   ]);
+  // The public tape changes nothing for the player: written after the answer.
+  if (!pooled) runInBackground(pushLive(userId, gameSlug, -amount, 0));
   if (pooled && balance <= 0) await endDrainedSyndicate(bank!.syndicateId!);
   return progression;
 }
 
 export async function cashoutRound(userId: string, roundId: string, amount: number, baseMultiplier: number, gameSlug: string) {
-  const bank = await loadBankroll(userId);
+  const [bank, effects] = await Promise.all([loadBankroll(userId), loadEffects(userId)]);
   if (!bank) return { ok: false as const, status: 404, error: 'Portefeuille introuvable' };
   const wallet = bank.wallet;
 
   // Same rule as the instant games: bonuses lift the profit, never the stake.
-  const effects = await loadEffects(userId);
   const used: string[] = [];
   const streakPct = baseMultiplier > 1 ? streakBonus(Number(wallet.current_streak || 0)) : 0;
   const itemPct = baseMultiplier > 1 ? (effects.win_bonus?.magnitude ?? 0) : 0;
@@ -166,22 +172,24 @@ export async function cashoutRound(userId: string, roundId: string, amount: numb
   if (!paid.ok) return { ok: false as const, status: 409, error: 'Conflit de mise à jour, réessayez.' };
   const newBalance = paid.newBalance;
 
-  await supabase.from('casino_rounds').update({ status: 'cashed_out', multiplier, updated_at: new Date().toISOString() }).eq('id', roundId);
-  if (bank.kind === 'syndicate') {
-    await logPotMove(bank, userId, gameSlug, amount, payout, multiplier, newBalance);
-  } else {
-    await supabase.from('casino_transactions').insert({
-      user_id: userId, game_slug: gameSlug, type: 'win', amount: payout, balance_after: newBalance,
-      meta: { roundId, multiplier, baseMultiplier, streakPct, itemPct, prestigePct, timedPct },
-    });
-  }
+  // Closing the round, the ledger line and the used items touch different
+  // tables: together, and all awaited before answering.
+  await Promise.all([
+    supabase.from('casino_rounds').update({ status: 'cashed_out', multiplier, updated_at: new Date().toISOString() }).eq('id', roundId),
+    bank.kind === 'syndicate'
+      ? logPotMove(bank, userId, gameSlug, amount, payout, multiplier, newBalance)
+      : supabase.from('casino_transactions').insert({
+          user_id: userId, game_slug: gameSlug, type: 'win', amount: payout, balance_after: newBalance,
+          meta: { roundId, multiplier, baseMultiplier, streakPct, itemPct, prestigePct, timedPct },
+        }),
+    consumeEffects(userId, effects, used),
+  ]);
 
-  await consumeEffects(userId, effects, used);
   const [progression, pass] = await Promise.all([
     recordSettlement(userId, gameSlug, { amount, payout, multiplier, baseMultiplier, newBalance, effects, pooled: bank.kind === 'syndicate' }),
     advancePass(userId, PASS_XP.bet + (baseMultiplier > 1 ? PASS_XP.win : 0)),
-    bank.kind === 'syndicate' ? Promise.resolve() : pushLive(userId, gameSlug, payout - amount, multiplier),
   ]);
+  if (bank.kind !== 'syndicate') runInBackground(pushLive(userId, gameSlug, payout - amount, multiplier));
 
   return {
     ok: true as const,

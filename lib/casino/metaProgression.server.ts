@@ -12,6 +12,7 @@ import {
 } from './missions';
 import { consumeEffects, type EffectMap } from './effects.server';
 import { advanceCommunity } from './community.server';
+import { runInBackground } from '@/lib/background.server';
 
 /* ------------------------------------------------------------------ */
 /* Wager tracking                                                      */
@@ -55,7 +56,8 @@ export interface MissionRow {
 export async function ensureMissions(userId: string, scopes: MissionScope[] = MISSION_SCOPES): Promise<MissionRow[]> {
   const out: MissionRow[] = [];
 
-  for (const scope of scopes) {
+  // Each scope is its own rows: read (and create) them all at once.
+  await Promise.all(scopes.map(async (scope) => {
     const period = periodKey(scope);
     let { data } = await supabase.from('casino_missions')
       .select('*').eq('user_id', userId).eq('scope', scope).eq('period_key', period);
@@ -94,7 +96,7 @@ export async function ensureMissions(userId: string, scopes: MissionScope[] = MI
         complete: isMissionComplete(def, progress),
       });
     }
-  }
+  }));
 
   return out.sort((a, b) => MISSION_SCOPES.indexOf(a.scope) - MISSION_SCOPES.indexOf(b.scope) || a.slot - b.slot);
 }
@@ -113,6 +115,7 @@ interface MissionUpdateInput {
 async function advanceMissions(userId: string, input: MissionUpdateInput): Promise<MissionDef[]> {
   const rows = await ensureMissions(userId);
   const newlyComplete: MissionDef[] = [];
+  const writes: PromiseLike<unknown>[] = [];
 
   for (const row of rows) {
     if (row.claimed || row.complete) continue;
@@ -137,12 +140,14 @@ async function advanceMissions(userId: string, input: MissionUpdateInput): Promi
     }
 
     if (next === row.progress) continue;
-    await supabase.from('casino_missions').update({ progress: next })
-      .eq('user_id', userId).eq('scope', row.scope).eq('period_key', row.periodKey).eq('slot', row.slot);
+    // One row each: written together rather than one after the other.
+    writes.push(supabase.from('casino_missions').update({ progress: next })
+      .eq('user_id', userId).eq('scope', row.scope).eq('period_key', row.periodKey).eq('slot', row.slot));
 
     if (isMissionComplete(row.def, next)) newlyComplete.push(row.def);
   }
 
+  await Promise.all(writes);
   return newlyComplete;
 }
 
@@ -215,7 +220,10 @@ const EMPTY_RESULT: SettlementResult = {
 };
 
 export async function recordSettlement(userId: string, gameSlug: string, input: SettlementInput): Promise<SettlementResult> {
-  const { data: wallet } = await supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle();
+  const [{ data: wallet }, { data: jackpot }] = await Promise.all([
+    supabase.from('casino_wallets').select('*').eq('user_id', userId).maybeSingle(),
+    supabase.from('casino_jackpot').select('*').eq('id', 1).maybeSingle(),
+  ]);
   if (!wallet) return EMPTY_RESULT;
 
   const effects = input.effects ?? {};
@@ -295,6 +303,26 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
     legendaryOwned: 0,
   };
 
+  /* ---- progressive jackpot: the draw, decided now ---- */
+  let pool = jackpot ? Number(jackpot.amount) : 0;
+  if (jackpot && isLoss) pool += Math.max(1, Math.round(input.amount * JACKPOT_CONTRIBUTION_RATE));
+  const boost = effects.jackpot_boost?.magnitude ?? 1;
+  const jackpotHit = !!jackpot && Math.random() < JACKPOT_HIT_CHANCE * boost && pool > JACKPOT_SEED;
+
+  // Public counters the player doesn't wait for: season board, shared goal,
+  // big-win feed. Still written server-side, just after the answer.
+  runInBackground(bumpSeason(userId, input.wagered || 0, input.payout > 0 ? input.payout : 0));
+  runInBackground(advanceCommunity(userId, {
+    wagered: input.wagered || 0,
+    plays: 1,
+    won: input.payout > 0 ? input.payout : 0,
+    bigWins: isWin && base >= 10 ? 1 : 0,
+    game: gameSlug,
+  }));
+  if (isWin && isFeedWorthy(input.payout, base)) {
+    runInBackground(pushFeed(userId, gameSlug, input.payout, Math.round(base * 100) / 100, false));
+  }
+
   // Everything below touches a different table (or a different column set) and
   // was previously awaited one statement at a time — a dozen sequential
   // round-trips the player sat through before the animation could even start.
@@ -321,7 +349,6 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
         })
       : null,
 
-    bumpSeason(userId, input.wagered || 0, input.payout > 0 ? input.payout : 0),
     advanceMissions(userId, {
       gameSlug, amount: input.amount, payout: input.payout, won: isWin,
       baseMultiplier: base, newStreak,
@@ -330,31 +357,16 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
         totalWagered: newTotalWagered,
       },
     }),
-    isWin && isFeedWorthy(input.payout, base)
-      ? pushFeed(userId, gameSlug, input.payout, Math.round(base * 100) / 100, false)
-      : null,
     checkAchievements(userId, stats),
-    advanceCommunity(userId, {
-      wagered: input.wagered || 0,
-      plays: 1,
-      won: input.payout > 0 ? input.payout : 0,
-      bigWins: isWin && base >= 10 ? 1 : 0,
-      game: gameSlug,
-    }),
-  ]).then(([, , , missions, , achievements]) => [missions, achievements] as const);
+    // The pot's new total when nobody won it: the pot row only, no wallet involved.
+    jackpot && !jackpotHit ? supabase.from('casino_jackpot').update({ amount: pool }).eq('id', 1) : null,
+    boost > 1 ? consumeEffects(userId, effects, ['jackpot_boost']) : null,
+  ]).then(([, , missions, achievements]) => [missions, achievements] as const);
 
-  /* ---- progressive jackpot ---- */
+  /* ---- progressive jackpot: paying a win reads the balance just written above ---- */
   let jackpotWon: number | null = null;
-  const { data: jackpot } = await supabase.from('casino_jackpot').select('*').eq('id', 1).maybeSingle();
   if (jackpot) {
-    let pool = Number(jackpot.amount);
-    if (isLoss) pool += Math.max(1, Math.round(input.amount * JACKPOT_CONTRIBUTION_RATE));
-
-    const boost = effects.jackpot_boost?.magnitude ?? 1;
-    if (boost > 1) await consumeEffects(userId, effects, ['jackpot_boost']);
-    const hit = Math.random() < JACKPOT_HIT_CHANCE * boost;
-
-    if (hit && pool > JACKPOT_SEED) {
+    if (jackpotHit) {
       jackpotWon = pool;
       await supabase.from('casino_wallets')
         .update({ jackpots_won: Number(wallet.jackpots_won || 0) + 1 })
@@ -380,8 +392,6 @@ export async function recordSettlement(userId: string, gameSlug: string, input: 
           await pushFeed(userId, gameSlug, pool, 0, true);
         }
       }
-    } else {
-      await supabase.from('casino_jackpot').update({ amount: pool }).eq('id', 1);
     }
   }
 
@@ -457,10 +467,15 @@ export async function checkAchievements(userId: string, stats: WalletStats): Pro
 
   for (const ach of ACHIEVEMENTS) {
     if (unlockedIds.has(ach.id) || !ach.check(stats)) continue;
-    await supabase.from('casino_achievements_unlocked').insert({ user_id: userId, achievement_id: ach.id });
     newAchievements.push({ id: ach.id, name: ach.name, description: ach.description, reward: achievementReward(ach.points) });
     coins += achievementReward(ach.points);
     points += ach.points;
+  }
+  // Several unlocked by the same bet: one insert rather than one per achievement.
+  if (newAchievements.length) {
+    await supabase.from('casino_achievements_unlocked').insert(
+      newAchievements.map((a) => ({ user_id: userId, achievement_id: a.id })),
+    );
   }
 
   if (coins > 0) {
