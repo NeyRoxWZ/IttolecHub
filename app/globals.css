@@ -245,8 +245,18 @@ body {
   overscroll-behavior-y: none;
 }
 
+/*
+ * The solo games' bottom tab bar (components/AppTabBar) sets `has-tabbar`
+ * while it is mounted; below lg its height is reserved here so floating
+ * things (toasts, tickers) sit above it.
+ */
+:root { --app-tabbar: 0px; }
+@media (max-width: 1023.98px) {
+  html.has-tabbar { --app-tabbar: 76px; }
+}
+
 /* Fixed overlays have to dodge the same insets themselves. */
-.safe-bottom { bottom: calc(0.75rem + env(safe-area-inset-bottom)); }
+.safe-bottom { bottom: calc(0.75rem + env(safe-area-inset-bottom) + var(--app-tabbar)); }
 .safe-top { top: calc(0.75rem + env(safe-area-inset-top)); }
 
 /*

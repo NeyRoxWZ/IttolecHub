@@ -68,7 +68,8 @@ export default function AquariumView({ fish, equipped, className }: { fish: Aqua
   return (
     <div className={className}>
       <style>{`
-        @keyframes aqSwim { 0% { transform: translateX(0) scaleX(1) } 48% { transform: translateX(var(--d)) scaleX(1) } 50% { transform: translateX(var(--d)) scaleX(-1) } 98% { transform: translateX(0) scaleX(-1) } 100% { transform: translateX(0) scaleX(1) } }
+        /* Fish are drawn facing left: mirrored while swimming right, turned back for the way home. */
+        @keyframes aqSwim { 0% { transform: translateX(0) scaleX(-1) } 48% { transform: translateX(var(--d)) scaleX(-1) } 50% { transform: translateX(var(--d)) scaleX(1) } 98% { transform: translateX(0) scaleX(1) } 100% { transform: translateX(0) scaleX(-1) } }
         @keyframes aqBob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(6px) } }
         @keyframes aqBubble { from { transform: translateY(0); opacity: .8 } to { transform: translateY(-220px); opacity: 0 } }
         .aq-swim { transform-box: fill-box; transform-origin: center; animation: aqSwim linear infinite; }

@@ -6,7 +6,13 @@ import { BRAWL, BRAWL_SWATCHES } from '@/lib/ui/brawl';
 import EventBanner from './EventBanner';
 import ActiveEffectsBar from './ActiveEffectsBar';
 import PushToggle from './PushToggle';
-import type { MenuEntry } from './CasinoMenu';
+export interface MenuEntry {
+  label: string;
+  hint: string;
+  icon: any;
+  pending?: number;
+  onSelect: () => void;
+}
 
 /**
  * Everything that is not a game, stacked down the side in panels.

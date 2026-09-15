@@ -5,6 +5,7 @@ import CasinoSkin from './_components/CasinoSkin';
 import SyndicateLock from './_components/SyndicateLock';
 import GiftWatcher from './_components/GiftWatcher';
 import PushPrompt from './_components/PushPrompt';
+import CasinoTabBar from './_components/CasinoTabBar';
 import PatchNotesModal from '@/components/PatchNotesModal';
 
 /**
@@ -23,6 +24,7 @@ export default function CasinoLayout({ children }: { children: ReactNode }) {
     <>
       <CasinoSkin />
       {children}
+      <CasinoTabBar />
       <SyndicateLock />
       <GiftWatcher />
       <PushPrompt />

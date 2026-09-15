@@ -6,8 +6,10 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Anchor, BookOpen, Coins, Fish, Map as MapIcon, Sparkles, Waves, Wrench, Zap, Lock, Check, X,
   HelpCircle, ShoppingBag, Target, Gift, CloudRain, Sun, CloudFog, CloudLightning, Moon, Package, Trophy, Users, Fish as FishShoal,
-  Crown, Skull, Radio, Palette, Medal, Ship, User,
+  Crown, Skull, Radio, Palette, Medal, Ship, User, LayoutGrid, LogOut,
 } from 'lucide-react';
+import AppTabBar, { type TabBarItem } from '@/components/AppTabBar';
+import AppSheet, { SheetTile } from '@/components/AppSheet';
 import { cn } from '@/lib/utils';
 import { BRAWL, BRAWL_SWATCHES } from '@/lib/ui/brawl';
 import { sfx } from '@/lib/casino/sfx';
@@ -62,6 +64,16 @@ const TABS: { id: Tab; label: string; icon: typeof Fish }[] = [
   { id: 'marees', label: 'Marées', icon: Waves },
 ];
 
+/** On phones and tablets these four sit in the bottom tab bar; the rest open from "Plus". */
+const BAR_TABS: Tab[] = ['peche', 'quetes', 'materiel', 'boutique'];
+
+const MODES = [
+  { id: 'solo', label: 'Solo', hint: 'Matériaux', icon: User },
+  { id: 'public', label: 'Port public', hint: '₶ ×1,5', icon: Ship },
+] as const;
+
+const NARROW = '(max-width: 1023.98px)';
+
 const MODE_KEY = 'itollec_peche_mode';
 
 const WEATHER_ICON: Record<WeatherId, typeof Sun> = { soleil: Sun, pluie: CloudRain, brume: CloudFog, orage: CloudLightning, lune: Moon };
@@ -92,6 +104,8 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
   const [opening, setOpening] = useState(false);
   const [cardId, setCardId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('solo');
+  const [more, setMore] = useState(false);
+  const closeMore = useCallback(() => setMore(false), []);
   useEffect(() => { try { if (localStorage.getItem(MODE_KEY) === 'public') setMode('public'); } catch {} }, []);
   const switchMode = (m: Mode) => { sfx.select(); setMode(m); try { localStorage.setItem(MODE_KEY, m); } catch {} };
   const stateRef = useRef<PecheState | null>(null);
@@ -140,7 +154,11 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
     setCastInfo(r);
     setPhase('waiting');
     const wait = 600 + Math.random() * 1400;
-    setTimeout(() => { sfx.tick(); vibrate(HAPTIC.MEDIUM); setPhase('reeling'); }, wait);
+    setTimeout(() => {
+      sfx.tick(); vibrate(HAPTIC.MEDIUM); setPhase('reeling');
+      // On a phone the scene only shows on the Pêche tab: bring it back for the bite.
+      if (window.matchMedia(NARROW).matches) setTab('peche');
+    }, wait);
   };
 
   const onReelDone = async (_quality: 'perfect' | 'good' | 'fail', input: { toggles: number[]; steps: number }) => {
@@ -196,7 +214,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
   const sendRef = useRef(sendPort);
   sendRef.current = sendPort;
 
-  if (!state) return <div className="h-[520px] rounded-[22px] border-4 border-brand-border bg-brand-card animate-pulse" />;
+  if (!state) return <div className="mt-3 lg:mt-0 h-[520px] rounded-[22px] border-4 border-brand-border bg-brand-card animate-pulse" />;
 
   const zone = zoneInfo(state.zone);
   const badge = mareeBadge(state.maree);
@@ -207,6 +225,25 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
   const passClaimable = state.pass.tiers.filter((t) => t.tier <= state.pass.tier && (!state.pass.claimed.includes(t.tier) || (state.pass.premium && !state.pass.claimedPremium.includes(t.tier)))).length;
   const achClaimable = state.achievements.filter((a) => !a.claimed && a.progress >= a.target).length;
   const shoalHere = state.shoal.zone === state.zone;
+  const badgeOf = (t: Tab) => t === 'quetes' ? questsReady
+    : t === 'pass' ? passClaimable
+    : t === 'succes' ? achClaimable
+    : t === 'boutique' ? state.packs
+    : t === 'port' && port.length > 1 ? port.length : 0;
+
+  const selectTab = (t: Tab) => {
+    sfx.click(); setTab(t); setMore(false);
+    if (window.matchMedia(NARROW).matches) window.scrollTo({ top: 0 });
+  };
+
+  const barItems: TabBarItem[] = [
+    ...BAR_TABS.map((id) => {
+      const t = TABS.find((x) => x.id === id)!;
+      return { id, label: t.label, icon: t.icon, badge: badgeOf(id), active: tab === id && !more, onSelect: () => selectTab(id) };
+    }),
+    { id: 'plus', label: 'Plus', icon: LayoutGrid, badge: passClaimable + achClaimable, active: more || !BAR_TABS.includes(tab), onSelect: () => { sfx.click(); setMore(true); } },
+  ];
+  const tabLabel = TABS.find((t) => t.id === tab)?.label;
 
   return (
     <div>
@@ -223,7 +260,54 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
         />
       )}
 
-      <header className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+      {/* Phones and tablets: an app bar pinned under the status bar, over a strip of status chips. */}
+      <div aria-hidden className="lg:hidden fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] bg-brand-page z-[140]" />
+      <header className="lg:hidden sticky top-[env(safe-area-inset-top)] z-[140] -mx-3 sm:-mx-6 px-3 sm:px-6 pt-2 pb-2.5 mb-3 bg-brand-page/95 backdrop-blur border-b-[3px] border-brand-border">
+        <div className="flex items-center gap-2">
+          <Link href="/?mode=solo" aria-label="Retour" className={cn(BRAWL.pink, 'h-10 w-10 shrink-0')}>
+            <ArrowLeft className="h-5 w-5" strokeWidth={3} />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-2xl leading-none flex items-center gap-1.5">
+              Pêche
+              <span className="rounded-md border-2 border-brand-border bg-accent-info px-1 py-px text-[10px] text-white">BÊTA</span>
+            </h1>
+            <p className="text-[11px] font-bold text-tx-secondary truncate mt-0.5">{zone.region} · {zone.name}</p>
+          </div>
+          <span className="h-10 inline-flex items-center gap-1.5 rounded-2xl bg-brand-bg border-[3px] border-brand-border pl-1 pr-2.5 font-display text-base text-white shrink-0">
+            <span className="h-7 w-7 rounded-full bg-accent-primary border-2 border-brand-border flex items-center justify-center shadow-[inset_0_-3px_0_#D98E00]">
+              <Coins className="h-3.5 w-3.5 text-brand-bg" strokeWidth={2.5} />
+            </span>
+            <span className="tabular-nums">{fmtBig(state.balance)}</span>
+          </span>
+        </div>
+        <div className="mt-2 -mx-3 px-3 sm:-mx-6 sm:px-6 flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex shrink-0 gap-0.5 rounded-xl border-[3px] border-brand-border bg-brand-bg p-0.5" role="radiogroup" aria-label="Mode de pêche">
+            {MODES.map((m) => (
+              <button key={m.id} role="radio" aria-checked={mode === m.id} onClick={() => switchMode(m.id)}
+                className={cn('h-8 px-2 rounded-lg flex items-center gap-1 font-display text-sm leading-none whitespace-nowrap',
+                  mode === m.id ? (m.id === 'public' ? 'bg-accent-info text-white shadow-[inset_0_-3px_0_#2F5BD0]' : 'bg-accent-primary text-brand-bg shadow-[inset_0_-3px_0_#D98E00]') : 'text-tx-secondary')}>
+                <m.icon className="h-4 w-4" /> {m.label}
+              </button>
+            ))}
+          </div>
+          <span className="h-9 shrink-0 inline-flex items-center gap-1.5 rounded-xl border-[3px] border-brand-border bg-brand-bg px-2 font-display text-sm whitespace-nowrap">
+            <WeatherIcon className="h-4 w-4 text-accent-info" /> {WEATHER[state.weather.id].label} <WeatherCountdown endsAt={state.weather.endsAt} />
+          </span>
+          <span className="h-9 shrink-0 inline-flex items-center gap-1.5 rounded-xl border-[3px] border-brand-border px-2 font-display text-sm whitespace-nowrap"
+            style={{ background: badge.fill, color: badge.text, boxShadow: `inset 0 -3px 0 ${badge.shade}` }}>
+            <Waves className="h-4 w-4" /> Marée {state.maree}
+          </span>
+          <span className="h-9 shrink-0 inline-flex items-center gap-1.5 rounded-xl border-[3px] border-brand-border bg-brand-bg px-2 font-display text-sm whitespace-nowrap">
+            Niv. {state.level.level}
+            <span className="w-12 h-2.5 rounded-full bg-[#2B3170] border-2 border-brand-border overflow-hidden">
+              <span className="block h-full bg-accent-info" style={{ width: `${(state.level.into / state.level.needed) * 100}%` }} />
+            </span>
+          </span>
+        </div>
+      </header>
+
+      <header className="hidden lg:flex items-center justify-between gap-3 mb-4 flex-wrap">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
           <Link href="/?mode=solo" aria-label="Retour" className={cn(BRAWL.pink, 'h-12 w-12 shrink-0')}>
             <ArrowLeft className="h-6 w-6" strokeWidth={3} />
@@ -236,10 +320,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
             <p className="text-sm font-bold text-tx-secondary mt-0.5">{zone.region} · {zone.name}</p>
           </div>
           <div className="flex gap-1 rounded-[22px] border-[3px] border-brand-border bg-brand-bg p-1.5" role="radiogroup" aria-label="Mode de pêche">
-            {([
-              { id: 'solo', label: 'Solo', hint: 'Matériaux', icon: User },
-              { id: 'public', label: 'Port public', hint: '₶ ×1,5', icon: Ship },
-            ] as const).map((m) => (
+            {MODES.map((m) => (
               <button key={m.id} role="radio" aria-checked={mode === m.id} onClick={() => switchMode(m.id)}
                 title={m.id === 'solo' ? 'Solo : tes prises donnent des matériaux pour améliorer ton matériel.' : 'Port public : pas de matériaux, mais chaque prise vaut ×1,5 et tu pêches avec les autres joueurs.'}
                 className={cn('h-10 px-2 sm:px-3 rounded-[13px] flex items-center gap-1.5 font-display leading-none transition-transform active:translate-y-[2px]',
@@ -285,7 +366,8 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
 
       {/* Fixed height: switching tabs must never resize the game. */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_440px] gap-4 lg:h-[700px]">
-        <section className={cn(BRAWL.panel, 'relative overflow-hidden h-[440px] sm:h-[480px] lg:h-full flex flex-col')}>
+        {/* Phones: the scene is the Pêche tab, full width, and steps aside for the other tabs. */}
+        <section className={cn(BRAWL.panel, 'relative overflow-hidden h-[min(62dvh,520px)] min-h-[380px] lg:min-h-0 lg:h-full flex-col', tab === 'peche' ? 'flex' : 'hidden lg:flex')}>
           <FishingScene
             zoneId={state.zone} phase={phase} weather={state.weather.id} equipped={state.equipped}
             others={mode === 'public' ? port.filter((p) => p.mode === 'public' && p.zone === state.zone && p.userId !== userId) : []}
@@ -359,21 +441,18 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
           </div>
         </section>
 
-        <section className={cn(BRAWL.panel, 'p-4 flex flex-col gap-3 h-[640px] lg:h-full min-h-0')}>
-          <div className="shrink-0 rounded-[18px] border-[3px] border-brand-border bg-brand-inner p-2.5">
+        <section className={cn(BRAWL.panel, 'p-3 sm:p-4 flex flex-col gap-3 lg:h-full min-h-0')}>
+          {tab !== 'peche' && <h2 className="lg:hidden font-display text-3xl leading-none px-1 pt-1">{tabLabel}</h2>}
+          <div className="hidden lg:block shrink-0 rounded-[18px] border-[3px] border-brand-border bg-brand-inner p-2.5">
             <div className="font-display text-lg leading-none sm:mb-2">Aller à</div>
             {/* Phones: one row that scrolls sideways. Wider: rows of eight, or six in the narrow side column, so no label is cut. */}
             <div className="flex gap-1 overflow-x-auto pt-2 pb-1 -mx-1 px-1 sm:grid sm:grid-cols-8 lg:grid-cols-6 sm:gap-x-1 sm:gap-y-2 sm:overflow-visible sm:pb-0">
               {TABS.map((t, i) => {
                 const swatch = BRAWL_SWATCHES[i % BRAWL_SWATCHES.length];
                 const on = tab === t.id;
-                const badge = t.id === 'quetes' ? questsReady
-                  : t.id === 'pass' ? passClaimable
-                  : t.id === 'succes' ? achClaimable
-                  : t.id === 'boutique' ? state.packs
-                  : t.id === 'port' && port.length > 1 ? port.length : 0;
+                const badge = badgeOf(t.id);
                 return (
-                  <button key={t.id} onClick={() => { sfx.click(); setTab(t.id); }} aria-current={on ? 'page' : undefined}
+                  <button key={t.id} onClick={() => selectTab(t.id)} aria-current={on ? 'page' : undefined}
                     className="group flex flex-col items-center gap-1 text-center focus:outline-none shrink-0 min-w-[56px] px-0.5 sm:min-w-0 sm:px-0">
                     <span
                       className={cn(BRAWL.iconTile, 'h-9 w-9 text-white transition-transform group-hover:-translate-y-0.5 group-active:translate-y-[2px]', on && 'ring-[3px] ring-accent-primary ring-offset-2 ring-offset-brand-inner -translate-y-0.5')}
@@ -391,7 +470,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+          <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
             {tab === 'peche' && <PechePanel state={state} api={api} autoFeed={autoFeed} mode={mode} />}
             {tab === 'quetes' && <QuestsPanel state={state} api={api} />}
             {tab === 'boutique' && <ShopPanel state={state} api={api} onOpen={() => setOpening(true)} />}
@@ -409,6 +488,27 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
           </div>
         </section>
       </div>
+
+      <AppTabBar items={barItems} label="Navigation de la Pêche" />
+      <AppSheet open={more} onClose={closeMore} title="Pêche">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {TABS.filter((t) => !BAR_TABS.includes(t.id)).map((t) => {
+            const swatch = BRAWL_SWATCHES[TABS.indexOf(t) % BRAWL_SWATCHES.length];
+            return (
+              <SheetTile key={t.id} label={t.label} icon={t.icon} fill={swatch.fill} shade={swatch.shade}
+                badge={badgeOf(t.id)} active={tab === t.id} onSelect={() => selectTab(t.id)} />
+            );
+          })}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button onClick={() => { setMore(false); setGuide(true); }} className={cn(BRAWL.dark, 'h-12 text-base')}>
+            <HelpCircle className="h-4 w-4" /> Guide
+          </button>
+          <Link href="/?mode=solo" className={cn(BRAWL.pink, 'h-12 text-base')}>
+            <LogOut className="h-4 w-4" /> Quitter
+          </Link>
+        </div>
+      </AppSheet>
     </div>
   );
 }

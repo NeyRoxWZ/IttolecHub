@@ -1,3 +1,20 @@
 {
-  "entries": []
+  "entries": [
+    {
+      "id": "2026-09-15-01",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Pêche et Casino comme une vraie appli sur mobile",
+      "details": "Sur téléphone et tablette, une barre d'onglets en bas donne accès aux écrans principaux, et « Plus » ouvre tout le reste. En haut, une barre compacte reste affichée avec ton solde et ton statut."
+    },
+    {
+      "id": "2026-09-15-02",
+      "date": "2026-09-15",
+      "scope": "peche",
+      "type": "correctif",
+      "title": "Les poissons de l'aquarium nagent dans le bon sens",
+      "details": "Ils ne reculent plus : ils regardent toujours là où ils vont."
+    }
+  ]
 }

@@ -12,6 +12,8 @@ export function ToasterProvider() {
   return (
     <Toaster
       position="bottom-right"
+      // Above the solo games' tab bar on phones (0 elsewhere).
+      mobileOffset={{ bottom: 'calc(16px + var(--app-tabbar, 0px) + env(safe-area-inset-bottom))' }}
       theme="dark"
       richColors={false}
       closeButton={false}

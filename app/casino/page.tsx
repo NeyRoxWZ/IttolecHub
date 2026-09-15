@@ -7,7 +7,7 @@ import {
   Coins, Dices, Spade, CircleDot, Rocket, Bomb, Circle, ArrowUpDown, Ticket,
   Egg, Building2, Grid3x3, Gift, Zap, Flag, GlassWater, LayoutGrid, Layers, Hand, Dice5,
   ArrowLeft, Info, Flame, Trophy, Award, Sparkles, Gift as GiftIcon, Gem, Target, ShoppingBag,
-  Banknote, Crown, ArrowUpRight, Clock, Backpack, Radio, Users, Swords,
+  Banknote, Crown, Clock, Backpack, Radio, Users, Swords,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -24,8 +24,8 @@ import FeedTicker from './_components/FeedTicker';
 import JackpotModal from './_components/JackpotModal';
 import OnboardingModal from './_components/OnboardingModal';
 import PrestigeModal from './_components/PrestigeModal';
-import CasinoMenu, { type MenuEntry } from './_components/CasinoMenu';
-import CasinoRail, { type Claim } from './_components/CasinoRail';
+import CasinoRail, { type Claim, type MenuEntry } from './_components/CasinoRail';
+import { CASINO_OPEN_EVENT, setNavBadges } from '@/lib/casino/appNav';
 import CasinoControls from './_components/CasinoControls';
 import ActiveEffectsBar from './_components/ActiveEffectsBar';
 import ChestModal, { useChest } from './_components/ChestModal';
@@ -65,8 +65,6 @@ function formatWait(seconds: number): string {
   return `${m} min`;
 }
 
-const TILE = 'relative h-14 shrink-0 rounded-xl border-2 flex items-center gap-2 px-3 text-left transition-all focus:outline-none';
-
 function ClaimTile({
   label, icon: Icon, ready, readyHint, waitLabel, onClick, busy,
 }: {
@@ -102,37 +100,6 @@ function ClaimTile({
           {busy ? '···' : ready ? readyHint : (<><Clock className="h-2.5 w-2.5 shrink-0" />{waitLabel}</>)}
         </div>
       </div>
-    </button>
-  );
-}
-
-function NavTile({
-  label, hint, icon: Icon, pending, onClick,
-}: {
-  label: string;
-  hint: string;
-  icon: any;
-  /** Shown inline rather than as a floating badge, which used to overlap. */
-  pending?: number;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        TILE, 'pr-7 border-[3px] border-brand-border shadow-[0_4px_0_#05061A]',
-        pending ? 'bg-[#3A2150]' : 'bg-brand-card',
-        'hover:-translate-y-0.5'
-      )}
-    >
-      <Icon className="h-4 w-4 shrink-0 text-accent-primary" />
-      <div className="min-w-0 leading-tight">
-        <div className="font-display font-black text-[12px] text-tx-base whitespace-nowrap">{label}</div>
-        <div className={cn('text-[9px] font-bold whitespace-nowrap', pending ? 'text-accent-secondary' : 'text-tx-muted')}>
-          {pending ? `${pending} à réclamer` : hint}
-        </div>
-      </div>
-      <ArrowUpRight className="absolute top-1.5 right-1.5 h-3 w-3 text-tx-muted" />
     </button>
   );
 }
@@ -225,6 +192,24 @@ export default function CasinoHub() {
       .then((d) => { if (d) setCashback({ amount: d.amount, available: d.available }); })
       .catch(() => {});
   }, [user, stats.cashbackClaimedToday]);
+
+  // The tab bar (casino layout) shows these counts on every casino page.
+  useEffect(() => { setNavBadges({ missions: claimable, pass: passClaimable }); }, [claimable, passClaimable]);
+
+  // The tab bar opens the hub's modals: by event when already here, by ?open= from another page.
+  useEffect(() => {
+    const show = (what: string | null) => {
+      if (what === 'missions') setShowMissions(true);
+      else if (what === 'jackpot') setShowJackpot(true);
+      else if (what === 'prestige') setShowPrestige(true);
+      else if (what === 'guide') setShowGuide(true);
+    };
+    const asked = new URLSearchParams(window.location.search).get('open');
+    if (asked) { show(asked); router.replace('/casino', { scroll: false }); }
+    const onOpen = (e: Event) => show((e as CustomEvent<string>).detail);
+    window.addEventListener(CASINO_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(CASINO_OPEN_EVENT, onOpen);
+  }, [router]);
 
   const handleClaimCashback = async () => {
     if (!user) { toast.error('Connecte-toi pour récupérer ton cashback.'); return; }
@@ -408,8 +393,6 @@ export default function CasinoHub() {
               )}
             </div>
 
-            <CasinoMenu entries={destinations} pending={claimable + passClaimable} />
-
             <button
               onClick={() => { sfx.click(); setShowGuide(true); }}
               title="Comment ça marche ?"
@@ -506,19 +489,6 @@ export default function CasinoHub() {
                 waitLabel={c.waitLabel}
                 busy={c.busy}
                 onClick={c.onClick}
-              />
-            ))}
-          </div>
-
-          <div className="hidden sm:flex flex-wrap items-center gap-2">
-            {destinations.map((d) => (
-              <NavTile
-                key={d.label}
-                label={d.label}
-                hint={d.hint}
-                icon={d.icon}
-                pending={d.pending}
-                onClick={d.onSelect}
               />
             ))}
           </div>

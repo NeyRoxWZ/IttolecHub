@@ -10,15 +10,15 @@ export default function PechePage() {
   const { user, loading } = useAuth();
 
   return (
-    <main className="min-h-[100dvh] bg-transparent text-tx-base px-3 sm:px-6 pt-3 sm:pt-5 pb-10">
+    <main className="min-h-[100dvh] bg-transparent text-tx-base px-3 sm:px-6 pt-0 lg:pt-5 pb-4 lg:pb-10">
       <div className="max-w-7xl mx-auto">
         {loading ? (
-          <div className="h-[520px] rounded-[22px] border-4 border-brand-border bg-brand-card animate-pulse" />
+          <div className="mt-3 lg:mt-0 h-[520px] rounded-[22px] border-4 border-brand-border bg-brand-card animate-pulse" />
         ) : user ? (
           <PecheGame userId={user.id} pseudo={user.pseudo} />
         ) : (
           <>
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-6 pt-3 lg:pt-0">
               <Link
                 href="/?mode=solo"
                 aria-label="Retour"
