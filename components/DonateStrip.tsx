@@ -1,45 +1,64 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Heart, ArrowUpRight, X, Copy, Check } from 'lucide-react';
+import Image from 'next/image';
+import { Heart, X, Copy, Check } from 'lucide-react';
 import { DONATE_URL } from '@/lib/donate';
 import { DonorBadge } from '@/components/OgName';
 import { cn } from '@/lib/utils';
 
 /**
- * A compact support block that lives inside an existing card of the home page
- * (the patch notes column in solo, the "Comment jouer" card in multiplayer):
- * it never adds height to the page, so the page never scrolls because of it.
- * "Faire un don" opens a short card that says everything in three lines.
+ * "Faire un don": a button that sits next to the Solo / Multijoueur switch at
+ * the top of the home page (and on the profile when a player has no badge).
+ * It glows softly and its heart beats — noticeable without getting in the way.
+ * It opens a short card that says everything in three lines.
  */
-export default function DonateStrip({ text, pseudo, className }: { text: string; pseudo?: string | null; className?: string }) {
+export default function DonateButton({ pseudo, avatarUrl, compact, className }: {
+  pseudo?: string | null; avatarUrl?: string | null; compact?: boolean; className?: string;
+}) {
   const [open, setOpen] = useState(false);
   if (!DONATE_URL) return null;
 
   return (
     <>
-      <div className={cn('shrink-0 flex items-center gap-3 rounded-[18px] border-[3px] border-brand-border px-3 py-2.5 bg-[linear-gradient(100deg,#3A1D5E_0%,#5B2266_55%,#6E2459_100%)] shadow-[0_4px_0_#05061A]', className)}>
-        <span className="h-10 w-10 shrink-0 rounded-xl border-[3px] border-brand-border bg-accent-secondary flex items-center justify-center shadow-[inset_0_-4px_0_#C92D63] donate-beat">
-          <Heart className="h-5 w-5 text-white" fill="currentColor" />
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          'donate-glow shrink-0 inline-flex items-center gap-2 rounded-[18px] border-[3px] border-brand-border text-white font-display whitespace-nowrap transition-transform active:translate-y-[3px]',
+          'bg-[linear-gradient(135deg,#FF4F8B_0%,#C43FD1_100%)]',
+          compact ? 'h-11 pl-1.5 pr-3 text-base' : 'h-12 pl-1.5 pr-4 text-lg',
+          className,
+        )}
+      >
+        <span className="donate-beat h-8 w-8 rounded-xl border-2 border-brand-border bg-white flex items-center justify-center">
+          <Heart className="h-[18px] w-[18px] text-accent-secondary" fill="currentColor" />
         </span>
-        <p className="min-w-0 flex-1 text-[12px] font-bold text-[#F4D6F0] leading-tight">
-          <span className="block font-display text-base text-white leading-tight">Soutiens le site</span>
-          {text}
-        </p>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="shrink-0 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-xl border-[3px] border-brand-border bg-accent-secondary text-white font-display text-base shadow-[inset_0_-4px_0_#C92D63,0_3px_0_#05061A] active:translate-y-[2px] transition-transform"
-        >
-          Faire un don
-        </button>
-      </div>
-      {open && <DonateCard pseudo={pseudo} onClose={() => setOpen(false)} />}
+        Faire un don
+      </button>
+      {open && <DonateModal pseudo={pseudo} avatarUrl={avatarUrl} onClose={() => setOpen(false)} />}
     </>
   );
 }
 
-function DonateCard({ pseudo, onClose }: { pseudo?: string | null; onClose: () => void }) {
+/** PayPal's mark and wordmark in PayPal's own blues, so the button reads as the real thing. */
+function PayPalLogo() {
+  return (
+    <span className="inline-flex items-center gap-1" role="img" aria-label="PayPal">
+      <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
+        <path
+          fill="#003087"
+          d="M7.016 19.198h-4.2a.562.562 0 0 1-.555-.65L5.093.584A.692.692 0 0 1 5.776 0h7.222c3.417 0 5.904 2.488 5.846 5.5-.006.25-.027.5-.066.747A6.794 6.794 0 0 1 12.071 12H8.743a.69.69 0 0 0-.682.583l-.325 2.056-.013.083-.692 4.39-.015.087zM19.79 6.142c-.01.087-.01.175-.023.261a7.76 7.76 0 0 1-7.695 6.598H9.007l-.283 1.795-.013.083-.692 4.39-.134.843-.014.088H6.86l-.497 3.15a.562.562 0 0 0 .555.65h3.612c.34 0 .63-.249.683-.585l.952-6.031a.692.692 0 0 1 .683-.584h2.126a6.793 6.793 0 0 0 6.707-5.752c.306-1.95-.466-3.744-1.89-4.906z"
+        />
+      </svg>
+      <span aria-hidden="true" className="text-[22px] font-bold italic leading-none tracking-tight" style={{ fontFamily: 'Verdana, Arial, sans-serif' }}>
+        <span className="text-[#003087]">Pay</span><span className="text-[#0079C1]">Pal</span>
+      </span>
+    </span>
+  );
+}
+
+export function DonateModal({ pseudo, avatarUrl, onClose }: { pseudo?: string | null; avatarUrl?: string | null; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -73,13 +92,17 @@ function DonateCard({ pseudo, onClose }: { pseudo?: string | null; onClose: () =
           <p className="mt-1 text-sm font-bold text-white/90">Ton don paie les serveurs et les nouveaux jeux.</p>
         </div>
 
-        {/* What the player gets, shown with their own name before they give. */}
+        {/* What the player gets, shown with their own name and picture before they give. */}
         <div className="px-5 pt-4">
           <div className="text-[11px] font-black uppercase tracking-widest text-tx-muted mb-1.5">Ton pseudo après ton don</div>
           <div className="flex items-center gap-3 rounded-2xl border-[3px] border-brand-border bg-brand-inner px-3 py-2.5 shadow-[inset_0_3px_0_#0B0E2A]">
-            <span className="h-9 w-9 shrink-0 rounded-xl bg-accent-secondary text-white font-display text-lg flex items-center justify-center shadow-[inset_0_-3px_0_#C92D63]">
-              {(pseudo || 'T')[0]?.toUpperCase()}
-            </span>
+            {avatarUrl ? (
+              <Image src={avatarUrl} alt="" width={36} height={36} unoptimized className="h-9 w-9 shrink-0 rounded-full border-2 border-brand-border object-cover" />
+            ) : (
+              <span className="h-9 w-9 shrink-0 rounded-xl bg-accent-secondary text-white font-display text-lg flex items-center justify-center shadow-[inset_0_-3px_0_#C92D63]">
+                {(pseudo || 'T')[0]?.toUpperCase()}
+              </span>
+            )}
             <span className="og-wrap min-w-0 font-display text-xl">
               <span className="donor-name truncate">{pseudo || 'TonPseudo'}</span>
               <DonorBadge />
@@ -117,9 +140,9 @@ function DonateCard({ pseudo, onClose }: { pseudo?: string | null; onClose: () =
             href={DONATE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full h-14 inline-flex items-center justify-center gap-2 rounded-2xl border-[3px] border-brand-border bg-[#FFC439] text-[#003087] font-display text-xl shadow-[inset_0_-5px_0_#E0A41A,0_4px_0_#05061A] active:translate-y-[3px] transition-transform"
+            className="w-full h-14 inline-flex items-center justify-center gap-2 rounded-2xl border-[3px] border-brand-border bg-[#FFC439] text-[#003087] font-display text-lg shadow-[inset_0_-5px_0_#E0A41A,0_4px_0_#05061A] active:translate-y-[3px] transition-transform"
           >
-            Donner avec PayPal <ArrowUpRight className="h-5 w-5" />
+            Donner avec <PayPalLogo />
           </a>
           <p className="mt-2 text-center text-[11px] font-bold text-tx-muted">Uniquement PayPal pour l’instant.</p>
         </div>

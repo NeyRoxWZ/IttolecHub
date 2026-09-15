@@ -343,7 +343,17 @@ html, body { overflow-x: clip; }
 /* The heart of the "Faire un don" strip on the home page. */
 @keyframes donate-beat { 0%, 100% { transform: scale(1); } 12% { transform: scale(1.12); } 24% { transform: scale(1); } 36% { transform: scale(1.08); } }
 .donate-beat { animation: donate-beat 1.6s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .donate-beat { animation: none; } }
+/* The "Faire un don" button: a soft pink halo that breathes out and back. */
+@keyframes donate-glow {
+  0%, 100% { box-shadow: inset 0 -4px 0 rgba(90, 20, 80, 0.55), 0 4px 0 #05061a, 0 0 0 0 rgba(255, 79, 139, 0); }
+  50% { box-shadow: inset 0 -4px 0 rgba(90, 20, 80, 0.55), 0 4px 0 #05061a, 0 0 0 6px rgba(255, 79, 139, 0.35); }
+}
+.donate-glow { animation: donate-glow 2.4s ease-in-out infinite; }
+.donate-glow:active { box-shadow: inset 0 -4px 0 rgba(90, 20, 80, 0.55); }
+@media (prefers-reduced-motion: reduce) {
+  .donate-beat { animation: none; }
+  .donate-glow { animation: none; box-shadow: inset 0 -4px 0 rgba(90, 20, 80, 0.55), 0 4px 0 #05061a; }
+}
 
 /* Donor: pink name, pink plaque with a heart. Same size rules as the OG plaque. */
 .donor-name {

@@ -6,7 +6,7 @@
       "scope": "site",
       "type": "amelioration",
       "title": "L'accueil tient sur un écran",
-      "details": "Sur ordinateur, les pages Solo et Multijoueur ne défilent plus : tout s'adapte à la taille de la fenêtre, et le don est rangé dans les cartes."
+      "details": "Sur ordinateur, les pages Solo et Multijoueur ne défilent plus : tout s'adapte à la taille de la fenêtre."
     },
     {
       "id": "2026-09-15-02",
@@ -22,7 +22,23 @@
       "scope": "site",
       "type": "amelioration",
       "title": "Aperçu de ton pseudo Donateur",
-      "details": "La fenêtre « Faire un don » montre ton pseudo tel qu'il s'affichera avec le badge Donateur."
+      "details": "La fenêtre « Faire un don » montre ton pseudo et ta photo de profil tels qu'ils s'afficheront avec le badge Donateur, et le bouton porte le logo PayPal."
+    },
+    {
+      "id": "2026-09-15-04",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Bouton « Faire un don » en haut de l'accueil",
+      "details": "Le don se trouve maintenant à côté du choix Solo / Multijoueur, au lieu d'un bandeau dans la page."
+    },
+    {
+      "id": "2026-09-15-05",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Mes badges toujours visible sur le profil",
+      "details": "Sans badge, le profil explique comment en débloquer un, avec un bouton pour faire un don."
     }
   ]
 }

@@ -12,6 +12,7 @@ import Image from 'next/image';
 import ProfileStats from './ProfileStats';
 import DeleteAccount from './DeleteAccount';
 import OgName, { BadgePlaque } from '@/components/OgName';
+import DonateButton from '@/components/DonateStrip';
 import { useOgProfile } from '@/hooks/useOg';
 import { BADGE_INFO, ownedBadges, refreshOg, setBadgeVisible, type BadgeId } from '@/lib/og';
 import { cn } from '@/lib/utils';
@@ -206,9 +207,17 @@ export default function ProfilPage() {
                 )}
               </div>
 
-              {og && ownedBadges(og).length > 0 && (
-                <div className="mt-4 rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
-                  <div className="text-sm font-black text-tx-secondary">Mes badges</div>
+              <div className="mt-4 rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
+                <div className="text-sm font-black text-tx-secondary">Mes badges</div>
+                {!og || ownedBadges(og).length === 0 ? (
+                  <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <p className="flex-1 text-sm text-tx-secondary font-bold leading-relaxed">
+                      Tu n’as aucun badge pour l’instant. Pour en débloquer un, tu peux <span className="text-white">faire un don</span> : tu recevras le badge Donateur.
+                    </p>
+                    <DonateButton pseudo={user.pseudo} avatarUrl={user.avatar_url} />
+                  </div>
+                ) : (
+                <>
                   <p className="mt-1 text-sm text-tx-secondary font-bold leading-relaxed">
                     Choisis ceux qui s’affichent à côté de ton pseudo. Ils restent attachés à ton compte, même si tu changes de pseudo.
                   </p>
@@ -238,8 +247,9 @@ export default function ProfilPage() {
                       );
                     })}
                   </div>
-                </div>
-              )}
+                </>
+                )}
+              </div>
 
               <div className="mt-4 rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4">
                 <div className="text-sm font-black text-tx-secondary">

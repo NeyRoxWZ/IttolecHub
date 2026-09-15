@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase/client';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import GameCover, { type CoverGame } from '@/components/GameCover';
 import HowToPlayDemo from '@/components/HowToPlayDemo';
-import DonateStrip from '@/components/DonateStrip';
+import DonateButton from '@/components/DonateStrip';
 import { isOwner } from '@/lib/owner';
 import releases from '@/patch-notes/releases.json';
 
@@ -230,7 +230,12 @@ function Home() {
             />
           )}
 
-          <div className="hidden md:flex flex-1 justify-center">{modeSwitch}</div>
+          {/* Next to the switch, not inside it: the switch picks a mode, the button opens the donation card. */}
+          <div className="hidden md:flex flex-1 justify-center items-center gap-3">
+            {modeSwitch}
+            <DonateButton pseudo={user?.pseudo} avatarUrl={user?.avatar_url} className="hidden lg:inline-flex" />
+            <DonateButton pseudo={user?.pseudo} avatarUrl={user?.avatar_url} compact className="lg:hidden" />
+          </div>
 
           <div className="hidden md:flex items-center gap-2 ml-auto">
             {user ? (
@@ -258,7 +263,10 @@ function Home() {
           </div>
         </div>
 
-        <div className="md:hidden mt-4 flex justify-center">{modeSwitch}</div>
+        <div className="md:hidden mt-4 flex flex-wrap justify-center items-center gap-2">
+          {modeSwitch}
+          <DonateButton pseudo={user?.pseudo} avatarUrl={user?.avatar_url} compact />
+        </div>
       </header>
 
       {/* MOBILE MENU */}
@@ -402,8 +410,6 @@ function Home() {
                       </Link>
                     </div>
                   </div>
-                  {/* Inside the column, not under the page: asking for support never adds a scroll. */}
-                  <DonateStrip className="mt-4" pseudo={user?.pseudo} text="Aide le Casino et la Pêche à grandir." />
                 </aside>
               </div>
             </>
@@ -469,8 +475,6 @@ function Home() {
                 <div className="flex flex-col bg-brand-card border-4 border-brand-border rounded-[22px] p-5 md:p-6 shadow-[0_8px_0_#05061A] fit:min-h-0 fit:overflow-hidden">
                   <div className="font-display text-2xl mb-4 short:mb-2">Comment jouer</div>
                   <HowToPlayDemo className="flex-1 min-h-0" />
-                  {/* Inside the card, not under the page: asking for support never adds a scroll. */}
-                  <DonateStrip className="mt-4" pseudo={user?.pseudo} text="Garde les salles ouvertes et de nouveaux jeux." />
                 </div>
               </div>
             </>
