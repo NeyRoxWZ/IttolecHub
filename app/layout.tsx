@@ -5,9 +5,29 @@ import { ToasterProvider } from '@/components/ToasterProvider'
 import { AuthProvider } from '@/hooks/useAuth'
 import EzoicRouteHandler from '@/components/EzoicRouteHandler'
 
+const DESCRIPTION = 'Casino en monnaie fictive, Pêche et mini-jeux multijoueurs gratuits à jouer entre potes, sur ordinateur et téléphone.';
+
 export const metadata: Metadata = {
-  title: 'IttolecHub',
-  description: 'Casino FrenlyCoins et mini-jeux multijoueurs.',
+  metadataBase: new URL('https://itollechub.com'),
+  // Each page names itself ("Casino", "Frenly Tower"…); the site name is added after.
+  title: { default: 'IttolecHub · Jeux entre potes', template: '%s · IttolecHub' },
+  description: DESCRIPTION,
+  // The preview shown when a link is shared on Discord, WhatsApp, X…
+  openGraph: {
+    type: 'website',
+    siteName: 'IttolecHub',
+    locale: 'fr_FR',
+    url: '/',
+    title: 'IttolecHub · Jeux entre potes',
+    description: DESCRIPTION,
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'IttolecHub : Casino, Pêche et jeux entre potes' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'IttolecHub · Jeux entre potes',
+    description: DESCRIPTION,
+    images: ['/og.png'],
+  },
   manifest: '/manifest.json',
   applicationName: 'IttolecHub',
   appleWebApp: {

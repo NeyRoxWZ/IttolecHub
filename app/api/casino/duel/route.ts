@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { duelState, createDuel, joinDuel, playDuel, cancelDuel } from '@/lib/casino/duel.server';
 import { nudgeCommunity } from '@/lib/casino/community.server';
+import { allow } from '@/lib/rateLimit';
 
 export async function GET(request: Request) {
   try {
@@ -17,6 +18,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     const userId: string = body?.user_id;
     if (!userId) return NextResponse.json({ error: 'user_id requis' }, { status: 400 });
+
+    // Anti-spam: opening duels floods the list the others browse.
+    if (body?.action === 'create' && !(await allow(`duel-create:${userId}`, 15, 10 * 60))) {
+      return NextResponse.json({ error: 'Trop de duels créés, réessaie dans quelques minutes.' }, { status: 429 });
+    }
 
     let result;
     switch (body?.action) {

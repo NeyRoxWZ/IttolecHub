@@ -146,7 +146,7 @@ export default function ProfilPage() {
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             <div className="shrink-0">
               {user.avatar_url ? (
-                <Image src={user.avatar_url} alt="Avatar" width={96} height={96} unoptimized className="w-24 h-24 rounded-full border-4 border-brand-border shadow-brutal" />
+                <Image src={user.avatar_url} alt={`Photo de profil de ${user.pseudo}`} width={96} height={96} unoptimized className="w-24 h-24 rounded-full border-4 border-brand-border shadow-brutal" />
               ) : (
                 <div className="w-24 h-24 rounded-full bg-brand-inner border-4 border-brand-border shadow-brutal flex items-center justify-center font-display text-4xl text-tx-base">
                   {user.pseudo[0].toUpperCase()}

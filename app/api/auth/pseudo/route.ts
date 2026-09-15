@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
 import { sessionUserId } from '@/lib/session';
+import { allow } from '@/lib/rateLimit';
 
 /** Renames the signed-in player. Used to be a direct write from the browser. */
 export async function POST(request: Request) {
   const uid = await sessionUserId(request);
   if (!uid) return NextResponse.json({ error: 'Connecte-toi pour continuer.' }, { status: 401 });
+
+  // Anti-spam: renaming over and over to squat or flood names.
+  if (!(await allow(`pseudo-change:${uid}`, 5, 60 * 60))) {
+    return NextResponse.json({ error: 'Trop de changements de pseudo, réessaie dans une heure.' }, { status: 429 });
+  }
 
   const body = await request.json().catch(() => null);
   const pseudo = typeof body?.pseudo === 'string' ? body.pseudo.replace(/\s+/g, ' ').trim() : '';

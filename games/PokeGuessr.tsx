@@ -477,7 +477,7 @@ export default function PokeGuessr({ roomCode }: PokeGuessrProps) {
                     <img 
                        key={currentPokemon.id || currentRound}
                        src={currentPokemon.imageUrl} 
-                       alt="Pokemon" 
+                       alt="Pokémon à deviner"
                        draggable={false}
                        loading="eager"
                        width={320}

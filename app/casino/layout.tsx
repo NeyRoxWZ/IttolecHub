@@ -13,6 +13,8 @@ import PatchNotesModal from '@/components/PatchNotesModal';
  * that opens straight on the casino instead of on the hub.
  */
 export const metadata: Metadata = {
+  title: { default: 'Casino', template: '%s · Casino · IttolecHub' },
+  description: 'Mise tes FrenlyCoins, une monnaie fictive, sur 20 mini-jeux avec pass, coffres, missions et cagnotte. Gratuit, sans argent réel.',
   manifest: '/manifest-casino.json',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Casino' },
   icons: { apple: [{ url: '/api/pwa-icon/casino?size=180&v=2', sizes: '180x180', type: 'image/png' }] },

@@ -16,6 +16,8 @@ export default function CreerComptePage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'pseudo' | 'words'>('pseudo');
   const [accepted, setAccepted] = useState(false);
+  /** Anti-spam trap: hidden from people, filled in by bots that fill every field. */
+  const [website, setWebsite] = useState('');
   const router = useRouter();
   const { setUserLocally, loginDiscord } = useAuth();
 
@@ -44,7 +46,7 @@ export default function CreerComptePage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pseudo, words })
+        body: JSON.stringify({ pseudo, words, website })
       });
 
       const data = await res.json();
@@ -97,6 +99,14 @@ export default function CreerComptePage() {
               autoComplete="username"
               required
             />
+          </div>
+
+          {/* Anti-spam trap: off-screen, skipped by keyboard and screen readers. */}
+          <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+            <label>
+              Site web
+              <input type="text" name="website" value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" />
+            </label>
           </div>
 
           <ConsentBox checked={accepted} onChange={setAccepted} minorNote />

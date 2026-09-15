@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import LegalPage from '@/components/LegalPage';
 
-export const metadata: Metadata = { title: 'Confidentialité · IttolecHub' };
+export const metadata: Metadata = {
+  title: 'Confidentialité',
+  description: 'Les données enregistrées par IttolecHub, pourquoi, qui y a accès, les cookies publicitaires et tes droits (RGPD).',
+};
 
 const CONTACT = 'neyroxpuant@gmail.com';
 

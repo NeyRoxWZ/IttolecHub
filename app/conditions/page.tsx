@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import LegalPage from '@/components/LegalPage';
 
-export const metadata: Metadata = { title: 'Conditions · IttolecHub' };
+export const metadata: Metadata = {
+  title: 'Conditions d’utilisation',
+  description: 'Les règles d’utilisation d’IttolecHub : comptes, jeux multijoueur et solo, casino en monnaie fictive.',
+};
 
 export default function ConditionsPage() {
   return (

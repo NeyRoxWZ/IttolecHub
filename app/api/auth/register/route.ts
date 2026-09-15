@@ -6,7 +6,13 @@ import { allow, clientIp } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
-    const { pseudo, words } = await request.json();
+    const { pseudo, words, website } = await request.json();
+
+    // Anti-spam trap: the form has a "website" field people never see or fill.
+    // Bots filling every field get a plain refusal, without learning why.
+    if (typeof website === 'string' && website.trim() !== '') {
+      return NextResponse.json({ error: 'Impossible de créer le compte.' }, { status: 400 });
+    }
 
     if (!pseudo || !words || words.length !== 6) {
       return NextResponse.json({ error: 'Pseudo et 6 mots requis' }, { status: 400 });

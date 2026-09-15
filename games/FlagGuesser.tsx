@@ -415,7 +415,7 @@ export default function FlagGuesser({ roomCode }: FlagGuesserProps) {
                 <div className="relative w-full aspect-[16/9] md:aspect-[2/1] bg-brand-inner rounded-[22px] overflow-hidden shadow-brutal border-4 border-brand-border p-4">
                     <Image 
                         src={currentFlag.flagUrl} 
-                        alt="Flag" 
+                        alt="Drapeau à deviner"
                         fill 
                         className="object-contain p-4 drop-shadow-md"
                         priority

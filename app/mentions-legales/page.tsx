@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import LegalPage from '@/components/LegalPage';
 
-export const metadata: Metadata = { title: 'Mentions légales · IttolecHub' };
+export const metadata: Metadata = {
+  title: 'Mentions légales',
+  description: 'Éditeur, hébergeurs et signalement de contenu d’IttolecHub.',
+};
 
 const CONTACT = 'neyroxpuant@gmail.com';
 

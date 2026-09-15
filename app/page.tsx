@@ -60,7 +60,6 @@ function Home() {
   const [name, setName] = useState('');
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
   const [logoVisible, setLogoVisible] = useState(true);
-  const [easterEggActive, setEasterEggActive] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [resumeRoom, setResumeRoom] = useState<{ code: string; name: string } | null>(null);
   const { user, logout } = useAuth();
@@ -119,17 +118,6 @@ function Home() {
     }
   }, [user]);
 
-  // Easter egg: type "arsac" anywhere outside a field.
-  useEffect(() => {
-    let buffer = '';
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      buffer = (buffer + e.key).slice(-5).toLowerCase();
-      if (buffer === 'arsac') setEasterEggActive(true);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   const handleAction = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -195,16 +183,6 @@ function Home() {
     // Locked to one screen only when the window is big enough to hold it all;
     // a narrow or short window (split screen) scrolls normally.
     <main className="bg-transparent min-h-screen flex flex-col relative fit:h-[100dvh] fit:min-h-0 fit:overflow-hidden">
-      {easterEggActive && (
-        <div className="fixed inset-0 z-[9999] pointer-events-none">
-          <div
-            className="absolute bottom-4 left-4 animate-in slide-in-from-bottom-full duration-500 fade-in pointer-events-auto cursor-pointer"
-            onClick={() => setEasterEggActive(false)}
-          >
-            <Image src="/easteregg.png" alt="Easter Egg" width={192} height={192} className="w-48 h-auto drop-shadow-2xl" draggable={false} priority />
-          </div>
-        </div>
-      )}
 
       {/* TOP BAR */}
       <header className="px-4 sm:px-6 pt-4">

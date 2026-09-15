@@ -71,6 +71,46 @@
       "type": "amelioration",
       "title": "Couper le son sur ordinateur",
       "details": "Sur PC, un bouton à côté du Guide coupe ou remet le son de la Pêche."
+    },
+    {
+      "id": "2026-09-15-10",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "nouveau",
+      "title": "Page 404 aux couleurs du site",
+      "details": "Une adresse qui n'existe pas affiche maintenant une vraie page avec des boutons pour revenir à l'accueil, au Casino ou à la Pêche."
+    },
+    {
+      "id": "2026-09-15-11",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Titres de page et aperçu des liens",
+      "details": "Chaque page a son propre titre dans l'onglet, et un lien partagé sur Discord, WhatsApp ou ailleurs affiche une image d'aperçu du site."
+    },
+    {
+      "id": "2026-09-15-12",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Pages plus légères",
+      "details": "Le logo et les images du site ont été compressés : l'accueil se charge plus vite, surtout sur téléphone."
+    },
+    {
+      "id": "2026-09-15-13",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "correctif",
+      "title": "Connexion toujours sécurisée",
+      "details": "Une adresse en http:// redirige maintenant automatiquement vers la version sécurisée https:// du site."
+    },
+    {
+      "id": "2026-09-15-14",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Protection anti-spam",
+      "details": "Le chat, les cadeaux, les duels, les changements de pseudo, les codes de parrainage et la création de compte sont limités pour empêcher le spam."
     }
   ]
 }

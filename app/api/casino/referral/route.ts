@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { referralState, applyReferralCode, claimReferral } from '@/lib/casino/social.server';
+import { allow } from '@/lib/rateLimit';
 
 export async function GET(request: Request) {
   try {
@@ -19,6 +20,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     const userId: string = body?.user_id;
     if (!userId) return NextResponse.json({ error: 'user_id requis' }, { status: 400 });
+
+    // Anti-spam: guessing referral codes one after another.
+    if (body?.action !== 'claim' && !(await allow(`referral-code:${userId}`, 10, 60 * 60))) {
+      return NextResponse.json({ error: 'Trop d’essais de code, réessaie dans une heure.' }, { status: 429 });
+    }
 
     const result = body?.action === 'claim'
       ? await claimReferral(userId)

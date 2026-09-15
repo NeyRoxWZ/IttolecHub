@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { giftsFor, sendGift } from '@/lib/casino/social.server';
 import { nudgeCommunity } from '@/lib/casino/community.server';
+import { allow } from '@/lib/rateLimit';
 
 export async function GET(request: Request) {
   try {
@@ -18,6 +19,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const userId: string = body?.user_id;
     if (!userId) return NextResponse.json({ error: 'user_id requis' }, { status: 400 });
+    // Anti-spam: gifts carry a message another player receives.
+    if (!(await allow(`gift:${userId}`, 20, 10 * 60))) {
+      return NextResponse.json({ error: 'Trop de cadeaux envoyés, réessaie dans quelques minutes.' }, { status: 429 });
+    }
 
     const result = await sendGift(
       userId,

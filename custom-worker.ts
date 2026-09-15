@@ -14,7 +14,16 @@ type Env = { CRON_SECRET?: string };
 type Ctx = { waitUntil(promise: Promise<unknown>): void; passThroughOnException(): void };
 
 export default {
-  fetch: handler.fetch,
+  // Plain http is sent to https before anything else runs. HSTS (next.config.js)
+  // only protects browsers that already came once over https.
+  fetch(request: Request, env: unknown, ctx: Ctx) {
+    const url = new URL(request.url);
+    if (url.protocol === 'http:' && url.hostname !== 'localhost') {
+      url.protocol = 'https:';
+      return Response.redirect(url.toString(), 301);
+    }
+    return handler.fetch(request, env, ctx);
+  },
 
   async scheduled(event: { cron: string }, env: Env, ctx: Ctx) {
     if (!env.CRON_SECRET) {

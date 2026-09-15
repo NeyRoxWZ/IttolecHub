@@ -7,7 +7,8 @@ import PatchNotesModal from '@/components/PatchNotesModal';
  * that opens straight on the game instead of on the hub.
  */
 export const metadata: Metadata = {
-  title: 'Pêche — IttolecHub',
+  title: 'Pêche',
+  description: 'Pêche des centaines d’espèces, améliore ton matériel, remplis ton Poissodex et enchaîne les Marées. Gratuit, en bêta.',
   manifest: '/manifest-peche.json',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Pêche' },
   icons: { apple: [{ url: '/api/pwa-icon/peche?size=180&v=2', sizes: '180x180', type: 'image/png' }] },
