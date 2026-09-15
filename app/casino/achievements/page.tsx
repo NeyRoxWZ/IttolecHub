@@ -83,7 +83,7 @@ export default function AchievementsPage() {
               />
             </div>
           </div>
-          <CasinoControls className="ml-auto" />
+          <CasinoControls className="ml-auto hidden lg:flex" />
         </header>
 
         {!user && <p className="text-tx-secondary mb-4">Connecte-toi pour suivre tes succès.</p>}

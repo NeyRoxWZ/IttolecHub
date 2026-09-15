@@ -231,7 +231,7 @@ export default function FrenlyPassPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div
               className="h-11 flex items-center gap-2 px-3 rounded-xl border-[3px] border-brand-border bg-brand-inner"
               title={resetIn > 0 ? `Nouveau pass le ${resetDateLabel(resetIn)}` : 'Reset du passe'}
@@ -246,7 +246,8 @@ export default function FrenlyPassPage() {
                 )}
               </div>
             </div>
-            <CasinoControls />
+            {/* On phones the settings live in the tab bar's "Plus". */}
+            <CasinoControls className="hidden lg:flex" />
 
             <BalanceChip balance={balance} isLoaded={isLoaded} />
           </div>

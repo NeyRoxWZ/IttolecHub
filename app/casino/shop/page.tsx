@@ -191,9 +191,10 @@ export default function CasinoShop() {
           <div className="flex items-center gap-2">
             <div className="h-11 flex items-center gap-2 px-3 rounded-xl border-[3px] border-brand-border bg-brand-inner" title="Prochaine rotation des objets du jour">
               <Clock className="h-4 w-4 text-accent-primary" />
-              <span className="font-display text-lg tabular-nums">{formatCountdown(resetIn)}</span>
+              <span className="font-display text-base sm:text-lg tabular-nums whitespace-nowrap">{formatCountdown(resetIn)}</span>
             </div>
-            <CasinoControls />
+            {/* On phones the settings live in the tab bar's "Plus". */}
+            <CasinoControls className="hidden lg:flex" />
 
             <BalanceChip balance={balance} isLoaded={isLoaded} />
           </div>

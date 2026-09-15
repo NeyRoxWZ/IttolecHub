@@ -69,7 +69,7 @@ export default function LeaderboardPage() {
             <h1 className="font-display text-3xl sm:text-4xl leading-none">Classement</h1>
             <p className="text-[11px] text-tx-muted mt-1">Clique sur un joueur pour voir sa courbe.</p>
           </div>
-          <CasinoControls className="ml-auto" />
+          <CasinoControls className="ml-auto hidden lg:flex" />
         </header>
 
         <div className="grid grid-cols-2 gap-2 mb-6">

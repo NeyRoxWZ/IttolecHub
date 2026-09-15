@@ -245,6 +245,10 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* The page only ever scrolls up and down. `clip`, not `hidden`: it creates no
+   scroll container, so sticky headers keep working. */
+html, body { overflow-x: clip; }
+
 /*
  * The solo games' bottom tab bar (components/AppTabBar) sets `has-tabbar`
  * while it is mounted; below lg its height is reserved here so floating

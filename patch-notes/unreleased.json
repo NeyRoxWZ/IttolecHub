@@ -31,6 +31,46 @@
       "type": "correctif",
       "title": "Badge Fondateur entier partout",
       "details": "Les étoiles et le halo du badge Fondateur ne sont plus coupés dans les jeux, les listes et les classements."
+    },
+    {
+      "id": "2026-09-15-05",
+      "date": "2026-09-15",
+      "scope": "casino",
+      "type": "amelioration",
+      "title": "Missions en page sur téléphone",
+      "details": "Dans la barre du bas, Missions ouvre maintenant une vraie page, comme le Pass et la Boutique."
+    },
+    {
+      "id": "2026-09-15-06",
+      "date": "2026-09-15",
+      "scope": "casino",
+      "type": "correctif",
+      "title": "Plus de défilement sur le côté sur téléphone",
+      "details": "La Boutique, le Pass, En direct et le Classement tiennent dans la largeur de l'écran ; les réglages sont dans « Plus »."
+    },
+    {
+      "id": "2026-09-15-07",
+      "date": "2026-09-15",
+      "scope": "peche",
+      "type": "nouveau",
+      "title": "Tout récupérer dans le Pass",
+      "details": "Un bouton en haut du Pass récupère d'un coup tous les paliers atteints, sur la voie gratuite et la voie premium."
+    },
+    {
+      "id": "2026-09-15-08",
+      "date": "2026-09-15",
+      "scope": "peche",
+      "type": "amelioration",
+      "title": "Couper le son depuis « Plus »",
+      "details": "Sur téléphone, « Plus » a maintenant un réglage pour couper ou remettre le son."
+    },
+    {
+      "id": "2026-09-15-09",
+      "date": "2026-09-15",
+      "scope": "peche",
+      "type": "correctif",
+      "title": "Plus de défilement sur le côté sur téléphone",
+      "details": "Le Pass, l'Aquarium, la Boutique et les autres écrans restent dans la largeur de l'écran."
     }
   ]
 }

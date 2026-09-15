@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import {
-  autoFish, buyItem, buyPack, buyPassPremium, buyTree, cast, claimAchievement, claimBoss, claimChest, claimMission, claimPassTier,
+  autoFish, buyItem, buyPack, buyPassPremium, buyTree, cast, claimAchievement, claimAllPass, claimBoss, claimChest, claimMission, claimPassTier,
   communityFor, deliverOrder, setAquarium, equip, openPack, playerCard, prestige, reel, seeRecap, sell, stateFor, travel, upgrade,
 } from '@/lib/peche/server';
 import type { CosmeticSlot, GearId, TreeId } from '@/lib/peche/data';
@@ -62,6 +62,7 @@ export async function POST(request: Request) {
       case 'achievement': out = await claimAchievement(userId, String(body?.id || '')); break;
       case 'pass': out = await claimPassTier(userId, Number(body?.tier), body?.track === 'premium' ? 'premium' : 'free'); break;
       case 'pass_premium': out = await buyPassPremium(userId); break;
+      case 'pass_all': out = await claimAllPass(userId); break;
       case 'recap_seen': out = await seeRecap(userId); break;
       case 'boss': out = await claimBoss(userId); break;
       case 'aquarium': out = await setAquarium(userId, body?.fish); break;

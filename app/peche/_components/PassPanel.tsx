@@ -1,7 +1,7 @@
 'use client';
 
 import { toast } from 'sonner';
-import { Check, Crown, Lock, Package, Sparkles, Trophy } from 'lucide-react';
+import { Check, Crown, Gift, Lock, Package, Sparkles, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BRAWL } from '@/lib/ui/brawl';
 import { sfx } from '@/lib/casino/sfx';
@@ -34,8 +34,24 @@ export function PassPanel({ state, api }: { state: PecheState; api: Api }) {
     if (r) { sfx.coin(); toast.success(r.cosmeticId ? `Palier ${tier} : cosmétique exclusif débloqué !` : `Palier ${tier} récupéré`); }
   };
 
+  const ready = p.tiers.filter((t) => t.tier <= p.tier && (!p.claimed.includes(t.tier) || (p.premium && !p.claimedPremium.includes(t.tier)))).length;
+  const claimAll = async () => {
+    const r = await api('pass_all');
+    if (!r) return;
+    sfx.jackpot();
+    const parts = [`+${fmtBig(r.coins)} ₶`, r.packs ? `${r.packs} coffre${r.packs > 1 ? 's' : ''}` : '', r.perles ? `${r.perles} Perles` : ''].filter(Boolean);
+    toast.success(`${r.tiers} récompense${r.tiers > 1 ? 's' : ''} récupérée${r.tiers > 1 ? 's' : ''}`, {
+      description: `${parts.join(', ')}${r.cosmetics.length ? ` et ${r.cosmetics.length} cosmétique${r.cosmetics.length > 1 ? 's' : ''} exclusif${r.cosmetics.length > 1 ? 's' : ''}` : ''}`,
+    });
+  };
+
   return (
     <div className="space-y-3">
+      {ready > 0 && (
+        <button onClick={claimAll} className={cn(BRAWL.green, 'w-full h-14 text-xl')}>
+          <Gift className="h-6 w-6" /> Tout récupérer · {ready} palier{ready > 1 ? 's' : ''}
+        </button>
+      )}
       <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3">
         <div className="flex items-center justify-between">
           <div className="font-display text-xl">Pass de {monthName} · palier {p.tier}/{p.tiers.length}</div>
@@ -64,7 +80,7 @@ export function PassPanel({ state, api }: { state: PecheState; api: Api }) {
         )}
       </div>
 
-      <div className="grid grid-cols-[44px_1fr_1fr] gap-1.5 text-xs font-black text-tx-secondary px-1">
+      <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 text-xs font-black text-tx-secondary px-1">
         <span />
         <span>Gratuit</span>
         <span className="text-[#C9A3FF]">Premium</span>
@@ -75,15 +91,16 @@ export function PassPanel({ state, api }: { state: PecheState; api: Api }) {
           const freeTaken = p.claimed.includes(t.tier);
           const premTaken = p.claimedPremium.includes(t.tier);
           return (
-            <div key={t.tier} className={cn('grid grid-cols-[44px_1fr_1fr] gap-1.5 items-stretch', !reached && 'opacity-70')}>
+            <div key={t.tier} className={cn('grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 items-stretch', !reached && 'opacity-70')}>
               <span className={cn('rounded-lg border-2 border-brand-border flex items-center justify-center font-display text-lg', reached ? 'bg-accent-primary text-brand-bg' : 'bg-brand-bg text-tx-secondary')}>{t.tier}</span>
-              <div className={cn('rounded-xl border-2 border-brand-border px-2 py-1.5 flex items-center justify-between gap-1', reached && !freeTaken ? 'bg-[#3A3A20]' : 'bg-brand-card')}>
+              {/* Rewards and the button wrap onto two lines when the column is narrow, instead of pushing the page sideways. */}
+              <div className={cn('rounded-xl border-2 border-brand-border px-2 py-1.5 flex flex-wrap items-center justify-between gap-1', reached && !freeTaken ? 'bg-[#3A3A20]' : 'bg-brand-card')}>
                 <Rewards coins={t.coins} packs={t.packs} perles={t.perles} />
                 {freeTaken ? <Check className="h-4 w-4 text-accent-success shrink-0" strokeWidth={3} /> : reached ? (
                   <button onClick={() => claim(t.tier, 'free')} className={cn(BRAWL.green, 'h-8 px-2 text-xs shrink-0')}>Prendre</button>
                 ) : <Lock className="h-3.5 w-3.5 shrink-0" />}
               </div>
-              <div className={cn('rounded-xl border-2 border-brand-border px-2 py-1.5 flex items-center justify-between gap-1', p.premium && reached && !premTaken ? 'bg-[#4A2A6A]' : 'bg-[#1E1A40]')}>
+              <div className={cn('rounded-xl border-2 border-brand-border px-2 py-1.5 flex flex-wrap items-center justify-between gap-1', p.premium && reached && !premTaken ? 'bg-[#4A2A6A]' : 'bg-[#1E1A40]')}>
                 <Rewards {...t.premiumReward} />
                 {premTaken ? <Check className="h-4 w-4 text-accent-success shrink-0" strokeWidth={3} /> : p.premium && reached ? (
                   <button onClick={() => claim(t.tier, 'premium')} className={cn(BRAWL.green, 'h-8 px-2 text-xs shrink-0')}>Prendre</button>

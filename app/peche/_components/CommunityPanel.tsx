@@ -74,7 +74,7 @@ export default function CommunityPanel({
                 <span className="h-3 w-3 rounded-full bg-accent-success border-2 border-brand-border" />
                 <span className="flex-1 min-w-0 truncate font-display text-lg"><OgName name={p.pseudo} /></span>
                 <span className={cn('px-1.5 rounded-md border-2 border-brand-border text-xs font-black', p.mode === 'public' ? 'bg-accent-info text-white' : 'bg-brand-bg text-tx-secondary')}>{p.mode === 'public' ? 'Port public' : 'Solo'}</span>
-                <span className="text-xs font-bold text-tx-secondary">{zoneInfo(p.zone).name}</span>
+                <span className="hidden sm:inline text-xs font-bold text-tx-secondary">{zoneInfo(p.zone).name}</span>
                 <span className="px-1.5 rounded-md border-2 border-brand-border text-xs font-black" style={{ background: b.fill, color: b.text }}>M{p.maree}</span>
               </button>
             );
@@ -123,7 +123,7 @@ export default function CommunityPanel({
         <button
           onClick={async () => { const r = await api('boss'); if (r) { sfx.jackpot(); toast.success(`+${fmtBig(r.coins)} ₶, ${r.packs} coffres et ${r.perles} Perles`); load(); } }}
           disabled={!boss.defeated || boss.mine.damage <= 0 || boss.mine.claimed}
-          className={cn(BRAWL.green, 'w-full h-12 text-lg')}
+          className={cn(BRAWL.green, 'w-full min-h-12 py-2 text-base sm:text-lg leading-tight')}
         >
           {boss.mine.claimed ? 'Récompense récupérée' : `Récompense : ${fmtBig(boss.reward.coins)} ₶ + ${boss.reward.packs} coffres + ${boss.reward.perles} Perles`}
         </button>

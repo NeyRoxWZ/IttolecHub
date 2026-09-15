@@ -57,6 +57,31 @@ export default function MissionsModal({
   onClose: () => void;
   onClaimed: () => void;
 }) {
+  return (
+    <div className="fixed inset-0 z-[200] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
+      <div
+        className="w-full max-w-md max-h-[88dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <h2 className="font-display text-3xl leading-none flex items-center gap-2">
+              <Target className="h-5 w-5 text-accent-primary" /> Missions
+            </h2>
+            <p className="text-xs font-bold text-tx-secondary mt-2">Trois horloges, trois listes.</p>
+          </div>
+          <button onClick={onClose} aria-label="Fermer" className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] active:translate-y-[2px] flex items-center justify-center focus:outline-none">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <MissionsBody missions={missions} onClaimed={onClaimed} />
+      </div>
+    </div>
+  );
+}
+
+/** The tabs and lists, shared by the modal (desktop hub) and the Missions page (phones). */
+export function MissionsBody({ missions, onClaimed }: { missions: MissionView[]; onClaimed: () => void }) {
   const { user } = useAuth();
   const [busy, setBusy] = useState<string | null>(null);
   const [tab, setTab] = useState<MissionScope | 'commun'>('jour');
@@ -92,23 +117,7 @@ export default function MissionsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-[#05061A]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose}>
-      <div
-        className="w-full max-w-md max-h-[88dvh] overflow-y-auto bg-brand-card border-4 border-brand-border rounded-[22px] p-6 shadow-[0_8px_0_#05061A] animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div>
-            <h2 className="font-display text-3xl leading-none flex items-center gap-2">
-              <Target className="h-5 w-5 text-accent-primary" /> Missions
-            </h2>
-            <p className="text-xs font-bold text-tx-secondary mt-2">Trois horloges, trois listes.</p>
-          </div>
-          <button onClick={onClose} aria-label="Fermer" className="h-11 w-11 shrink-0 rounded-xl border-[3px] border-brand-border bg-[#2B3170] text-white shadow-[inset_0_-4px_0_#1A1F52,0_3px_0_#05061A] active:translate-y-[2px] flex items-center justify-center focus:outline-none">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
+    <>
         {missions.length === 0 && (
           <p className="text-sm text-tx-secondary">Connecte-toi pour recevoir tes missions.</p>
         )}
@@ -225,7 +234,6 @@ export default function MissionsModal({
             )}
           </>
         )}
-      </div>
-    </div>
+    </>
   );
 }

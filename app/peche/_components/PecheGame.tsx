@@ -6,13 +6,13 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Anchor, BookOpen, Coins, Fish, Map as MapIcon, Sparkles, Waves, Wrench, Zap, Lock, Check, X,
   HelpCircle, ShoppingBag, Target, Gift, CloudRain, Sun, CloudFog, CloudLightning, Moon, Package, Trophy, Users, Fish as FishShoal,
-  Crown, Skull, Radio, Palette, Medal, Ship, User, LayoutGrid, LogOut,
+  Crown, Skull, Radio, Palette, Medal, Ship, User, LayoutGrid, LogOut, Volume2, VolumeX,
 } from 'lucide-react';
 import AppTabBar, { type TabBarItem } from '@/components/AppTabBar';
 import AppSheet, { SheetTile } from '@/components/AppSheet';
 import { cn } from '@/lib/utils';
 import { BRAWL, BRAWL_SWATCHES } from '@/lib/ui/brawl';
-import { sfx } from '@/lib/casino/sfx';
+import { sfx, isMuted, setMuted } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import {
   COSMETICS, COSMETIC_BY_ID, COSMETIC_SLOTS, DEPTH_START, GEAR, MATERIALS, MISSION_TEXT, RARITIES, SPECIES, TREE, VARIANTS,
@@ -281,7 +281,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
             <span className="tabular-nums">{fmtBig(state.balance)}</span>
           </span>
         </div>
-        <div className="mt-2 -mx-3 px-3 sm:-mx-6 sm:px-6 flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
           <div className="flex shrink-0 gap-0.5 rounded-xl border-[3px] border-brand-border bg-brand-bg p-0.5" role="radiogroup" aria-label="Mode de pêche">
             {MODES.map((m) => (
               <button key={m.id} role="radio" aria-checked={mode === m.id} onClick={() => switchMode(m.id)}
@@ -500,6 +500,13 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
             );
           })}
         </div>
+        <div className="mt-4 rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3 flex items-center justify-between gap-3">
+          <div className="leading-tight">
+            <div className="font-display text-base">Réglages</div>
+            <div className="text-[11px] font-bold text-tx-muted">son du jeu</div>
+          </div>
+          <SoundToggle />
+        </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button onClick={() => { setMore(false); setGuide(true); }} className={cn(BRAWL.dark, 'h-12 text-base')}>
             <HelpCircle className="h-4 w-4" /> Guide
@@ -514,6 +521,26 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
 }
 
 /* ------------------------------------------------------------------ */
+
+/** Sound on or off, shared with the casino (same setting). */
+function SoundToggle() {
+  const [muted, setMutedState] = useState(false);
+  // Read on mount only: localStorage is not available during the server render.
+  useEffect(() => { setMutedState(isMuted()); }, []);
+  const toggle = () => {
+    const next = !muted;
+    setMutedState(next);
+    setMuted(next);
+    if (!next) sfx.click();
+    vibrate(HAPTIC.SOFT);
+  };
+  return (
+    <button onClick={toggle} aria-label={muted ? 'Réactiver le son' : 'Couper le son'} className={cn(muted ? BRAWL.pink : BRAWL.dark, 'h-12 px-3 text-base shrink-0')}>
+      {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+      {muted ? 'Son coupé' : 'Son activé'}
+    </button>
+  );
+}
 
 /** A bar under the scene's top edge filling up to the auto rod's next catch. */
 function AutoProgress({ nextAt, interval }: { nextAt: number | null; interval: number }) {
@@ -623,7 +650,7 @@ function Materials({ materials }: { materials: Record<string, number> }) {
 function Box({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
   return (
     <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-3">
-      <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <div className="font-display text-xl">{title}</div>
         {right}
       </div>
@@ -696,8 +723,8 @@ function PechePanel({ state, api, autoFeed, mode }: { state: PecheState; api: Ap
               </div>
             );
           })}
-          <div className="flex items-center justify-between rounded-xl border-2 border-brand-border bg-brand-card px-3 py-1.5">
-            <span className="font-display text-base">Marée haute : {zoneInfo(state.market.zone).name}</span>
+          <div className="flex items-center justify-between gap-2 rounded-xl border-2 border-brand-border bg-brand-card px-3 py-1.5">
+            <span className="font-display text-base min-w-0">Marée haute : {zoneInfo(state.market.zone).name}</span>
             <span className="px-2 py-0.5 rounded-lg border-2 border-brand-border bg-accent-info text-white font-display">×{state.market.zoneMult}</span>
           </div>
         </div>
@@ -811,7 +838,7 @@ function ShopPanel({ state, api, onOpen }: { state: PecheState; api: Api; onOpen
           {state.shop.items.map((it) => (
             <div key={it.id} className={cn('rounded-xl border-2 border-brand-border px-2.5 py-2 flex items-center gap-2', it.promo ? 'bg-[#3A2150]' : 'bg-brand-card')}>
               <div className="min-w-0 flex-1">
-                <div className="font-display text-base leading-tight flex items-center gap-1.5">
+                <div className="font-display text-base leading-tight flex flex-wrap items-center gap-1.5">
                   {it.label}
                   {it.promo && <span className="px-1.5 rounded-md bg-accent-secondary text-white border-2 border-brand-border text-xs">Promo −{Math.round(state.shop.promoDiscount * 100)} %</span>}
                 </div>
@@ -1039,7 +1066,7 @@ function MareesPanel({ state, api }: { state: PecheState; api: Api }) {
         </button>
       </Box>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="font-display text-xl">Arbre des Marées</div>
         <span className="px-2.5 py-1 rounded-xl border-[3px] border-brand-border bg-[#9EE7FF] text-brand-bg font-display flex items-center gap-1">
           <Sparkles className="h-4 w-4" /> {fmtBig(state.perles)} Perles

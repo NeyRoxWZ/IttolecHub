@@ -29,7 +29,7 @@ const MORE = [
  * The bar shows on the hub and the casino's own pages. Inside a game it steps
  * aside, like any game app during a round: the game's header has its way back.
  */
-const WITH_BAR = new Set(['/casino', '/casino/pass', '/casino/shop', ...MORE.map((m) => m.href)]);
+const WITH_BAR = new Set(['/casino', '/casino/missions', '/casino/pass', '/casino/shop', ...MORE.map((m) => m.href)]);
 
 export default function CasinoTabBar() {
   const pathname = usePathname();
@@ -51,7 +51,7 @@ export default function CasinoTabBar() {
   const inMore = MORE.some((m) => m.href === pathname);
   const items: TabBarItem[] = [
     { id: 'jeux', label: 'Jeux', icon: Dices, active: pathname === '/casino' && !more, onSelect: () => go('/casino') },
-    { id: 'missions', label: 'Missions', icon: Target, badge: badges.missions, onSelect: () => open('missions') },
+    { id: 'missions', label: 'Missions', icon: Target, badge: badges.missions, active: pathname === '/casino/missions' && !more, onSelect: () => go('/casino/missions') },
     { id: 'pass', label: 'Pass', icon: Crown, badge: badges.pass, active: pathname === '/casino/pass' && !more, onSelect: () => go('/casino/pass') },
     { id: 'boutique', label: 'Boutique', icon: ShoppingBag, active: pathname === '/casino/shop' && !more, onSelect: () => go('/casino/shop') },
     { id: 'plus', label: 'Plus', icon: LayoutGrid, active: more || inMore, onSelect: () => { sfx.click(); setMore(true); } },

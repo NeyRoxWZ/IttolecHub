@@ -185,7 +185,7 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          <CasinoControls />
+          <CasinoControls className="hidden lg:flex" />
 
             <BalanceChip balance={balance} isLoaded={isLoaded} />
         </header>

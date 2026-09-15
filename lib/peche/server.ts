@@ -781,6 +781,42 @@ export function claimPassTier(userId: string, tier: number, track: 'free' | 'pre
   });
 }
 
+/** Every reached tier not taken yet, on the free track and on premium if bought: the pass's "Tout récupérer". */
+export function claimAllPass(userId: string) {
+  return mutate<{ tiers: number; coins: number; packs: number; perles: number; cosmetics: string[] }>(userId, (row) => {
+    const pass = row.pass as PassState;
+    const reached = Math.min(passLevel(pass.xp || 0).tier, PASS_TIERS);
+    const boat = boatOf(row);
+    const claimed = [...(pass.claimed || [])];
+    const claimedPremium = [...(pass.claimedPremium || [])];
+    const cosmetics = [...(row.cosmetics || [])];
+    const won: string[] = [];
+    let coins = 0, packs = 0, perles = 0, tiers = 0;
+    for (let tier = 1; tier <= reached; tier++) {
+      if (!claimed.includes(tier)) {
+        const r = passReward(tier, boat);
+        coins += r.coins; packs += r.packs; perles += r.perles;
+        claimed.push(tier); tiers++;
+      }
+      if (pass.premium && !claimedPremium.includes(tier)) {
+        const r = passPremiumReward(tier, boat);
+        coins += r.coins; packs += r.packs; perles += r.perles;
+        if (r.cosmeticId && !cosmetics.includes(r.cosmeticId)) { cosmetics.push(r.cosmeticId); won.push(r.cosmeticId); }
+        claimedPremium.push(tier); tiers++;
+      }
+    }
+    if (tiers === 0) return fail(400, 'Rien à récupérer.');
+    return {
+      patch: {
+        pass: { ...pass, claimed, claimedPremium },
+        balance: row.balance + coins, run_earned: row.run_earned + coins, lifetime_earned: row.lifetime_earned + coins,
+        packs: (row.packs || 0) + packs, perles: row.perles + perles, cosmetics,
+      },
+      result: { tiers, coins, packs, perles, cosmetics: won },
+    };
+  });
+}
+
 export function seeRecap(userId: string) {
   return mutate(userId, (row) => ({ patch: { recap_seen: row.last_week?.week || null }, result: { ok: true } }));
 }

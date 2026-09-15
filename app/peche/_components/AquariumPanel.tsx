@@ -103,9 +103,9 @@ export default function AquariumPanel({ state, api }: { state: PecheState; api: 
                 // One of each species: a fish already in another slot can't be picked again.
                 const usedElsewhere = picks.some((p, i) => p.speciesId === d.speciesId && i !== editing);
                 return (
-                <div key={d.speciesId} className={cn('flex items-center gap-2 rounded-xl border-2 border-brand-border bg-brand-card px-2 py-1', usedElsewhere && 'opacity-50')}>
+                <div key={d.speciesId} className={cn('flex flex-wrap items-center gap-1.5 rounded-xl border-2 border-brand-border bg-brand-card px-2 py-1', usedElsewhere && 'opacity-50')}>
                   <FishIcon speciesId={sp!.id} color={sp!.color} rarity={sp!.rarity} size={36} />
-                  <span className="flex-1 min-w-0 truncate font-display text-sm" style={{ color: RARITIES[sp!.rarity].color }}>{sp!.name}</span>
+                  <span className="flex-1 min-w-[40%] truncate font-display text-sm" style={{ color: RARITIES[sp!.rarity].color }}>{sp!.name}</span>
                   {usedElsewhere ? <span className="text-[11px] font-black text-tx-secondary">Déjà dedans</span> : (['', ...d.variants] as string[]).map((v) => (
                     <button key={v || 'normal'} onClick={() => place(editing, { speciesId: d.speciesId, variant: v })}
                       className={cn(BRAWL.dark, 'h-8 px-2 text-xs')}>
@@ -126,7 +126,7 @@ export default function AquariumPanel({ state, api }: { state: PecheState; api: 
         {AQUA_SLOTS.map((slot) => (
           <div key={slot} className="mb-2 last:mb-0">
             <div className="font-display text-base mb-1">{COSMETIC_SLOTS[slot]}</div>
-            <div className="grid grid-cols-6 gap-1.5">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(52px,1fr))] gap-1.5">
               {COSMETICS.filter((c) => c.slot === slot).map((c) => {
                 const has = owned.has(c.id);
                 const on = state.equipped[slot] === c.id;

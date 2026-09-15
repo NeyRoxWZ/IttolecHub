@@ -145,7 +145,8 @@ export default function LivePage() {
             {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
             {paused ? `REPRENDRE${bufferRef.current.length ? ` (${bufferRef.current.length})` : ''}` : 'PAUSE'}
           </button>
-          <CasinoControls />
+          {/* On phones the settings live in the tab bar's "Plus". */}
+          <CasinoControls className="hidden lg:flex" />
         </header>
 
         <div className="grid grid-cols-3 gap-2 mb-3">
@@ -170,7 +171,8 @@ export default function LivePage() {
             Rien pour l&apos;instant. La première mise apparaîtra ici.
           </p>
         ) : (
-          <div className="grid gap-2 lg:grid-cols-2 items-start">
+          // minmax(0, 1fr): a long line must shrink its truncated labels, not widen the column past the screen.
+          <div className="grid gap-2 grid-cols-[minmax(0,1fr)] lg:grid-cols-2 items-start">
             {rows.map((r) => {
               const win = r.amount > 0;
               return (
@@ -182,17 +184,17 @@ export default function LivePage() {
                     win ? 'border-accent-success/40 bg-accent-success/5' : 'border-brand-border bg-brand-card'
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                   <span className={cn('h-2 w-2 rounded-full shrink-0', win ? 'bg-accent-success' : 'bg-accent-secondary')} />
 
                   <button
                     onClick={() => { sfx.click(); setOpened(r.pseudo); }}
-                    className="font-black text-sm truncate max-w-[120px] hover:text-accent-primary focus:outline-none"
+                    className="font-black text-sm truncate min-w-0 max-w-[96px] sm:max-w-[120px] hover:text-accent-primary focus:outline-none"
                   >
                     <OgName name={r.pseudo} />
                   </button>
                   <span className="text-[11px] text-tx-muted shrink-0">sur</span>
-                  <span className="text-[11px] font-bold text-tx-secondary truncate">
+                  <span className="text-[11px] font-bold text-tx-secondary truncate min-w-0">
                     {GAME_LABELS[r.game_slug] || r.game_slug}
                   </span>
 
@@ -209,7 +211,7 @@ export default function LivePage() {
                     {win ? '+' : ''}{Number(r.amount).toLocaleString('en-US')} ₶
                   </span>
 
-                  <span className="text-[10px] font-bold text-tx-muted tabular-nums w-12 text-right shrink-0">
+                  <span className="text-[10px] font-bold text-tx-muted tabular-nums w-9 sm:w-12 text-right shrink-0">
                     {relativeTime(r.created_at, now)}
                   </span>
                   </div>
