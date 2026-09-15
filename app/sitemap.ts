@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { CASINO_GAMES } from '@/lib/casino/games';
+import { MULTIPLAYER_GAMES } from '@/lib/seo/multiplayerGames';
 
 const SITE = 'https://itollechub.com';
 
@@ -15,6 +16,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     page('/', 1, 'weekly'),
+    page('/jeux-multijoueur', 0.9, 'weekly'),
+    ...MULTIPLAYER_GAMES.map((g) => page(`/jeux-multijoueur/${g.slug}`, 0.8, 'monthly')),
+    page('/jeux-solo', 0.9, 'weekly'),
     page('/casino', 0.9, 'weekly'),
     page('/peche', 0.9, 'weekly'),
     ...CASINO_GAMES.map((g) => page(`/casino/${g.slug}`, 0.7, 'monthly')),

@@ -1,7 +1,7 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { use, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { LogOut, Menu, X, RotateCcw, Sparkles, ArrowRight, Users, User } from 'lucide-react';
@@ -43,19 +43,20 @@ const BTN_YELLOW = `${BTN} bg-accent-primary text-brand-bg shadow-[inset_0_-5px_
 const BTN_DARK = `${BTN} bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A]`;
 const BTN_PINK = `${BTN} bg-accent-secondary text-white shadow-[inset_0_-5px_0_#C92D63,0_4px_0_#05061A]`;
 
-// Reading the URL (?mode=) needs a Suspense boundary for the page to prerender.
-export default function HomePage() {
-  return (
-    <Suspense fallback={null}>
-      <Home />
-    </Suspense>
-  );
+/**
+ * The mode comes from the page's own search params, read on the server. It
+ * used to be read with useSearchParams behind an empty Suspense fallback, so
+ * the HTML sent to search engines held nothing but the title.
+ */
+export default function HomePage({ searchParams }: { searchParams: Promise<{ mode?: string | string[] }> }) {
+  const { mode } = use(searchParams);
+  const urlMode = mode === 'solo' || mode === 'multiplayer' ? mode : null;
+  return <Home urlMode={urlMode} />;
 }
 
-function Home() {
+function Home({ urlMode }: { urlMode: 'multiplayer' | 'solo' | null }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [mode, setMode] = useState<'multiplayer' | 'solo'>('multiplayer');
+  const [mode, setMode] = useState<'multiplayer' | 'solo'>(urlMode ?? 'multiplayer');
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
@@ -99,15 +100,14 @@ function Home() {
   };
 
   useEffect(() => {
-    const urlMode = searchParams.get('mode');
-    if (urlMode === 'solo' || urlMode === 'multiplayer') {
+    if (urlMode) {
       setMode(urlMode);
       sessionStorage.setItem('itollec_home_mode', urlMode);
       return;
     }
     const savedMode = sessionStorage.getItem('itollec_home_mode');
     if (savedMode === 'solo' || savedMode === 'multiplayer') setMode(savedMode);
-  }, [searchParams]);
+  }, [urlMode]);
 
   useEffect(() => {
     if (user) {
@@ -481,6 +481,8 @@ function Home() {
           </button>
           <Link href="/confidentialite" className="hover:text-white">Confidentialité</Link>
           <Link href="/patch-notes" className="hover:text-white">Patch notes</Link>
+          <Link href="/jeux-multijoueur" className="hover:text-white">Jeux multijoueur</Link>
+          <Link href="/jeux-solo" className="hover:text-white">Jeux solo</Link>
         </div>
       </footer>
     </main>

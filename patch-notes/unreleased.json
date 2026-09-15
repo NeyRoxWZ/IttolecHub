@@ -135,6 +135,14 @@
       "type": "amelioration",
       "title": "Une icône d'onglet par section",
       "details": "Le Casino, la Pêche et les jeux multijoueur ont chacun leur icône dans l'onglet du navigateur."
+    },
+    {
+      "id": "2026-09-15-18",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "nouveau",
+      "title": "Pages Jeux multijoueur et Jeux solo",
+      "details": "De nouvelles pages présentent chaque jeu multijoueur (règles, réglages, questions fréquentes) ainsi que le Casino et la Pêche, pour découvrir le site et trouver un jeu plus facilement."
     }
   ]
 }

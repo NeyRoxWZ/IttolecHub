@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 import { ToasterProvider } from '@/components/ToasterProvider'
 import { AuthProvider } from '@/hooks/useAuth'
 import EzoicRouteHandler from '@/components/EzoicRouteHandler'
+import JsonLd from '@/components/JsonLd'
 
 const DESCRIPTION = 'Casino en monnaie fictive, Pêche et mini-jeux multijoueurs gratuits à jouer entre potes, sur ordinateur et téléphone.';
 
@@ -83,6 +84,13 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-brand-bg text-tx-base font-body antialiased">
+        {/* Who the site is, for search engines (shown as the site name in results). */}
+        <JsonLd
+          data={[
+            { '@context': 'https://schema.org', '@type': 'WebSite', name: 'IttolecHub', alternateName: 'Itollec Hub', url: 'https://itollechub.com', inLanguage: 'fr' },
+            { '@context': 'https://schema.org', '@type': 'Organization', name: 'IttolecHub', url: 'https://itollechub.com', logo: 'https://itollechub.com/icons/icon-512x512.png' },
+          ]}
+        />
         <EzoicRouteHandler />
         <AuthProvider>
           <ThemeProvider>
