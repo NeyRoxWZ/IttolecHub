@@ -176,7 +176,8 @@ function Gauge({ left, right, value, onChange, target, zones: z, needles }: {
   };
 
   return (
-    <div ref={fit.ref} className="flex h-full min-h-0 w-full items-center justify-center">
+    <div ref={fit.ref} className="relative h-full min-h-0 w-full min-w-0 flex-1 self-stretch">
+      <div className="absolute inset-0 flex items-center justify-center">
       <svg
         ref={svg}
         viewBox="0 0 200 140"
@@ -216,6 +217,7 @@ function Gauge({ left, right, value, onChange, target, zones: z, needles }: {
           <div className="text-right font-display text-[8px] leading-tight text-white">{right}</div>
         </foreignObject>
       </svg>
+      </div>
     </div>
   );
 }

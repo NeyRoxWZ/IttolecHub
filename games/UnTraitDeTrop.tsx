@@ -263,7 +263,8 @@ function Board({ strokes, live, canDraw, color, onStroke, onLive }: {
   useEffect(() => { paint(); }, [fit.size.w, paint]);
 
   return (
-    <div ref={fit.ref} className="flex h-full min-h-0 w-full items-center justify-center">
+    <div ref={fit.ref} className="relative h-full min-h-0 w-full min-w-0 flex-1 self-stretch">
+    <div className="absolute inset-0 flex items-center justify-center">
     <canvas
       ref={ref}
       width={W}
@@ -289,6 +290,7 @@ function Board({ strokes, live, canDraw, color, onStroke, onLive }: {
       onPointerUp={finish}
       onPointerCancel={finish}
     />
+    </div>
     </div>
   );
 }

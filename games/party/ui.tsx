@@ -185,11 +185,15 @@ export function MediaFrame({ children, className }: { children: ReactNode; class
 /** A framed picture of a fixed shape, as large as the space allows (square flag, 3:2 flag…). */
 export function FitFrame({ ratio, children, className }: { ratio: number; children: ReactNode; className?: string }) {
   const fit = useFitBox(ratio);
+  // The measured box takes its size from the layout only: the picture sits in an
+  // absolute layer, so it can never push the box bigger and feed the measure again.
   return (
-    <div ref={fit.ref} className="flex h-full min-h-0 w-full items-center justify-center">
-      <MediaFrame className={cn(!fit.size.w && 'invisible', className)}>
-        <div style={{ width: fit.size.w || 1, height: fit.size.h || 1 }}>{children}</div>
-      </MediaFrame>
+    <div ref={fit.ref} className="relative h-full min-h-0 w-full min-w-0 flex-1 self-stretch">
+      <div className="absolute inset-0 flex items-center justify-center">
+        <MediaFrame className={cn(!fit.size.w && 'invisible', className)}>
+          <div style={{ width: fit.size.w || 1, height: fit.size.h || 1 }}>{children}</div>
+        </MediaFrame>
+      </div>
     </div>
   );
 }
@@ -437,7 +441,8 @@ export function ResultsScreen({ party, reveal, media, rows, onNext, nextLabel, o
       <Columns className={cn(media ? 'grid-rows-[auto_minmax(0,1fr)] lg:grid-rows-1' : '')}>
         <Column>
           {reveal}
-          {media && <div className="flex max-h-[26dvh] min-h-0 flex-1 items-center justify-center lg:max-h-none">{media}</div>}
+          {/* A set height on a phone: the column there is only as tall as its content. */}
+          {media && <div className="flex h-[24dvh] min-h-0 shrink-0 lg:h-auto lg:flex-1">{media}</div>}
         </Column>
         <Column>
           <RoundTable party={party} rows={rows} only={only} />
