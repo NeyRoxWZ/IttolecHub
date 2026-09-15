@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Radio, TrendingUp, TrendingDown, Pause, Play } from 'lucide-react';
 import { toast } from 'sonner';
+import { askToSignIn } from '@/lib/askToSignIn';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { sfx } from '@/lib/casino/sfx';
@@ -61,7 +62,7 @@ export default function LivePage() {
   }, [user]);
 
   const react = async (liveId: number, e: string) => {
-    if (!user) { toast.error('Connecte-toi pour réagir.'); return; }
+    if (!user) { askToSignIn('Réagir aux parties'); return; }
     sfx.click();
     // Optimistic: the tape moves fast and a round trip before the emoji
     // appears makes it feel like the tap missed.

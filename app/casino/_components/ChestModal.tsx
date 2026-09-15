@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
+import { askToSignIn } from '@/lib/askToSignIn';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { CHEST_LENGTH } from '@/lib/casino/events';
 import { crateById } from '@/lib/casino/crates';
@@ -52,7 +53,7 @@ export default function ChestModal({ onClose }: { onClose: () => void }) {
   if (!state) return null;
 
   const open = async () => {
-    if (!user) { toast.error('Connecte-toi pour ouvrir le coffre.'); return; }
+    if (!user) { onClose(); askToSignIn('Le coffre 7 jours'); return; }
     if (busy || state.claimedToday) return;
 
     setBusy(true);

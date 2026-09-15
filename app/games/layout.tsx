@@ -1,16 +1,13 @@
 import type { Metadata } from 'next';
 
+/** Every multiplayer game shares the multiplayer tab icon. */
 export const metadata: Metadata = {
-  title: 'Salon',
-  // A personal or one-off page: nothing for search engines to list.
-  robots: { index: false, follow: false },
-  // The multiplayer tab icon, same as the games.
   icons: {
     icon: [{ url: '/api/pwa-icon/multi?size=192&v=1', sizes: '192x192', type: 'image/png' }],
     apple: [{ url: '/api/pwa-icon/multi?size=180&v=1', sizes: '180x180', type: 'image/png' }],
   },
 };
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function GamesLayout({ children }: { children: React.ReactNode }) {
   return children;
 }

@@ -10,6 +10,7 @@ import { BRAWL } from '@/lib/ui/brawl';
 import { sfx } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
+import { askToSignIn } from '@/lib/askToSignIn';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import {
   cosmeticById, gameLabel, gameTheme, RARITY_COLOR, RARITY_LABEL, type Cosmetic,
@@ -126,7 +127,7 @@ export default function FrenlyPassPage() {
   };
 
   const buyPremium = async () => {
-    if (!user) { toast.error('Connecte-toi pour débloquer la voie premium.'); return; }
+    if (!user) { askToSignIn('La voie premium du pass'); return; }
     if (buying || state.premium) return;
     if (balance < premiumPrice) { toast.error('Solde insuffisant'); return; }
 
@@ -154,7 +155,8 @@ export default function FrenlyPassPage() {
   };
 
   const claimTier = async (tier: number, track: 'free' | 'premium') => {
-    if (!user || claiming) return;
+    if (!user) { askToSignIn('Les récompenses du pass'); return; }
+    if (claiming) return;
     setClaiming(true);
     vibrate(HAPTIC.MEDIUM);
     try {
@@ -182,7 +184,8 @@ export default function FrenlyPassPage() {
   };
 
   const claimAll = async () => {
-    if (!user || claiming || claimable === 0) return;
+    if (!user) { askToSignIn('Les récompenses du pass'); return; }
+    if (claiming || claimable === 0) return;
     setClaiming(true);
     vibrate(HAPTIC.MEDIUM);
     try {

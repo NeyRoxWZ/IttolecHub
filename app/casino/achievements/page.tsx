@@ -6,6 +6,7 @@ import { ArrowLeft, Award, Lock, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
 import { useAuth } from '@/hooks/useAuth';
+import NeedsAccountCard from '@/components/NeedsAccountCard';
 import { ACHIEVEMENT_CATEGORIES, type AchievementCategory } from '@/lib/casino/meta';
 import CasinoControls from '../_components/CasinoControls';
 
@@ -86,7 +87,14 @@ export default function AchievementsPage() {
           <CasinoControls className="ml-auto hidden lg:flex" />
         </header>
 
-        {!user && <p className="text-tx-secondary mb-4">Connecte-toi pour suivre tes succès.</p>}
+        {!user && (
+          <NeedsAccountCard
+            className="mb-4"
+            title="Débloque des succès"
+            text="Chaque succès rapporte des points et des ₶. Connecte-toi pour qu’ils comptent."
+            reason="Les succès"
+          />
+        )}
 
         <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
           {([{ id: 'tous' as const, label: 'Tous' }, ...ACHIEVEMENT_CATEGORIES]).map((c) => {

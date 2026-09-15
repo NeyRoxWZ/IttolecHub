@@ -45,6 +45,19 @@ const GAMES: Record<string, { bg: string; shade: string; art: string }> = {
       <circle cx="180" cy="344" r="7" fill="${INK}"/>
     `,
   },
+  // Multiplayer: two players side by side, the one in front bigger.
+  multi: {
+    bg: '#33D17A',
+    shade: '#1E9A55',
+    art: `
+      <circle cx="318" cy="186" r="52" fill="#5B8CFF" stroke="${INK}" stroke-width="12"/>
+      <path d="M232 372 Q 232 270 318 270 Q 404 270 404 372 Z" fill="#5B8CFF" stroke="${INK}" stroke-width="12" stroke-linejoin="round"/>
+      <circle cx="206" cy="212" r="62" fill="#FFC61A" stroke="${INK}" stroke-width="12"/>
+      <path d="M102 392 Q 102 290 206 290 Q 310 290 310 392 Z" fill="#FFC61A" stroke="${INK}" stroke-width="12" stroke-linejoin="round"/>
+      <circle cx="186" cy="206" r="8" fill="${INK}"/>
+      <circle cx="226" cy="206" r="8" fill="${INK}"/>
+    `,
+  },
 };
 
 export async function GET(req: Request, context: { params: Promise<{ game: string }> }) {

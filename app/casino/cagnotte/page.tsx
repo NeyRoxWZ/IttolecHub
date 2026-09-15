@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
+import { askToSignIn } from '@/lib/askToSignIn';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import {
   SYNDICATE_DURATIONS, SYNDICATE_MIN_PLAYERS, SYNDICATE_MAX_PLAYERS,
@@ -98,7 +99,7 @@ export default function CagnottePage() {
   }, [running, syn?.status, state?.you?.payout, refresh]);
 
   const post = async (body: Record<string, unknown>) => {
-    if (!user) { toast.error('Connecte-toi.'); return null; }
+    if (!user) { askToSignIn('La cagnotte de groupe'); return null; }
     setBusy(true);
     try {
       const res = await fetch('/api/casino/syndicate', {

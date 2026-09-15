@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
+import { askToSignIn } from '@/lib/askToSignIn';
+import NeedsAccountCard from '@/components/NeedsAccountCard';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { supabase } from '@/lib/supabase/client';
 import {
@@ -122,7 +124,7 @@ function Duels({ user, balance, setBalance, refresh }: any) {
   }, [load]);
 
   const post = async (body: any) => {
-    if (!user) { toast.error('Connecte-toi.'); return null; }
+    if (!user) { askToSignIn('Entre potes'); return null; }
     setBusy(true);
     try {
       const res = await fetch('/api/casino/duel', {
@@ -380,7 +382,7 @@ function Cadeaux({ user, balance, setBalance }: any) {
 
         <button
           onClick={async () => {
-            if (!user) { toast.error('Connecte-toi.'); return; }
+            if (!user) { askToSignIn('Entre potes'); return; }
             setBusy(true);
             try {
               const res = await fetch('/api/casino/gifts', {
@@ -573,7 +575,7 @@ function Chat({ user }: any) {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages.length]);
 
   const send = async () => {
-    if (!user) { toast.error('Connecte-toi.'); return; }
+    if (!user) { askToSignIn('Entre potes'); return; }
     const text = body.trim();
     if (!text) return;
     setBusy(true);
@@ -632,10 +634,10 @@ function Skeleton() {
  */
 function NeedsAccount({ what }: { what: string }) {
   return (
-    <div className="rounded-2xl border-[3px] border-brand-border bg-brand-card p-6 text-center">
-      <p className="text-sm text-tx-secondary">
-        Connecte-toi pour {what}.
-      </p>
-    </div>
+    <NeedsAccountCard
+      title="Un compte pour jouer entre potes"
+      text={`Connecte-toi pour ${what}. Le chat reste ouvert à tous.`}
+      reason="Entre potes"
+    />
   );
 }

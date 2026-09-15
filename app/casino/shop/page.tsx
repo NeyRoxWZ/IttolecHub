@@ -7,6 +7,7 @@ import {
   Clock, Package, Plus, Minus,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { askToSignIn } from '@/lib/askToSignIn';
 import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
@@ -102,7 +103,7 @@ export default function CasinoShop() {
   }, [resetIn, loadShop]);
 
   const buy = async (id: string, name: string, price: number, once = false) => {
-    if (!user) { toast.error('Connecte-toi pour acheter.'); return; }
+    if (!user) { askToSignIn('La boutique'); return; }
     if (busy) return;
     if (once && purchased.includes(id)) return;
     const quantity = once ? 1 : (qty[id] || 1);

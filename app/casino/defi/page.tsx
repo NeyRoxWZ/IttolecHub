@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Target, Trophy, Clock, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { askToSignIn } from '@/lib/askToSignIn';
 import { cn } from '@/lib/utils';
 import { sfx } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
@@ -50,7 +51,7 @@ export default function DefiPage() {
   }, []);
 
   const post = async (body: any) => {
-    if (!user) { toast.error('Connecte-toi.'); return null; }
+    if (!user) { askToSignIn('Le défi du jour'); return null; }
     setBusy(true);
     try {
       const res = await fetch('/api/casino/challenge', {

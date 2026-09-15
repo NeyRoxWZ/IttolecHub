@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { MISSION_SCOPES, SCOPE_LABEL, SCOPE_HINT, type MissionScope } from '@/lib/casino/missions';
 import CommunityQuestPanel, { useCommunity } from './CommunityQuest';
 import { celebrate } from '@/lib/casino/celebrate';
+import { askToSignIn } from '@/lib/askToSignIn';
 
 export interface MissionView {
   scope: MissionScope;
@@ -119,7 +120,12 @@ export function MissionsBody({ missions, onClaimed }: { missions: MissionView[];
   return (
     <>
         {missions.length === 0 && (
-          <p className="text-sm text-tx-secondary">Connecte-toi pour recevoir tes missions.</p>
+          <div className="rounded-2xl border-[3px] border-brand-border bg-brand-inner p-4 text-center">
+            <p className="text-sm font-bold text-tx-secondary">Les missions demandent un compte : elles se remplissent pendant que tu joues et donnent des ₶ et de l’XP.</p>
+            <button onClick={() => askToSignIn('Les missions')} className="mt-3 h-11 px-4 rounded-xl border-[3px] border-brand-border bg-accent-primary text-brand-bg font-display text-base shadow-[inset_0_-4px_0_#D98E00,0_3px_0_#05061A] active:translate-y-[2px]">
+              Se connecter
+            </button>
+          </div>
         )}
 
         {missions.length > 0 && (

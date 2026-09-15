@@ -26,6 +26,7 @@ import OnboardingModal from './_components/OnboardingModal';
 import PrestigeModal from './_components/PrestigeModal';
 import CasinoRail, { type Claim, type MenuEntry } from './_components/CasinoRail';
 import { CASINO_OPEN_EVENT, setNavBadges } from '@/lib/casino/appNav';
+import { askToSignIn } from '@/lib/askToSignIn';
 import CasinoControls from './_components/CasinoControls';
 import ActiveEffectsBar from './_components/ActiveEffectsBar';
 import ChestModal, { useChest } from './_components/ChestModal';
@@ -212,7 +213,7 @@ export default function CasinoHub() {
   }, [router]);
 
   const handleClaimCashback = async () => {
-    if (!user) { toast.error('Connecte-toi pour récupérer ton cashback.'); return; }
+    if (!user) { askToSignIn('Le cashback'); return; }
     if (claimingCashback || !cashback?.available) return;
     setClaimingCashback(true); vibrate(HAPTIC.MEDIUM);
     const res = await fetch('/api/casino/cashback/claim', {
@@ -236,7 +237,7 @@ export default function CasinoHub() {
 
   const handleClaimDaily = async () => {
     if (claimingDaily || stats.dailyClaimedToday) return;
-    if (!user) { toast.error('Connecte-toi pour réclamer ton bonus quotidien.'); return; }
+    if (!user) { askToSignIn('Le bonus du jour'); return; }
     setClaimingDaily(true); vibrate(HAPTIC.MEDIUM);
     const result = await claimDaily();
     setClaimingDaily(false);
@@ -249,6 +250,7 @@ export default function CasinoHub() {
   };
 
   const handlePrestige = async () => {
+    if (!user) { setShowPrestige(false); askToSignIn('Le prestige'); return; }
     if (prestiging) return;
     setPrestiging(true); vibrate(HAPTIC.MEDIUM);
     const result = await prestige();
@@ -265,7 +267,7 @@ export default function CasinoHub() {
     {
       label: 'Missions', icon: Target, pending: claimable,
       hint: `${missions.filter((m) => m.claimed).length}/${missions.length || 10} faites`,
-      onSelect: () => { sfx.click(); setShowMissions(true); },
+      onSelect: () => { if (!user) { askToSignIn('Les missions'); return; } sfx.click(); setShowMissions(true); },
     },
     {
       label: 'Frenly Pass', icon: Crown, pending: passClaimable,
@@ -322,14 +324,14 @@ export default function CasinoHub() {
       ready: !stats.wheelClaimedToday,
       readyHint: 'jusqu’à 10 000 ₶',
       waitLabel: formatWait(dailyResetIn),
-      onClick: () => { sfx.click(); setShowWheel(true); },
+      onClick: () => { if (!user) { askToSignIn('La roue gratuite'); return; } sfx.click(); setShowWheel(true); },
     },
     {
       label: 'Coffre 7 jours', icon: Gift,
       ready: !chest?.claimedToday,
       readyHint: chest?.next ? `case ${chest.next}/7` : '7 jours de cadeaux',
       waitLabel: chest?.day ? `${chest.day} j d'affilée` : formatWait(dailyResetIn),
-      onClick: () => { sfx.click(); setShowChest(true); },
+      onClick: () => { if (!user) { askToSignIn('Le coffre 7 jours'); return; } sfx.click(); setShowChest(true); },
     },
     {
       label: 'Cashback', icon: Banknote,

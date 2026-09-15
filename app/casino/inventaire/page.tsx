@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { sfx, previewPack } from '@/lib/casino/sfx';
 import { vibrate, HAPTIC } from '@/lib/haptic';
 import { useAuth } from '@/hooks/useAuth';
+import NeedsAccountCard from '@/components/NeedsAccountCard';
 import { useCasinoWallet } from '@/hooks/useCasinoWallet';
 import { refreshCosmetics } from '@/hooks/useGameCosmetics';
 import { refreshActiveEffects } from '@/hooks/useActiveEffects';
@@ -225,7 +226,13 @@ export default function InventoryPage() {
           </div>
         </div>
 
-        {!user && <p className="text-tx-secondary">Connecte-toi pour voir ton inventaire.</p>}
+        {!user && (
+          <NeedsAccountCard
+            title="Ton inventaire t’attend"
+            text="Les objets, les caisses et les cosmétiques sont gardés sur ton compte. Connecte-toi pour les récupérer et les équiper."
+            reason="L’inventaire"
+          />
+        )}
 
         {tab === 'objets' && user && (
           <InventoryPanel state={filteredInventory} busy={busy} onUse={use} />

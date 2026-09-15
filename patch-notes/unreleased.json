@@ -111,6 +111,30 @@
       "type": "amelioration",
       "title": "Protection anti-spam",
       "details": "Le chat, les cadeaux, les duels, les changements de pseudo, les codes de parrainage et la création de compte sont limités pour empêcher le spam."
+    },
+    {
+      "id": "2026-09-15-15",
+      "date": "2026-09-15",
+      "scope": "casino",
+      "type": "amelioration",
+      "title": "Jouer sans compte, récompenses avec un compte",
+      "details": "Sans compte, tu peux jouer à tous les jeux du casino. Le bonus du jour, la roue, le coffre, le pass, les missions, la boutique et les cosmétiques ouvrent une fenêtre qui explique comment te connecter."
+    },
+    {
+      "id": "2026-09-15-16",
+      "date": "2026-09-15",
+      "scope": "peche",
+      "type": "amelioration",
+      "title": "Nouvel écran de connexion",
+      "details": "Sans compte, la Pêche affiche une page plus claire qui montre ce qui t'attend et comment créer ton compte."
+    },
+    {
+      "id": "2026-09-15-17",
+      "date": "2026-09-15",
+      "scope": "site",
+      "type": "amelioration",
+      "title": "Une icône d'onglet par section",
+      "details": "Le Casino, la Pêche et les jeux multijoueur ont chacun leur icône dans l'onglet du navigateur."
     }
   ]
 }
