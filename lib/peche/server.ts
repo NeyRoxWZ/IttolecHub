@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { supabase } from '@/lib/supabase/server';
+import { runInBackground } from '@/lib/background.server';
 import {
   ACHIEVEMENTS, COSMETIC_BY_ID, COSMETIC_SLOTS, PASS_TIERS, SHOP_ITEMS, SPECIES, TREE, getSpecies,
   type AchievementMetric, type CosmeticSlot, type GearId, type MaterialId, type TreeId, type Variant,
@@ -252,7 +253,9 @@ type Change<T> = Fail | { patch: Partial<Row>; result: T; dex?: DexAcc; shared?:
 /** Read, refresh periods, change, write back if nobody else wrote in between. */
 async function mutate<T>(userId: string, change: (row: Row) => Change<T>): Promise<Fail | { ok: true; result: T; state: PecheState }> {
   for (let attempt = 0; attempt < 4; attempt++) {
-    const loaded = await loadRow(userId);
+    // The dex is read beside the row, not after the write: the answer is built
+    // from it without a second trip.
+    const [loaded, dex] = await Promise.all([loadRow(userId), loadDex(userId)]);
     if (!loaded) return fail(404, 'Joueur introuvable');
     const periods = fresh(loaded);
     const row = { ...loaded, ...periods } as Row;
@@ -265,10 +268,13 @@ async function mutate<T>(userId: string, change: (row: Row) => Change<T>): Promi
       .select('*').maybeSingle();
     if (!data) continue;
 
-    if (out.dex && out.dex.size) await writeDex(userId, out.dex);
     let saved = data as Row;
-    if (out.shared) {
-      const extra = await writeShared(saved, out.shared);
+    // The dex and the shared counters are different tables: written together.
+    const [savedDex, extra] = await Promise.all([
+      out.dex && out.dex.size ? writeDex(userId, out.dex, dex) : Promise.resolve(dex),
+      out.shared ? writeShared(saved, out.shared) : Promise.resolve(0),
+    ]);
+    {
       if (extra) {
         const { data: again } = await supabase.from('peche_players')
           .update({ balance: saved.balance + extra, run_earned: saved.run_earned + extra, lifetime_earned: saved.lifetime_earned + extra, version: saved.version + 1 })
@@ -279,12 +285,17 @@ async function mutate<T>(userId: string, change: (row: Row) => Change<T>): Promi
         }
       }
     }
-    return { ok: true, result: out.result, state: present(saved, await loadDex(userId)) };
+    return { ok: true, result: out.result, state: present(saved, savedDex) };
   }
   return fail(409, 'Trop de choses à la fois, réessaie.');
 }
 
-async function writeDex(userId: string, catches: DexAcc) {
+/**
+ * Adds the catches to the dex and returns the whole dex as it now stands. The
+ * touched species are re-read right before the write (another action may have
+ * just added to them); the rest comes from the dex the action started with.
+ */
+async function writeDex(userId: string, catches: DexAcc, current: DexRow[]): Promise<DexRow[]> {
   const ids = Array.from(catches.keys());
   const { data } = await supabase.from('peche_dex').select('species_id, caught, best_weight, variants').eq('user_id', userId).in('species_id', ids);
   const existing = new Map(((data as DexRow[]) || []).map((d) => [d.species_id, d]));
@@ -295,6 +306,10 @@ async function writeDex(userId: string, catches: DexAcc) {
     return { user_id: userId, species_id: id, caught: (prev?.caught || 0) + add.n, best_weight: Math.max(prev?.best_weight || 0, add.w), variants: Array.from(variants) };
   });
   await supabase.from('peche_dex').upsert(rows, { onConflict: 'user_id,species_id' });
+
+  const merged = new Map(current.map((d) => [d.species_id, d]));
+  for (const r of rows) merged.set(r.species_id, { species_id: r.species_id, caught: r.caught, best_weight: r.best_weight, variants: r.variants } as DexRow);
+  return Array.from(merged.values());
 }
 
 /** Boss damage, jackpot and feed. Returns coins won from the jackpot, if any. */
@@ -302,22 +317,25 @@ async function writeShared(row: Row, shared: Shared): Promise<number> {
   const pseudo = (await pseudosOf([row.user_id])).get(row.user_id) || 'Pêcheur';
   let won = 0;
   try {
+    // Community counters the player doesn't wait for: written after the answer.
     if (shared.bossDamage && shared.bossDamage > 0) {
       const boss = bossFor();
-      await supabase.rpc('peche_boss_hit', { p_period: weekKey(), p_user: row.user_id, p_pseudo: pseudo, p_damage: shared.bossDamage, p_max: boss.maxHp });
+      runInBackground(supabase.rpc('peche_boss_hit', { p_period: weekKey(), p_user: row.user_id, p_pseudo: pseudo, p_damage: shared.bossDamage, p_max: boss.maxHp }));
     }
     if (shared.jackpotUnits && shared.jackpotUnits > 0) {
-      await supabase.rpc('peche_jackpot_add', { p_units: shared.jackpotUnits });
+      const add = supabase.rpc('peche_jackpot_add', { p_units: shared.jackpotUnits });
+      // A catch that also wins the pot adds its share before taking it, as before.
+      if (shared.jackpotWin) await add; else runInBackground(add);
     }
     if (shared.jackpotWin) {
       const { data } = await supabase.rpc('peche_jackpot_take', { p_winner: pseudo });
       won = Number(data || 0) * zoneBase(boatOf(row));
     }
     if (shared.feed?.length) {
-      await supabase.from('peche_feed').insert(shared.feed.map((f, i) => ({
+      runInBackground(supabase.from('peche_feed').insert(shared.feed.map((f, i) => ({
         user_id: row.user_id, pseudo, species_id: f.speciesId, rarity: f.rarity, variant: f.variant, weight: f.weight, zone: f.zone,
         jackpot: i === 0 && won > 0 ? won : null,
-      })));
+      }))));
     }
   } catch (err) {
     console.error('Pêche, écriture partagée:', err);

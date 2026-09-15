@@ -39,6 +39,22 @@
       "type": "amelioration",
       "title": "Mes badges toujours visible sur le profil",
       "details": "Sans badge, le profil explique comment en débloquer un, avec un bouton pour faire un don."
+    },
+    {
+      "id": "2026-09-15-06",
+      "date": "2026-09-15",
+      "scope": "casino",
+      "type": "amelioration",
+      "title": "Fins de partie plus rapides",
+      "details": "Perdre, encaisser ou jouer une partie instantanée répond beaucoup plus vite : le Tower, les Mines et les autres jeux n'attendent plus que tout soit enregistré pour afficher le résultat."
+    },
+    {
+      "id": "2026-09-15-07",
+      "date": "2026-09-15",
+      "scope": "peche",
+      "type": "amelioration",
+      "title": "Pêche plus fluide",
+      "details": "Les prises, les ventes et les récompenses s'enregistrent plus vite, et la canne auto ne ralentit plus le jeu pendant qu'elle attend la prochaine prise."
     }
   ]
 }

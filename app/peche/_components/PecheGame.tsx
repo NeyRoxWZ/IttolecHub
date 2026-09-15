@@ -184,12 +184,19 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
     if (!auto || !hasAuto) return;
     let stop = false;
     let n = 0;
-    let inFlight = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Asks again when the server says the next catch is due (plus a small
+    // margin so the request never lands a few ms early), instead of every two
+    // seconds whatever the rod's speed: the server still decides every catch.
+    const schedule = (nextAt?: number) => {
+      if (stop) return;
+      const wait = nextAt ? Math.min(Math.max(nextAt - Date.now() + 250, 400), 15_000) : 2000;
+      timer = setTimeout(tick, wait);
+    };
     const tick = async () => {
-      if (stop || inFlight) return;
-      inFlight = true;
+      if (stop) return;
       const r = await api('auto', { silent: true, mode });
-      inFlight = false;
+      schedule(r?.nextAt);
       if (r?.nextAt) setAutoNextAt(r.nextAt);
       if (r?.jackpot) { sfx.jackpot(); toast.success(`JACKPOT DU POISSON DORÉ : +${fmtBig(r.jackpot)} ₶ !`, { duration: 8000 }); }
       if (r?.catches?.length) {
@@ -204,10 +211,7 @@ export default function PecheGame({ userId, pseudo }: { userId: string; pseudo: 
       }
     };
     void tick();
-    // Poll often and let the server decide: the old timer fired on the exact
-    // interval, lost the race by a few ms and only caught every other time.
-    const id = setInterval(tick, 2000);
-    return () => { stop = true; clearInterval(id); setAutoNextAt(null); };
+    return () => { stop = true; if (timer) clearTimeout(timer); setAutoNextAt(null); };
   }, [auto, hasAuto, autoInterval, api, mode]);
 
   const { players: port, events: portEvents, send: sendPort } = usePort(state ? { userId, pseudo, zone: state.zone, maree: state.maree, mode } : null);
