@@ -18,6 +18,9 @@ import { BRAWL, BRAWL_SWATCHES } from '@/lib/ui/brawl';
 import OgName from '@/components/OgName';
 import { roomDb } from '@/lib/supabase/roomClient';
 import { forgetSeat, recallSeat, rememberSeat, takeOverIfHostGone } from '@/lib/roomSeat';
+import { PARTY_GAMES, partyMinPlayers } from '@/lib/party/catalog';
+import GameIcon, { hasGameIcon } from '@/components/GameIcon';
+import { Music, Laugh, Quote, Gavel, BookOpen, Brush, Grid3x3, HelpCircle } from 'lucide-react';
 interface Player {
   id: string;
   name: string;
@@ -290,6 +293,18 @@ const gamesList: { id: string; name: string; description: string; icon: any; col
     ],
   },
 ];
+
+// The party games (Hors Sujet, Punchline, Petit Bac…): catalog in lib/party/catalog.ts.
+const PARTY_ICONS: Record<string, any> = {
+  horssujet: HelpCircle, untraitdetrop: Brush, blindtest: Music, punchline: Laugh,
+  petitbac: Grid3x3, quiaditca: Quote, surenchere: Gavel, ledico: BookOpen,
+};
+gamesList.push(...PARTY_GAMES.map((g) => ({
+  id: g.id, name: g.name, description: g.description, icon: PARTY_ICONS[g.id] || Gamepad2, color: '', settings: g.settings,
+})));
+
+/** Multi-choice settings hold numbers (Pokémon generations) or ids (categories). */
+const settingValue = (v: string) => (/^\d+$/.test(v) ? Number(v) : v);
 
 export default function RoomPage({ params: paramsPromise }: { params: Promise<{ code: string }> }) {
   // Next 15 hands dynamic params over as a promise.
@@ -833,6 +848,29 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
     }
   }, [selectedGameId, isHost, gameSettings]);
 
+  // Realtime can miss the start of a game (phone asleep, background tab): check
+  // the room now and then, and follow when it switches to a game.
+  const lastStatus = useRef<string | null>(null);
+  useEffect(() => {
+    const check = async () => {
+      const { data } = await supabase.from('rooms').select('status, game_type, settings').eq('code', params.code).maybeSingle();
+      if (!data) return;
+      const playing = data.status === 'in_game' || data.status === 'started';
+      const was = lastStatus.current;
+      lastStatus.current = data.status;
+      if (!playing || !data.game_type || data.game_type === '__placeholder__') return;
+      // Back from a game on purpose (?return=true): only a new start moves the player.
+      const cameBack = new URLSearchParams(window.location.search).get('return') === 'true';
+      if (was === null ? cameBack : was === data.status) return;
+      router.push(`/games/${data.game_type}/${params.code}`);
+    };
+    void check();
+    const onVisible = () => { if (document.visibilityState === 'visible') void check(); };
+    document.addEventListener('visibilitychange', onVisible);
+    const t = setInterval(check, 5000);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVisible); };
+  }, [params.code, router]);
+
   const handleSettingChange = (settingId: string, value: any) => {
     setGameSettings(prev => {
         const next = { ...prev, [settingId]: value };
@@ -863,7 +901,8 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
         'rentguessr': 1,
         'logoguessr': 1,
         'jaugeguessr': 2,
-        'wikiracing': 1
+        'wikiracing': 1,
+        ...partyMinPlayers,
     };
 
     const minRequired = minPlayersMap[selectedGameId] || 1;
@@ -1250,15 +1289,20 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
                                         : cn("bg-[#2B3170] text-white shadow-[inset_0_-5px_0_#1A1F52,0_4px_0_#05061A]", isHost && "hover:bg-[#333A80]")
                                 )}
                             >
-                                <div
-                                    className="h-12 w-12 shrink-0 rounded-xl border-[3px] border-brand-border flex items-center justify-center text-white"
-                                    style={{ background: sw.fill, boxShadow: `inset 0 -4px 0 ${sw.shade}` }}
-                                >
-                                    <Icon className="h-6 w-6" />
-                                </div>
+                                {hasGameIcon(game.id) ? (
+                                    <GameIcon game={game.id} className="h-12 w-12 shrink-0" />
+                                ) : (
+                                    <div
+                                        className="h-12 w-12 shrink-0 rounded-xl border-[3px] border-brand-border flex items-center justify-center text-white"
+                                        style={{ background: sw.fill, boxShadow: `inset 0 -4px 0 ${sw.shade}` }}
+                                    >
+                                        <Icon className="h-6 w-6" />
+                                    </div>
+                                )}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-2">
-                                        <h3 className="font-display text-xl leading-tight truncate">{game.name}</h3>
+                                        {/* Inner padding: the title's outline would otherwise be clipped by the ellipsis. */}
+                                        <h3 className="font-display text-xl leading-tight truncate px-1 py-0.5 -mx-1">{game.name}</h3>
                                         {isComingSoon && (
                                             <span className="shrink-0 text-[11px] font-black bg-brand-bg text-white border-[3px] border-brand-border px-1.5 py-0.5 rounded-lg">
                                                 Bientôt
@@ -1357,19 +1401,20 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
                                                     {setting.options.map((opt) => {
                                                         const currentVal = gameSettings[setting.id];
                                                         const current = Array.isArray(currentVal) ? currentVal : (setting.default as any[]);
-                                                        const isSelected = Array.isArray(current) && current.includes(Number(opt.value));
-                                                        
+                                                        const isSelected = Array.isArray(current) && current.includes(settingValue(opt.value));
+
                                                         return (
                                                             <button
                                                                 key={opt.value}
                                                                 disabled={opt.disabled}
                                                                 onClick={() => {
                                                                     if (opt.disabled) return;
-                                                                    const val = Number(opt.value);
+                                                                    const val = settingValue(opt.value);
                                                                     let newVal;
                                                                     if (isSelected) {
                                                                         newVal = current.filter((x: any) => x !== val);
-                                                                        if (newVal.length === 0) newVal = [1];
+                                                                        // At least one choice stays on.
+                                                                        if (newVal.length === 0) newVal = [val];
                                                                     } else {
                                                                         newVal = [...current, val];
                                                                     }
@@ -1395,7 +1440,10 @@ export default function RoomPage({ params: paramsPromise }: { params: Promise<{ 
                                             {setting.type === 'select' && setting.options 
                                                 ? setting.options.find(o => o.value === String(gameSettings[setting.id] ?? setting.default))?.label 
                                                 : setting.type === 'multiselect'
-                                                    ? (Array.isArray(gameSettings[setting.id]) ? (gameSettings[setting.id] as unknown as any[]).join(', ') : String(setting.default))
+                                                    ? (() => {
+                                                        const chosen = (Array.isArray(gameSettings[setting.id]) ? gameSettings[setting.id] : setting.default) as unknown as any[];
+                                                        return (Array.isArray(chosen) ? chosen : []).map((v) => setting.options?.find((o) => settingValue(o.value) === v)?.label ?? String(v)).join(', ');
+                                                    })()
                                                     : (gameSettings[setting.id] ?? setting.default)
                                             }
                                         </div>

@@ -1,0 +1,54 @@
+{
+  "categories": [
+    {
+      "id": "objets",
+      "label": "Objets",
+      "items": ["Parapluie", "Lunettes", "Ciseaux", "Clé", "Téléphone", "Ampoule", "Bougie", "Chaise", "Lampe", "Réveil", "Montre", "Casque audio", "Guitare", "Marteau", "Tournevis", "Échelle", "Brosse à dents", "Peigne", "Valise", "Sac à dos", "Appareil photo", "Télévision", "Ordinateur", "Crayon", "Livre", "Enveloppe", "Cadenas", "Fourchette", "Cuillère", "Casserole", "Théière", "Tasse", "Bouteille", "Seau", "Balai", "Aspirateur", "Couronne", "Trophée", "Ballon de baudruche", "Cerf-volant", "Loupe", "Boussole", "Sablier", "Aimant", "Pile", "Clou", "Trombone", "Dé", "Miroir", "Télécommande", "Micro", "Batterie", "Piano", "Trompette", "Violon", "Robinet", "Baignoire", "Lit", "Canapé", "Escalier"]
+    },
+    {
+      "id": "animaux",
+      "label": "Animaux",
+      "items": ["Chat", "Chien", "Éléphant", "Girafe", "Serpent", "Poisson", "Escargot", "Araignée", "Papillon", "Abeille", "Lapin", "Souris", "Cochon", "Vache", "Mouton", "Cheval", "Poule", "Canard", "Hibou", "Pingouin", "Crocodile", "Tortue", "Grenouille", "Requin", "Baleine", "Pieuvre", "Crabe", "Méduse", "Hérisson", "Kangourou", "Singe", "Lion", "Tigre", "Zèbre", "Ours", "Renard", "Loup", "Chameau", "Dauphin", "Flamant rose", "Paon", "Chauve-souris", "Coccinelle", "Fourmi", "Ver de terre", "Hippopotame", "Rhinocéros", "Koala", "Panda", "Écureuil", "Autruche", "Perroquet", "Hamster", "Taupe", "Castor", "Morse", "Hippocampe", "Scorpion", "Moustique", "Dinosaure"]
+    },
+    {
+      "id": "nourriture",
+      "label": "Nourriture",
+      "items": ["Pizza", "Banane", "Pomme", "Carotte", "Burger", "Frites", "Glace", "Gâteau", "Croissant", "Baguette", "Fromage", "Œuf au plat", "Saucisse", "Cerise", "Fraise", "Ananas", "Pastèque", "Citron", "Poire", "Raisin", "Champignon", "Brocoli", "Tomate", "Maïs", "Hot-dog", "Sushi", "Donut", "Cupcake", "Sucette", "Chocolat", "Popcorn", "Crêpe", "Tacos", "Spaghetti", "Soupe", "Bretzel", "Cookie", "Poulet rôti", "Poisson pané", "Noix de coco", "Avocat", "Oignon", "Ail", "Piment", "Pain de mie", "Kebab", "Macaron", "Muffin", "Omelette", "Salade", "Bonbon", "Chewing-gum", "Café", "Thé", "Jus d’orange", "Milkshake", "Biberon", "Sandwich", "Croque-monsieur", "Barbe à papa"]
+    },
+    {
+      "id": "lieux",
+      "label": "Lieux et bâtiments",
+      "items": ["Maison", "Château", "Église", "Tour Eiffel", "Pyramide", "Phare", "Pont", "Plage", "Montagne", "Île", "Désert", "Forêt", "Grotte", "Igloo", "Tente", "Cabane", "Moulin à vent", "Gratte-ciel", "École", "Hôpital", "Gare", "Aéroport", "Piscine", "Stade", "Cinéma", "Musée", "Zoo", "Ferme", "Cimetière", "Prison", "Parc", "Fontaine", "Volcan", "Cascade", "Port", "Station-service", "Supermarché", "Boulangerie", "Restaurant", "Bibliothèque", "Fête foraine", "Grande roue", "Toboggan", "Cirque", "Mairie", "Usine", "Rue", "Carrefour", "Rond-point", "Terrain de foot", "Salle de bain", "Cuisine", "Garage", "Grenier", "Cave", "Balcon", "Jardin", "Serre", "Temple", "Statue de la Liberté"]
+    },
+    {
+      "id": "metiers",
+      "label": "Métiers",
+      "items": ["Pompier", "Policier", "Médecin", "Dentiste", "Cuisinier", "Boulanger", "Astronaute", "Pilote", "Pirate", "Clown", "Magicien", "Jardinier", "Plombier", "Électricien", "Peintre", "Coiffeur", "Facteur", "Professeur", "Chanteur", "Footballeur", "Photographe", "Plongeur", "Pêcheur", "Agriculteur", "Maçon", "Chauffeur de taxi", "Serveur", "Infirmier", "Vétérinaire", "Juge", "Détective", "Soldat", "Chevalier", "Roi", "Sorcière", "Bûcheron", "Mineur", "Cow-boy", "Sauveteur", "Arbitre", "Danseuse", "DJ", "Boucher", "Fleuriste", "Mécanicien", "Livreur", "Scientifique", "Archéologue", "Explorateur", "Jongleur", "Ninja", "Samouraï", "Moine", "Garde du corps", "Caissier", "Bibliothécaire", "Ramoneur", "Apiculteur", "Sculpteur", "Cascadeur"]
+    },
+    {
+      "id": "sports",
+      "label": "Sports et loisirs",
+      "items": ["Football", "Basket", "Tennis", "Ping-pong", "Golf", "Ski", "Surf", "Natation", "Vélo", "Boxe", "Karaté", "Judo", "Escalade", "Bowling", "Billard", "Fléchettes", "Rugby", "Volley", "Badminton", "Patin à glace", "Skateboard", "Trottinette", "Roller", "Pêche", "Plongée", "Parachute", "Parapente", "Équitation", "Tir à l’arc", "Escrime", "Haltérophilie", "Course à pied", "Saut en hauteur", "Saut à la perche", "Yoga", "Danse", "Karaoké", "Échecs", "Jeu de cartes", "Puzzle", "Pétanque", "Hockey", "Baseball", "Formule 1", "Kayak", "Voile", "Randonnée", "Camping", "Jonglage", "Corde à sauter", "Trampoline", "Balançoire", "Toboggan aquatique", "Cerf-volant", "Jeu vidéo", "Cinéma", "Barbecue", "Pique-nique", "Bonhomme de neige", "Château de sable"]
+    },
+    {
+      "id": "transports",
+      "label": "Transports",
+      "items": ["Voiture", "Vélo", "Moto", "Bus", "Train", "Métro", "Avion", "Hélicoptère", "Bateau", "Voilier", "Sous-marin", "Fusée", "Montgolfière", "Tracteur", "Camion", "Ambulance", "Camion de pompiers", "Voiture de police", "Taxi", "Tramway", "Téléphérique", "Scooter", "Trottinette", "Skateboard", "Tank", "Kayak", "Canoë", "Paquebot", "Jet-ski", "Planche à voile", "Pédalo", "Calèche", "Charrette", "Traîneau", "Soucoupe volante", "Dirigeable", "Deltaplane", "Monocycle", "Tandem", "Poussette", "Caddie", "Bulldozer", "Grue", "Pelleteuse", "Camping-car", "Limousine", "Voiture de course", "Quad", "Motoneige", "Radeau", "Gondole", "Ferry", "Chariot élévateur", "Remorque", "Autocar", "Tapis volant", "Balai de sorcière", "Ascenseur", "Escalator", "Parachute"]
+    },
+    {
+      "id": "nature",
+      "label": "Nature et météo",
+      "items": ["Soleil", "Lune", "Étoile", "Nuage", "Pluie", "Neige", "Orage", "Éclair", "Arc-en-ciel", "Tornade", "Vague", "Arbre", "Palmier", "Sapin", "Fleur", "Rose", "Tournesol", "Cactus", "Champignon", "Feuille", "Herbe", "Rocher", "Montagne", "Volcan", "Rivière", "Lac", "Cascade", "Île", "Plage", "Désert", "Iceberg", "Flocon", "Goutte d’eau", "Feu", "Fumée", "Comète", "Planète", "Terre", "Éclipse", "Brouillard", "Vent", "Grêle", "Coquillage", "Étoile de mer", "Algue", "Coucher de soleil", "Aurore boréale", "Glacier", "Dune", "Caillou", "Pomme de pin", "Gland", "Toile d’araignée", "Nid d’oiseau", "Ruche", "Bambou", "Trèfle", "Tronc d’arbre", "Racine", "Galaxie"]
+    },
+    {
+      "id": "corps",
+      "label": "Corps et vêtements",
+      "items": ["Main", "Pied", "Œil", "Nez", "Bouche", "Oreille", "Dent", "Cœur", "Cerveau", "Squelette", "Moustache", "Barbe", "Cheveux", "Doigt", "Genou", "Coude", "Langue", "Sourcil", "Nombril", "Bras", "T-shirt", "Pantalon", "Short", "Robe", "Jupe", "Chaussette", "Chaussure", "Botte", "Tong", "Casquette", "Chapeau", "Bonnet", "Écharpe", "Gants", "Manteau", "Pull", "Cravate", "Nœud papillon", "Ceinture", "Maillot de bain", "Pyjama", "Lunettes de soleil", "Bague", "Collier", "Boucle d’oreille", "Montre", "Sac à main", "Parapluie", "Masque", "Casque", "Tablier", "Chaussons", "Talons", "Bretelles", "Salopette", "Kimono", "Cape", "Couronne", "Perruque", "Bandeau"]
+    },
+    {
+      "id": "fiction",
+      "label": "Personnages et créatures",
+      "items": ["Fantôme", "Vampire", "Zombie", "Sorcière", "Dragon", "Licorne", "Sirène", "Robot", "Extraterrestre", "Momie", "Loup-garou", "Squelette", "Pirate", "Ninja", "Chevalier", "Princesse", "Roi", "Fée", "Lutin", "Géant", "Ogre", "Troll", "Yéti", "Cyclope", "Minotaure", "Centaure", "Pégase", "Phénix", "Génie", "Père Noël", "Bonhomme de neige", "Épouvantail", "Super-héros", "Magicien", "Clown", "Diable", "Ange", "Cupidon", "Petit chaperon rouge", "Pinocchio", "Frankenstein", "Mario", "Pikachu", "Batman", "Spider-Man", "Superman", "Harry Potter", "Dark Vador", "Shrek", "Mickey", "Bob l’éponge", "Sonic", "Pac-Man", "Astérix", "Tintin", "Hulk", "Gollum", "Cendrillon", "Pokéball", "Minion"]
+    }
+  ]
+}

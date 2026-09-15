@@ -7,7 +7,7 @@ import { SITE_URL, seoMeta } from '@/lib/seo';
 
 export const metadata = seoMeta({
   title: 'Jeux multijoueur gratuits en ligne entre amis',
-  description: 'Undercover, jeu de dessin, quiz drapeaux, Pokémon, logos, WikiRacing… 10 jeux multijoueur gratuits à jouer entre amis dans le navigateur, sans téléchargement, sur PC et téléphone.',
+  description: 'Undercover, blind test, Petit Bac, jeux de dessin, quiz drapeaux… 18 jeux multijoueur gratuits à jouer entre amis dans le navigateur, sans téléchargement, sur PC et téléphone.',
   path: '/jeux-multijoueur',
 });
 
@@ -52,7 +52,7 @@ export default function MultiplayerHubPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="font-display text-3xl mb-3">Les 10 jeux</h2>
+        <h2 className="font-display text-3xl mb-3">Les {MULTIPLAYER_GAMES.length} jeux</h2>
         <ul className="grid gap-3 sm:grid-cols-2">
           {MULTIPLAYER_GAMES.map((g) => (
             <li key={g.slug}>

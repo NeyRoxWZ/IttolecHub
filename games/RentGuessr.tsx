@@ -412,7 +412,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                                                   e.stopPropagation();
                                                   setCurrentPhotoIndex(prev => prev === 0 ? currentProperty.photos_url.length - 1 : prev - 1);
                                               }}
-                                              className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-brand-bg/80 text-tx-base border-[3px] border-brand-border rounded-xl hover:bg-brand-inner transition-colors z-10 shadow-brutal active:translate-y-1 active:shadow-none"
+                                              className="absolute left-4 top-[calc(50%-27px)] p-3 bg-brand-bg/80 text-tx-base border-[3px] border-brand-border rounded-xl hover:bg-brand-inner transition-transform z-10 shadow-brutal active:translate-y-[3px] active:shadow-none"
                                           >
                                               <ArrowLeft className="w-6 h-6" />
                                           </button>
@@ -421,7 +421,7 @@ export default function RentGuessr({ roomCode }: RentGuessrProps) {
                                                   e.stopPropagation();
                                                   setCurrentPhotoIndex(prev => prev === currentProperty.photos_url.length - 1 ? 0 : prev + 1);
                                               }}
-                                              className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-brand-bg/80 text-tx-base border-[3px] border-brand-border rounded-xl hover:bg-brand-inner transition-colors z-10 shadow-brutal active:translate-y-1 active:shadow-none"
+                                              className="absolute right-4 top-[calc(50%-27px)] p-3 bg-brand-bg/80 text-tx-base border-[3px] border-brand-border rounded-xl hover:bg-brand-inner transition-transform z-10 shadow-brutal active:translate-y-[3px] active:shadow-none"
                                           >
                                               <ArrowRight className="w-6 h-6" />
                                           </button>

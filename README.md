@@ -2,7 +2,8 @@
 
 Site de jeux gratuits : [itollechub.com](https://itollechub.com).
 
-- **Multijoueur** : parties entre potes par code de salle (BudgetGuessr, DrawGuessr, FlagGuessr, Infiltré, JaugeGuessr, LogoGuessr, PokeGuessr, RentGuessr, Undercover, WikiRacing).
+- **Multijoueur** : parties entre potes par code de salle (BudgetGuessr, DrawGuessr, FlagGuessr, Infiltré, JaugeGuessr, LogoGuessr, PokeGuessr, RentGuessr, Undercover, WikiRacing, et les jeux d’ambiance Hors Sujet, Un Trait de Trop, BlindTest, Punchline, Petit Bac, Qui a dit ça ?, Surenchère, Le Dico).
+- Les jeux d’ambiance partagent un moteur commun : `games/party/` (état de manche, coups des joueurs, écrans communs) et `lib/party/catalog.ts` (réglages et catégories).
 - **Casino** : monnaie fictive, une vingtaine de jeux, pass, missions, boutique.
 - **Pêche** : jeu idle avec Poissodex et aquarium.
 

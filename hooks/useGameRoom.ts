@@ -223,6 +223,28 @@ export function useGameRoom(roomId: string, playerId: string) {
 
     fetchInitialState();
 
+    // Realtime drops events while a phone sleeps or a tab sits in the background:
+    // catch up on the essentials when the player comes back, and every few seconds.
+    const resync = async () => {
+      const [roomRes, sessionRes, playersRes, movesRes] = await Promise.all([
+        supabase.from('rooms').select('*').eq('id', roomId).maybeSingle(),
+        supabase.from('game_sessions').select('*').eq('room_id', roomId).maybeSingle(),
+        supabase.from('players').select('*').eq('room_id', roomId),
+        supabase.from('game_moves').select('*').eq('room_id', roomId).order('created_at', { ascending: true }),
+      ]);
+      if (!isMounted) return;
+      setState(prev => ({
+        ...prev,
+        room: roomRes.data ?? prev.room,
+        session: sessionRes.error ? prev.session : sessionRes.data,
+        players: playersRes.data || prev.players,
+        moves: movesRes.data || prev.moves,
+      }));
+    };
+    const onVisible = () => { if (document.visibilityState === 'visible') void resync(); };
+    document.addEventListener('visibilitychange', onVisible);
+    const poll = setInterval(resync, 8000);
+
     // Setup Realtime Subscription
     const channel = supabase.channel(`room_sync:${roomId}`)
       // Room
@@ -358,6 +380,8 @@ export function useGameRoom(roomId: string, playerId: string) {
 
     return () => {
       isMounted = false;
+      clearInterval(poll);
+      document.removeEventListener('visibilitychange', onVisible);
       supabase.removeChannel(channel);
     };
   }, [roomId]);

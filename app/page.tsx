@@ -158,7 +158,16 @@ function Home({ urlMode }: { urlMode: 'multiplayer' | 'solo' | null }) {
   const modeSwitch = (
     // Concentric corners: 22px outside, minus the 3px border and 6px padding,
     // leaves 13px for the pill inside.
-    <nav className="flex gap-1 p-1.5 rounded-[22px] bg-brand-bg border-[3px] border-brand-border" aria-label="Mode de jeu">
+    // One yellow pill slides under the chosen mode, instead of two buttons
+    // repainting one after the other.
+    <nav className="relative grid grid-cols-2 p-1.5 rounded-[22px] bg-brand-bg border-[3px] border-brand-border" aria-label="Mode de jeu">
+      <span
+        aria-hidden
+        className={cn(
+          'absolute top-1.5 bottom-1.5 left-1.5 w-[calc(50%-6px)] rounded-[13px] bg-accent-primary shadow-[inset_0_-4px_0_#D98E00] transition-transform duration-300 ease-[cubic-bezier(.3,1.4,.5,1)] motion-reduce:transition-none',
+          mode === 'solo' ? 'translate-x-full' : 'translate-x-0'
+        )}
+      />
       {(['multiplayer', 'solo'] as const).map((m) => (
         <button
           key={m}
@@ -166,10 +175,8 @@ function Home({ urlMode }: { urlMode: 'multiplayer' | 'solo' | null }) {
           onClick={() => handleSetMode(m)}
           aria-pressed={mode === m}
           className={cn(
-            'h-10 px-4 sm:px-5 rounded-[13px] font-display text-lg transition-colors flex items-center gap-2',
-            mode === m
-              ? 'bg-accent-primary text-brand-bg shadow-[inset_0_-4px_0_#D98E00]'
-              : 'text-tx-secondary hover:text-white'
+            'relative z-10 h-10 px-4 sm:px-5 rounded-[13px] font-display text-lg transition-colors duration-300 flex items-center justify-center gap-2',
+            mode === m ? 'text-brand-bg' : 'text-tx-secondary hover:text-white'
           )}
         >
           {m === 'multiplayer' ? <Users className="h-5 w-5" strokeWidth={2.5} /> : <User className="h-5 w-5" strokeWidth={2.5} />}

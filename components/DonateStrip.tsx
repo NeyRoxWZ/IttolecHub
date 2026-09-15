@@ -36,7 +36,8 @@ export default function DonateButton({ pseudo, avatarUrl, compact, iconOnly, lab
         <span className="donate-beat h-8 w-8 shrink-0 rounded-xl border-2 border-brand-border bg-white flex items-center justify-center">
           <Heart className="h-[18px] w-[18px] text-accent-secondary" fill="currentColor" />
         </span>
-        {!iconOnly && label}
+        {/* The display font sits low in its line box: lifted to the heart's centre line. */}
+        {!iconOnly && <span className="leading-none -translate-y-[2px]">{label}</span>}
       </button>
       {open && <DonateModal pseudo={pseudo} avatarUrl={avatarUrl} onClose={() => setOpen(false)} />}
     </>

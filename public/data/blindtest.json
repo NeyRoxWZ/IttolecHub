@@ -1,0 +1,54 @@
+{
+  "categories": [
+    {
+      "id": "rapfr",
+      "label": "Rap FR",
+      "items": ["Jul", "Ninho", "Booba", "PNL", "Nekfeu", "Orelsan", "SCH", "Damso", "Niska", "GIMS", "Soprano", "Lomepal", "Vald", "Gazo", "Tiakola", "Kaaris", "Rohff", "IAM", "Suprême NTM", "MC Solaar", "Sexion d'Assaut", "Bigflo & Oli", "Naps", "Hamza", "Werenoi", "Alonzo", "Lacrim", "Maes", "Heuss L'enfoiré", "Koba LaD", "Freeze Corleone", "Gradur", "Kery James", "Diam's", "La Fouine", "Kalash Criminel", "Leto", "Zola", "113", "Sofiane"]
+    },
+    {
+      "id": "popfr",
+      "label": "Pop FR",
+      "items": ["Angèle", "Stromae", "Aya Nakamura", "Indila", "Louane", "Vianney", "Kendji Girac", "Amir", "Julien Doré", "Christine and the Queens", "Clara Luciani", "Zaz", "Slimane", "M. Pokora", "Juliette Armanet", "Pomme", "Hoshi", "Suzane", "Claudio Capéo", "Calogero", "Nolwenn Leroy", "Grand Corps Malade", "Vitaa", "Jenifer", "Collectif Métissé", "Lorie", "Tal", "Shy'm", "Zazie", "Bénabar", "Mylène Farmer", "Patrick Bruel", "Pascal Obispo", "Keen'V", "Joyce Jonathan", "Coeur de pirate", "Boulevard des Airs", "Trois Cafés Gourmands", "L.E.J", "Dadju"]
+    },
+    {
+      "id": "variete",
+      "label": "Variété française",
+      "items": ["Johnny Hallyday", "Michel Sardou", "Jean-Jacques Goldman", "Céline Dion", "Francis Cabrel", "Charles Aznavour", "Edith Piaf", "Jacques Brel", "Serge Gainsbourg", "Claude François", "Dalida", "Joe Dassin", "France Gall", "Michel Berger", "Renaud", "Alain Souchon", "Laurent Voulzy", "Véronique Sanson", "Téléphone", "Indochine", "Daniel Balavoine", "Julien Clerc", "Michel Polnareff", "Eddy Mitchell", "Sheila", "Sylvie Vartan", "Jacques Dutronc", "Hugues Aufray", "Mike Brant", "Gilbert Bécaud", "Yves Montand", "Georges Brassens", "Barbara", "Axelle Red", "Florent Pagny", "Garou", "Lara Fabian", "Patricia Kaas", "Vanessa Paradis", "Christophe"]
+    },
+    {
+      "id": "hits",
+      "label": "Hits internationaux",
+      "items": ["Taylor Swift", "Ed Sheeran", "The Weeknd", "Dua Lipa", "Billie Eilish", "Harry Styles", "Bruno Mars", "Ariana Grande", "Justin Bieber", "Rihanna", "Beyoncé", "Drake", "Adele", "Coldplay", "Imagine Dragons", "Post Malone", "Lady Gaga", "Katy Perry", "Sia", "Shakira", "Miley Cyrus", "Olivia Rodrigo", "Doja Cat", "Sabrina Carpenter", "Calvin Harris", "David Guetta", "Maroon 5", "OneRepublic", "Lewis Capaldi", "Shawn Mendes", "Camila Cabello", "Eminem", "Kendrick Lamar", "Travis Scott", "Bad Bunny", "Rosalía", "Lana Del Rey", "Sam Smith", "Selena Gomez", "Charlie Puth"]
+    },
+    {
+      "id": "annees80",
+      "label": "Années 80",
+      "items": ["Michael Jackson", "Madonna", "Prince", "Queen", "a-ha", "Cyndi Lauper", "Whitney Houston", "Tears for Fears", "Duran Duran", "Eurythmics", "Wham!", "George Michael", "Culture Club", "The Police", "Dire Straits", "Bon Jovi", "Europe", "Toto", "Phil Collins", "Kim Wilde", "Bonnie Tyler", "Rick Astley", "Simple Minds", "Depeche Mode", "The Cure", "Pet Shop Boys", "Lionel Richie", "Tina Turner", "Kool & The Gang", "Survivor", "Bananarama", "Spandau Ballet", "Men At Work", "Soft Cell", "Talk Talk", "Desireless", "Images", "Gold", "Début de Soirée", "Niagara"]
+    },
+    {
+      "id": "annees90",
+      "label": "Années 90",
+      "items": ["Nirvana", "Spice Girls", "Backstreet Boys", "Britney Spears", "Oasis", "Alanis Morissette", "TLC", "No Doubt", "Ace of Base", "Haddaway", "Dr. Alban", "Snap!", "2 Unlimited", "Eiffel 65", "Aqua", "Scatman John", "Coolio", "Fugees", "Mariah Carey", "The Cranberries", "R.E.M.", "Red Hot Chili Peppers", "Blur", "Radiohead", "Robbie Williams", "Take That", "Boyz II Men", "Destiny's Child", "2Pac", "The Notorious B.I.G.", "Vanilla Ice", "MC Hammer", "Lou Bega", "Alliage", "2Be3", "Worlds Apart", "Ricky Martin", "Enrique Iglesias", "Shania Twain", "Mylène Farmer"]
+    },
+    {
+      "id": "annees2000",
+      "label": "Années 2000",
+      "items": ["Linkin Park", "Avril Lavigne", "Black Eyed Peas", "Outkast", "Nelly Furtado", "Timbaland", "Christina Aguilera", "Justin Timberlake", "Usher", "50 Cent", "Kanye West", "Amy Winehouse", "Gnarls Barkley", "James Blunt", "Daniel Powter", "Kelly Clarkson", "P!nk", "The Pussycat Dolls", "Sean Paul", "Akon", "Leona Lewis", "Kylie Minogue", "Gorillaz", "Evanescence", "The Killers", "Franz Ferdinand", "Mika", "Alizée", "Kyo", "Tragédie", "Corneille", "Sinik", "Yannick Noah", "Christophe Maé", "Magic System", "Crazy Frog", "Shakira", "Beyoncé", "Eminem", "Rihanna"]
+    },
+    {
+      "id": "rock",
+      "label": "Rock",
+      "items": ["AC/DC", "Queen", "Led Zeppelin", "The Rolling Stones", "The Beatles", "Guns N' Roses", "Metallica", "Nirvana", "Foo Fighters", "Red Hot Chili Peppers", "Muse", "Arctic Monkeys", "The White Stripes", "Green Day", "Linkin Park", "Pink Floyd", "Deep Purple", "Aerosmith", "Bon Jovi", "KISS", "The Clash", "Ramones", "U2", "Radiohead", "Oasis", "The Killers", "Kings of Leon", "Imagine Dragons", "System Of A Down", "Rage Against The Machine", "The Offspring", "blink-182", "Scorpions", "Queens of the Stone Age", "Placebo", "Noir Désir", "Téléphone", "Indochine", "Louise Attaque", "Shaka Ponk"]
+    },
+    {
+      "id": "rnb",
+      "label": "RnB et soul",
+      "items": ["Beyoncé", "Alicia Keys", "Usher", "Rihanna", "Chris Brown", "The Weeknd", "Frank Ocean", "SZA", "Bruno Mars", "Stevie Wonder", "Marvin Gaye", "Aretha Franklin", "Whitney Houston", "Mariah Carey", "Ne-Yo", "John Legend", "Aaliyah", "Destiny's Child", "Janet Jackson", "Lauryn Hill", "Amy Winehouse", "Jhené Aiko", "H.E.R.", "Daniel Caesar", "Khalid", "Tayc", "Dadju", "Aya Nakamura", "Imen Es", "Wejdene", "Franglish", "Ayra Starr", "Tems", "Burna Boy", "Ray Charles", "Otis Redding", "Barry White", "Earth, Wind & Fire", "Lionel Richie", "Rema"]
+    },
+    {
+      "id": "electro",
+      "label": "Électro",
+      "items": ["Daft Punk", "David Guetta", "Calvin Harris", "Avicii", "Martin Garrix", "Kygo", "Bob Sinclar", "Justice", "deadmau5", "Skrillex", "Swedish House Mafia", "Tiësto", "Armin van Buuren", "Major Lazer", "DJ Snake", "Kavinsky", "The Chemical Brothers", "The Prodigy", "Moby", "Fatboy Slim", "Robin Schulz", "Martin Solveig", "Petit Biscuit", "Kungs", "Ofenbach", "Disclosure", "Zedd", "Marshmello", "Alok", "Purple Disco Machine", "Lost Frequencies", "Mr. Oizo", "Cassius", "Stardust", "Modjo", "Faithless", "Darude", "Eric Prydz", "Fred again..", "Madeon"]
+    }
+  ]
+}

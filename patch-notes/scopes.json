@@ -39,6 +39,14 @@
     { "id": "pokeguessr", "label": "PokeGuessr", "group": "multi" },
     { "id": "rentguessr", "label": "RentGuessr", "group": "multi" },
     { "id": "undercover", "label": "Undercover", "group": "multi" },
-    { "id": "wikiracing", "label": "WikiRacing", "group": "multi" }
+    { "id": "wikiracing", "label": "WikiRacing", "group": "multi" },
+    { "id": "horssujet", "label": "Hors Sujet", "group": "multi" },
+    { "id": "untraitdetrop", "label": "Un Trait de Trop", "group": "multi" },
+    { "id": "blindtest", "label": "BlindTest", "group": "multi" },
+    { "id": "punchline", "label": "Punchline", "group": "multi" },
+    { "id": "petitbac", "label": "Petit Bac", "group": "multi" },
+    { "id": "quiaditca", "label": "Qui a dit ça ?", "group": "multi" },
+    { "id": "surenchere", "label": "Surenchère", "group": "multi" },
+    { "id": "ledico", "label": "Le Dico", "group": "multi" }
   ]
 }

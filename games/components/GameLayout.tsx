@@ -17,6 +17,7 @@ interface GameLayoutProps {
   className?: string;
   voteToLobby?: ReactNode; // Vote to lobby button
   isConnected?: boolean; // Realtime connection status (from useGameSync)
+  maxTime?: number; // Length of the current phase in seconds, for the progress bar
 }
 
 export default function GameLayout({
@@ -28,7 +29,8 @@ export default function GameLayout({
   timeLeft = 0,
   className,
   voteToLobby, // Default undefined
-  isConnected = true
+  isConnected = true,
+  maxTime = 30
 }: GameLayoutProps) {
 
   // Extract roomId from URL (simple hack since we don't pass it down yet)
@@ -92,7 +94,7 @@ export default function GameLayout({
                             "h-full rounded-full transition-all duration-1000 ease-linear shadow-[inset_0_-3px_0_rgba(0,0,0,0.25)]",
                             urgent ? "bg-accent-secondary" : "bg-accent-primary"
                         )}
-                        style={{ width: `${Math.min(100, (timeLeft / 30) * 100)}%` }} // Fallback base 30s if max unknown
+                        style={{ width: `${Math.min(100, (timeLeft / Math.max(1, maxTime)) * 100)}%` }}
                     />
                  </div>
             </div>
