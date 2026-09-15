@@ -9,3 +9,7 @@ node_modules
 .open-next
 .dev.vars
 .wrangler
+
+# Local env files and build caches: never committed.
+.env
+tsconfig.tsbuildinfo
